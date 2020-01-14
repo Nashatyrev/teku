@@ -28,7 +28,11 @@ import static tech.pegasys.artemis.util.config.Constants.SLOTS_PER_EPOCH;
 
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.primitives.UnsignedLong;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.tuweni.bytes.Bytes;
@@ -37,6 +41,54 @@ import org.apache.tuweni.crypto.Hash;
 import tech.pegasys.artemis.datastructures.state.BeaconState;
 
 public class CommitteeUtil {
+
+  private static int MAX_SHUFFLE_CACHE = 64;
+
+  private static class ShuffleKey {
+    private final int index_count;
+    private final Bytes32 seed;
+
+    ShuffleKey(int index_count, Bytes32 seed) {
+      this.index_count = index_count;
+      this.seed = seed;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      ShuffleKey that = (ShuffleKey) o;
+      return index_count == that.index_count &&
+          seed.equals(that.seed);
+    }
+
+    @Override
+    public int hashCode() {
+      return (seed.get(0) << 24) ^ (seed.get(1) << 16) ^ (seed.get(2) << 8) ^ (seed.get(3));
+    }
+
+    @Override
+    public String toString() {
+      return "ShuffleKey{" +
+          "index_count=" + index_count +
+          ", seed=" + seed +
+          '}';
+    }
+  }
+
+  private static class LimitedHashMap<K, V> extends LinkedHashMap<K, V> {
+    private final int maxSize;
+
+    public LimitedHashMap(int maxSize) {
+      this.maxSize = maxSize;
+    }
+
+    @Override
+    protected boolean removeEldestEntry(Entry<K, V> eldest) {
+      return size() > maxSize;
+    }
+  }
+
+  private final static Map<ShuffleKey, Integer[]> shuffleCache = Collections.synchronizedMap(
+      new LimitedHashMap<>(MAX_SHUFFLE_CACHE));
 
   /**
    * Return the shuffled validator index corresponding to ``seed`` (and ``index_count``).
@@ -51,40 +103,51 @@ public class CommitteeUtil {
   public static Integer compute_shuffled_index(int index, int index_count, Bytes32 seed) {
     checkArgument(index < index_count, "CommitteeUtil.get_shuffled_index1");
 
-    int indexRet = index;
-    byte[] powerOfTwoNumbers = {1, 2, 4, 8, 16, 32, 64, (byte) 128};
+    Integer[] cachedShuffle = MAX_SHUFFLE_CACHE == 0 ? null : shuffleCache
+        .computeIfAbsent(new ShuffleKey(index_count, seed), k -> new Integer[k.index_count]);
 
-    for (int round = 0; round < SHUFFLE_ROUND_COUNT; round++) {
+    if (cachedShuffle != null && cachedShuffle[index] != null) {
+      return cachedShuffle[index];
+    } else {
 
-      Bytes roundAsByte = Bytes.of((byte) round);
+      int indexRet = index;
+      byte[] powerOfTwoNumbers = {1, 2, 4, 8, 16, 32, 64, (byte) 128};
 
-      // This needs to be unsigned modulo.
-      int pivot =
-          toIntExact(
-              Long.remainderUnsigned(
-                  bytes_to_int(Hash.sha2_256(Bytes.wrap(seed, roundAsByte)).slice(0, 8)),
-                  index_count));
-      int flip = Math.floorMod(pivot - indexRet, index_count);
-      if (flip < 0) {
-        // Account for flip being negative
-        flip += index_count;
+      for (int round = 0; round < SHUFFLE_ROUND_COUNT; round++) {
+
+        Bytes roundAsByte = Bytes.of((byte) round);
+
+        // This needs to be unsigned modulo.
+        int pivot =
+            toIntExact(
+                Long.remainderUnsigned(
+                    bytes_to_int(Hash.sha2_256(Bytes.wrap(seed, roundAsByte)).slice(0, 8)),
+                    index_count));
+        int flip = Math.floorMod(pivot - indexRet, index_count);
+        if (flip < 0) {
+          // Account for flip being negative
+          flip += index_count;
+        }
+
+        int position = (indexRet < flip) ? flip : indexRet;
+
+        Bytes positionDiv256 = int_to_bytes(Math.floorDiv(position, 256), 4);
+        Bytes source = Hash.sha2_256(Bytes.wrap(seed, roundAsByte, positionDiv256));
+
+        // The byte type is signed in Java, but the right shift should be fine as we just use bit 0.
+        // But we can't use % in the normal way because of signedness, so we `& 1` instead.
+        byte theByte = source.get(Math.floorDiv(Math.floorMod(position, 256), 8));
+        byte theMask = powerOfTwoNumbers[Math.floorMod(position, 8)];
+        if ((theByte & theMask) != 0) {
+          indexRet = flip;
+        }
       }
 
-      int position = (indexRet < flip) ? flip : indexRet;
-
-      Bytes positionDiv256 = int_to_bytes(Math.floorDiv(position, 256), 4);
-      Bytes source = Hash.sha2_256(Bytes.wrap(seed, roundAsByte, positionDiv256));
-
-      // The byte type is signed in Java, but the right shift should be fine as we just use bit 0.
-      // But we can't use % in the normal way because of signedness, so we `& 1` instead.
-      byte theByte = source.get(Math.floorDiv(Math.floorMod(position, 256), 8));
-      byte theMask = powerOfTwoNumbers[Math.floorMod(position, 8)];
-      if ((theByte & theMask) != 0) {
-        indexRet = flip;
+      if (cachedShuffle != null) {
+        cachedShuffle[index] = indexRet;
       }
+      return indexRet;
     }
-
-    return indexRet;
   }
 
   /**
