@@ -42,7 +42,7 @@ import tech.pegasys.artemis.datastructures.state.BeaconState;
 
 public class CommitteeUtil {
 
-  private static int MAX_SHUFFLE_CACHE = 64;
+  public static int MAX_SHUFFLE_CACHE = 64;
 
   private static class ShuffleKey {
     private final int index_count;
