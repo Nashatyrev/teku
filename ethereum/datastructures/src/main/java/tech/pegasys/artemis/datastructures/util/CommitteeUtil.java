@@ -29,16 +29,15 @@ import static tech.pegasys.artemis.util.config.Constants.SLOTS_PER_EPOCH;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.common.primitives.UnsignedLong;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.Hash;
 import tech.pegasys.artemis.datastructures.state.BeaconState;
+import tech.pegasys.artemis.util.collections.LimitedHashMap;
 
 public class CommitteeUtil {
 
@@ -74,21 +73,8 @@ public class CommitteeUtil {
     }
   }
 
-  private static class LimitedHashMap<K, V> extends LinkedHashMap<K, V> {
-    private final int maxSize;
-
-    public LimitedHashMap(int maxSize) {
-      this.maxSize = maxSize;
-    }
-
-    @Override
-    protected boolean removeEldestEntry(Entry<K, V> eldest) {
-      return size() > maxSize;
-    }
-  }
-
-  private final static Map<ShuffleKey, Integer[]> shuffleCache = Collections.synchronizedMap(
-      new LimitedHashMap<>(MAX_SHUFFLE_CACHE));
+  public static final Map<ShuffleKey, Integer[]> shuffleCache =
+      Collections.synchronizedMap(new LimitedHashMap<>(MAX_SHUFFLE_CACHE));
 
   /**
    * Return the shuffled validator index corresponding to ``seed`` (and ``index_count``).
