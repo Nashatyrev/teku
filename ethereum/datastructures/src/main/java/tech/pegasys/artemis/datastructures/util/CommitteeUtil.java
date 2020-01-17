@@ -55,8 +55,7 @@ public class CommitteeUtil {
     @Override
     public boolean equals(Object o) {
       ShuffleKey that = (ShuffleKey) o;
-      return index_count == that.index_count &&
-          seed.equals(that.seed);
+      return index_count == that.index_count && seed.equals(that.seed);
     }
 
     @Override
@@ -66,10 +65,7 @@ public class CommitteeUtil {
 
     @Override
     public String toString() {
-      return "ShuffleKey{" +
-          "index_count=" + index_count +
-          ", seed=" + seed +
-          '}';
+      return "ShuffleKey{" + "index_count=" + index_count + ", seed=" + seed + '}';
     }
   }
 
@@ -89,8 +85,11 @@ public class CommitteeUtil {
   public static Integer compute_shuffled_index(int index, int index_count, Bytes32 seed) {
     checkArgument(index < index_count, "CommitteeUtil.get_shuffled_index1");
 
-    Integer[] cachedShuffle = MAX_SHUFFLE_CACHE == 0 ? null : shuffleCache
-        .computeIfAbsent(new ShuffleKey(index_count, seed), k -> new Integer[k.index_count]);
+    Integer[] cachedShuffle =
+        MAX_SHUFFLE_CACHE == 0
+            ? null
+            : shuffleCache.computeIfAbsent(
+                new ShuffleKey(index_count, seed), k -> new Integer[k.index_count]);
 
     if (cachedShuffle != null && cachedShuffle[index] != null) {
       return cachedShuffle[index];
