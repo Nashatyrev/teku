@@ -30,7 +30,7 @@ public class ValidatorsUtil {
 
   public static int MAX_ACTIVE_VALIDATORS_CACHE = 64;
 
-  public static Map<UnsignedLong, List<Integer>> activeValidatorsCache =
+  public static final Map<UnsignedLong, List<Integer>> activeValidatorsCache =
       Collections.synchronizedMap(new LimitedHashMap<>(MAX_ACTIVE_VALIDATORS_CACHE));
 
   /**
