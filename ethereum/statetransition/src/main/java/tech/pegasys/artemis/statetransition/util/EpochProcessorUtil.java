@@ -53,7 +53,9 @@ import com.google.common.primitives.UnsignedLong;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -345,13 +347,19 @@ public final class EpochProcessorUtil {
       }
     }
 
+    Map<PendingAttestation, HashSet<Integer>> attesting_indices =
+        matching_source_attestations.stream()
+            .collect(
+                Collectors.toMap(
+                    a -> a,
+                    a ->
+                        new HashSet<>(
+                            get_attesting_indices(state, a.getData(), a.getAggregation_bits()))));
+
     // Proposer and inclusion delay micro-rewards
     for (Integer index : get_unslashed_attesting_indices(state, matching_source_attestations)) {
       matching_source_attestations.stream()
-          .filter(
-              a ->
-                  get_attesting_indices(state, a.getData(), a.getAggregation_bits())
-                      .contains(index))
+          .filter(a -> attesting_indices.get(a).contains(index))
           .min(Comparator.comparing(PendingAttestation::getInclusion_delay))
           .ifPresent(
               attestation -> {
