@@ -21,6 +21,8 @@ import tech.pegasys.artemis.datastructures.util.cache.NoOpCache;
 
 public class TransitionCaches {
 
+  public static int MAX_ACTIVE_VALIDATORS_CACHE = 8;
+
   private static final TransitionCaches NO_OP_INSTANCE =
       new TransitionCaches(NoOpCache.getNoOpCache()) {
 
@@ -41,7 +43,7 @@ public class TransitionCaches {
   private final Cache<UnsignedLong, List<Integer>> activeValidators;
 
   private TransitionCaches() {
-    activeValidators = new LRUCache<>(8);
+    activeValidators = new LRUCache<>(MAX_ACTIVE_VALIDATORS_CACHE);
   }
 
   private TransitionCaches(Cache<UnsignedLong, List<Integer>> activeValidators) {
