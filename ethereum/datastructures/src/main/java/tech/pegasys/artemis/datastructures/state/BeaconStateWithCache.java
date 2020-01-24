@@ -15,6 +15,7 @@ package tech.pegasys.artemis.datastructures.state;
 
 import com.google.common.primitives.UnsignedLong;
 import java.util.List;
+import java.util.function.Function;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.artemis.datastructures.Copyable;
 import tech.pegasys.artemis.datastructures.blocks.BeaconBlockHeader;
@@ -225,10 +226,15 @@ public final class BeaconStateWithCache extends BeaconState {
         state.getFinalized_checkpoint());
   }
 
-  public static TransitionCaches getTransitionCaches(BeaconState state) {
+  private static TransitionCaches getTransitionCaches(BeaconState state) {
     return state instanceof BeaconStateWithCache
         ? ((BeaconStateWithCache) state).getTransitionCaches()
         : TransitionCaches.getNoOp();
+  }
+
+  public static List<Integer> getCachedActiveValidators(
+      BeaconState state, UnsignedLong epoch, Function<UnsignedLong, List<Integer>> fallback) {
+    return getTransitionCaches(state).getActiveValidators().get(epoch, fallback);
   }
 
   public TransitionCaches getTransitionCaches() {
