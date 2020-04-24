@@ -48,6 +48,11 @@ public interface BlockValidator {
     }
   }
 
+  static SafeFuture<BlockValidationResult> composeResults(
+      SafeFuture<BlockValidationResult> res1, SafeFuture<BlockValidationResult> res2) {
+    return res1.thenCombine(res2, (pre, post) -> !pre.isValid() ? pre : post);
+  }
+
   /** Block validator which just returns OK result without any validations */
   BlockValidator NOP = new NopBlockValidator();
 
@@ -87,6 +92,6 @@ public interface BlockValidator {
       BeaconState preState, SignedBeaconBlock block, BeaconState postState) {
     SafeFuture<BlockValidationResult> preFut = validatePreState(preState, block);
     SafeFuture<BlockValidationResult> postFut = validatePostState(postState, block);
-    return preFut.thenCombine(postFut, (pre, post) -> !pre.isValid() ? pre : post);
+    return composeResults(preFut, postFut);
   }
 }

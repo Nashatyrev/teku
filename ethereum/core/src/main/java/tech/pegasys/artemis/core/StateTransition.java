@@ -26,6 +26,7 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.artemis.core.blockvalidator.AsyncValidator;
 import tech.pegasys.artemis.core.blockvalidator.BatchBlockValidator;
 import tech.pegasys.artemis.core.blockvalidator.BlockValidator;
 import tech.pegasys.artemis.core.blockvalidator.BlockValidator.BlockValidationResult;
@@ -38,13 +39,14 @@ import tech.pegasys.artemis.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.artemis.datastructures.state.BeaconState;
 import tech.pegasys.artemis.datastructures.util.BeaconStateUtil;
 import tech.pegasys.artemis.metrics.EpochMetrics;
+import tech.pegasys.artemis.util.async.SafeFuture;
 
 public class StateTransition {
 
   private static final Logger LOG = LogManager.getLogger();
 
   private static BlockValidator createDefaultBlockValidator() {
-    return new BatchBlockValidator();
+    return new AsyncValidator(new BatchBlockValidator());
   }
 
   private final Optional<EpochMetrics> epochMetrics;
@@ -88,6 +90,12 @@ public class StateTransition {
     try {
       BlockValidator blockValidator =
           validateStateRootAndSignatures ? this.blockValidator : BlockValidator.NOP;
+
+      // TODO need to handle the case when state has no corresponding randao yet
+      // and fall back to validation after slots transitions
+      SafeFuture<BlockValidationResult> validatePreStateFut =
+          blockValidator.validatePreState(preState, signed_block);
+
       final BeaconBlock block = signed_block.getMessage();
 
       // Process slots (including those with no blocks) since block
@@ -96,9 +104,10 @@ public class StateTransition {
       // Process_block
       BeaconState postState = process_block(postSlotState, block);
 
-      BlockValidationResult blockValidationResult =
-          blockValidator.validate(postSlotState, signed_block, postState).join();
-
+      SafeFuture<BlockValidationResult> validatePostStateFut = blockValidator
+          .validatePostState(postState, signed_block);
+      BlockValidationResult blockValidationResult = BlockValidator
+          .composeResults(validatePreStateFut, validatePostStateFut).join();
       if (!blockValidationResult.isValid()) {
         throw new BlockProcessingException(blockValidationResult.getReason());
       }
