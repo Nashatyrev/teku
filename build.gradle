@@ -191,6 +191,7 @@ allprojects {
    */
   test {
     jvmArgs = [
+      '-XX:NativeMemoryTracking=summary',
       '-Xmx2g',
       '-XX:-UseGCOverheadLimit'
     ]
