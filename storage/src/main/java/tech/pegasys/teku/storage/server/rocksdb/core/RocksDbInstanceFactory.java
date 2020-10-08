@@ -36,6 +36,7 @@ import org.rocksdb.TransactionDB;
 import org.rocksdb.TransactionDBOptions;
 import tech.pegasys.teku.storage.server.DatabaseStorageException;
 import tech.pegasys.teku.storage.server.rocksdb.RocksDbConfiguration;
+import tech.pegasys.teku.storage.server.rocksdb.core.trace.TransactionDBTrace;
 import tech.pegasys.teku.storage.server.rocksdb.schema.RocksDbColumn;
 import tech.pegasys.teku.storage.server.rocksdb.schema.Schema;
 
@@ -98,7 +99,9 @@ public class RocksDbInstanceFactory {
 
       rocksDbStats.registerMetrics(db);
 
-      return new RocksDbInstance(db, defaultHandle, columnHandlesMap, resources);
+      TransactionDBIfc wrappedDB = new TransactionDBTrace(new TransactionDBRocks(db));
+
+      return new RocksDbInstance(wrappedDB, defaultHandle, columnHandlesMap, resources);
     } catch (RocksDBException e) {
       throw new DatabaseStorageException(
           "Failed to open database at path: " + configuration.getDatabaseDir(), e);

@@ -30,7 +30,6 @@ import org.rocksdb.AbstractRocksIterator;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
-import org.rocksdb.TransactionDB;
 import org.rocksdb.WriteOptions;
 import tech.pegasys.teku.storage.server.DatabaseStorageException;
 import tech.pegasys.teku.storage.server.ShuttingDownException;
@@ -39,7 +38,7 @@ import tech.pegasys.teku.storage.server.rocksdb.schema.RocksDbVariable;
 
 public class RocksDbInstance implements RocksDbAccessor {
 
-  private final TransactionDB db;
+  private final TransactionDBIfc dbi;
   private final ColumnFamilyHandle defaultHandle;
   private final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles;
   private final List<AutoCloseable> resources;
@@ -48,11 +47,11 @@ public class RocksDbInstance implements RocksDbAccessor {
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
   RocksDbInstance(
-      final TransactionDB db,
+      final TransactionDBIfc db,
       final ColumnFamilyHandle defaultHandle,
       final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles,
       final List<AutoCloseable> resources) {
-    this.db = db;
+    this.dbi = db;
     this.defaultHandle = defaultHandle;
     this.columnHandles = columnHandles;
     this.resources = resources;
@@ -62,7 +61,7 @@ public class RocksDbInstance implements RocksDbAccessor {
   public <T> Optional<T> get(RocksDbVariable<T> variable) {
     assertOpen();
     try {
-      return Optional.ofNullable(db.get(defaultHandle, variable.getId().toArrayUnsafe()))
+      return Optional.ofNullable(dbi.get(defaultHandle, variable.getId().toArrayUnsafe()))
           .map(data -> variable.getSerializer().deserialize(data));
     } catch (RocksDBException e) {
       throw new DatabaseStorageException("Failed to get value", e);
@@ -75,7 +74,7 @@ public class RocksDbInstance implements RocksDbAccessor {
     final ColumnFamilyHandle handle = columnHandles.get(column);
     final byte[] keyBytes = column.getKeySerializer().serialize(key);
     try {
-      return Optional.ofNullable(db.get(handle, keyBytes))
+      return Optional.ofNullable(dbi.get(handle, keyBytes))
           .map(data -> column.getValueSerializer().deserialize(data));
     } catch (RocksDBException e) {
       throw new DatabaseStorageException("Failed to get value", e);
@@ -131,7 +130,7 @@ public class RocksDbInstance implements RocksDbAccessor {
   @MustBeClosed
   public synchronized RocksDbTransaction startTransaction() {
     assertOpen();
-    Transaction tx = new Transaction(db, defaultHandle, columnHandles, openTransactions::remove);
+    Transaction tx = new Transaction(dbi, defaultHandle, columnHandles, openTransactions::remove);
     openTransactions.add(tx);
     return tx;
   }
@@ -149,7 +148,7 @@ public class RocksDbInstance implements RocksDbAccessor {
       Consumer<RocksIterator> setupIterator,
       Predicate<K> continueTest) {
     final ColumnFamilyHandle handle = columnHandles.get(column);
-    final RocksIterator rocksDbIterator = db.newIterator(handle);
+    final RocksIterator rocksDbIterator = dbi.newIterator(handle);
     setupIterator.accept(rocksDbIterator);
     return RocksDbIterator.create(column, rocksDbIterator, continueTest, closed::get).toStream();
   }
@@ -160,7 +159,7 @@ public class RocksDbInstance implements RocksDbAccessor {
       for (Transaction openTransaction : openTransactions) {
         openTransaction.closeViaDatabase();
       }
-      db.syncWal();
+      dbi.syncWal();
       for (final AutoCloseable resource : resources) {
         resource.close();
       }
@@ -176,7 +175,7 @@ public class RocksDbInstance implements RocksDbAccessor {
   public static class Transaction implements RocksDbTransaction {
     private final ColumnFamilyHandle defaultHandle;
     private final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles;
-    private final org.rocksdb.Transaction rocksDbTx;
+    private final TransactionIfc rocksDbTx;
     private final WriteOptions writeOptions;
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -185,7 +184,7 @@ public class RocksDbInstance implements RocksDbAccessor {
     private boolean closed = false;
 
     private Transaction(
-        final TransactionDB db,
+        final TransactionDBIfc db,
         final ColumnFamilyHandle defaultHandle,
         final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles,
         final Consumer<Transaction> onClosed) {
