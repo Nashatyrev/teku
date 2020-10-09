@@ -41,8 +41,27 @@ public class RocksDBLoad {
   @TempDir Path dataDir;
   List<Object> wasteOfHeap = new ArrayList<>();
 
+
+
   @Test
   void load() throws Exception {
+    for (int i = 0; i < 2; i++) {
+      new Thread(
+              () -> {
+                try {
+                  System.out.println("Starting another DB...");
+                  loadDB();
+                } catch (Exception e) {
+                  throw new RuntimeException(e);
+                }
+              })
+          .start();
+    }
+
+    Thread.sleep(1000000000L);
+  }
+
+  void loadDB() throws Exception {
     RocksDbAccessor dbAccessor =
         RocksDbInstanceFactory.create(
             new StubMetricsSystem(),
@@ -92,6 +111,6 @@ public class RocksDBLoad {
           .start();
     }
 
-    Thread.sleep(10000000L);
+    Thread.sleep(1000000000L);
   }
 }
