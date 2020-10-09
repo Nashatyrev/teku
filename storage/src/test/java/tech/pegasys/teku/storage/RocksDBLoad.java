@@ -45,12 +45,15 @@ public class RocksDBLoad {
 
   @Test
   void load() throws Exception {
+    wasteHeap();
+
     for (int i = 0; i < 2; i++) {
+      int finalI = i;
       new Thread(
               () -> {
                 try {
                   System.out.println("Starting another DB...");
-                  loadDB();
+                  loadDB(dataDir.resolve("sub" + finalI));
                 } catch (Exception e) {
                   throw new RuntimeException(e);
                 }
@@ -61,14 +64,7 @@ public class RocksDBLoad {
     Thread.sleep(1000000000L);
   }
 
-  void loadDB() throws Exception {
-    RocksDbAccessor dbAccessor =
-        RocksDbInstanceFactory.create(
-            new StubMetricsSystem(),
-            STORAGE_HOT_DB,
-            RocksDbConfiguration.v5HotDefaults().withDatabaseDir(dataDir),
-            V4SchemaHot.class);
-
+  void wasteHeap() {
     System.out.println("Wasting heap");
 
     int chunkSize = 10 * 1024 * 1024;
@@ -86,6 +82,15 @@ public class RocksDBLoad {
       wasteOfHeap.set(2, null);
       wasteOfHeap.set(3, null);
     }
+  }
+
+  void loadDB(Path dataDir) throws Exception {
+    RocksDbAccessor dbAccessor =
+        RocksDbInstanceFactory.create(
+            new StubMetricsSystem(),
+            STORAGE_HOT_DB,
+            RocksDbConfiguration.v5HotDefaults().withDatabaseDir(dataDir),
+            V4SchemaHot.class);
 
     System.out.println("writing to db :" + dataDir);
 
