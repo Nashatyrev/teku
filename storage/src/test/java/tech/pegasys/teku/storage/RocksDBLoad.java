@@ -84,6 +84,10 @@ public class RocksDBLoad {
     }
   }
 
+  AtomicInteger cnt = new AtomicInteger();
+  volatile long t = System.currentTimeMillis();
+  volatile long tGlob;
+
   void loadDB(Path dataDir) throws Exception {
     RocksDbAccessor dbAccessor =
         RocksDbInstanceFactory.create(
@@ -94,7 +98,6 @@ public class RocksDBLoad {
 
     System.out.println("writing to db :" + dataDir);
 
-    AtomicInteger cnt = new AtomicInteger();
     AtomicInteger k = new AtomicInteger();
 
     for (int j = 0; j < 6; j++) {
@@ -110,7 +113,23 @@ public class RocksDBLoad {
                   }
                   tx.commit();
                   tx.close();
-                  System.out.println("Committed " + cnt.getAndIncrement());
+                  int curCnt = cnt.getAndIncrement();
+                  if (curCnt > 0 && curCnt % 16 == 0) {
+                    long curT = System.currentTimeMillis();
+                    long tt = curT - t;
+                    t = curT;
+                    if (curCnt == 16) {
+                      tGlob = t;
+                    } else {
+                      System.out.println(
+                          "Speed: "
+                              + (tt / 16)
+                              + " ms/op, total: "
+                              + ((t - tGlob) / (curCnt - 16))
+                              + " ms/op");
+                    }
+                  }
+                  System.out.println("Committed " + curCnt);
                 }
               })
           .start();
