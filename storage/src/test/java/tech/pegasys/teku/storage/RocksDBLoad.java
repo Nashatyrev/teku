@@ -77,10 +77,9 @@ public class RocksDBLoad {
     } catch (OutOfMemoryError e) {
       System.out.println("Wasted " + chunkCount + " chunks of heap");
       // releasing a bit more
-      wasteOfHeap.set(0, null);
-      wasteOfHeap.set(1, null);
-      wasteOfHeap.set(2, null);
-      wasteOfHeap.set(3, null);
+      for (int i = 0; i < 20; i++) {
+        wasteOfHeap.set(i, null);
+      }
     }
   }
 
