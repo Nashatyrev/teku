@@ -176,6 +176,7 @@ public class RocksDbInstance implements RocksDbAccessor {
     private final ColumnFamilyHandle defaultHandle;
     private final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles;
     private final TransactionIfc rocksDbTx;
+//    private final WriteBatch batch;
     private final WriteOptions writeOptions;
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -188,6 +189,7 @@ public class RocksDbInstance implements RocksDbAccessor {
         final ColumnFamilyHandle defaultHandle,
         final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles,
         final Consumer<Transaction> onClosed) {
+//      this.batch = new WriteBatch();
       this.defaultHandle = defaultHandle;
       this.columnHandles = columnHandles;
       this.writeOptions = new WriteOptions();
@@ -227,15 +229,19 @@ public class RocksDbInstance implements RocksDbAccessor {
     public <K, V> void put(RocksDbColumn<K, V> column, Map<K, V> data) {
       applyUpdate(
           () -> {
+            final byte[][] keys = new byte[data.size()][];
+            final byte[][] values = new byte[data.size()][];
             final ColumnFamilyHandle handle = columnHandles.get(column);
+            int idx = 0;
             for (Map.Entry<K, V> kvEntry : data.entrySet()) {
-              final byte[] key = column.getKeySerializer().serialize(kvEntry.getKey());
-              final byte[] value = column.getValueSerializer().serialize(kvEntry.getValue());
-              try {
-                rocksDbTx.put(handle, key, value);
-              } catch (RocksDBException e) {
-                throw new DatabaseStorageException("Failed to put column data", e);
-              }
+              keys[idx] = column.getKeySerializer().serialize(kvEntry.getKey());
+              values[idx] = column.getValueSerializer().serialize(kvEntry.getValue());
+              idx++;
+            }
+            try {
+              rocksDbTx.put(handle, keys, values);
+            } catch (RocksDBException e) {
+              throw new DatabaseStorageException("Failed to put column data", e);
             }
           });
     }
