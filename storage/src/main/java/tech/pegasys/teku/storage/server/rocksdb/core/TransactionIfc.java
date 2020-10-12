@@ -20,6 +20,8 @@ public interface TransactionIfc extends AutoCloseable {
 
   void put(ColumnFamilyHandle column, byte[] key, byte[] value) throws RocksDBException;
 
+  void put(ColumnFamilyHandle column, byte[][] keys, byte[][] values) throws RocksDBException;
+
   void delete(ColumnFamilyHandle column, byte[] key) throws RocksDBException;
 
   void commit() throws RocksDBException;

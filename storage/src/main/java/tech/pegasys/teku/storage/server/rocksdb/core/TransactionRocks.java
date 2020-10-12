@@ -30,6 +30,12 @@ public class TransactionRocks implements TransactionIfc {
   }
 
   @Override
+  public void put(ColumnFamilyHandle column, byte[][] keys, byte[][] values)
+      throws RocksDBException {
+    txr.put(column, keys, values);
+  }
+
+  @Override
   public void delete(ColumnFamilyHandle column, byte[] key) throws RocksDBException {
     txr.delete(column, key);
   }

@@ -225,8 +225,7 @@ public class V4HotRocksDbDao implements RocksDbHotDao, RocksDbEth1Dao, RocksDbPr
 
     @Override
     public void addVotes(final Map<UInt64, VoteTracker> votes) {
-      votes.forEach(
-          (validatorIndex, vote) -> transaction.put(V4SchemaHot.VOTES, validatorIndex, vote));
+      transaction.put(V4SchemaHot.VOTES, votes);
     }
 
     @Override

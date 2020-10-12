@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.storage.server.rocksdb.core.trace;
 
+import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.tuweni.bytes.Bytes;
 import org.rocksdb.ColumnFamilyHandle;
@@ -48,6 +49,26 @@ public class TransactionTrace implements TransactionIfc {
             + Bytes.wrap(key)
             + " "
             + value.length
+            + " "
+            + t);
+  }
+
+  @Override
+  public void put(ColumnFamilyHandle column, byte[][] keys, byte[][] values)
+      throws RocksDBException {
+    long s = System.nanoTime();
+    delegate.put(column, keys, values);
+    long t = System.nanoTime() - s;
+
+    Utils.write(
+        "tx_put_all "
+            + getTxId()
+            + " "
+            + Utils.getColumnName(column)
+            + " "
+            + keys.length
+            + " "
+            + Arrays.stream(values).mapToInt(bb -> bb.length).sum()
             + " "
             + t);
   }
