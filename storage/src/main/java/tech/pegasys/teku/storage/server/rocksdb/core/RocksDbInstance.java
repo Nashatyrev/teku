@@ -30,6 +30,7 @@ import org.rocksdb.AbstractRocksIterator;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 import tech.pegasys.teku.storage.server.DatabaseStorageException;
 import tech.pegasys.teku.storage.server.ShuttingDownException;
@@ -175,8 +176,9 @@ public class RocksDbInstance implements RocksDbAccessor {
   public static class Transaction implements RocksDbTransaction {
     private final ColumnFamilyHandle defaultHandle;
     private final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles;
-    private final TransactionIfc rocksDbTx;
-//    private final WriteBatch batch;
+//    private final TransactionIfc rocksDbTx;
+    private final TransactionDBIfc db;
+    private final WriteBatch batch;
     private final WriteOptions writeOptions;
 
     private final ReentrantLock lock = new ReentrantLock();
@@ -189,11 +191,12 @@ public class RocksDbInstance implements RocksDbAccessor {
         final ColumnFamilyHandle defaultHandle,
         final ImmutableMap<RocksDbColumn<?, ?>, ColumnFamilyHandle> columnHandles,
         final Consumer<Transaction> onClosed) {
-//      this.batch = new WriteBatch();
+      this.db = db;
+      this.batch = new WriteBatch();
       this.defaultHandle = defaultHandle;
       this.columnHandles = columnHandles;
       this.writeOptions = new WriteOptions();
-      this.rocksDbTx = db.beginTransaction(writeOptions);
+//      this.rocksDbTx = db.beginTransaction(writeOptions);
       this.onClosed = onClosed;
     }
 
@@ -203,7 +206,7 @@ public class RocksDbInstance implements RocksDbAccessor {
           () -> {
             final byte[] serialized = variable.getSerializer().serialize(value);
             try {
-              rocksDbTx.put(defaultHandle, variable.getId().toArrayUnsafe(), serialized);
+              batch.put(defaultHandle, variable.getId().toArrayUnsafe(), serialized);
             } catch (RocksDBException e) {
               throw new DatabaseStorageException("Failed to put variable", e);
             }
@@ -218,7 +221,7 @@ public class RocksDbInstance implements RocksDbAccessor {
             final byte[] valueBytes = column.getValueSerializer().serialize(value);
             final ColumnFamilyHandle handle = columnHandles.get(column);
             try {
-              rocksDbTx.put(handle, keyBytes, valueBytes);
+              batch.put(handle, keyBytes, valueBytes);
             } catch (RocksDBException e) {
               throw new DatabaseStorageException("Failed to put column data", e);
             }
@@ -229,19 +232,15 @@ public class RocksDbInstance implements RocksDbAccessor {
     public <K, V> void put(RocksDbColumn<K, V> column, Map<K, V> data) {
       applyUpdate(
           () -> {
-            final byte[][] keys = new byte[data.size()][];
-            final byte[][] values = new byte[data.size()][];
             final ColumnFamilyHandle handle = columnHandles.get(column);
-            int idx = 0;
             for (Map.Entry<K, V> kvEntry : data.entrySet()) {
-              keys[idx] = column.getKeySerializer().serialize(kvEntry.getKey());
-              values[idx] = column.getValueSerializer().serialize(kvEntry.getValue());
-              idx++;
-            }
-            try {
-              rocksDbTx.put(handle, keys, values);
-            } catch (RocksDBException e) {
-              throw new DatabaseStorageException("Failed to put column data", e);
+              byte[] key = column.getKeySerializer().serialize(kvEntry.getKey());
+              byte[] value = column.getValueSerializer().serialize(kvEntry.getValue());
+              try {
+                batch.put(handle, key, value);
+              } catch (RocksDBException e) {
+                throw new DatabaseStorageException("Failed to put column data", e);
+              }
             }
           });
     }
@@ -252,7 +251,7 @@ public class RocksDbInstance implements RocksDbAccessor {
           () -> {
             final ColumnFamilyHandle handle = columnHandles.get(column);
             try {
-              rocksDbTx.delete(handle, column.getKeySerializer().serialize(key));
+              batch.delete(handle, column.getKeySerializer().serialize(key));
             } catch (RocksDBException e) {
               throw new DatabaseStorageException("Failed to delete key", e);
             }
@@ -264,7 +263,7 @@ public class RocksDbInstance implements RocksDbAccessor {
       applyUpdate(
           () -> {
             try {
-              rocksDbTx.delete(defaultHandle, variable.getId().toArrayUnsafe());
+              batch.delete(defaultHandle, variable.getId().toArrayUnsafe());
             } catch (RocksDBException e) {
               throw new DatabaseStorageException("Failed to delete variable", e);
             }
@@ -276,7 +275,7 @@ public class RocksDbInstance implements RocksDbAccessor {
       applyUpdate(
           () -> {
             try {
-              this.rocksDbTx.commit();
+              db.write(writeOptions, batch);
             } catch (RocksDBException e) {
               throw new DatabaseStorageException("Failed to commit transaction", e);
             } finally {
@@ -287,16 +286,16 @@ public class RocksDbInstance implements RocksDbAccessor {
 
     @Override
     public void rollback() {
-      applyUpdate(
-          () -> {
-            try {
-              this.rocksDbTx.commit();
-            } catch (RocksDBException e) {
-              throw new DatabaseStorageException("Failed to commit transaction", e);
-            } finally {
-              close();
-            }
-          });
+//      applyUpdate(
+//          () -> {
+//            try {
+//              this.rocksDbTx.commit();
+//            } catch (RocksDBException e) {
+//              throw new DatabaseStorageException("Failed to commit transaction", e);
+//            } finally {
+//              close();
+//            }
+//          });
     }
 
     private void applyUpdate(final Runnable operation) {
@@ -332,7 +331,7 @@ public class RocksDbInstance implements RocksDbAccessor {
           closed = true;
           onClosed.accept(this);
           writeOptions.close();
-          rocksDbTx.close();
+//          rocksDbTx.close();
         }
       } finally {
         lock.unlock();

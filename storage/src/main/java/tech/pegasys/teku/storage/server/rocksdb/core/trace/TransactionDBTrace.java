@@ -18,6 +18,7 @@ import org.apache.tuweni.bytes.Bytes;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 import tech.pegasys.teku.storage.server.rocksdb.core.TransactionDBIfc;
 import tech.pegasys.teku.storage.server.rocksdb.core.TransactionIfc;
@@ -60,6 +61,20 @@ public class TransactionDBTrace implements TransactionDBIfc {
     IteratorTrace ret = new IteratorTrace(delegate.newIterator(column));
     Utils.write("iterator " + dbId + " " + Utils.getColumnName(column) + " " + ret.getItId());
     return delegate.newIterator(column);
+  }
+
+  @Override
+  public void write(WriteOptions writeOptions, WriteBatch batch) throws RocksDBException {
+    long s = System.nanoTime();
+    delegate.write(writeOptions, batch);
+    long t = System.nanoTime() - s;
+    Utils.write(
+        "write "
+            + dbId
+            + " "
+            + batch.getDataSize()
+            + " "
+            + t);
   }
 
   @Override

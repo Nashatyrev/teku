@@ -16,11 +16,14 @@ package tech.pegasys.teku.storage.server.rocksdb.core;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
+import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 public interface TransactionDBIfc {
 
   byte[] get(ColumnFamilyHandle column, byte[] key) throws RocksDBException;
+
+  void write(WriteOptions writeOptions, WriteBatch batch) throws RocksDBException;
 
   void syncWal() throws RocksDBException;
 

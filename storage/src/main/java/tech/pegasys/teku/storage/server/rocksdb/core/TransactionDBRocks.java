@@ -17,6 +17,7 @@ import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 import org.rocksdb.TransactionDB;
+import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 public class TransactionDBRocks implements TransactionDBIfc {
@@ -44,5 +45,11 @@ public class TransactionDBRocks implements TransactionDBIfc {
   @Override
   public TransactionIfc beginTransaction(WriteOptions writeOptions) {
     return new TransactionRocks(rdb.beginTransaction(writeOptions));
+  }
+
+  @Override
+  public void write(WriteOptions writeOptions, WriteBatch batch) throws RocksDBException {
+    rdb.write(writeOptions, batch);
+
   }
 }
