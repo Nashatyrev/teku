@@ -331,6 +331,7 @@ public class RocksDbInstance implements RocksDbAccessor {
           closed = true;
           onClosed.accept(this);
           writeOptions.close();
+          batch.close();
 //          rocksDbTx.close();
         }
       } finally {
