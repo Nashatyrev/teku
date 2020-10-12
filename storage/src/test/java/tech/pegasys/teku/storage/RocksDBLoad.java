@@ -104,7 +104,7 @@ public class RocksDBLoad {
               () -> {
                 while (true) {
                   RocksDbTransaction tx = dbAccessor.startTransaction();
-                  if (k.get() > 300_000_000) {
+                  if (k.get() > 100_000_000) {
                     k.set(0);
                   }
                   for (int i = 0; i < 100000; i++) {
