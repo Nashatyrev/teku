@@ -83,11 +83,16 @@ import tech.pegasys.teku.ssz.SSZTypes.SSZMutableVector;
 import tech.pegasys.teku.ssz.SSZTypes.SSZVector;
 import tech.pegasys.teku.ssz.backing.SszData;
 import tech.pegasys.teku.ssz.backing.SszList;
+import tech.pegasys.teku.ssz.backing.SszPrimitive;
+import tech.pegasys.teku.ssz.backing.SszVector;
 import tech.pegasys.teku.ssz.backing.collections.SszBitlist;
 import tech.pegasys.teku.ssz.backing.collections.SszBitvector;
+import tech.pegasys.teku.ssz.backing.collections.SszPrimitiveVector;
 import tech.pegasys.teku.ssz.backing.schema.SszListSchema;
+import tech.pegasys.teku.ssz.backing.schema.SszVectorSchema;
 import tech.pegasys.teku.ssz.backing.schema.collections.SszBitlistSchema;
 import tech.pegasys.teku.ssz.backing.schema.collections.SszBitvectorSchema;
+import tech.pegasys.teku.ssz.backing.schema.collections.SszPrimitiveVectorSchema;
 import tech.pegasys.teku.util.config.Constants;
 
 public final class DataStructureUtil {
@@ -187,6 +192,32 @@ public final class DataStructureUtil {
     SSZMutableList<T> sszList = SSZList.createMutable(classInfo, maxSize);
     LongStream.range(0, numItems).forEach(i -> sszList.add(valueGenerator.get()));
     return sszList;
+  }
+
+  public <
+          TElement,
+          SszElementT extends SszPrimitive<TElement, SszElementT>,
+          VectorT extends SszPrimitiveVector<TElement, SszElementT>>
+      VectorT randomSszVector(
+          SszPrimitiveVectorSchema<TElement, SszElementT, VectorT> schema,
+          Supplier<TElement> valueGenerator) {
+    int numItems = schema.getLength() / 10;
+    TElement defaultElement = schema.getPrimitiveElementSchema().getDefault().get();
+    return Stream.concat(
+            Stream.generate(valueGenerator).limit(numItems),
+            Stream.generate(() -> defaultElement).limit(schema.getLength() - numItems))
+        .collect(schema.collectorUnboxed());
+  }
+
+  public <SszElementT extends SszData, VectorT extends SszVector<SszElementT>>
+      VectorT randomSszVector(
+          SszVectorSchema<SszElementT, VectorT> schema, Supplier<SszElementT> valueGenerator) {
+    int numItems = schema.getLength() / 10;
+    SszElementT defaultElement = schema.getElementSchema().getDefault();
+    return Stream.concat(
+            Stream.generate(valueGenerator).limit(numItems),
+            Stream.generate(() -> defaultElement).limit(schema.getLength() - numItems))
+        .collect(schema.collector());
   }
 
   public <T> SSZVector<T> randomSSZVector(
