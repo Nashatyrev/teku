@@ -35,4 +35,8 @@ public class BeaconChainService extends Service {
   protected SafeFuture<?> doStop() {
     return this.controller.stop();
   }
+
+  public BeaconChainController getController() {
+    return controller;
+  }
 }

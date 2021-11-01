@@ -935,4 +935,12 @@ public class BeaconChainController extends Service implements TimeTickChannel {
 
     slotProcessor.onTick(currentTime);
   }
+
+  public Eth2P2PNetwork getP2pNetwork() {
+    return p2pNetwork;
+  }
+
+  public RecentChainData getRecentChainData() {
+    return recentChainData;
+  }
 }

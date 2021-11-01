@@ -16,9 +16,10 @@ package tech.pegasys.teku;
 import static tech.pegasys.teku.infrastructure.logging.StatusLogger.STATUS_LOG;
 
 import tech.pegasys.teku.config.TekuConfiguration;
+import tech.pegasys.teku.ifc.BeaconNodeIfc;
 import tech.pegasys.teku.services.BeaconNodeServiceController;
 
-public class BeaconNode extends AbstractNode {
+public class BeaconNode extends AbstractNode implements BeaconNodeIfc {
   private final BeaconNodeServiceController serviceController;
 
   public BeaconNode(final TekuConfiguration tekuConfig) {
@@ -29,7 +30,7 @@ public class BeaconNode extends AbstractNode {
   }
 
   @Override
-  protected BeaconNodeServiceController getServiceController() {
+  public BeaconNodeServiceController getServiceController() {
     return serviceController;
   }
 }

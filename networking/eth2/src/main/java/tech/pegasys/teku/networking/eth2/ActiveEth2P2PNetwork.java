@@ -307,4 +307,8 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
     final Optional<Fork> nextFork = recentChainData.getNextFork(forkInfo.getFork());
     discoveryNetwork.setForkInfo(forkInfo, nextFork);
   }
+
+  public DiscoveryNetwork<?> getDiscoveryNetwork() {
+    return discoveryNetwork;
+  }
 }

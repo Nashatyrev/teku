@@ -15,6 +15,7 @@ package tech.pegasys.teku.services;
 
 import java.util.Optional;
 import tech.pegasys.teku.config.TekuConfiguration;
+import tech.pegasys.teku.ifc.BeaconNodeServiceControllerIfc;
 import tech.pegasys.teku.networking.nat.NatService;
 import tech.pegasys.teku.service.serviceutils.ServiceConfig;
 import tech.pegasys.teku.services.beaconchain.BeaconChainService;
@@ -23,7 +24,7 @@ import tech.pegasys.teku.services.powchain.PowchainService;
 import tech.pegasys.teku.services.timer.TimerService;
 import tech.pegasys.teku.validator.client.ValidatorClientService;
 
-public class BeaconNodeServiceController extends ServiceController {
+public class BeaconNodeServiceController extends ServiceController implements BeaconNodeServiceControllerIfc {
 
   public BeaconNodeServiceController(
       TekuConfiguration tekuConfig, final ServiceConfig serviceConfig) {

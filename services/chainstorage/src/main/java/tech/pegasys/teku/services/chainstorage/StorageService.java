@@ -85,4 +85,8 @@ public class StorageService extends Service {
           database.close();
         });
   }
+
+    public ChainStorage getChainStorage() {
+        return chainStorage;
+    }
 }
