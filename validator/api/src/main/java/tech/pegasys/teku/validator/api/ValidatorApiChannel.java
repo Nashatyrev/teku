@@ -22,6 +22,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.api.response.v1.beacon.ValidatorStatus;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.infrastructure.async.OptionalFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.events.ChannelInterface;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -39,7 +40,7 @@ import tech.pegasys.teku.spec.datastructures.validator.SubnetSubscription;
 public interface ValidatorApiChannel extends ChannelInterface {
   int UKNOWN_VALIDATOR_ID = -1;
 
-  SafeFuture<Optional<GenesisData>> getGenesisData();
+  OptionalFuture<GenesisData> getGenesisData();
 
   SafeFuture<Map<BLSPublicKey, Integer>> getValidatorIndices(
       final Collection<BLSPublicKey> publicKeys);

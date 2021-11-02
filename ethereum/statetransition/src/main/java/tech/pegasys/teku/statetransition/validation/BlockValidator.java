@@ -81,15 +81,9 @@ public class BlockValidator {
 
     return recentChainData
         .retrieveBlockByRoot(block.getMessage().getParentRoot())
-        .thenCompose(
+        .composeMap(
             parentBlock -> {
-              if (parentBlock.isEmpty()) {
-                LOG.trace(
-                    "BlockValidator: Parent block does not exist. It will be saved for future processing");
-                return completedFuture(InternalValidationResult.SAVE_FOR_FUTURE);
-              }
-
-              if (parentBlock.get().getSlot().isGreaterThanOrEqualTo(block.getSlot())) {
+              if (parentBlock.getSlot().isGreaterThanOrEqualTo(block.getSlot())) {
                 return completedFuture(reject("Parent block is after child block."));
               }
 
@@ -98,26 +92,31 @@ public class BlockValidator {
               return recentChainData
                   .retrieveStateAtSlot(
                       new SlotAndBlockRoot(
-                          parentBlock.get().getSlot().max(firstSlotInBlockEpoch),
-                          block.getParentRoot()))
-                  .thenApply(
+                          parentBlock.getSlot().max(firstSlotInBlockEpoch), block.getParentRoot()))
+                  .map(
                       postState -> {
-                        if (postState.isEmpty()) {
-                          LOG.trace(
-                              "Block was available but state wasn't. Must have been pruned by finalized.");
-                          return InternalValidationResult.IGNORE;
-                        }
-                        if (!blockIsProposedByTheExpectedProposer(block, postState.get())) {
+                        if (!blockIsProposedByTheExpectedProposer(block, postState)) {
                           return reject(
                               "Block proposed by incorrect proposer (%s)",
                               block.getProposerIndex());
                         }
-                        if (!blockSignatureIsValidWithRespectToProposerIndex(
-                            block, postState.get())) {
+                        if (!blockSignatureIsValidWithRespectToProposerIndex(block, postState)) {
                           return reject("Block signature is invalid");
                         }
                         return InternalValidationResult.ACCEPT;
+                      })
+                  .orElse(
+                      () -> {
+                        LOG.trace(
+                            "Block was available but state wasn't. Must have been pruned by finalized.");
+                        return InternalValidationResult.IGNORE;
                       });
+            })
+        .orElse(
+            () -> {
+              LOG.trace(
+                  "BlockValidator: Parent block does not exist. It will be saved for future processing");
+              return InternalValidationResult.SAVE_FOR_FUTURE;
             });
   }
 

@@ -38,6 +38,7 @@ import tech.pegasys.teku.api.response.v1.beacon.ValidatorResponse;
 import tech.pegasys.teku.api.response.v1.beacon.ValidatorStatus;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.infrastructure.async.OptionalFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.gossip.BlockGossipChannel;
@@ -154,8 +155,8 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
   }
 
   @Override
-  public SafeFuture<Optional<GenesisData>> getGenesisData() {
-    return SafeFuture.completedFuture(combinedChainDataClient.getGenesisData());
+  public OptionalFuture<GenesisData> getGenesisData() {
+    return OptionalFuture.completedFuture(combinedChainDataClient.getGenesisData());
   }
 
   @Override

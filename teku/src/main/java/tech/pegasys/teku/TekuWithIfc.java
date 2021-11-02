@@ -13,6 +13,9 @@
 
 package tech.pegasys.teku;
 
+import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.security.Security;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import tech.pegasys.teku.bls.impl.blst.BlstLoader;
 import tech.pegasys.teku.cli.BeaconNodeCommand;
@@ -20,10 +23,6 @@ import tech.pegasys.teku.config.TekuConfiguration;
 import tech.pegasys.teku.ifc.BeaconNodeIfc;
 import tech.pegasys.teku.ifc.TekuIfc;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
-
-import java.io.PrintWriter;
-import java.nio.charset.Charset;
-import java.security.Security;
 
 public final class TekuWithIfc implements TekuIfc {
   private BeaconNode beaconNode;

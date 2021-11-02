@@ -29,6 +29,7 @@ import org.hyperledger.besu.plugin.services.metrics.Counter;
 import tech.pegasys.teku.dataproviders.lookup.BlockProvider;
 import tech.pegasys.teku.dataproviders.lookup.StateAndBlockSummaryProvider;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.OptionalFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -459,7 +460,7 @@ public abstract class RecentChainData implements StoreUpdateHandler {
     return getForkChoiceStrategy().flatMap(forkChoice -> forkChoice.blockSlot(root));
   }
 
-  public SafeFuture<Optional<BeaconBlock>> retrieveBlockByRoot(final Bytes32 root) {
+  public OptionalFuture<BeaconBlock> retrieveBlockByRoot(final Bytes32 root) {
     if (store == null) {
       return EmptyStoreResults.EMPTY_BLOCK_FUTURE;
     }
@@ -480,8 +481,7 @@ public abstract class RecentChainData implements StoreUpdateHandler {
     return store.retrieveBlockState(blockRoot);
   }
 
-  public SafeFuture<Optional<BeaconState>> retrieveStateAtSlot(
-      final SlotAndBlockRoot slotAndBlockRoot) {
+  public OptionalFuture<BeaconState> retrieveStateAtSlot(final SlotAndBlockRoot slotAndBlockRoot) {
     if (store == null) {
       return EmptyStoreResults.EMPTY_STATE_FUTURE;
     }

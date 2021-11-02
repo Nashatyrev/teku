@@ -24,6 +24,7 @@ import org.hyperledger.besu.plugin.services.metrics.Counter;
 import tech.pegasys.teku.api.response.v1.beacon.ValidatorStatus;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.infrastructure.async.OptionalFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -192,7 +193,7 @@ public class MetricRecordingValidatorApiChannel implements ValidatorApiChannel {
   }
 
   @Override
-  public SafeFuture<Optional<GenesisData>> getGenesisData() {
+  public OptionalFuture<GenesisData> getGenesisData() {
     return countDataRequest(delegate.getGenesisData(), genesisTimeRequestCounter);
   }
 
@@ -326,12 +327,11 @@ public class MetricRecordingValidatorApiChannel implements ValidatorApiChannel {
             });
   }
 
-  private <T> SafeFuture<Optional<T>> countDataRequest(
-      final SafeFuture<Optional<T>> request, final BeaconChainRequestCounter counter) {
+  private <T> OptionalFuture<T> countDataRequest(
+      final OptionalFuture<T> request, final BeaconChainRequestCounter counter) {
     return request
         .catchAndRethrow(__ -> counter.onError())
-        .thenPeek(
-            result ->
-                result.ifPresentOrElse(__ -> counter.onSuccess(), counter::onDataUnavailable));
+        .thenPeekExisting(__ -> counter.onSuccess())
+        .thenPeekAbsent(counter::onDataUnavailable);
   }
 }

@@ -24,7 +24,8 @@ import tech.pegasys.teku.services.powchain.PowchainService;
 import tech.pegasys.teku.services.timer.TimerService;
 import tech.pegasys.teku.validator.client.ValidatorClientService;
 
-public class BeaconNodeServiceController extends ServiceController implements BeaconNodeServiceControllerIfc {
+public class BeaconNodeServiceController extends ServiceController
+    implements BeaconNodeServiceControllerIfc {
 
   public BeaconNodeServiceController(
       TekuConfiguration tekuConfig, final ServiceConfig serviceConfig) {

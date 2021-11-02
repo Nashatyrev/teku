@@ -86,7 +86,7 @@ public class StorageService extends Service {
         });
   }
 
-    public ChainStorage getChainStorage() {
-        return chainStorage;
-    }
+  public ChainStorage getChainStorage() {
+    return chainStorage;
+  }
 }

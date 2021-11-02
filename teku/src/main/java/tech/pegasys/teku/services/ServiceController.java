@@ -16,7 +16,6 @@ package tech.pegasys.teku.services;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
 import tech.pegasys.teku.ifc.ServiceControllerIfc;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.service.serviceutils.Service;

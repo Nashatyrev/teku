@@ -63,15 +63,10 @@ public class GenesisDataProvider {
   private SafeFuture<GenesisData> requestGenesisData() {
     return validatorApiChannel
         .getGenesisData()
-        .thenCompose(
-            maybeGenesisData ->
-                maybeGenesisData
-                    .map(SafeFuture::completedFuture)
-                    .orElseGet(
-                        () -> {
-                          LOG.info("Waiting for genesis data to be known");
-                          return asyncRunner.runAfterDelay(
-                              this::requestGenesisData, GENESIS_DATA_RETRY_DELAY);
-                        }));
+        .orElseCompose(
+            () -> {
+              LOG.info("Waiting for genesis data to be known");
+              return asyncRunner.runAfterDelay(this::requestGenesisData, GENESIS_DATA_RETRY_DELAY);
+            });
   }
 }

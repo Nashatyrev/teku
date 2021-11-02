@@ -27,6 +27,7 @@ import tech.pegasys.teku.api.response.v1.beacon.ValidatorStatus;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.OptionalFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.service.serviceutils.ServiceConfig;
@@ -100,7 +101,7 @@ public class MultiPublishingValidatorApiChannel implements ValidatorApiChannel {
   }
 
   @Override
-  public SafeFuture<Optional<GenesisData>> getGenesisData() {
+  public OptionalFuture<GenesisData> getGenesisData() {
     return delegate.getGenesisData();
   }
 

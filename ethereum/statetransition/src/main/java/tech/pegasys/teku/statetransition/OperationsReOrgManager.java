@@ -19,6 +19,7 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.infrastructure.async.OptionalFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidateableAttestation;
@@ -88,24 +89,21 @@ public class OperationsReOrgManager implements ChainHeadChannel {
   private void processNonCanonicalBlockOperations(Collection<Bytes32> nonCanonicalBlockRoots) {
     nonCanonicalBlockRoots.forEach(
         root -> {
-          SafeFuture<Optional<BeaconBlock>> maybeBlockFuture =
-              recentChainData.retrieveBlockByRoot(root);
+          OptionalFuture<BeaconBlock> maybeBlockFuture =
+              OptionalFuture.of1(recentChainData.retrieveBlockByRoot(root));
           maybeBlockFuture
               .thenAccept(
-                  maybeBlock ->
-                      maybeBlock.ifPresentOrElse(
-                          block -> {
-                            BeaconBlockBody blockBody = block.getBody();
-                            proposerSlashingPool.addAll(blockBody.getProposerSlashings());
-                            attesterSlashingPool.addAll(blockBody.getAttesterSlashings());
-                            exitPool.addAll(blockBody.getVoluntaryExits());
+                  block -> {
+                    BeaconBlockBody blockBody = block.getBody();
+                    proposerSlashingPool.addAll(blockBody.getProposerSlashings());
+                    attesterSlashingPool.addAll(blockBody.getAttesterSlashings());
+                    exitPool.addAll(blockBody.getVoluntaryExits());
 
-                            processNonCanonicalBlockAttestations(blockBody.getAttestations(), root);
-                          },
-                          () ->
-                              LOG.debug(
-                                  "Failed to re-queue operations for now non-canonical block: {}",
-                                  root)))
+                    processNonCanonicalBlockAttestations(blockBody.getAttestations(), root);
+                  },
+                  () ->
+                      LOG.debug(
+                          "Failed to re-queue operations for now non-canonical block: {}", root))
               .finish(
                   err ->
                       LOG.warn(
