@@ -63,7 +63,9 @@ public class Eth2PeerFactory {
         rpcMethods,
         statusMessageFactory,
         metadataMessagesFactory,
-        PeerChainValidator.create(spec, metricsSystem, chainDataClient, requiredCheckpoint),
+        //        PeerChainValidator.create(spec, metricsSystem, chainDataClient,
+        // requiredCheckpoint),
+        PeerChainValidator.createNoOp(spec, metricsSystem, chainDataClient, requiredCheckpoint),
         new RateTracker(peerRateLimit, 60, timeProvider),
         new RateTracker(peerRequestLimit, 60, timeProvider));
   }

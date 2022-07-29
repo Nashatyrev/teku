@@ -76,6 +76,20 @@ public class PeerChainValidator {
     return new PeerChainValidator(spec, metricsSystem, chainDataClient, requiredCheckpoint);
   }
 
+  public static PeerChainValidator createNoOp(
+      final Spec spec,
+      final MetricsSystem metricsSystem,
+      final CombinedChainDataClient chainDataClient,
+      final Optional<Checkpoint> requiredCheckpoint) {
+
+    return new PeerChainValidator(spec, metricsSystem, chainDataClient, requiredCheckpoint) {
+      @Override
+      public SafeFuture<Boolean> validate(Eth2Peer peer, PeerStatus newStatus) {
+        return SafeFuture.completedFuture(true);
+      }
+    };
+  }
+
   public SafeFuture<Boolean> validate(final Eth2Peer peer, final PeerStatus newStatus) {
     LOG.trace("Validate chain of peer: {}", peer.getId());
     validationStartedCounter.inc();
