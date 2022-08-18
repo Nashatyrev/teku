@@ -13,14 +13,22 @@
 
 package tech.pegasys.teku.statetransition.validation.signatures;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import it.unimi.dsi.fastutil.booleans.BooleanList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -34,7 +42,15 @@ import tech.pegasys.teku.bls.BLSKeyGenerator;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
-import tech.pegasys.teku.infrastructure.async.*;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
+import tech.pegasys.teku.infrastructure.async.DefaultAsyncRunnerFactory;
+import tech.pegasys.teku.infrastructure.async.MetricTrackingExecutorFactory;
+import tech.pegasys.teku.infrastructure.async.OccurrenceCounter;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
+import tech.pegasys.teku.infrastructure.async.StubAsyncRunnerFactory;
+import tech.pegasys.teku.infrastructure.async.Waiter;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.service.serviceutils.ServiceCapacityExceededException;
 import tech.pegasys.teku.statetransition.validation.signatures.AggregatingSignatureVerificationService.SignatureTask;
