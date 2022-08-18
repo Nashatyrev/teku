@@ -13,19 +13,20 @@
 
 package tech.pegasys.teku.statetransition.validation.signatures;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
 import it.unimi.dsi.fastutil.booleans.BooleanList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.bls.BLS;
@@ -33,12 +34,7 @@ import tech.pegasys.teku.bls.BLSKeyGenerator;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
-import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
-import tech.pegasys.teku.infrastructure.async.MetricTrackingExecutorFactory;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
-import tech.pegasys.teku.infrastructure.async.StubAsyncRunnerFactory;
-import tech.pegasys.teku.infrastructure.async.Waiter;
+import tech.pegasys.teku.infrastructure.async.*;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.service.serviceutils.ServiceCapacityExceededException;
 import tech.pegasys.teku.statetransition.validation.signatures.AggregatingSignatureVerificationService.SignatureTask;
@@ -180,6 +176,164 @@ public class AggregatingSignatureVerificationServiceTest {
     for (int i = 0; i < 5; i++) {
       final SafeFuture<Boolean> future = futures.get(i);
       assertThat(future).isCompletedWithValue(i != 1);
+    }
+  }
+
+  @Test
+  public void verify_custom() {
+    startService();
+
+    Random random = new Random();
+
+    int cnt = 0;
+
+    while (true) {
+      for (int size = 1; size < 50; size++) {
+
+        System.out.println("Running: " + cnt++);
+
+        //      List<Set<Integer>> invalidCases = IntStream.range(0, size)
+        //              .mapToObj(Set::of)
+        //              .collect(Collectors.toList());
+
+        HashSet<Integer> set = new HashSet<>();
+        set.add(random.nextInt(size));
+        set.add(random.nextInt(size));
+        List<Set<Integer>> invalidCases = List.of(set);
+
+        for (Set<Integer> invalidSigIndices : invalidCases) {
+
+          final List<SafeFuture<Boolean>> futures = new ArrayList<>();
+
+          for (int i = 0; i < size; i++) {
+            SafeFuture<Boolean> res = executeVerify(i, i, !invalidSigIndices.contains(i));
+            futures.add(res);
+          }
+
+          runPendingTasks();
+
+          for (int i = 0; i < size; i++) {
+            final SafeFuture<Boolean> future = futures.get(i);
+            assertThat(future).isCompletedWithValue(!invalidSigIndices.contains(i));
+          }
+        }
+      }
+    }
+  }
+
+  public static final int DEFAULT_BATCH_VERIFY_MAX_THREADS = 2;
+  public static final int DEFAULT_BATCH_VERIFY_QUEUE_CAPACITY = 15_000;
+  public static final int DEFAULT_BATCH_VERIFY_MAX_BATCH_SIZE = 250;
+  public static final boolean DEFAULT_BATCH_VERIFY_STRICT_THREAD_LIMIT_ENABLED = false;
+  static final int DEFAULT_MIN_BATCH_SIZE_TO_SPLIT = 25;
+
+  static class BlsCase {
+    private static final BLSSignature INVALID_SIGNATURE =
+        BLS.sign(keys.get(0).getSecretKey(), Bytes32.random());
+
+    public static BlsCase createValid(
+        BLSPublicKey publicKey, Bytes message, BLSSignature signature) {
+      return new BlsCase(List.of(List.of(publicKey)), List.of(message), List.of(signature), true);
+    }
+
+    public static BlsCase createInvalid(BLSPublicKey publicKey, Bytes message) {
+      return new BlsCase(
+          List.of(List.of(publicKey)), List.of(message), List.of(INVALID_SIGNATURE), false);
+    }
+
+    final List<List<BLSPublicKey>> publicKeys;
+    final List<Bytes> messages;
+    final List<BLSSignature> signatures;
+    final boolean isValid;
+
+    public BlsCase(
+        List<List<BLSPublicKey>> publicKeys,
+        List<Bytes> messages,
+        List<BLSSignature> signatures,
+        boolean isValid) {
+      this.publicKeys = publicKeys;
+      this.messages = messages;
+      this.signatures = signatures;
+      this.isValid = isValid;
+    }
+  }
+
+  @Test
+  public void fuzz_test() {
+    StubMetricsSystem stubMetricsSystem = new StubMetricsSystem();
+    DefaultAsyncRunnerFactory runnerFactory =
+        AsyncRunnerFactory.createDefault(
+            new MetricTrackingExecutorFactory(stubMetricsSystem, new OccurrenceCounter(10)));
+    AsyncRunner completionRunner = runnerFactory.create("completion_thread", 1);
+
+    AggregatingSignatureVerificationService service =
+        new AggregatingSignatureVerificationService(
+            stubMetricsSystem,
+            runnerFactory,
+            completionRunner,
+            DEFAULT_BATCH_VERIFY_MAX_THREADS,
+            DEFAULT_BATCH_VERIFY_QUEUE_CAPACITY,
+            DEFAULT_BATCH_VERIFY_MAX_BATCH_SIZE,
+            DEFAULT_MIN_BATCH_SIZE_TO_SPLIT,
+            DEFAULT_BATCH_VERIFY_STRICT_THREAD_LIMIT_ENABLED);
+
+    service.start().join();
+
+    List<BLSKeyPair> keys = BLSKeyGenerator.generateKeyPairs(500);
+    Iterator<BLSKeyPair> keysGenerator = Stream.generate(keys::stream).flatMap(e -> e).iterator();
+    Iterator<Bytes> messageGenerator =
+        IntStream.range(0, Integer.MAX_VALUE).mapToObj(Bytes::ofUnsignedInt).iterator();
+
+    List<BlsCase> validSingleList =
+        Stream.generate(
+                () -> {
+                  BLSKeyPair keyPair = keysGenerator.next();
+                  Bytes msg = messageGenerator.next();
+                  BLSSignature signature = BLS.sign(keyPair.getSecretKey(), msg);
+                  return BlsCase.createValid(keyPair.getPublicKey(), msg, signature);
+                })
+            .limit(100)
+            .collect(Collectors.toList());
+
+    List<BlsCase> invalidSingleList =
+        Stream.generate(
+                () -> {
+                  BLSKeyPair keyPair = keysGenerator.next();
+                  Bytes msg = messageGenerator.next();
+                  return BlsCase.createInvalid(keyPair.getPublicKey(), msg);
+                })
+            .limit(3)
+            .collect(Collectors.toList());
+
+    List<BlsCase> allBlsCases =
+        Stream.of(validSingleList, invalidSingleList)
+            .flatMap(Collection::stream)
+            .collect(Collectors.toList());
+
+    Random rnd = new Random();
+    while (true) {
+      int batchSize = rnd.nextInt(1000);
+      List<SafeFuture<Void>> results =
+          Stream.generate(
+                  () -> {
+                    ArrayList<BlsCase> shuffledCases = new ArrayList<>(allBlsCases);
+                    Collections.shuffle(shuffledCases);
+                    return shuffledCases;
+                  })
+              .flatMap(Collection::stream)
+              .limit(batchSize)
+              .map(
+                  blsCase ->
+                      service
+                          .verify(blsCase.publicKeys, blsCase.messages, blsCase.signatures)
+                          .thenAccept(res -> assertThat(res).isEqualTo(blsCase.isValid)))
+              .collect(Collectors.toList());
+
+      for (SafeFuture<Void> result : results) {
+        result.join();
+      }
+
+      System.out.println("Tested batch of size " + batchSize);
     }
   }
 
