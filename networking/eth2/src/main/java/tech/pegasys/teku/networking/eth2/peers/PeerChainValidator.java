@@ -16,6 +16,7 @@ package tech.pegasys.teku.networking.eth2.peers;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
@@ -79,6 +80,7 @@ public class PeerChainValidator {
   public SafeFuture<Boolean> validate(final Eth2Peer peer, final PeerStatus newStatus) {
     LOG.trace("Validate chain of peer: {}", peer.getId());
     validationStartedCounter.inc();
+    long t = System.currentTimeMillis();
     return isRemoteChainValid(peer, newStatus)
         .thenApply(
             isValid -> {
@@ -92,6 +94,9 @@ public class PeerChainValidator {
                 LOG.trace("Validated peer's chain: {}", peer.getId());
                 chainValidCounter.inc();
               }
+              long d = System.currentTimeMillis() - t;
+              Level l = (d < 1000) ? Level.DEBUG : Level.WARN;
+              LOG.log(l, "Validated in " + d + " ms, peer " + peer + ", status: " + newStatus);
               return isValid;
             })
         .exceptionally(
