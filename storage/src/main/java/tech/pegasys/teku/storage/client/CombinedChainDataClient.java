@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
@@ -118,7 +120,7 @@ public class CombinedChainDataClient {
       return getBlockByBlockRoot(recentRoot.get());
     }
 
-    return historicalChainData.getLatestFinalizedBlockAtSlot(slot);
+    return getLatestFinalizedBlockAtSlot(slot);
   }
 
   public SafeFuture<Optional<SignedBeaconBlock>> getBlockInEffectAtSlot(final UInt64 slot) {
@@ -132,12 +134,22 @@ public class CombinedChainDataClient {
       return getBlockByBlockRoot(recentRoot.get());
     }
 
-    return historicalChainData.getLatestFinalizedBlockAtSlot(slot);
+    return getLatestFinalizedBlockAtSlot(slot);
   }
 
   public SafeFuture<Optional<SignedBeaconBlock>> getFinalizedBlockInEffectAtSlot(
       final UInt64 slot) {
-    return historicalChainData.getLatestFinalizedBlockAtSlot(slot);
+    return getLatestFinalizedBlockAtSlot(slot);
+  }
+
+  private SafeFuture<Optional<SignedBeaconBlock>> getLatestFinalizedBlockAtSlot(UInt64 slot) {
+    long t = System.currentTimeMillis();
+    return historicalChainData.getLatestFinalizedBlockAtSlot(slot)
+            .thenPeek(__ -> {
+              long d = System.currentTimeMillis() - t;
+              Level l = (d < 200) ? Level.DEBUG : Level.WARN;
+              LOG.log(l, "getLatestFinalizedBlockAtSlot in " + d + " ms, slot: " + slot);
+            });
   }
 
   public SafeFuture<Optional<BeaconBlockAndState>> getBlockAndStateInEffectAtSlot(
