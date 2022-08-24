@@ -114,7 +114,6 @@ public class Eth2P2PNetworkBuilder {
       gossipedSyncCommitteeMessageProcessor;
   protected StatusMessageFactory statusMessageFactory;
 
-
   protected Eth2P2PNetworkBuilder() {}
 
   public static Eth2P2PNetworkBuilder create() {
