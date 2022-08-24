@@ -108,6 +108,7 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
       final SubnetSubscriptionService attestationSubnetService,
       final SubnetSubscriptionService syncCommitteeSubnetService,
       final RpcEncoding rpcEncoding,
+      final StatusMessageFactory statusMessageFactory,
       final Optional<Checkpoint> requiredCheckpoint,
       final Duration eth2RpcPingInterval,
       final int eth2RpcOutstandingPingThreshold,
@@ -117,7 +118,6 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
       final int peerRequestLimit,
       final Spec spec) {
 
-    final StatusMessageFactory statusMessageFactory = new StatusMessageFactory(recentChainData);
     final MetadataMessagesFactory metadataMessagesFactory = new MetadataMessagesFactory();
     attestationSubnetService.subscribeToUpdates(
         metadataMessagesFactory::updateAttestationSubnetIds);
