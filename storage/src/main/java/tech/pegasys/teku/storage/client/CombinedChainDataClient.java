@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -144,8 +143,10 @@ public class CombinedChainDataClient {
 
   private SafeFuture<Optional<SignedBeaconBlock>> getLatestFinalizedBlockAtSlot(UInt64 slot) {
     long t = System.currentTimeMillis();
-    return historicalChainData.getLatestFinalizedBlockAtSlot(slot)
-            .thenPeek(__ -> {
+    return historicalChainData
+        .getLatestFinalizedBlockAtSlot(slot)
+        .thenPeek(
+            __ -> {
               long d = System.currentTimeMillis() - t;
               Level l = (d < 200) ? Level.DEBUG : Level.WARN;
               LOG.log(l, "getLatestFinalizedBlockAtSlot in " + d + " ms, slot: " + slot);

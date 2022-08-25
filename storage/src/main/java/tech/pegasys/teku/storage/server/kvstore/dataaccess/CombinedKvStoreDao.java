@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -310,8 +309,8 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
   @Override
   public Optional<SignedBeaconBlock> getLatestFinalizedBlockAtSlot(final UInt64 slot) {
     long t = System.currentTimeMillis();
-    Optional<SignedBeaconBlock> ret = db.getFloorEntry(schema.getColumnFinalizedBlocksBySlot(), slot)
-            .map(ColumnEntry::getValue);
+    Optional<SignedBeaconBlock> ret =
+        db.getFloorEntry(schema.getColumnFinalizedBlocksBySlot(), slot).map(ColumnEntry::getValue);
     long d = System.currentTimeMillis() - t;
     Level l = (d < 200) ? Level.DEBUG : Level.WARN;
     LOG.log(l, "getLatestFinalizedBlockAtSlot in " + d + " ms, slot: " + slot);
