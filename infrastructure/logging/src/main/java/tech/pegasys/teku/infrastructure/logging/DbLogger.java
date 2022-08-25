@@ -36,7 +36,7 @@ public class DbLogger {
 
   public void onDbOpAlertThreshold(String opName, long startTimeNanos, long endTimeNanos) {
     long duration = TimeUnit.NANOSECONDS.toMillis(endTimeNanos - startTimeNanos);
-    if (dbOpAlertThresholdMillis > 0 && duration >= dbOpAlertThresholdMillis) {
+    if (dbOpAlertThresholdMillis > 0) {
       Level l = duration >= dbOpAlertThresholdMillis ? Level.WARN : Level.DEBUG;
       logger.log(
           l,
