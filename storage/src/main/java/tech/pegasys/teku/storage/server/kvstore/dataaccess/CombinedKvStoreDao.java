@@ -26,6 +26,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.jetbrains.annotations.NotNull;
@@ -52,6 +56,8 @@ import tech.pegasys.teku.storage.server.kvstore.schema.SchemaCombined;
 
 public class CombinedKvStoreDao<S extends SchemaCombined>
     implements KvStoreCombinedDaoBlinded, KvStoreCombinedDaoUnblinded, V4MigratableSourceDao {
+  private static final Logger LOG = LogManager.getLogger();
+
   // Persistent data
   private final KvStoreAccessor db;
   private final S schema;
@@ -303,8 +309,14 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
 
   @Override
   public Optional<SignedBeaconBlock> getLatestFinalizedBlockAtSlot(final UInt64 slot) {
-    return db.getFloorEntry(schema.getColumnFinalizedBlocksBySlot(), slot)
-        .map(ColumnEntry::getValue);
+    long t = System.currentTimeMillis();
+    Optional<SignedBeaconBlock> ret = db.getFloorEntry(schema.getColumnFinalizedBlocksBySlot(), slot)
+            .map(ColumnEntry::getValue);
+    long d = System.currentTimeMillis() - t;
+    Level l = (d < 200) ? Level.DEBUG : Level.WARN;
+    LOG.log(l, "getLatestFinalizedBlockAtSlot in " + d + " ms, slot: " + slot);
+
+    return ret;
   }
 
   @Override
