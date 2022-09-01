@@ -37,6 +37,7 @@ import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 public class PeerChainValidator {
   private static final Logger LOG = LogManager.getLogger();
+  public static boolean validate = true;
 
   private final Spec spec;
   private final CombinedChainDataClient chainDataClient;
@@ -78,6 +79,10 @@ public class PeerChainValidator {
   }
 
   public SafeFuture<Boolean> validate(final Eth2Peer peer, final PeerStatus newStatus) {
+    if (!validate) {
+      return SafeFuture.completedFuture(true);
+    }
+
     LOG.trace("Validate chain of peer: {}", peer.getId());
     validationStartedCounter.inc();
     long t = System.currentTimeMillis();
