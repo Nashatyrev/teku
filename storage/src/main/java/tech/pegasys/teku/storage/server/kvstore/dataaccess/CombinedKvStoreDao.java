@@ -312,7 +312,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
     Optional<SignedBeaconBlock> ret =
         db.getFloorEntry(schema.getColumnFinalizedBlocksBySlot(), slot).map(ColumnEntry::getValue);
     long d = System.currentTimeMillis() - t;
-    Level l = (d < 200) ? Level.DEBUG : Level.WARN;
+    Level l = (d < 2000) ? Level.DEBUG : Level.WARN;
     LOG.log(l, "getLatestFinalizedBlockAtSlot in " + d + " ms, slot: " + slot);
 
     return ret;
