@@ -148,7 +148,7 @@ public class CombinedChainDataClient {
         .thenPeek(
             __ -> {
               long d = System.currentTimeMillis() - t;
-              Level l = (d < 200) ? Level.DEBUG : Level.WARN;
+              Level l = (d < 2000) ? Level.DEBUG : Level.WARN;
               LOG.log(l, "getLatestFinalizedBlockAtSlot in " + d + " ms, slot: " + slot);
             });
   }
