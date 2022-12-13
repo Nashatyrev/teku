@@ -25,7 +25,7 @@ public class SszOutputStreamWriter implements SszWriter {
   }
 
   @Override
-  public void write(final byte[] bytes, final int offset, final int length) {
+  public void write(long gIndex, final byte[] bytes, final int offset, final int length) {
     try {
       out.write(bytes, offset, length);
     } catch (final IOException e) {

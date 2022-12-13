@@ -165,11 +165,13 @@ public abstract class SszUnionSchemaImpl<SszUnionT extends SszUnion>
   }
 
   @Override
-  public int sszSerializeTree(TreeNode node, SszWriter writer) {
+  public int sszSerializeTree(long gIndex, TreeNode node, SszWriter writer) {
     int selector = getSelector(node);
-    writer.write(Bytes.of(selector));
+    writer.write(
+        GIndexUtil.gIdxCompose(gIndex, GIndexUtil.RIGHT_CHILD_G_INDEX), Bytes.of(selector));
     SszSchema<?> valueSchema = childrenSchemas.get(selector);
-    int valueSszLength = valueSchema.sszSerializeTree(getValueNode(node), writer);
+    long valueNodeGIndex = GIndexUtil.gIdxCompose(gIndex, GIndexUtil.LEFT_CHILD_G_INDEX);
+    int valueSszLength = valueSchema.sszSerializeTree(valueNodeGIndex, getValueNode(node), writer);
     return valueSszLength + SELECTOR_SIZE_BYTES;
   }
 

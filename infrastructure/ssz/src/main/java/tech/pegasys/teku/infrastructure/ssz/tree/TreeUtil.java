@@ -26,6 +26,10 @@ import org.apache.tuweni.bytes.Bytes32;
 /** Misc Backing binary tree utils */
 public class TreeUtil {
 
+  public interface TreeDataVisitor {
+    boolean visit(Bytes data, long generalizedIndex);
+  }
+
   public static class ZeroLeafNode extends SimpleLeafNode {
     public ZeroLeafNode(int size) {
       super(Bytes.wrap(new byte[size]));
@@ -181,13 +185,13 @@ public class TreeUtil {
   }
 
   public static void iterateLeavesData(
-      TreeNode node, long fromGeneralIndex, long toGeneralIndex, Consumer<Bytes> visitor) {
+      TreeNode node, long fromGeneralIndex, long toGeneralIndex, TreeDataVisitor visitor) {
     node.iterateRange(
         fromGeneralIndex,
         toGeneralIndex,
         (n, idx) -> {
           if (n instanceof LeafDataNode) {
-            visitor.accept(((LeafDataNode) n).getData());
+            visitor.visit(((LeafDataNode) n).getData(), idx);
           }
           return true;
         });
@@ -196,7 +200,10 @@ public class TreeUtil {
   public static Bytes concatenateLeavesData(TreeNode tree) {
     List<Bytes> leavesData = new ArrayList<>();
     iterateLeavesData(
-        tree, GIndexUtil.LEFTMOST_G_INDEX, GIndexUtil.RIGHTMOST_G_INDEX, leavesData::add);
+        tree,
+        GIndexUtil.LEFTMOST_G_INDEX,
+        GIndexUtil.RIGHTMOST_G_INDEX,
+        (data, __) -> leavesData.add(data));
     return Bytes.wrap(leavesData.toArray(new Bytes[0]));
   }
 }

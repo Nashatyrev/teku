@@ -109,7 +109,8 @@ public class SszNodeTemplate {
 
   private static List<Bytes> nodeSsz(TreeNode node) {
     List<Bytes> sszBytes = new ArrayList<>();
-    TreeUtil.iterateLeavesData(node, LEFTMOST_G_INDEX, RIGHTMOST_G_INDEX, sszBytes::add);
+    TreeUtil.iterateLeavesData(
+        node, LEFTMOST_G_INDEX, RIGHTMOST_G_INDEX, (data, gIndex) -> sszBytes.add(data));
     return sszBytes;
   }
 

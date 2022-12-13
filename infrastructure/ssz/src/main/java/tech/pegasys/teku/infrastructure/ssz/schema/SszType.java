@@ -20,6 +20,7 @@ import tech.pegasys.teku.infrastructure.ssz.sos.SszDeserializeException;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszLengthBounds;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszReader;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszWriter;
+import tech.pegasys.teku.infrastructure.ssz.tree.GIndexUtil;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 
 /** Base class of {@link SszSchema} with SSZ serialization related methods */
@@ -62,7 +63,7 @@ public interface SszType {
   /** SSZ serializes the backing tree instance of this type */
   default Bytes sszSerializeTree(TreeNode node) {
     SszByteArrayWriter writer = new SszByteArrayWriter(getSszSize(node));
-    sszSerializeTree(node, writer);
+    sszSerializeTree(GIndexUtil.SELF_G_INDEX, node, writer);
     return writer.toBytes();
   }
 
@@ -70,7 +71,7 @@ public interface SszType {
    * SSZ serializes the backing tree of this type and returns the data as bytes 'stream' via passed
    * {@code writer}
    */
-  int sszSerializeTree(TreeNode node, SszWriter writer);
+  int sszSerializeTree(long gIndex, TreeNode node, SszWriter writer);
 
   TreeNode sszDeserializeTree(SszReader reader) throws SszDeserializeException;
 

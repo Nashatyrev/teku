@@ -24,6 +24,7 @@ import tech.pegasys.teku.infrastructure.ssz.SszData;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszDeserializeException;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszReader;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszWriter;
+import tech.pegasys.teku.infrastructure.ssz.tree.GIndexUtil;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNodeSource;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNodeStore;
@@ -73,7 +74,7 @@ public interface SszSchema<SszDataT extends SszData> extends SszType {
   }
 
   default int sszSerialize(SszDataT view, SszWriter writer) {
-    return sszSerializeTree(view.getBackingNode(), writer);
+    return sszSerializeTree(GIndexUtil.SELF_G_INDEX, view.getBackingNode(), writer);
   }
 
   default SszDataT sszDeserialize(SszReader reader) throws SszDeserializeException {

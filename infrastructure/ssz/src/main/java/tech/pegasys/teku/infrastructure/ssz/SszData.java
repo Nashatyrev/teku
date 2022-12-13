@@ -19,6 +19,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.ssz.schema.SszSchema;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszOutputStreamWriter;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszWriter;
+import tech.pegasys.teku.infrastructure.ssz.tree.GIndexUtil;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 
 /**
@@ -60,7 +61,7 @@ public interface SszData extends Merkleizable, SimpleOffsetSerializable {
 
   @Override
   default int sszSerialize(SszWriter writer) {
-    return getSchema().sszSerializeTree(getBackingNode(), writer);
+    return getSchema().sszSerializeTree(GIndexUtil.SELF_G_INDEX, getBackingNode(), writer);
   }
 
   @Override

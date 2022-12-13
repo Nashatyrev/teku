@@ -41,6 +41,7 @@ import tech.pegasys.teku.infrastructure.ssz.sos.SszDeserializeException;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszLengthBounds;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszReader;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszWriter;
+import tech.pegasys.teku.infrastructure.ssz.tree.GIndexUtil;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeUtil;
 
@@ -250,17 +251,19 @@ public abstract class AbstractSszContainerSchema<C extends SszContainer>
   }
 
   @Override
-  public int sszSerializeTree(TreeNode node, SszWriter writer) {
+  public int sszSerializeTree(long gIndex, TreeNode node, SszWriter writer) {
     int variableChildOffset = getSszFixedPartSize();
     int[] variableSizes = new int[getFieldsCount()];
     for (int i = 0; i < getFieldsCount(); i++) {
-      TreeNode childSubtree = node.get(getChildGeneralizedIndex(i));
+      long childGeneralizedIndex = getChildGeneralizedIndex(i);
+      TreeNode childSubtree = node.get(childGeneralizedIndex);
       SszSchema<?> childType = getChildSchema(i);
+      long childAbsoluteGIndex = GIndexUtil.gIdxCompose(gIndex, childGeneralizedIndex);
       if (childType.isFixedSize()) {
-        int size = childType.sszSerializeTree(childSubtree, writer);
+        int size = childType.sszSerializeTree(childAbsoluteGIndex, childSubtree, writer);
         assert size == childType.getSszFixedPartSize();
       } else {
-        writer.write(SszType.sszLengthToBytes(variableChildOffset));
+        writer.write(childAbsoluteGIndex, SszType.sszLengthToBytes(variableChildOffset));
         int childSize = childType.getSszSize(childSubtree);
         variableSizes[i] = childSize;
         variableChildOffset += childSize;
@@ -269,8 +272,10 @@ public abstract class AbstractSszContainerSchema<C extends SszContainer>
     for (int i = 0; i < childrenSchemas.size(); i++) {
       SszSchema<?> childType = getChildSchema(i);
       if (!childType.isFixedSize()) {
-        TreeNode childSubtree = node.get(getChildGeneralizedIndex(i));
-        int size = childType.sszSerializeTree(childSubtree, writer);
+        long childGeneralizedIndex = getChildGeneralizedIndex(i);
+        long childAbsoluteGIndex = GIndexUtil.gIdxCompose(gIndex, childGeneralizedIndex);
+        TreeNode childSubtree = node.get(childGeneralizedIndex);
+        int size = childType.sszSerializeTree(childAbsoluteGIndex, childSubtree, writer);
         assert size == variableSizes[i];
       }
     }

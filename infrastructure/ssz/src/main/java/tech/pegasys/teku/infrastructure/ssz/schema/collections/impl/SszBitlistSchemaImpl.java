@@ -64,12 +64,12 @@ public class SszBitlistSchemaImpl extends SszPrimitiveListSchemaImpl<Boolean, Ss
   }
 
   @Override
-  public int sszSerializeTree(TreeNode node, SszWriter writer) {
+  public int sszSerializeTree(long gIndex, TreeNode node, SszWriter writer) {
     int elementsCount = getLength(node);
     BytesCollector bytesCollector = new BytesCollector();
     getCompatibleVectorSchema()
-        .sszSerializeVector(getVectorNode(node), bytesCollector, elementsCount);
-    return bytesCollector.flushWithBoundaryBit(writer, elementsCount);
+        .sszSerializeVector(gIndex, getVectorNode(node), bytesCollector, elementsCount);
+    return bytesCollector.flushWithBoundaryBit(gIndex, writer, elementsCount);
   }
 
   @Override
@@ -114,7 +114,7 @@ public class SszBitlistSchemaImpl extends SszPrimitiveListSchemaImpl<Boolean, Ss
     private int size;
 
     @Override
-    public void write(byte[] bytes, int offset, int length) {
+    public void write(long gIndex, byte[] bytes, int offset, int length) {
       if (length == 0) {
         return;
       }
@@ -122,13 +122,13 @@ public class SszBitlistSchemaImpl extends SszPrimitiveListSchemaImpl<Boolean, Ss
       size += length;
     }
 
-    public int flushWithBoundaryBit(SszWriter writer, int boundaryBitOffset) {
+    public int flushWithBoundaryBit(long gIndex, SszWriter writer, int boundaryBitOffset) {
       int bitIdx = boundaryBitOffset % 8;
       checkArgument(
           TreeUtil.bitsCeilToBytes(boundaryBitOffset) == size, "Invalid boundary bit offset");
       if (bitIdx == 0) {
-        bytesList.forEach(bb -> writer.write(bb.bytes, bb.offset, bb.length));
-        writer.write(new byte[] {1});
+        bytesList.forEach(bb -> writer.write(gIndex, bb.bytes, bb.offset, bb.length));
+        writer.write(gIndex, new byte[] {1});
         return size + 1;
       } else {
         UnsafeBytes lastBytes = bytesList.get(bytesList.size() - 1);
@@ -137,12 +137,12 @@ public class SszBitlistSchemaImpl extends SszPrimitiveListSchemaImpl<Boolean, Ss
 
         for (int i = 0; i < bytesList.size() - 1; i++) {
           UnsafeBytes bb = bytesList.get(i);
-          writer.write(bb.bytes, bb.offset, bb.length);
+          writer.write(gIndex, bb.bytes, bb.offset, bb.length);
         }
         if (lastBytes.length > 1) {
-          writer.write(lastBytes.bytes, lastBytes.offset, lastBytes.length - 1);
+          writer.write(gIndex, lastBytes.bytes, lastBytes.offset, lastBytes.length - 1);
         }
-        writer.write(new byte[] {lastByteWithBoundaryBit});
+        writer.write(gIndex, new byte[] {lastByteWithBoundaryBit});
         return size;
       }
     }

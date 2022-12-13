@@ -37,6 +37,7 @@ import tech.pegasys.teku.infrastructure.ssz.schema.SszType;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszDeserializeException;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszReader;
 import tech.pegasys.teku.infrastructure.ssz.sos.SszWriter;
+import tech.pegasys.teku.infrastructure.ssz.tree.GIndexUtil;
 import tech.pegasys.teku.infrastructure.ssz.tree.LeafNode;
 import tech.pegasys.teku.infrastructure.ssz.tree.SszNodeTemplate;
 import tech.pegasys.teku.infrastructure.ssz.tree.SszSuperNode;
@@ -135,16 +136,17 @@ public abstract class AbstractSszCollectionSchema<
    * @param vectorNode for a {@link SszVectorSchemaImpl} type - the node itself, for a {@link
    *     SszListSchemaImpl} - the left sibling node of list size node
    */
-  public int sszSerializeVector(TreeNode vectorNode, SszWriter writer, int elementsCount) {
+  public int sszSerializeVector(
+      long gIndex, TreeNode vectorNode, SszWriter writer, int elementsCount) {
     if (getElementSchema().isFixedSize()) {
-      return sszSerializeFixedVectorFast(vectorNode, writer, elementsCount);
+      return sszSerializeFixedVectorFast(gIndex, vectorNode, writer, elementsCount);
     } else {
-      return sszSerializeVariableVector(vectorNode, writer, elementsCount);
+      return sszSerializeVariableVector(gIndex, vectorNode, writer, elementsCount);
     }
   }
 
   private int sszSerializeFixedVectorFast(
-      TreeNode vectorNode, SszWriter writer, int elementsCount) {
+      long gIndex, TreeNode vectorNode, SszWriter writer, int elementsCount) {
     if (elementsCount == 0) {
       return 0;
     }
@@ -154,25 +156,31 @@ public abstract class AbstractSszCollectionSchema<
         vectorNode,
         getChildGeneralizedIndex(0),
         getChildGeneralizedIndex(nodesCount - 1),
-        leafData -> {
-          writer.write(leafData);
+        (leafData, index) -> {
+          long absoluteGIndex = GIndexUtil.gIdxCompose(gIndex, index);
+          writer.write(absoluteGIndex, leafData);
           bytesCnt[0] += leafData.size();
+          return true;
         });
     return bytesCnt[0];
   }
 
-  private int sszSerializeVariableVector(TreeNode vectorNode, SszWriter writer, int elementsCount) {
+  private int sszSerializeVariableVector(
+      long gIndex, TreeNode vectorNode, SszWriter writer, int elementsCount) {
     SszSchema<?> elementType = getElementSchema();
     int variableOffset = SSZ_LENGTH_SIZE * elementsCount;
     for (int i = 0; i < elementsCount; i++) {
-      TreeNode childSubtree = vectorNode.get(getChildGeneralizedIndex(i));
+      long childGIndex = getChildGeneralizedIndex(i);
+      TreeNode childSubtree = vectorNode.get(childGIndex);
       int childSize = elementType.getSszSize(childSubtree);
-      writer.write(SszType.sszLengthToBytes(variableOffset));
+      writer.write(GIndexUtil.gIdxCompose(gIndex, childGIndex), SszType.sszLengthToBytes(variableOffset));
       variableOffset += childSize;
     }
     for (int i = 0; i < elementsCount; i++) {
-      TreeNode childSubtree = vectorNode.get(getChildGeneralizedIndex(i));
-      elementType.sszSerializeTree(childSubtree, writer);
+      long childGeneralizedIndex = getChildGeneralizedIndex(i);
+      TreeNode childSubtree = vectorNode.get(childGeneralizedIndex);
+      long childAbsoluteGIndex = GIndexUtil.gIdxCompose(gIndex, childGeneralizedIndex);
+      elementType.sszSerializeTree(childAbsoluteGIndex, childSubtree, writer);
     }
     return variableOffset;
   }

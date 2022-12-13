@@ -17,13 +17,13 @@ import org.apache.tuweni.bytes.Bytes;
 
 public interface SszWriter {
 
-  default void write(Bytes bytes) {
-    write(bytes.toArrayUnsafe());
+  default void write(long gIndex, Bytes bytes) {
+    write(gIndex, bytes.toArrayUnsafe());
   }
 
-  default void write(byte[] bytes) {
-    write(bytes, 0, bytes.length);
+  default void write(long gIndex, byte[] bytes) {
+    write(gIndex, bytes, 0, bytes.length);
   }
 
-  void write(byte[] bytes, int offset, int length);
+  void write(long gIndex, byte[] bytes, int offset, int length);
 }

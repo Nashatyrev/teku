@@ -95,7 +95,7 @@ public class SszCompositeListTest {
         }
 
         @Override
-        public int sszSerializeTree(TreeNode node, SszWriter writer) {
+        public int sszSerializeTree(long gIndex, TreeNode node, SszWriter writer) {
           return 0;
         }
 

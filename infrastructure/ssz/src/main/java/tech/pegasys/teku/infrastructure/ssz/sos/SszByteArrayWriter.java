@@ -24,7 +24,7 @@ public class SszByteArrayWriter implements SszWriter {
   }
 
   @Override
-  public void write(byte[] bytes, int offset, int length) {
+  public void write(long gIndex, byte[] bytes, int offset, int length) {
     System.arraycopy(bytes, offset, this.bytes, this.size, length);
     this.size += length;
   }

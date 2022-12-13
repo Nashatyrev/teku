@@ -18,7 +18,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static tech.pegasys.teku.infrastructure.ssz.schema.TreeNodeAssert.assertThatTreeNode;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -74,6 +77,21 @@ public abstract class SszSchemaTestBase extends SszTypeTestBase {
     assertThatThrownBy(() -> schema.sszDeserialize(countingReader))
         .isInstanceOf(SszDeserializeException.class);
     assertThat(bytesCounter.get()).isLessThanOrEqualTo(ssz.size());
+  }
+
+  @MethodSource("testSchemaArguments")
+  @ParameterizedTest
+  void sszSerializeTree_testGIndexes(SszSchema<SszData> schema) {
+    SszData data = randomSsz.randomData(schema);
+    List<Pair<Long, Bytes>> indexedSsz = new ArrayList<>();
+    schema.sszSerialize(
+        data,
+        (index, bb, off, len) -> {
+          Bytes bytes = Bytes.wrap(bb, off, len);
+          indexedSsz.add(Pair.of(index, bytes));
+        });
+
+    System.out.println(indexedSsz);
   }
 
   @MethodSource("testSchemaArguments")

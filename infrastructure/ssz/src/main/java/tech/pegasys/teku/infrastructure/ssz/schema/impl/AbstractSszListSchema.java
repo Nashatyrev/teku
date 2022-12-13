@@ -121,14 +121,14 @@ public abstract class AbstractSszListSchema<
   }
 
   @Override
-  public int sszSerializeTree(TreeNode node, SszWriter writer) {
+  public int sszSerializeTree(long gIndex, TreeNode node, SszWriter writer) {
     int elementsCount = getLength(node);
     if (getElementSchema() == SszPrimitiveSchemas.BIT_SCHEMA) {
       throw new UnsupportedOperationException(
           "BitlistImpl serialization is only supported by SszBitlistSchema");
     } else {
       return getCompatibleVectorSchema()
-          .sszSerializeVector(getVectorNode(node), writer, elementsCount);
+          .sszSerializeVector(gIndex, getVectorNode(node), writer, elementsCount);
     }
   }
 
