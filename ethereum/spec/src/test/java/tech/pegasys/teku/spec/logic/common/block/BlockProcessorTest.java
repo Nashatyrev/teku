@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.ssz.collections.SszBytes32Vector;
 import tech.pegasys.teku.infrastructure.ssz.schema.SszListSchema;
@@ -59,7 +60,7 @@ public abstract class BlockProcessorTest {
   @Test
   void ensureDepositSignatureVerifierHasDefaultValue() {
     assertThat(AbstractBlockProcessor.depositSignatureVerifier)
-        .isSameAs(AbstractBlockProcessor.DEFAULT_DEPOSIT_SIGNATURE_VERIFIER);
+        .isSameAs(BLSSignatureVerifier.SIMPLE);
   }
 
   @Test

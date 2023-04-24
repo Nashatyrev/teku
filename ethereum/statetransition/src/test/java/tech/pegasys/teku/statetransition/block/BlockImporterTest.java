@@ -122,8 +122,7 @@ public class BlockImporterTest {
 
   @AfterAll
   public static void dispose() {
-    AbstractBlockProcessor.depositSignatureVerifier =
-        AbstractBlockProcessor.DEFAULT_DEPOSIT_SIGNATURE_VERIFIER;
+    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.SIMPLE;
   }
 
   @BeforeEach

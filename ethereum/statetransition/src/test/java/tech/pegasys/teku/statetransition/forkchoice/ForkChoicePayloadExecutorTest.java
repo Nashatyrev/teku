@@ -65,8 +65,7 @@ class ForkChoicePayloadExecutorTest {
 
   @AfterAll
   public static void resetSession() {
-    AbstractBlockProcessor.depositSignatureVerifier =
-        AbstractBlockProcessor.DEFAULT_DEPOSIT_SIGNATURE_VERIFIER;
+    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.SIMPLE;
   }
 
   @BeforeEach

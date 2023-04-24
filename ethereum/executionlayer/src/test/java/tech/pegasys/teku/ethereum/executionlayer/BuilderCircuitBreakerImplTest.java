@@ -49,8 +49,7 @@ public class BuilderCircuitBreakerImplTest {
 
   @AfterAll
   public static void enableDepositBlsVerification() {
-    AbstractBlockProcessor.depositSignatureVerifier =
-        AbstractBlockProcessor.DEFAULT_DEPOSIT_SIGNATURE_VERIFIER;
+    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.SIMPLE;
   }
 
   @BeforeEach

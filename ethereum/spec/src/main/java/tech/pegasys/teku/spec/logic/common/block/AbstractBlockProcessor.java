@@ -82,15 +82,12 @@ import tech.pegasys.teku.spec.logic.versions.deneb.block.KzgCommitmentsProcessor
 
 public abstract class AbstractBlockProcessor implements BlockProcessor {
 
-  @VisibleForTesting
-  public static final BLSSignatureVerifier DEFAULT_DEPOSIT_SIGNATURE_VERIFIER =
-      BLSSignatureVerifier.SIMPLE;
   /**
    * For debug/test purposes only enables/disables {@link DepositData} BLS signature verification
    * Setting to <code>false</code> significantly speeds up state initialization
    */
   @VisibleForTesting
-  public static BLSSignatureVerifier depositSignatureVerifier = DEFAULT_DEPOSIT_SIGNATURE_VERIFIER;
+  public static BLSSignatureVerifier depositSignatureVerifier = BLSSignatureVerifier.SIMPLE;
 
   private static final Logger LOG = LogManager.getLogger();
 
