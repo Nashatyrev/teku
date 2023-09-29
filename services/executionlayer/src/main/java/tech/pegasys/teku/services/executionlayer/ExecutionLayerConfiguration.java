@@ -13,6 +13,8 @@
 
 package tech.pegasys.teku.services.executionlayer;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static tech.pegasys.teku.ethereum.executionlayer.ExecutionBuilderModule.BUILDER_BOOST_FACTOR_PREFER_BUILDER;
 import static tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannel.STUB_ENDPOINT_PREFIX;
@@ -21,7 +23,9 @@ import java.util.Optional;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import tech.pegasys.teku.ethereum.executionlayer.ExecutionLayerManager;
 import tech.pegasys.teku.infrastructure.exceptions.InvalidConfigurationException;
+import tech.pegasys.teku.service.serviceutils.ServiceConfig;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
@@ -53,6 +57,11 @@ public class ExecutionLayerConfiguration {
   private final boolean builderSetUserAgentHeader;
   private final boolean useShouldOverrideBuilderFlag;
   private final boolean exchangeCapabilitiesMonitoringEnabled;
+  private final Optional<StubExecutionLayerManagerConstructor> stubExecutionLayerManagerConstructor;
+
+  public interface StubExecutionLayerManagerConstructor {
+    ExecutionLayerManager create(ServiceConfig serviceConfig, ExecutionLayerConfiguration config);
+  }
 
   private ExecutionLayerConfiguration(
       final Spec spec,
@@ -67,7 +76,8 @@ public class ExecutionLayerConfiguration {
       final UInt64 builderBidCompareFactor,
       final boolean builderSetUserAgentHeader,
       final boolean useShouldOverrideBuilderFlag,
-      final boolean exchangeCapabilitiesMonitoringEnabled) {
+      final boolean exchangeCapabilitiesMonitoringEnabled,
+      Optional<StubExecutionLayerManagerConstructor> stubExecutionLayerManagerConstructor) {
     this.spec = spec;
     this.engineEndpoint = engineEndpoint;
     this.engineJwtSecretFile = engineJwtSecretFile;
@@ -82,6 +92,7 @@ public class ExecutionLayerConfiguration {
     this.builderSetUserAgentHeader = builderSetUserAgentHeader;
     this.useShouldOverrideBuilderFlag = useShouldOverrideBuilderFlag;
     this.exchangeCapabilitiesMonitoringEnabled = exchangeCapabilitiesMonitoringEnabled;
+    this.stubExecutionLayerManagerConstructor = stubExecutionLayerManagerConstructor;
   }
 
   public static Builder builder() {
@@ -147,6 +158,10 @@ public class ExecutionLayerConfiguration {
     return exchangeCapabilitiesMonitoringEnabled;
   }
 
+  public Optional<StubExecutionLayerManagerConstructor> getStubExecutionLayerManagerConstructor() {
+    return stubExecutionLayerManagerConstructor;
+  }
+
   public static class Builder {
     private Spec spec;
     private Optional<String> engineEndpoint = Optional.empty();
@@ -163,6 +178,8 @@ public class ExecutionLayerConfiguration {
     private boolean useShouldOverrideBuilderFlag = DEFAULT_USE_SHOULD_OVERRIDE_BUILDER_FLAG;
     private boolean exchangeCapabilitiesMonitoringEnabled =
         DEFAULT_EXCHANGE_CAPABILITIES_MONITORING_ENABLED;
+    private Optional<StubExecutionLayerManagerConstructor> stubExecutionLayerManagerConstructor =
+        Optional.empty();
 
     private Builder() {}
 
@@ -200,7 +217,8 @@ public class ExecutionLayerConfiguration {
           builderBidCompareFactor,
           builderSetUserAgentHeader,
           useShouldOverrideBuilderFlag,
-          exchangeCapabilitiesMonitoringEnabled);
+          exchangeCapabilitiesMonitoringEnabled,
+          stubExecutionLayerManagerConstructor);
     }
 
     public Builder engineEndpoint(final String engineEndpoint) {
@@ -263,6 +281,13 @@ public class ExecutionLayerConfiguration {
 
     public Builder useShouldOverrideBuilderFlag(final boolean useShouldOverrideBuilderFlag) {
       this.useShouldOverrideBuilderFlag = useShouldOverrideBuilderFlag;
+      return this;
+    }
+
+    public Builder stubExecutionLayerManagerConstructor(
+        StubExecutionLayerManagerConstructor stubExecutionLayerManagerConstructor) {
+      checkNotNull(stubExecutionLayerManagerConstructor);
+      this.stubExecutionLayerManagerConstructor = Optional.of(stubExecutionLayerManagerConstructor);
       return this;
     }
 
