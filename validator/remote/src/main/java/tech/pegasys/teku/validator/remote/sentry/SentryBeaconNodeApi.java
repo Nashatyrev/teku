@@ -97,7 +97,7 @@ public class SentryBeaconNodeApi implements BeaconNodeApi {
             dutiesProviderPrimaryValidatorApiChannel,
             dutiesProviderFailoverValidatorApiChannel,
             ValidatorLogger.VALIDATOR_LOGGER,
-            beaconNodeReadinessChannel);
+            beaconNodeReadinessChannel, asyncRunner);
 
     eventChannels.subscribe(ValidatorTimingChannel.class, beaconNodeReadinessManager);
 

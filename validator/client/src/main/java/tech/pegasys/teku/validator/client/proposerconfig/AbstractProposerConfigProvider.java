@@ -70,7 +70,7 @@ public abstract class AbstractProposerConfigProvider implements ProposerConfigPr
     futureProposerConfig =
         asyncRunner
             .runAsync(this::internalGetProposerConfig)
-            .orTimeout(30, TimeUnit.SECONDS)
+            .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
             .thenApply(this::updateProposerConfig)
             .exceptionally(this::handleException);
 

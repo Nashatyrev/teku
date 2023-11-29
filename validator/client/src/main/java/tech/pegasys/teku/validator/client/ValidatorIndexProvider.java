@@ -73,7 +73,7 @@ public class ValidatorIndexProvider {
               validatorIndicesByPublicKey.putAll(knownValidators);
               firstSuccessfulRequest.complete(null);
             })
-        .orTimeout(30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .whenComplete((result, error) -> requestInProgress.set(false))
         .finish(
             error -> {

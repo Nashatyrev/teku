@@ -124,7 +124,7 @@ class RestBuilderClientTest {
     unblindedBuilderPayloadResponse =
         readResource(milestoneFolder + "/unblindedBuilderPayload.json");
 
-    restBuilderClient = new RestBuilderClient(okHttpRestClient, spec, true);
+    restBuilderClient = new RestBuilderClient(asyncRunner, okHttpRestClient, spec, true);
   }
 
   @AfterEach
@@ -236,7 +236,7 @@ class RestBuilderClientTest {
   @TestTemplate
   void getHeader_success_doesNotSetUserAgentHeader() {
 
-    restBuilderClient = new RestBuilderClient(okHttpRestClient, spec, false);
+    restBuilderClient = new RestBuilderClient(asyncRunner, okHttpRestClient, spec, false);
 
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(200).setBody(signedBuilderBidResponse));

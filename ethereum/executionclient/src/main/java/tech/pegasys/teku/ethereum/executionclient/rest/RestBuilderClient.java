@@ -30,6 +30,7 @@ import tech.pegasys.teku.ethereum.executionclient.BuilderApiMethod;
 import tech.pegasys.teku.ethereum.executionclient.BuilderClient;
 import tech.pegasys.teku.ethereum.executionclient.schema.BuilderApiResponse;
 import tech.pegasys.teku.ethereum.executionclient.schema.Response;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.json.types.DeserializableTypeDefinition;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
@@ -66,19 +67,21 @@ public class RestBuilderClient implements BuilderClient {
   private final RestClient restClient;
   private final SchemaDefinitionCache schemaDefinitionCache;
   private final boolean setUserAgentHeader;
+  private final AsyncRunner asyncRunner;
 
   public RestBuilderClient(
-      final RestClient restClient, final Spec spec, final boolean setUserAgentHeader) {
+      AsyncRunner asyncRunner, final RestClient restClient, final Spec spec, final boolean setUserAgentHeader) {
     this.restClient = restClient;
     this.schemaDefinitionCache = new SchemaDefinitionCache(spec);
     this.setUserAgentHeader = setUserAgentHeader;
+    this.asyncRunner = asyncRunner;
   }
 
   @Override
   public SafeFuture<Response<Void>> status() {
     return restClient
         .getAsync(BuilderApiMethod.GET_STATUS.getPath())
-        .orTimeout(BUILDER_STATUS_TIMEOUT);
+        .orTimeout(asyncRunner, BUILDER_STATUS_TIMEOUT);
   }
 
   @Override
@@ -96,7 +99,7 @@ public class RestBuilderClient implements BuilderClient {
             BuilderApiMethod.REGISTER_VALIDATOR.getPath(),
             signedValidatorRegistrations,
             requestType)
-        .orTimeout(BUILDER_REGISTER_VALIDATOR_TIMEOUT);
+        .orTimeout(asyncRunner, BUILDER_REGISTER_VALIDATOR_TIMEOUT);
   }
 
   @Override
@@ -137,7 +140,7 @@ public class RestBuilderClient implements BuilderClient {
                     BuilderApiResponse::getVersion,
                     true))
         .thenApply(Response::convertToOptional)
-        .orTimeout(BUILDER_PROPOSAL_DELAY_TOLERANCE);
+        .orTimeout(asyncRunner, BUILDER_PROPOSAL_DELAY_TOLERANCE);
   }
 
   @Override
@@ -173,7 +176,7 @@ public class RestBuilderClient implements BuilderClient {
                     milestone,
                     BuilderApiResponse::getVersion,
                     false))
-        .orTimeout(BUILDER_GET_PAYLOAD_TIMEOUT);
+        .orTimeout(asyncRunner, BUILDER_GET_PAYLOAD_TIMEOUT);
   }
 
   private <T extends BuilderPayload>

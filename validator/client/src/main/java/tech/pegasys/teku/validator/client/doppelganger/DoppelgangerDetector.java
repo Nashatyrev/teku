@@ -198,7 +198,7 @@ public class DoppelgangerDetector {
                   }
                 }
               })
-          .orTimeout(checkDelay)
+          .orTimeout(asyncRunner, checkDelay)
           .exceptionally(
               throwable -> {
                 LOG.error(
@@ -228,7 +228,7 @@ public class DoppelgangerDetector {
                           .collect(
                               Collectors.toMap(
                                   Map.Entry::getKey, e -> UInt64.valueOf(e.getValue())))))
-          .orTimeout(checkDelay)
+          .orTimeout(asyncRunner, checkDelay)
           .exceptionally(
               throwable -> {
                 LOG.error(
@@ -273,7 +273,7 @@ public class DoppelgangerDetector {
           .thenAccept(
               validatorLivenessAtEpoches ->
                   checkValidatorDoppelgangers(validatorLivenessAtEpoches, validatorIndicesByPubKey))
-          .orTimeout(checkDelay)
+          .orTimeout(asyncRunner, checkDelay)
           .exceptionally(
               throwable -> {
                 LOG.error(

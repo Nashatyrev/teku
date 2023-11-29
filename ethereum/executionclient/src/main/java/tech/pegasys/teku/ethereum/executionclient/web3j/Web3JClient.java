@@ -27,6 +27,7 @@ import org.web3j.protocol.core.Request;
 import org.web3j.protocol.exceptions.ClientConnectionException;
 import tech.pegasys.teku.ethereum.executionclient.events.ExecutionClientEventsChannel;
 import tech.pegasys.teku.ethereum.executionclient.schema.Response;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.infrastructure.logging.EventLogger;
@@ -40,6 +41,7 @@ public abstract class Web3JClient {
 
   private final EventLogger eventLog;
   private final TimeProvider timeProvider;
+  private final AsyncRunner asyncRunner;
   private final ExecutionClientEventsChannel executionClientEventsPublisher;
   private Web3jService web3jService;
   private Web3j eth1Web3j;
@@ -56,12 +58,14 @@ public abstract class Web3JClient {
   protected Web3JClient(
       final EventLogger eventLog,
       final TimeProvider timeProvider,
+      final AsyncRunner asyncRunner,
       final ExecutionClientEventsChannel executionClientEventsPublisher,
       final Collection<String> nonCriticalMethods) {
     this.eventLog = eventLog;
     this.timeProvider = timeProvider;
     this.executionClientEventsPublisher = executionClientEventsPublisher;
     this.nonCriticalMethods.addAll(nonCriticalMethods);
+    this.asyncRunner = asyncRunner;
   }
 
   protected synchronized void initWeb3jService(final Web3jService web3jService) {
@@ -81,7 +85,7 @@ public abstract class Web3JClient {
       final Duration timeout) {
     throwIfNotInitialized();
     return SafeFuture.of(web3jRequest.sendAsync())
-        .orTimeout(timeout)
+        .orTimeout(asyncRunner, timeout)
         .handle(
             (response, exception) -> {
               final boolean isCriticalRequest = isCriticalRequest(web3jRequest);
