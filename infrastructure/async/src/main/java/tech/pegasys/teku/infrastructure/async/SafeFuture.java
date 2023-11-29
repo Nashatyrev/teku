@@ -648,14 +648,15 @@ public class SafeFuture<T> extends CompletableFuture<T> {
               },
               timeout);
 
-      this.whenComplete(
-          (__, ex) -> {
-            if (ex == null && !timeoutInterruptor.isDone()) {
+      return this.thenPeek(
+          __ -> {
+            if (!timeoutInterruptor.isDone()) {
               timeoutInterruptor.cancel(false);
             }
           });
+    } else {
+      return this;
     }
-    return this;
   }
 
   /**
