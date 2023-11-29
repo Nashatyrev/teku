@@ -65,7 +65,7 @@ class EventChannel<T> {
     return createAsync(
         channelInterface,
         executorFactory.createExecutor(
-            channelInterface.getSimpleName(), 16, Integer.MAX_VALUE, Thread.NORM_PRIORITY),
+            channelInterface.getSimpleName(), Integer.MAX_VALUE, Integer.MAX_VALUE, Thread.NORM_PRIORITY),
         exceptionHandler,
         metricsSystem);
   }

@@ -18,6 +18,8 @@ import java.util.concurrent.ScheduledExecutorService;
 
 public interface ExecutorServiceFactory {
 
+  static int UNLIMITED_QUEUE_SIZE = Integer.MAX_VALUE;
+
   ExecutorService createExecutor(String name, int maxThreads, int maxQueueSize, int threadPriority);
 
   ScheduledExecutorService createScheduledExecutor(String name);
