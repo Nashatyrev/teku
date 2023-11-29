@@ -275,7 +275,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
         slot -> spec.atSlot(slot).getSchemaDefinitions().getBeaconBlockBodySchema();
     this.beaconDataDirectory = serviceConfig.getDataDirLayout().getBeaconDataDirectory();
     this.asyncRunnerFactory = serviceConfig.getAsyncRunnerFactory();
-    this.beaconAsyncRunner = serviceConfig.createAsyncRunner("beaconchain");
+    this.beaconAsyncRunner = asyncRunnerFactory.create("beaconchain");
     this.eventAsyncRunner = asyncRunnerFactory.create("events", 10);
     this.networkAsyncRunner = asyncRunnerFactory.create("p2p", 10);
     this.operationPoolAsyncRunner = asyncRunnerFactory.create("operationPoolUpdater", 1);

@@ -15,7 +15,6 @@ package tech.pegasys.teku.service.serviceutils;
 
 import java.util.function.IntSupplier;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
-import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.events.EventChannels;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
@@ -30,7 +29,6 @@ public class ServiceConfig {
   private final DataDirLayout dataDirLayout;
 
   private final IntSupplier rejectedExecutionsSupplier;
-  private final IntSupplier executorThreads;
 
   public ServiceConfig(
       final AsyncRunnerFactory asyncRunnerFactory,
@@ -38,15 +36,13 @@ public class ServiceConfig {
       final EventChannels eventChannels,
       final MetricsSystem metricsSystem,
       final DataDirLayout dataDirLayout,
-      final IntSupplier rejectedExecutionsSupplier,
-      final IntSupplier executorThreads) {
+      final IntSupplier rejectedExecutionsSupplier) {
     this.asyncRunnerFactory = asyncRunnerFactory;
     this.timeProvider = timeProvider;
     this.eventChannels = eventChannels;
     this.metricsSystem = metricsSystem;
     this.dataDirLayout = dataDirLayout;
     this.rejectedExecutionsSupplier = rejectedExecutionsSupplier;
-    this.executorThreads = executorThreads;
   }
 
   public TimeProvider getTimeProvider() {
@@ -69,21 +65,7 @@ public class ServiceConfig {
     return rejectedExecutionsSupplier;
   }
 
-  public AsyncRunner createAsyncRunner(final String name) {
-    return asyncRunnerFactory.create(name, calculateMaxThreads());
-  }
-
-  public AsyncRunner createAsyncRunnerWithMaxQueueSize(final String name, final int maxQueueSize) {
-    return asyncRunnerFactory.create(name, calculateMaxThreads(), maxQueueSize);
-  }
-
   public AsyncRunnerFactory getAsyncRunnerFactory() {
     return asyncRunnerFactory;
-  }
-
-  private int calculateMaxThreads() {
-    // We use a bunch of blocking calls so need to ensure the thread pool is reasonably large
-    // as many threads may be blocked.
-    return Math.max(Runtime.getRuntime().availableProcessors(), executorThreads.getAsInt());
   }
 }

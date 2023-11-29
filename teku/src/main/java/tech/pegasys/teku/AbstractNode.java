@@ -106,7 +106,6 @@ public abstract class AbstractNode implements Node {
     asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
 
     final DataDirLayout dataDirLayout = DataDirLayout.createFrom(tekuConfig.dataConfig());
-    ValidatorConfig validatorConfig = tekuConfig.validatorClient().getValidatorConfig();
 
     serviceConfig =
         new ServiceConfig(
@@ -115,8 +114,7 @@ public abstract class AbstractNode implements Node {
             eventChannels,
             metricsSystem,
             dataDirLayout,
-            rejectedExecutionCounter::getTotalCount,
-            validatorConfig::getexecutorThreads);
+            rejectedExecutionCounter::getTotalCount);
     this.metricsPublisher =
         new MetricsPublisherManager(
             asyncRunnerFactory,
@@ -125,7 +123,6 @@ public abstract class AbstractNode implements Node {
             dataDirLayout.getBeaconDataDirectory().toFile());
 
     asyncRunner = asyncRunnerFactory.create("AbstractNode", 1);
-
   }
 
   private void reportOverrides(final TekuConfiguration tekuConfig) {
@@ -188,10 +185,11 @@ public abstract class AbstractNode implements Node {
     metricsPublisher.start().join();
     getServiceController().start().join();
     counterMaintainer =
-        Optional.of(asyncRunner.runWithFixedDelay(
-            this::pollRejectedExecutions,
-            Duration.ofSeconds(5),
-            (err) -> LOG.debug("rejected execution poll failed", err)));
+        Optional.of(
+            asyncRunner.runWithFixedDelay(
+                this::pollRejectedExecutions,
+                Duration.ofSeconds(5),
+                (err) -> LOG.debug("rejected execution poll failed", err)));
   }
 
   private void pollRejectedExecutions() {
@@ -206,7 +204,7 @@ public abstract class AbstractNode implements Node {
     // Stop processing new events
     eventChannels
         .stop()
-        .orTimeout(asyncRunner,30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handleException(error -> LOG.warn("Failed to stop event channels cleanly", error))
         .join();
 
@@ -218,7 +216,7 @@ public abstract class AbstractNode implements Node {
     // Stop services. This includes closing the database.
     getServiceController()
         .stop()
-        .orTimeout(asyncRunner,30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handleException(error -> LOG.error("Failed to stop services", error))
         .thenCompose(__ -> metricsEndpoint.stop())
         .orTimeout(5, TimeUnit.SECONDS)

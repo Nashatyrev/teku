@@ -73,7 +73,7 @@ public class PowchainService extends Service {
       final Optional<ExecutionWeb3jClientProvider> maybeExecutionWeb3jClientProvider) {
     checkArgument(powConfig.isEnabled() || maybeExecutionWeb3jClientProvider.isPresent());
 
-    AsyncRunner asyncRunner = serviceConfig.createAsyncRunner("powchain");
+    AsyncRunner asyncRunner = serviceConfig.getAsyncRunnerFactory().create("powchain");
 
     this.okHttpClient = createOkHttpClient();
     final SpecConfig config = powConfig.getSpec().getGenesisSpecConfig();

@@ -130,9 +130,14 @@ public class ValidatorClientService extends Service {
     final EventChannels eventChannels = services.getEventChannels();
     final ValidatorConfig validatorConfig = config.getValidatorConfig();
 
+    // We use a bunch of blocking calls so need to ensure the thread pool is reasonably large
+    // as many threads may be blocked.
+    int threadCount =
+        Math.max(Runtime.getRuntime().availableProcessors(), validatorConfig.getexecutorThreads());
     final AsyncRunner asyncRunner =
-        services.createAsyncRunnerWithMaxQueueSize(
-            "validator", validatorConfig.getExecutorMaxQueueSize());
+        services
+            .getAsyncRunnerFactory()
+            .create("validator", threadCount, validatorConfig.getExecutorMaxQueueSize());
 
     final BeaconNodeApi beaconNodeApi = createBeaconNodeApi(services, config, asyncRunner);
 
