@@ -32,6 +32,7 @@ import tech.pegasys.teku.config.TekuConfiguration;
 import tech.pegasys.teku.data.publisher.MetricsPublisherManager;
 import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.Cancellable;
+import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
 import tech.pegasys.teku.infrastructure.async.MetricTrackingExecutorFactory;
 import tech.pegasys.teku.infrastructure.async.OccurrenceCounter;
 import tech.pegasys.teku.infrastructure.events.EventChannels;
@@ -96,11 +97,13 @@ public abstract class AbstractNode implements Node {
     final MetricsSystem metricsSystem = metricsEndpoint.getMetricsSystem();
     final TekuDefaultExceptionHandler subscriberExceptionHandler =
         new TekuDefaultExceptionHandler();
-    this.eventChannels = new EventChannels(subscriberExceptionHandler, metricsSystem);
 
-    asyncRunnerFactory =
-        AsyncRunnerFactory.createDefault(
-            new MetricTrackingExecutorFactory(metricsSystem, rejectedExecutionCounter));
+    ExecutorServiceFactory executorFactory = new MetricTrackingExecutorFactory(metricsSystem, rejectedExecutionCounter);
+
+    this.eventChannels = new EventChannels(subscriberExceptionHandler, executorFactory, metricsSystem);
+
+    asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
+
     final DataDirLayout dataDirLayout = DataDirLayout.createFrom(tekuConfig.dataConfig());
     ValidatorConfig validatorConfig = tekuConfig.validatorClient().getValidatorConfig();
 

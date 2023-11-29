@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 class EventChannel<T> {
@@ -61,14 +62,11 @@ class EventChannel<T> {
   static <T> EventChannel<T> createAsync(
       final Class<T> channelInterface,
       final ChannelExceptionHandler exceptionHandler,
+      final ExecutorServiceFactory executorFactory,
       final MetricsSystem metricsSystem) {
     return createAsync(
         channelInterface,
-        Executors.newCachedThreadPool(
-            new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat(channelInterface.getSimpleName() + "-%d")
-                .build()),
+        executorFactory.createExecutor(channelInterface.getSimpleName(), 16, Integer.MAX_VALUE, Thread.NORM_PRIORITY),
         exceptionHandler,
         metricsSystem);
   }
