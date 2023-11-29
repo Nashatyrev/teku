@@ -13,26 +13,22 @@
 
 package tech.pegasys.teku.infrastructure.async;
 
-import java.util.Optional;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.hyperledger.besu.plugin.services.metrics.Counter;
 import org.hyperledger.besu.plugin.services.metrics.LabelledGauge;
 import org.hyperledger.besu.plugin.services.metrics.LabelledMetric;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 
-public class MetricTrackingExecutorFactory implements ExecutorServiceFactory{
+public class MetricTrackingExecutorFactory implements ExecutorServiceFactory {
 
   private final MetricsSystem metricsSystem;
   private final LabelledGauge labelledGaugeQueueSize;
@@ -64,9 +60,11 @@ public class MetricTrackingExecutorFactory implements ExecutorServiceFactory{
   }
 
   @Override
-  public ExecutorService createExecutor(String name, int maxThreads, int maxQueueSize, int threadPriority) {
+  public ExecutorService createExecutor(
+      String name, int maxThreads, int maxQueueSize, int threadPriority) {
     String executorName = name + "-async";
-    ThreadFactory threadFactory = new ThreadFactoryBuilder()
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder()
             .setNameFormat(name + "-%d")
             .setDaemon(false)
             .setPriority(threadPriority)
@@ -77,10 +75,10 @@ public class MetricTrackingExecutorFactory implements ExecutorServiceFactory{
   @Override
   public ScheduledExecutorService createScheduledExecutor(String name) {
     return Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactoryBuilder()
-                    .setNameFormat(name + "-async-scheduler-%d")
-                    .setDaemon(false)
-                    .build());
+        new ThreadFactoryBuilder()
+            .setNameFormat(name + "-async-scheduler-%d")
+            .setDaemon(false)
+            .build());
   }
 
   /**

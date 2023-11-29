@@ -16,12 +16,10 @@ package tech.pegasys.teku.infrastructure.events;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.joining;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
@@ -66,7 +64,8 @@ class EventChannel<T> {
       final MetricsSystem metricsSystem) {
     return createAsync(
         channelInterface,
-        executorFactory.createExecutor(channelInterface.getSimpleName(), 16, Integer.MAX_VALUE, Thread.NORM_PRIORITY),
+        executorFactory.createExecutor(
+            channelInterface.getSimpleName(), 16, Integer.MAX_VALUE, Thread.NORM_PRIORITY),
         exceptionHandler,
         metricsSystem);
   }

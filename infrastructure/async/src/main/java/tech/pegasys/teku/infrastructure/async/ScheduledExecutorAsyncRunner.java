@@ -41,11 +41,8 @@ public class ScheduledExecutorAsyncRunner implements AsyncRunner {
       final int threadPriority,
       final ExecutorServiceFactory executorFactory) {
     final ScheduledExecutorService scheduler = executorFactory.createScheduledExecutor(name);
-    final ExecutorService workerPool = executorFactory.createExecutor(
-                    name,
-                    maxThreads,
-                    maxQueueSize,
-                    threadPriority);
+    final ExecutorService workerPool =
+        executorFactory.createExecutor(name, maxThreads, maxQueueSize, threadPriority);
 
     return new ScheduledExecutorAsyncRunner(scheduler, workerPool);
   }

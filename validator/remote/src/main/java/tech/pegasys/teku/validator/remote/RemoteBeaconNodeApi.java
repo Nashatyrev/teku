@@ -14,11 +14,9 @@
 package tech.pegasys.teku.validator.remote;
 
 import com.google.common.base.Preconditions;
-
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
-
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import org.apache.logging.log4j.LogManager;
@@ -47,9 +45,7 @@ public class RemoteBeaconNodeApi implements BeaconNodeApi {
 
   private static final Logger LOG = LogManager.getLogger();
 
-  /**
-   * Time until we timeout the event stream if no events are received.
-   */
+  /** Time until we timeout the event stream if no events are received. */
   public static final Duration READ_TIMEOUT = Duration.ofSeconds(60);
 
   private final BeaconChainEventAdapter beaconChainEventAdapter;

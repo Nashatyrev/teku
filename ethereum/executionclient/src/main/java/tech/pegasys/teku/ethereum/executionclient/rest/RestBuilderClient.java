@@ -70,7 +70,10 @@ public class RestBuilderClient implements BuilderClient {
   private final AsyncRunner asyncRunner;
 
   public RestBuilderClient(
-      AsyncRunner asyncRunner, final RestClient restClient, final Spec spec, final boolean setUserAgentHeader) {
+      AsyncRunner asyncRunner,
+      final RestClient restClient,
+      final Spec spec,
+      final boolean setUserAgentHeader) {
     this.restClient = restClient;
     this.schemaDefinitionCache = new SchemaDefinitionCache(spec);
     this.setUserAgentHeader = setUserAgentHeader;

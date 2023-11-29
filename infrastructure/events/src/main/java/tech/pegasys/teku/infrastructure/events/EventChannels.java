@@ -28,10 +28,13 @@ public class EventChannels {
   private final Function<Class<?>, EventChannel<?>> eventChannelFactory;
 
   public EventChannels(
-          final ChannelExceptionHandler exceptionHandler, ExecutorServiceFactory executorFactory, final MetricsSystem metricsSystem) {
+      final ChannelExceptionHandler exceptionHandler,
+      ExecutorServiceFactory executorFactory,
+      final MetricsSystem metricsSystem) {
     this(
         channelInterface ->
-            EventChannel.createAsync(channelInterface, exceptionHandler, executorFactory, metricsSystem));
+            EventChannel.createAsync(
+                channelInterface, exceptionHandler, executorFactory, metricsSystem));
   }
 
   public static EventChannels createSyncChannels(

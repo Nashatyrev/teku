@@ -20,7 +20,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiConsumer;
@@ -640,17 +639,21 @@ public class SafeFuture<T> extends CompletableFuture<T> {
 
   public SafeFuture<T> orTimeout(AsyncRunner async, Duration timeout) {
     if (!isDone()) {
-      SafeFuture<Void> timeoutInterruptor = async.runAfterDelay(() -> {
-        if (!SafeFuture.this.isDone()) {
-          SafeFuture.this.completeExceptionally(new TimeoutException());
-        }
-      }, timeout);
+      SafeFuture<Void> timeoutInterruptor =
+          async.runAfterDelay(
+              () -> {
+                if (!SafeFuture.this.isDone()) {
+                  SafeFuture.this.completeExceptionally(new TimeoutException());
+                }
+              },
+              timeout);
 
-      this.whenComplete((__, ex) -> {
-        if (ex == null && !timeoutInterruptor.isDone()) {
-          timeoutInterruptor.cancel(false);
-        }
-      });
+      this.whenComplete(
+          (__, ex) -> {
+            if (ex == null && !timeoutInterruptor.isDone()) {
+              timeoutInterruptor.cancel(false);
+            }
+          });
     }
     return this;
   }

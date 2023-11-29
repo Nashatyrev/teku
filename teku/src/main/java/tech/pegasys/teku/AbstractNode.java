@@ -16,12 +16,9 @@ package tech.pegasys.teku;
 import static tech.pegasys.teku.infrastructure.logging.StatusLogger.STATUS_LOG;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.MAX_EPOCHS_STORE_BLOBS;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.vertx.core.Vertx;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -98,9 +95,11 @@ public abstract class AbstractNode implements Node {
     final TekuDefaultExceptionHandler subscriberExceptionHandler =
         new TekuDefaultExceptionHandler();
 
-    ExecutorServiceFactory executorFactory = new MetricTrackingExecutorFactory(metricsSystem, rejectedExecutionCounter);
+    ExecutorServiceFactory executorFactory =
+        new MetricTrackingExecutorFactory(metricsSystem, rejectedExecutionCounter);
 
-    this.eventChannels = new EventChannels(subscriberExceptionHandler, executorFactory, metricsSystem);
+    this.eventChannels =
+        new EventChannels(subscriberExceptionHandler, executorFactory, metricsSystem);
 
     asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
 

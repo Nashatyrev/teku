@@ -165,7 +165,8 @@ public class ExecutionLayerService extends Service {
   }
 
   private static ExecutionLayerManager createRealExecutionLayerManager(
-      AsyncRunner asyncRunner, final ServiceConfig serviceConfig,
+      AsyncRunner asyncRunner,
+      final ServiceConfig serviceConfig,
       final ExecutionLayerConfiguration config,
       final ExecutionWeb3jClientProvider engineWeb3jClientProvider,
       final Optional<RestClientProvider> builderRestClientProvider,
