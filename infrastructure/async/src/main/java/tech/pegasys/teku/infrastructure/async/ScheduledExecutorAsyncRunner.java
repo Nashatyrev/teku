@@ -13,10 +13,8 @@
 
 package tech.pegasys.teku.infrastructure.async;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -41,23 +39,13 @@ public class ScheduledExecutorAsyncRunner implements AsyncRunner {
       final int maxThreads,
       final int maxQueueSize,
       final int threadPriority,
-      final MetricTrackingExecutorFactory executorFactory) {
-    final ScheduledExecutorService scheduler =
-        Executors.newSingleThreadScheduledExecutor(
-            new ThreadFactoryBuilder()
-                .setNameFormat(name + "-async-scheduler-%d")
-                .setDaemon(false)
-                .build());
-    final ExecutorService workerPool =
-        executorFactory.newCachedThreadPool(
-            name,
-            maxThreads,
-            maxQueueSize,
-            new ThreadFactoryBuilder()
-                .setNameFormat(name + "-async-%d")
-                .setDaemon(false)
-                .setPriority(threadPriority)
-                .build());
+      final ExecutorServiceFactory executorFactory) {
+    final ScheduledExecutorService scheduler = executorFactory.createScheduledExecutor(name);
+    final ExecutorService workerPool = executorFactory.createExecutor(
+                    name,
+                    maxThreads,
+                    maxQueueSize,
+                    threadPriority);
 
     return new ScheduledExecutorAsyncRunner(scheduler, workerPool);
   }

@@ -44,7 +44,7 @@ public interface AsyncRunnerFactory {
   void shutdown();
 
   static DefaultAsyncRunnerFactory createDefault(
-      final MetricTrackingExecutorFactory executorFactory) {
+      final ExecutorServiceFactory executorFactory) {
     return new DefaultAsyncRunnerFactory(executorFactory);
   }
 }

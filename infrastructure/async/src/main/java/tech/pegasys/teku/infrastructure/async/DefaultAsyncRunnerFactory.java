@@ -19,9 +19,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class DefaultAsyncRunnerFactory implements AsyncRunnerFactory {
   private final Collection<AsyncRunner> asyncRunners = new CopyOnWriteArrayList<>();
 
-  private final MetricTrackingExecutorFactory executorFactory;
+  private final ExecutorServiceFactory executorFactory;
 
-  DefaultAsyncRunnerFactory(final MetricTrackingExecutorFactory executorFactory) {
+  DefaultAsyncRunnerFactory(final ExecutorServiceFactory executorFactory) {
     this.executorFactory = executorFactory;
   }
 

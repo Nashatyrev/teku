@@ -53,9 +53,6 @@ public abstract class AbstractNode implements Node {
   private static final Logger LOG = LogManager.getLogger();
 
   private final Vertx vertx = Vertx.vertx();
-  private final ExecutorService threadPool =
-      Executors.newCachedThreadPool(
-          new ThreadFactoryBuilder().setDaemon(true).setNameFormat("events-%d").build());
 
   private final OccurrenceCounter rejectedExecutionCounter = new OccurrenceCounter(120);
 
@@ -209,7 +206,6 @@ public abstract class AbstractNode implements Node {
         .handleException(error -> LOG.warn("Failed to stop event channels cleanly", error))
         .join();
 
-    threadPool.shutdownNow();
     counterMaintainer.ifPresent(Cancellable::cancel);
 
     // Stop async actions
