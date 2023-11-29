@@ -70,20 +70,11 @@ public class ServiceConfig {
   }
 
   public AsyncRunner createAsyncRunner(final String name) {
-    return createAsyncRunner(name, calculateMaxThreads());
+    return asyncRunnerFactory.create(name, calculateMaxThreads());
   }
 
   public AsyncRunner createAsyncRunnerWithMaxQueueSize(final String name, final int maxQueueSize) {
-    return createAsyncRunner(name, calculateMaxThreads(), maxQueueSize);
-  }
-
-  public AsyncRunner createAsyncRunner(final String name, final int maxThreads) {
-    return asyncRunnerFactory.create(name, maxThreads);
-  }
-
-  public AsyncRunner createAsyncRunner(
-      final String name, final int maxThreads, final int maxQueueSize) {
-    return asyncRunnerFactory.create(name, maxThreads, maxQueueSize);
+    return asyncRunnerFactory.create(name, calculateMaxThreads(), maxQueueSize);
   }
 
   public AsyncRunnerFactory getAsyncRunnerFactory() {

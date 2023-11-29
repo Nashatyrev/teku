@@ -69,7 +69,7 @@ public class ExecutionLayerService extends Service {
 
     final ExecutionClientEventsChannel executionClientEventsPublisher =
         serviceConfig.getEventChannels().getPublisher(ExecutionClientEventsChannel.class);
-    AsyncRunner asyncRunner = serviceConfig.createAsyncRunner("execution_layer_service", 1);
+    AsyncRunner asyncRunner = serviceConfig.getAsyncRunnerFactory().create("execution_layer_service", 1);
 
     final ExecutionWeb3jClientProvider engineWeb3jClientProvider =
         ExecutionWeb3jClientProvider.create(

@@ -146,7 +146,7 @@ public class StorageService extends Service implements StorageServiceFacade {
               eventChannels.subscribe(
                   CombinedStorageChannel.class,
                   new CombinedStorageChannelSplitter(
-                      serviceConfig.createAsyncRunner(
+                      serviceConfig.getAsyncRunnerFactory().create(
                           "storage_query", STORAGE_QUERY_CHANNEL_PARALLELISM),
                       new RetryingStorageUpdateChannel(
                           chainStorage, serviceConfig.getTimeProvider()),

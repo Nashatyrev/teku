@@ -27,6 +27,7 @@ import oshi.SystemInfo;
 import tech.pegasys.teku.beaconrestapi.BeaconRestApiConfig;
 import tech.pegasys.teku.config.TekuConfiguration;
 import tech.pegasys.teku.data.publisher.MetricsPublisherManager;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.Cancellable;
 import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
@@ -57,6 +58,7 @@ public abstract class AbstractNode implements Node {
   private Optional<Cancellable> counterMaintainer = Optional.empty();
 
   private final AsyncRunnerFactory asyncRunnerFactory;
+  private final AsyncRunner asyncRunner;
   private final EventChannels eventChannels;
   private final MetricsEndpoint metricsEndpoint;
   private final MetricsPublisherManager metricsPublisher;
@@ -121,6 +123,9 @@ public abstract class AbstractNode implements Node {
             serviceConfig.getTimeProvider(),
             metricsEndpoint,
             dataDirLayout.getBeaconDataDirectory().toFile());
+
+    asyncRunner = asyncRunnerFactory.create("AbstractNode", 1);
+
   }
 
   private void reportOverrides(final TekuConfiguration tekuConfig) {
@@ -183,13 +188,10 @@ public abstract class AbstractNode implements Node {
     metricsPublisher.start().join();
     getServiceController().start().join();
     counterMaintainer =
-        Optional.of(
-            serviceConfig
-                .createAsyncRunner("RejectedExecutionCounter", 1)
-                .runWithFixedDelay(
-                    this::pollRejectedExecutions,
-                    Duration.ofSeconds(5),
-                    (err) -> LOG.debug("rejected execution poll failed", err)));
+        Optional.of(asyncRunner.runWithFixedDelay(
+            this::pollRejectedExecutions,
+            Duration.ofSeconds(5),
+            (err) -> LOG.debug("rejected execution poll failed", err)));
   }
 
   private void pollRejectedExecutions() {
