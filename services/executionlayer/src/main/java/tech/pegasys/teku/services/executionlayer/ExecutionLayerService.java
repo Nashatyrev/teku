@@ -43,6 +43,7 @@ import tech.pegasys.teku.ethereum.executionlayer.ExecutionLayerManager;
 import tech.pegasys.teku.ethereum.executionlayer.ExecutionLayerManagerImpl;
 import tech.pegasys.teku.ethereum.executionlayer.ExecutionLayerManagerStub;
 import tech.pegasys.teku.ethereum.executionlayer.MilestoneBasedEngineJsonRpcMethodsResolver;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.events.EventChannels;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
@@ -68,9 +69,11 @@ public class ExecutionLayerService extends Service {
 
     final ExecutionClientEventsChannel executionClientEventsPublisher =
         serviceConfig.getEventChannels().getPublisher(ExecutionClientEventsChannel.class);
+    AsyncRunner asyncRunner = serviceConfig.createAsyncRunner("execution-layer-service", 1);
 
     final ExecutionWeb3jClientProvider engineWeb3jClientProvider =
         ExecutionWeb3jClientProvider.create(
+            asyncRunner,
             config.getEngineEndpoint(),
             EL_ENGINE_BLOCK_EXECUTION_TIMEOUT,
             true,
@@ -128,6 +131,7 @@ public class ExecutionLayerService extends Service {
     } else {
       executionLayerManager =
           createRealExecutionLayerManager(
+              asyncRunner,
               serviceConfig,
               config,
               engineWeb3jClientProvider,
@@ -167,6 +171,7 @@ public class ExecutionLayerService extends Service {
   }
 
   private static ExecutionLayerManager createRealExecutionLayerManager(
+      AsyncRunner asyncRunner,
       final ServiceConfig serviceConfig,
       final ExecutionLayerConfiguration config,
       final ExecutionWeb3jClientProvider engineWeb3jClientProvider,
@@ -199,6 +204,7 @@ public class ExecutionLayerService extends Service {
         builderRestClientProvider.map(
             restClientProvider ->
                 ExecutionLayerManagerImpl.createBuilderClient(
+                    asyncRunner,
                     restClientProvider.getRestClient(),
                     config.getSpec(),
                     timeProvider,

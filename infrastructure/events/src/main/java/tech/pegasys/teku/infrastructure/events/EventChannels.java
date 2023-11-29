@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 public class EventChannels {
@@ -27,10 +28,13 @@ public class EventChannels {
   private final Function<Class<?>, EventChannel<?>> eventChannelFactory;
 
   public EventChannels(
-      final ChannelExceptionHandler exceptionHandler, final MetricsSystem metricsSystem) {
+      final ChannelExceptionHandler exceptionHandler,
+      ExecutorServiceFactory executorFactory,
+      final MetricsSystem metricsSystem) {
     this(
         channelInterface ->
-            EventChannel.createAsync(channelInterface, exceptionHandler, metricsSystem));
+            EventChannel.createAsync(
+                channelInterface, exceptionHandler, executorFactory, metricsSystem));
   }
 
   public static EventChannels createSyncChannels(

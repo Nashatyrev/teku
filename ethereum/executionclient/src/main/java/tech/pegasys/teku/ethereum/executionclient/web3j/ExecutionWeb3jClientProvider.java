@@ -22,6 +22,7 @@ import java.util.Optional;
 import org.web3j.protocol.Web3j;
 import tech.pegasys.teku.ethereum.executionclient.auth.JwtConfig;
 import tech.pegasys.teku.ethereum.executionclient.events.ExecutionClientEventsChannel;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.exceptions.InvalidConfigurationException;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 
@@ -50,6 +51,7 @@ public interface ExecutionWeb3jClientProvider {
       };
 
   static ExecutionWeb3jClientProvider create(
+      AsyncRunner asyncRunner,
       final String endpoint,
       final Duration timeout,
       final boolean jwtSupported,
@@ -66,7 +68,7 @@ public interface ExecutionWeb3jClientProvider {
       final Optional<JwtConfig> jwtConfig =
           JwtConfig.createIfNeeded(jwtSupported, jwtSecretFile, beaconDataDirectory);
       return new DefaultExecutionWeb3jClientProvider(
-          endpoint, timeout, jwtConfig, timeProvider, executionClientEventsPublisher);
+          asyncRunner, endpoint, timeout, jwtConfig, timeProvider, executionClientEventsPublisher);
     }
   }
 

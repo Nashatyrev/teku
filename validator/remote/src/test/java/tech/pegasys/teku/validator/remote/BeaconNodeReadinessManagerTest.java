@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
 import tech.pegasys.teku.infrastructure.logging.ValidatorLogger;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.validator.api.required.SyncingStatus;
@@ -55,7 +56,8 @@ public class BeaconNodeReadinessManagerTest {
           beaconNodeApi,
           List.of(failoverBeaconNodeApi),
           validatorLogger,
-          beaconNodeReadinessChannel);
+          beaconNodeReadinessChannel,
+          new StubAsyncRunner());
 
   @Test
   public void performsReadinessCheckOnStartup() {
@@ -156,7 +158,8 @@ public class BeaconNodeReadinessManagerTest {
             beaconNodeApi,
             List.of(failoverBeaconNodeApi, anotherFailover, yetAnotherFailover),
             validatorLogger,
-            beaconNodeReadinessChannel);
+            beaconNodeReadinessChannel,
+            new StubAsyncRunner());
 
     when(beaconNodeApi.getSyncingStatus()).thenReturn(SafeFuture.completedFuture(SYNCED_STATUS));
 

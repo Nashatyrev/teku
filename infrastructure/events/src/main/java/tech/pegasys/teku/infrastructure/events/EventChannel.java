@@ -16,17 +16,16 @@ package tech.pegasys.teku.infrastructure.events;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.stream.Collectors.joining;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 class EventChannel<T> {
@@ -61,14 +60,12 @@ class EventChannel<T> {
   static <T> EventChannel<T> createAsync(
       final Class<T> channelInterface,
       final ChannelExceptionHandler exceptionHandler,
+      final ExecutorServiceFactory executorFactory,
       final MetricsSystem metricsSystem) {
     return createAsync(
         channelInterface,
-        Executors.newCachedThreadPool(
-            new ThreadFactoryBuilder()
-                .setDaemon(true)
-                .setNameFormat(channelInterface.getSimpleName() + "-%d")
-                .build()),
+        executorFactory.createExecutor(
+            channelInterface.getSimpleName(), 16, Integer.MAX_VALUE, Thread.NORM_PRIORITY),
         exceptionHandler,
         metricsSystem);
   }

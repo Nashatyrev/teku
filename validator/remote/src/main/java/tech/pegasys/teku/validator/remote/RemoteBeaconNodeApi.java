@@ -116,7 +116,8 @@ public class RemoteBeaconNodeApi implements BeaconNodeApi {
             primaryValidatorApi,
             failoverValidatorApis,
             ValidatorLogger.VALIDATOR_LOGGER,
-            beaconNodeReadinessChannel);
+            beaconNodeReadinessChannel,
+            asyncRunner);
 
     eventChannels.subscribe(ValidatorTimingChannel.class, beaconNodeReadinessManager);
 

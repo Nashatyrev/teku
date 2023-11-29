@@ -44,6 +44,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.ethereum.executionclient.schema.BuilderApiResponse;
+import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
 import tech.pegasys.teku.infrastructure.json.JsonUtil;
 import tech.pegasys.teku.infrastructure.json.exceptions.MissingRequiredFieldException;
 import tech.pegasys.teku.infrastructure.json.types.DeserializableTypeDefinition;
@@ -124,7 +125,7 @@ class RestBuilderClientTest {
     unblindedBuilderPayloadResponse =
         readResource(milestoneFolder + "/unblindedBuilderPayload.json");
 
-    restBuilderClient = new RestBuilderClient(okHttpRestClient, spec, true);
+    restBuilderClient = new RestBuilderClient(new StubAsyncRunner(), okHttpRestClient, spec, true);
   }
 
   @AfterEach
@@ -236,7 +237,7 @@ class RestBuilderClientTest {
   @TestTemplate
   void getHeader_success_doesNotSetUserAgentHeader() {
 
-    restBuilderClient = new RestBuilderClient(okHttpRestClient, spec, false);
+    restBuilderClient = new RestBuilderClient(new StubAsyncRunner(), okHttpRestClient, spec, false);
 
     mockWebServer.enqueue(
         new MockResponse().setResponseCode(200).setBody(signedBuilderBidResponse));

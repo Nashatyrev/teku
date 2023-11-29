@@ -168,7 +168,9 @@ public class StorageBackedRecentChainData extends RecentChainData {
   }
 
   private SafeFuture<Optional<OnDiskStoreData>> requestInitialStore() {
-    return storageQueryChannel.onStoreRequest().orTimeout(Constants.STORAGE_REQUEST_TIMEOUT);
+    return storageQueryChannel
+        .onStoreRequest()
+        .orTimeout(asyncRunner, Constants.STORAGE_REQUEST_TIMEOUT);
   }
 
   private SafeFuture<Optional<OnDiskStoreData>> requestInitialStoreWithRetry(

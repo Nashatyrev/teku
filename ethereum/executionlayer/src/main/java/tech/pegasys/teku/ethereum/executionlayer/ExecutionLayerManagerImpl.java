@@ -36,6 +36,7 @@ import tech.pegasys.teku.ethereum.executionclient.rest.RestBuilderClient;
 import tech.pegasys.teku.ethereum.executionclient.rest.RestClient;
 import tech.pegasys.teku.ethereum.executionclient.web3j.Web3JClient;
 import tech.pegasys.teku.ethereum.executionclient.web3j.Web3JExecutionEngineClient;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.logging.EventLogger;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
@@ -128,6 +129,7 @@ public class ExecutionLayerManagerImpl implements ExecutionLayerManager {
   }
 
   public static BuilderClient createBuilderClient(
+      AsyncRunner asyncRunner,
       final RestClient restClient,
       final Spec spec,
       final TimeProvider timeProvider,
@@ -135,7 +137,7 @@ public class ExecutionLayerManagerImpl implements ExecutionLayerManager {
       final boolean setUserAgentHeader) {
 
     final RestBuilderClient restBuilderClient =
-        new RestBuilderClient(restClient, spec, setUserAgentHeader);
+        new RestBuilderClient(asyncRunner, restClient, spec, setUserAgentHeader);
     final MetricRecordingBuilderClient metricRecordingBuilderClient =
         new MetricRecordingBuilderClient(restBuilderClient, timeProvider, metricsSystem);
     return new ThrottlingBuilderClient(

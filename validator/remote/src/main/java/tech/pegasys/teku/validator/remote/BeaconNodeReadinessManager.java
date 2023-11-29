@@ -25,6 +25,7 @@ import okhttp3.HttpUrl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.logging.ValidatorLogger;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -51,16 +52,19 @@ public class BeaconNodeReadinessManager extends Service implements ValidatorTimi
   private final List<? extends RemoteValidatorApiChannel> failoverBeaconNodeApis;
   private final ValidatorLogger validatorLogger;
   private final BeaconNodeReadinessChannel beaconNodeReadinessChannel;
+  private final AsyncRunner asyncRunner;
 
   public BeaconNodeReadinessManager(
       final RemoteValidatorApiChannel primaryBeaconNodeApi,
       final List<? extends RemoteValidatorApiChannel> failoverBeaconNodeApis,
       final ValidatorLogger validatorLogger,
-      final BeaconNodeReadinessChannel beaconNodeReadinessChannel) {
+      final BeaconNodeReadinessChannel beaconNodeReadinessChannel,
+      final AsyncRunner asyncRunner) {
     this.primaryBeaconNodeApi = primaryBeaconNodeApi;
     this.failoverBeaconNodeApis = failoverBeaconNodeApis;
     this.validatorLogger = validatorLogger;
     this.beaconNodeReadinessChannel = beaconNodeReadinessChannel;
+    this.asyncRunner = asyncRunner;
   }
 
   public boolean isReady(final RemoteValidatorApiChannel beaconNodeApi) {
@@ -145,7 +149,7 @@ public class BeaconNodeReadinessManager extends Service implements ValidatorTimi
                   "{} is NOT ready to accept requests: {}", beaconNodeApiEndpoint, syncingStatus);
               return false;
             })
-        .orTimeout(SYNCING_STATUS_CALL_TIMEOUT)
+        .orTimeout(asyncRunner, SYNCING_STATUS_CALL_TIMEOUT)
         .exceptionally(
             throwable -> {
               LOG.debug(

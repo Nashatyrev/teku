@@ -147,7 +147,7 @@ public class ConnectionManager extends Service {
     LOG.trace("Searching for peers");
     return discoveryService
         .searchForPeers()
-        .orTimeout(30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handle(
             (peers, error) -> {
               if (error == null) {

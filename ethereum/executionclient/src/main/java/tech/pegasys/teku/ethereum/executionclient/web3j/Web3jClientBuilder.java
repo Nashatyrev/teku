@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Optional;
 import tech.pegasys.teku.ethereum.executionclient.auth.JwtConfig;
 import tech.pegasys.teku.ethereum.executionclient.events.ExecutionClientEventsChannel;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.exceptions.InvalidConfigurationException;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 
@@ -34,6 +35,7 @@ public class Web3jClientBuilder {
   private URI endpoint;
   private Optional<JwtConfig> jwtConfigOpt = Optional.empty();
   private Duration timeout;
+  private AsyncRunner asyncRunner;
   private ExecutionClientEventsChannel executionClientEventsPublisher;
   private final Collection<String> nonCriticalMethods = new HashSet<>();
 
@@ -68,6 +70,11 @@ public class Web3jClientBuilder {
     return this;
   }
 
+  public Web3jClientBuilder asyncRunner(AsyncRunner asyncRunner) {
+    this.asyncRunner = asyncRunner;
+    return this;
+  }
+
   public Web3jClientBuilder executionClientEventsPublisher(
       final ExecutionClientEventsChannel executionClientEventsPublisher) {
     this.executionClientEventsPublisher = executionClientEventsPublisher;
@@ -84,6 +91,7 @@ public class Web3jClientBuilder {
     checkNotNull(executionClientEventsPublisher);
     checkNotNull(endpoint);
     checkNotNull(timeout);
+    checkNotNull(asyncRunner);
     requireNonNull(endpoint.getScheme(), () -> prepareInvalidSchemeMessage(endpoint));
     switch (endpoint.getScheme()) {
       case "http":
@@ -92,6 +100,7 @@ public class Web3jClientBuilder {
             EVENT_LOG,
             endpoint,
             timeProvider,
+            asyncRunner,
             timeout,
             jwtConfigOpt,
             executionClientEventsPublisher,
@@ -102,6 +111,7 @@ public class Web3jClientBuilder {
             EVENT_LOG,
             endpoint,
             timeProvider,
+            asyncRunner,
             jwtConfigOpt,
             executionClientEventsPublisher,
             nonCriticalMethods);
@@ -110,6 +120,7 @@ public class Web3jClientBuilder {
             EVENT_LOG,
             endpoint,
             timeProvider,
+            asyncRunner,
             jwtConfigOpt,
             executionClientEventsPublisher,
             nonCriticalMethods);

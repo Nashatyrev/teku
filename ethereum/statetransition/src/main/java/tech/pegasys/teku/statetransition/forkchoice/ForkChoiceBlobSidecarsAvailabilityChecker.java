@@ -232,7 +232,7 @@ public class ForkChoiceBlobSidecarsAvailabilityChecker implements BlobSidecarsAv
             () ->
                 blockBlobSidecarsTracker
                     .getCompletionFuture()
-                    .orTimeout(waitForTrackerCompletionTimeout)
+                    .orTimeout(asyncRunner, waitForTrackerCompletionTimeout)
                     .thenApplyChecked(__ -> computeAndValidateRemaining())
                     .thenApply(this::computeFinalValidationResult)
                     .exceptionallyCompose(
