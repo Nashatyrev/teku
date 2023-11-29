@@ -39,6 +39,7 @@ import org.web3j.protocol.websocket.WebSocketService;
 import tech.pegasys.teku.ethereum.executionclient.events.ExecutionClientEventsChannel;
 import tech.pegasys.teku.ethereum.executionclient.schema.Response;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
 import tech.pegasys.teku.infrastructure.time.StubTimeProvider;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 
@@ -59,6 +60,7 @@ public class Web3jWebsocketClientTest {
             EVENT_LOG,
             endpoint,
             timeProvider,
+            new StubAsyncRunner(),
             Optional.empty(),
             executionClientEventsPublisher,
             Set.of());

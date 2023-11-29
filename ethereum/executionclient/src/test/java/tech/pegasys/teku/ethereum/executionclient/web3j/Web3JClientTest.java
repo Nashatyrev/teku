@@ -43,6 +43,7 @@ import tech.pegasys.teku.ethereum.executionclient.events.ExecutionClientEventsCh
 import tech.pegasys.teku.ethereum.executionclient.schema.Response;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFutureAssert;
+import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
 import tech.pegasys.teku.infrastructure.async.Waiter;
 import tech.pegasys.teku.infrastructure.logging.EventLogger;
 import tech.pegasys.teku.infrastructure.time.StubTimeProvider;
@@ -72,6 +73,7 @@ public class Web3JClientTest {
                       new Web3JClient(
                           eventLog,
                           timeProvider,
+                          new StubAsyncRunner(),
                           executionClientEventsPublisher,
                           NON_CRITICAL_METHODS) {};
                   web3jClient.initWeb3jService(web3jService);
@@ -85,6 +87,7 @@ public class Web3JClientTest {
                           eventLog,
                           ENDPOINT,
                           timeProvider,
+                          new StubAsyncRunner(),
                           DEFAULT_TIMEOUT,
                           Optional.empty(),
                           executionClientEventsPublisher,
@@ -100,6 +103,7 @@ public class Web3JClientTest {
                           eventLog,
                           ENDPOINT,
                           timeProvider,
+                          new StubAsyncRunner(),
                           Optional.empty(),
                           executionClientEventsPublisher,
                           NON_CRITICAL_METHODS);
@@ -114,6 +118,7 @@ public class Web3JClientTest {
                           eventLog,
                           URI.create("file:/a"),
                           timeProvider,
+                          new StubAsyncRunner(),
                           Optional.empty(),
                           executionClientEventsPublisher,
                           NON_CRITICAL_METHODS);
