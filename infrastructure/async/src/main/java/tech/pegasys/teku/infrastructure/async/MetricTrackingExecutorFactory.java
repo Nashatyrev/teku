@@ -15,10 +15,12 @@ package tech.pegasys.teku.infrastructure.async;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -108,13 +110,20 @@ public class MetricTrackingExecutorFactory implements ExecutorServiceFactory {
     // used. So, we set maximum and core thread pool to the same value and allow core threads to
     // time out and exit if they are unused.
 
+    final BlockingQueue<Runnable> queue;
+    if (maxQueueSize == ExecutorServiceFactory.UNLIMITED_QUEUE_SIZE) {
+      queue = new SynchronousQueue<>();
+    } else {
+      queue = new ArrayBlockingQueue<>(maxQueueSize);
+    }
+
     final ThreadPoolExecutor executor =
         new ThreadPoolExecutor(
             maxThreads,
             maxThreads,
             60,
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<>(maxQueueSize),
+            queue,
             threadFactory,
             (r, e) -> this.onRejectedExecution(name));
     executor.allowCoreThreadTimeOut(true);
