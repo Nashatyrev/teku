@@ -21,6 +21,10 @@ public interface AsyncRunnerFactory {
   int DEFAULT_THREAD_PRIORITY = Thread.NORM_PRIORITY;
   Pattern ASYNC_RUNNER_NAME_PATTERN = Pattern.compile("[a-zA-Z][a-zA-Z0-9_]*");
 
+  default AsyncRunner create(String name) {
+    return create(name, Runtime.getRuntime().availableProcessors());
+  }
+
   default AsyncRunner create(String name, int maxThreads) {
     validateAsyncRunnerName(name);
     return create(name, maxThreads, DEFAULT_MAX_QUEUE_SIZE);

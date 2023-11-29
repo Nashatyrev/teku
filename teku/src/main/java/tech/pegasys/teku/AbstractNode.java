@@ -27,6 +27,7 @@ import oshi.SystemInfo;
 import tech.pegasys.teku.beaconrestapi.BeaconRestApiConfig;
 import tech.pegasys.teku.config.TekuConfiguration;
 import tech.pegasys.teku.data.publisher.MetricsPublisherManager;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.Cancellable;
 import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
@@ -57,6 +58,7 @@ public abstract class AbstractNode implements Node {
   private Optional<Cancellable> counterMaintainer = Optional.empty();
 
   private final AsyncRunnerFactory asyncRunnerFactory;
+  private final AsyncRunner asyncRunner;
   private final EventChannels eventChannels;
   private final MetricsEndpoint metricsEndpoint;
   private final MetricsPublisherManager metricsPublisher;
@@ -104,7 +106,6 @@ public abstract class AbstractNode implements Node {
     asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
 
     final DataDirLayout dataDirLayout = DataDirLayout.createFrom(tekuConfig.dataConfig());
-    ValidatorConfig validatorConfig = tekuConfig.validatorClient().getValidatorConfig();
 
     serviceConfig =
         new ServiceConfig(
@@ -113,14 +114,15 @@ public abstract class AbstractNode implements Node {
             eventChannels,
             metricsSystem,
             dataDirLayout,
-            rejectedExecutionCounter::getTotalCount,
-            validatorConfig::getexecutorThreads);
+            rejectedExecutionCounter::getTotalCount);
     this.metricsPublisher =
         new MetricsPublisherManager(
             asyncRunnerFactory,
             serviceConfig.getTimeProvider(),
             metricsEndpoint,
             dataDirLayout.getBeaconDataDirectory().toFile());
+
+    asyncRunner = asyncRunnerFactory.create("AbstractNode", 1);
   }
 
   private void reportOverrides(final TekuConfiguration tekuConfig) {
@@ -184,12 +186,10 @@ public abstract class AbstractNode implements Node {
     getServiceController().start().join();
     counterMaintainer =
         Optional.of(
-            serviceConfig
-                .createAsyncRunner("RejectedExecutionCounter", 1)
-                .runWithFixedDelay(
-                    this::pollRejectedExecutions,
-                    Duration.ofSeconds(5),
-                    (err) -> LOG.debug("rejected execution poll failed", err)));
+            asyncRunner.runWithFixedDelay(
+                this::pollRejectedExecutions,
+                Duration.ofSeconds(5),
+                (err) -> LOG.debug("rejected execution poll failed", err)));
   }
 
   private void pollRejectedExecutions() {
@@ -204,7 +204,7 @@ public abstract class AbstractNode implements Node {
     // Stop processing new events
     eventChannels
         .stop()
-        .orTimeout(30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handleException(error -> LOG.warn("Failed to stop event channels cleanly", error))
         .join();
 
@@ -216,7 +216,7 @@ public abstract class AbstractNode implements Node {
     // Stop services. This includes closing the database.
     getServiceController()
         .stop()
-        .orTimeout(30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handleException(error -> LOG.error("Failed to stop services", error))
         .thenCompose(__ -> metricsEndpoint.stop())
         .orTimeout(5, TimeUnit.SECONDS)

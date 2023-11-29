@@ -68,11 +68,13 @@ public class StorageService extends Service implements StorageServiceFacade {
     return SafeFuture.fromRunnable(
             () -> {
               final AsyncRunner storagePrunerAsyncRunner =
-                  serviceConfig.getAsyncRunnerFactory().create(
-                      "storagePrunerAsyncRunner",
-                      1,
-                      DEFAULT_MAX_QUEUE_SIZE,
-                      Thread.NORM_PRIORITY - 1);
+                  serviceConfig
+                      .getAsyncRunnerFactory()
+                      .create(
+                          "storagePrunerAsyncRunner",
+                          1,
+                          DEFAULT_MAX_QUEUE_SIZE,
+                          Thread.NORM_PRIORITY - 1);
               final VersionedDatabaseFactory dbFactory =
                   new VersionedDatabaseFactory(
                       serviceConfig.getMetricsSystem(),
@@ -146,8 +148,9 @@ public class StorageService extends Service implements StorageServiceFacade {
               eventChannels.subscribe(
                   CombinedStorageChannel.class,
                   new CombinedStorageChannelSplitter(
-                      serviceConfig.createAsyncRunner(
-                          "storage_query", STORAGE_QUERY_CHANNEL_PARALLELISM),
+                      serviceConfig
+                          .getAsyncRunnerFactory()
+                          .create("storage_query", STORAGE_QUERY_CHANNEL_PARALLELISM),
                       new RetryingStorageUpdateChannel(
                           chainStorage, serviceConfig.getTimeProvider()),
                       chainStorage));
