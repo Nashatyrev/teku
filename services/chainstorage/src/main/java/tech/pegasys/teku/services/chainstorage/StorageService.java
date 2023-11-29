@@ -68,7 +68,7 @@ public class StorageService extends Service implements StorageServiceFacade {
     return SafeFuture.fromRunnable(
             () -> {
               final AsyncRunner storagePrunerAsyncRunner =
-                  serviceConfig.createAsyncRunner(
+                  serviceConfig.getAsyncRunnerFactory().create(
                       "storagePrunerAsyncRunner",
                       1,
                       DEFAULT_MAX_QUEUE_SIZE,
