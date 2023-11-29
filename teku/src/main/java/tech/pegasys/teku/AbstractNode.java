@@ -206,7 +206,7 @@ public abstract class AbstractNode implements Node {
     // Stop processing new events
     eventChannels
         .stop()
-        .orTimeout(30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner,30, TimeUnit.SECONDS)
         .handleException(error -> LOG.warn("Failed to stop event channels cleanly", error))
         .join();
 
@@ -218,7 +218,7 @@ public abstract class AbstractNode implements Node {
     // Stop services. This includes closing the database.
     getServiceController()
         .stop()
-        .orTimeout(30, TimeUnit.SECONDS)
+        .orTimeout(asyncRunner,30, TimeUnit.SECONDS)
         .handleException(error -> LOG.error("Failed to stop services", error))
         .thenCompose(__ -> metricsEndpoint.stop())
         .orTimeout(5, TimeUnit.SECONDS)
