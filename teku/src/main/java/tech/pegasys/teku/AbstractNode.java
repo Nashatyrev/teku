@@ -16,37 +16,25 @@ package tech.pegasys.teku;
 import static tech.pegasys.teku.infrastructure.logging.StatusLogger.STATUS_LOG;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.MAX_EPOCHS_STORE_BLOBS;
 
-import io.vertx.core.Vertx;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hyperledger.besu.plugin.services.MetricsSystem;
 import oshi.SystemInfo;
 import tech.pegasys.teku.beaconrestapi.BeaconRestApiConfig;
 import tech.pegasys.teku.config.TekuConfiguration;
 import tech.pegasys.teku.data.publisher.MetricsPublisherManager;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
-import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.Cancellable;
-import tech.pegasys.teku.infrastructure.async.DefaultAsyncRunnerFactory;
-import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
-import tech.pegasys.teku.infrastructure.async.MetricTrackingExecutorFactory;
-import tech.pegasys.teku.infrastructure.async.OccurrenceCounter;
-import tech.pegasys.teku.infrastructure.events.EventChannels;
 import tech.pegasys.teku.infrastructure.logging.StartupLogConfig;
-import tech.pegasys.teku.infrastructure.metrics.MetricsEndpoint;
-import tech.pegasys.teku.infrastructure.time.SystemTimeProvider;
 import tech.pegasys.teku.infrastructure.version.VersionProvider;
 import tech.pegasys.teku.service.serviceutils.ServiceConfig;
-import tech.pegasys.teku.service.serviceutils.layout.DataDirLayout;
 import tech.pegasys.teku.services.ServiceController;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.networks.Eth2Network;
-import tech.pegasys.teku.validator.api.ValidatorConfig;
 import tech.pegasys.teku.validator.client.restapi.ValidatorRestApiConfig;
 
 public abstract class AbstractNode implements Node {
@@ -54,48 +42,22 @@ public abstract class AbstractNode implements Node {
 
   protected final ServiceConfig serviceConfig;
 
-  private final Vertx vertx;
-  private final OccurrenceCounter rejectedExecutionCounter;
   private final AsyncRunner asyncRunner;
-  private final MetricsEndpoint metricsEndpoint;
   private final MetricsPublisherManager metricsPublisher;
 
   private Optional<Cancellable> counterMaintainer = Optional.empty();
 
-  protected AbstractNode(final TekuConfiguration tekuConfig) {
+  protected AbstractNode(final TekuConfiguration tekuConfig, ServiceConfig serviceConfig) {
     setupStatusLog(tekuConfig);
     reportOverrides(tekuConfig);
 
-    this.vertx = Vertx.vertx();
-    this.metricsEndpoint = new MetricsEndpoint(tekuConfig.metricsConfig(), vertx);
-    final MetricsSystem metricsSystem = metricsEndpoint.getMetricsSystem();
-    final TekuDefaultExceptionHandler subscriberExceptionHandler =
-        new TekuDefaultExceptionHandler();
-
-    this.rejectedExecutionCounter = new OccurrenceCounter(120);
-    ExecutorServiceFactory executorFactory =
-        new MetricTrackingExecutorFactory(metricsSystem, rejectedExecutionCounter);
-
-    EventChannels eventChannels = new EventChannels(subscriberExceptionHandler, executorFactory, metricsSystem);
-
-    AsyncRunnerFactory asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
-
-    final DataDirLayout dataDirLayout = DataDirLayout.createFrom(tekuConfig.dataConfig());
-
-    this.serviceConfig =
-        new ServiceConfig(
-            asyncRunnerFactory,
-            new SystemTimeProvider(),
-            eventChannels,
-            metricsSystem,
-            dataDirLayout,
-            rejectedExecutionCounter::getTotalCount);
+    this.serviceConfig = serviceConfig;
 
     this.metricsPublisher =
         new MetricsPublisherManager(
             serviceConfig.getAsyncRunnerFactory(),
             serviceConfig.getTimeProvider(),
-            metricsEndpoint,
+            serviceConfig.getMetricsEndpoint(),
             serviceConfig.getDataDirLayout().getBeaconDataDirectory().toFile());
 
     this.asyncRunner = serviceConfig.getAsyncRunnerFactory().create("AbstractNode", 1);
@@ -185,7 +147,7 @@ public abstract class AbstractNode implements Node {
 
   @Override
   public void start() {
-    metricsEndpoint.start().join();
+    serviceConfig.getMetricsEndpoint().start().join();
     metricsPublisher.start().join();
     getServiceController().start().join();
     counterMaintainer =
@@ -197,7 +159,7 @@ public abstract class AbstractNode implements Node {
   }
 
   private void pollRejectedExecutions() {
-    final int rejectedExecutions = rejectedExecutionCounter.poll();
+    final int rejectedExecutions = serviceConfig.getRejectedExecutionCounter().poll();
     if (rejectedExecutions > 0) {
       LOG.trace("Rejected execution count from last 5 seconds: " + rejectedExecutions);
     }
@@ -206,7 +168,8 @@ public abstract class AbstractNode implements Node {
   @Override
   public void stop() {
     // Stop processing new events
-    serviceConfig.getEventChannels()
+    serviceConfig
+        .getEventChannels()
         .stop()
         .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handleException(error -> LOG.warn("Failed to stop event channels cleanly", error))
@@ -222,10 +185,9 @@ public abstract class AbstractNode implements Node {
         .stop()
         .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handleException(error -> LOG.error("Failed to stop services", error))
-        .thenCompose(__ -> metricsEndpoint.stop())
+        .thenCompose(__ -> serviceConfig.getMetricsEndpoint().stop())
         .orTimeout(5, TimeUnit.SECONDS)
         .handleException(error -> LOG.debug("Failed to stop metrics", error))
-        .thenRun(vertx::close)
         .join();
   }
 }
