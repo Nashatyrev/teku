@@ -30,6 +30,7 @@ import tech.pegasys.teku.data.publisher.MetricsPublisherManager;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.Cancellable;
+import tech.pegasys.teku.infrastructure.async.DefaultAsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.ExecutorServiceFactory;
 import tech.pegasys.teku.infrastructure.async.MetricTrackingExecutorFactory;
 import tech.pegasys.teku.infrastructure.async.OccurrenceCounter;
@@ -51,20 +52,56 @@ import tech.pegasys.teku.validator.client.restapi.ValidatorRestApiConfig;
 public abstract class AbstractNode implements Node {
   private static final Logger LOG = LogManager.getLogger();
 
-  private final Vertx vertx = Vertx.vertx();
+  protected final ServiceConfig serviceConfig;
 
-  private final OccurrenceCounter rejectedExecutionCounter = new OccurrenceCounter(120);
+  private final Vertx vertx;
+  private final OccurrenceCounter rejectedExecutionCounter;
+  private final AsyncRunner asyncRunner;
+  private final MetricsEndpoint metricsEndpoint;
+  private final MetricsPublisherManager metricsPublisher;
 
   private Optional<Cancellable> counterMaintainer = Optional.empty();
 
-  private final AsyncRunnerFactory asyncRunnerFactory;
-  private final AsyncRunner asyncRunner;
-  private final EventChannels eventChannels;
-  private final MetricsEndpoint metricsEndpoint;
-  private final MetricsPublisherManager metricsPublisher;
-  protected final ServiceConfig serviceConfig;
-
   protected AbstractNode(final TekuConfiguration tekuConfig) {
+    setupStatusLog(tekuConfig);
+    reportOverrides(tekuConfig);
+
+    this.vertx = Vertx.vertx();
+    this.metricsEndpoint = new MetricsEndpoint(tekuConfig.metricsConfig(), vertx);
+    final MetricsSystem metricsSystem = metricsEndpoint.getMetricsSystem();
+    final TekuDefaultExceptionHandler subscriberExceptionHandler =
+        new TekuDefaultExceptionHandler();
+
+    this.rejectedExecutionCounter = new OccurrenceCounter(120);
+    ExecutorServiceFactory executorFactory =
+        new MetricTrackingExecutorFactory(metricsSystem, rejectedExecutionCounter);
+
+    EventChannels eventChannels = new EventChannels(subscriberExceptionHandler, executorFactory, metricsSystem);
+
+    AsyncRunnerFactory asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
+
+    final DataDirLayout dataDirLayout = DataDirLayout.createFrom(tekuConfig.dataConfig());
+
+    this.serviceConfig =
+        new ServiceConfig(
+            asyncRunnerFactory,
+            new SystemTimeProvider(),
+            eventChannels,
+            metricsSystem,
+            dataDirLayout,
+            rejectedExecutionCounter::getTotalCount);
+
+    this.metricsPublisher =
+        new MetricsPublisherManager(
+            serviceConfig.getAsyncRunnerFactory(),
+            serviceConfig.getTimeProvider(),
+            metricsEndpoint,
+            serviceConfig.getDataDirLayout().getBeaconDataDirectory().toFile());
+
+    this.asyncRunner = serviceConfig.getAsyncRunnerFactory().create("AbstractNode", 1);
+  }
+
+  private void setupStatusLog(TekuConfiguration tekuConfig) {
     final String network =
         tekuConfig
             .eth2NetworkConfiguration()
@@ -90,39 +127,6 @@ public abstract class AbstractNode implements Node {
             .validatorRestApiPort(validatorRestApiConfig.getRestApiPort())
             .validatorRestApiAllow(validatorRestApiConfig.getRestApiHostAllowlist())
             .build());
-
-    reportOverrides(tekuConfig);
-    this.metricsEndpoint = new MetricsEndpoint(tekuConfig.metricsConfig(), vertx);
-    final MetricsSystem metricsSystem = metricsEndpoint.getMetricsSystem();
-    final TekuDefaultExceptionHandler subscriberExceptionHandler =
-        new TekuDefaultExceptionHandler();
-
-    ExecutorServiceFactory executorFactory =
-        new MetricTrackingExecutorFactory(metricsSystem, rejectedExecutionCounter);
-
-    this.eventChannels =
-        new EventChannels(subscriberExceptionHandler, executorFactory, metricsSystem);
-
-    asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
-
-    final DataDirLayout dataDirLayout = DataDirLayout.createFrom(tekuConfig.dataConfig());
-
-    serviceConfig =
-        new ServiceConfig(
-            asyncRunnerFactory,
-            new SystemTimeProvider(),
-            eventChannels,
-            metricsSystem,
-            dataDirLayout,
-            rejectedExecutionCounter::getTotalCount);
-    this.metricsPublisher =
-        new MetricsPublisherManager(
-            asyncRunnerFactory,
-            serviceConfig.getTimeProvider(),
-            metricsEndpoint,
-            dataDirLayout.getBeaconDataDirectory().toFile());
-
-    asyncRunner = asyncRunnerFactory.create("AbstractNode", 1);
   }
 
   private void reportOverrides(final TekuConfiguration tekuConfig) {
@@ -202,7 +206,7 @@ public abstract class AbstractNode implements Node {
   @Override
   public void stop() {
     // Stop processing new events
-    eventChannels
+    serviceConfig.getEventChannels()
         .stop()
         .orTimeout(asyncRunner, 30, TimeUnit.SECONDS)
         .handleException(error -> LOG.warn("Failed to stop event channels cleanly", error))
@@ -211,7 +215,7 @@ public abstract class AbstractNode implements Node {
     counterMaintainer.ifPresent(Cancellable::cancel);
 
     // Stop async actions
-    asyncRunnerFactory.shutdown();
+    serviceConfig.getAsyncRunnerFactory().shutdown();
 
     // Stop services. This includes closing the database.
     getServiceController()
