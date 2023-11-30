@@ -43,7 +43,7 @@ public class NodeServiceConfigBuilder {
     this.tekuConfig = tekuConfig;
   }
 
-  protected void initMissingDefaults() {
+  public void initMissingDefaults() {
     if (vertx == null) {
       vertx = Vertx.vertx();
     }
@@ -60,14 +60,10 @@ public class NodeServiceConfigBuilder {
       timeProvider = new SystemTimeProvider();
     }
     if (executorFactory == null) {
-      executorFactory =
-          new MetricTrackingExecutorFactory(
-              metricsEndpoint.getMetricsSystem(), rejectedExecutionCounter);
+      executorFactory = createExecutorFactory();
     }
     if (eventChannels == null) {
-      eventChannels =
-          new EventChannels(
-              subscriberExceptionHandler, executorFactory, metricsEndpoint.getMetricsSystem());
+      eventChannels = createEventChannels();
     }
     if (asyncRunnerFactory == null) {
       asyncRunnerFactory = AsyncRunnerFactory.createDefault(executorFactory);
@@ -77,13 +73,26 @@ public class NodeServiceConfigBuilder {
     }
   }
 
+  protected ExecutorServiceFactory createExecutorFactory() {
+    return new MetricTrackingExecutorFactory(metricsEndpoint.getMetricsSystem(), rejectedExecutionCounter);
+  }
+
+  protected EventChannels createEventChannels() {
+    return new EventChannels(subscriberExceptionHandler, executorFactory, metricsEndpoint.getMetricsSystem());
+  }
+
   public NodeServiceConfigBuilder timeProvider(TimeProvider timeProvider) {
     this.timeProvider = timeProvider;
     return this;
   }
 
-  public NodeServiceConfigBuilder setExecutorFactory(ExecutorServiceFactory executorFactory) {
+  public NodeServiceConfigBuilder executorFactory(ExecutorServiceFactory executorFactory) {
     this.executorFactory = executorFactory;
+    return this;
+  }
+
+  public NodeServiceConfigBuilder eventChannels(EventChannels eventChannels) {
+    this.eventChannels = eventChannels;
     return this;
   }
 
