@@ -365,7 +365,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
     coalescingChainHeadChannel =
         new CoalescingChainHeadChannel(
             eventChannels.getPublisher(ChainHeadChannel.class), EVENT_LOG);
-    timerService = new TimerService(this::onTick);
+    timerService =
+        new TimerService(
+            () -> eventAsyncRunner.runAsync(this::onTick).ifExceptionGetsHereRaiseABug());
 
     final CombinedStorageChannel combinedStorageChannel =
         eventChannels.getPublisher(CombinedStorageChannel.class, beaconAsyncRunner);
