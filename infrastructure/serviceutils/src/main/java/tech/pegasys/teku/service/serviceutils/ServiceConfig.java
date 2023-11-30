@@ -16,7 +16,9 @@ package tech.pegasys.teku.service.serviceutils;
 import java.util.function.IntSupplier;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
+import tech.pegasys.teku.infrastructure.async.OccurrenceCounter;
 import tech.pegasys.teku.infrastructure.events.EventChannels;
+import tech.pegasys.teku.infrastructure.metrics.MetricsEndpoint;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.service.serviceutils.layout.DataDirLayout;
 
@@ -25,24 +27,24 @@ public class ServiceConfig {
   private final AsyncRunnerFactory asyncRunnerFactory;
   private final TimeProvider timeProvider;
   private final EventChannels eventChannels;
-  private final MetricsSystem metricsSystem;
+  private final MetricsEndpoint metricsEndpoint;
   private final DataDirLayout dataDirLayout;
 
-  private final IntSupplier rejectedExecutionsSupplier;
+  private final OccurrenceCounter rejectedExecutionCounter;
 
   public ServiceConfig(
       final AsyncRunnerFactory asyncRunnerFactory,
       final TimeProvider timeProvider,
       final EventChannels eventChannels,
-      final MetricsSystem metricsSystem,
+      final MetricsEndpoint metricsEndpoint,
       final DataDirLayout dataDirLayout,
-      final IntSupplier rejectedExecutionsSupplier) {
+      final OccurrenceCounter rejectedExecutionCounter) {
     this.asyncRunnerFactory = asyncRunnerFactory;
     this.timeProvider = timeProvider;
     this.eventChannels = eventChannels;
-    this.metricsSystem = metricsSystem;
+    this.metricsEndpoint = metricsEndpoint;
     this.dataDirLayout = dataDirLayout;
-    this.rejectedExecutionsSupplier = rejectedExecutionsSupplier;
+    this.rejectedExecutionCounter = rejectedExecutionCounter;
   }
 
   public TimeProvider getTimeProvider() {
@@ -54,7 +56,11 @@ public class ServiceConfig {
   }
 
   public MetricsSystem getMetricsSystem() {
-    return metricsSystem;
+    return metricsEndpoint.getMetricsSystem();
+  }
+
+  public MetricsEndpoint getMetricsEndpoint() {
+    return metricsEndpoint;
   }
 
   public DataDirLayout getDataDirLayout() {
@@ -62,7 +68,11 @@ public class ServiceConfig {
   }
 
   public IntSupplier getRejectedExecutionsSupplier() {
-    return rejectedExecutionsSupplier;
+    return rejectedExecutionCounter::getTotalCount;
+  }
+
+  public OccurrenceCounter getRejectedExecutionCounter() {
+    return rejectedExecutionCounter;
   }
 
   public AsyncRunnerFactory getAsyncRunnerFactory() {

@@ -16,13 +16,18 @@ package tech.pegasys.teku;
 import static tech.pegasys.teku.infrastructure.logging.StatusLogger.STATUS_LOG;
 
 import tech.pegasys.teku.config.TekuConfiguration;
+import tech.pegasys.teku.service.serviceutils.ServiceConfig;
 import tech.pegasys.teku.services.ValidatorNodeServiceController;
 
 public class ValidatorNode extends AbstractNode implements ValidatorNodeFacade {
   private final ValidatorNodeServiceController serviceController;
 
   public ValidatorNode(final TekuConfiguration tekuConfig) {
-    super(tekuConfig);
+    this(tekuConfig, new NodeServiceConfigBuilder(tekuConfig).build());
+  }
+
+  public ValidatorNode(final TekuConfiguration tekuConfig, ServiceConfig serviceConfig) {
+    super(tekuConfig, serviceConfig);
     this.serviceController = new ValidatorNodeServiceController(tekuConfig, serviceConfig);
     STATUS_LOG.validatorDataPathSet(serviceConfig.getDataDirLayout().getValidatorDataDirectory());
   }

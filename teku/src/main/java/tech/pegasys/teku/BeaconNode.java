@@ -16,13 +16,18 @@ package tech.pegasys.teku;
 import static tech.pegasys.teku.infrastructure.logging.StatusLogger.STATUS_LOG;
 
 import tech.pegasys.teku.config.TekuConfiguration;
+import tech.pegasys.teku.service.serviceutils.ServiceConfig;
 import tech.pegasys.teku.services.BeaconNodeServiceController;
 
 public class BeaconNode extends AbstractNode implements BeaconNodeFacade {
   private final BeaconNodeServiceController serviceController;
 
   public BeaconNode(final TekuConfiguration tekuConfig) {
-    super(tekuConfig);
+    this(tekuConfig, new NodeServiceConfigBuilder(tekuConfig).build());
+  }
+
+  public BeaconNode(final TekuConfiguration tekuConfig, ServiceConfig serviceConfig) {
+    super(tekuConfig, serviceConfig);
 
     this.serviceController = new BeaconNodeServiceController(tekuConfig, serviceConfig);
     STATUS_LOG.beaconDataPathSet(serviceConfig.getDataDirLayout().getBeaconDataDirectory());
