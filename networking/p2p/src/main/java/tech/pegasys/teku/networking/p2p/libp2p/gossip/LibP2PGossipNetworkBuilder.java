@@ -42,6 +42,7 @@ import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessage;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessageFactory;
 import tech.pegasys.teku.networking.p2p.gossip.config.GossipConfig;
+import tech.pegasys.teku.networking.p2p.gossip.config.GossipScoringConfig;
 import tech.pegasys.teku.networking.p2p.libp2p.config.LibP2PParamsFactory;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
 
@@ -77,14 +78,21 @@ public class LibP2PGossipNetworkBuilder {
     return new LibP2PGossipNetwork(metricsSystem, gossip, publisher, topicHandlers);
   }
 
+  protected GossipParams createGossipParams(GossipConfig gossipConfig) {
+    return LibP2PParamsFactory.createGossipParams(gossipConfig);
+  }
+
+  protected GossipScoreParams createGossipScoreParams(GossipScoringConfig scoringConfig) {
+    return LibP2PParamsFactory.createGossipScoreParams(scoringConfig);
+  }
+
   protected GossipRouter createGossipRouter(
       GossipConfig gossipConfig,
       GossipTopicFilter gossipTopicFilter,
       GossipTopicHandlers topicHandlers) {
 
-    final GossipParams gossipParams = LibP2PParamsFactory.createGossipParams(gossipConfig);
-    final GossipScoreParams scoreParams =
-        LibP2PParamsFactory.createGossipScoreParams(gossipConfig.getScoringConfig());
+    final GossipParams gossipParams = createGossipParams(gossipConfig);
+    final GossipScoreParams scoreParams = createGossipScoreParams(gossipConfig.getScoringConfig());
 
     final TopicSubscriptionFilter subscriptionFilter =
         new MaxCountTopicSubscriptionFilter(
