@@ -50,7 +50,7 @@ public class DataColumnSidecarSchema
       final DataColumnSchema dataColumnSchema,
       SpecConfigElectra specConfig) {
     super(
-        "BlobSidecar",
+        "DataColumnSidecar",
         namedSchema("index", SszPrimitiveSchemas.UINT64_SCHEMA),
         namedSchema(FIELD_BLOB, dataColumnSchema),
         namedSchema("kzg_commitments",

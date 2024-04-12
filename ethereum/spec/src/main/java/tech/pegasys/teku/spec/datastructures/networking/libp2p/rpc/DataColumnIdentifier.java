@@ -29,7 +29,7 @@ public class DataColumnIdentifier extends Container2<DataColumnIdentifier, SszBy
 
     private DataColumnIdentifierSchema() {
       super(
-          "BlobIdentifier",
+          "DataColumnIdentifier",
           namedSchema("block_root", SszPrimitiveSchemas.BYTES32_SCHEMA),
           namedSchema("index", SszPrimitiveSchemas.UINT64_SCHEMA));
     }
