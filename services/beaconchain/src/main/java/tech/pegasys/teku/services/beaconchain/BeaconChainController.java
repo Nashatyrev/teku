@@ -877,9 +877,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDataColumnSidecarSubnetBackboneSubscriber() {
+    LOG.debug("BeaconChainController.initDataColumnSidecarSubnetBackboneSubscriber");
     UInt256 nodeId = p2pNetwork.getDiscoveryNodeId()
         .orElseThrow(() -> new InvalidConfigurationException(("NodeID is required for DataColumnSidecarSubnetBackboneSubscriber")));
-    LOG.debug("BeaconChainController.initDataColumnSidecarSubnetBackboneSubscriber");
     DataColumnSidecarSubnetBackboneSubscriber subnetBackboneSubscriber =
         new DataColumnSidecarSubnetBackboneSubscriber(spec, p2pNetwork, nodeId, beaconConfig.p2pConfig().getDasExtraCustodySubnetCount());
     eventChannels.subscribe(SlotEventsChannel.class, subnetBackboneSubscriber);

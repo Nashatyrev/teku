@@ -67,8 +67,12 @@ public interface SpecConfigElectra extends SpecConfigDeneb, NetworkingSpecConfig
 
   UInt64 getFieldElementsPerCell();
 
+  default UInt64 getFieldElementsPerExtendedBlob() {
+    return UInt64.valueOf(getFieldElementsPerBlob()).times(2);
+  }
+
   default UInt64 getNumberOfColumns() {
-    return UInt64.valueOf(getFieldElementsPerBlob()).times(2).dividedBy(getFieldElementsPerCell());
+    return getFieldElementsPerExtendedBlob().dividedBy(getFieldElementsPerCell());
   }
 
   @Override
