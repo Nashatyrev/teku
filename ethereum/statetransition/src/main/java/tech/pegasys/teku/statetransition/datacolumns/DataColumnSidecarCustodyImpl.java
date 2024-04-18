@@ -81,7 +81,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
 
   private UInt64 getEarliestCustodyEpoch(UInt64 currentEpoch) {
     int custodyPeriod = spec.getSpecConfig(currentEpoch).toVersionElectra().orElseThrow().getMinEpochsForDataColumnSidecarsRequests();
-    return currentEpoch.minus(custodyPeriod);
+    return currentEpoch.minusMinZero(custodyPeriod);
   }
 
   private Set<UInt64> getCustodyColumnsForSlot(UInt64 slot) {

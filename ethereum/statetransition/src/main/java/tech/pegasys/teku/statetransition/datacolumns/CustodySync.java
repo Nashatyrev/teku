@@ -4,11 +4,9 @@ import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -17,8 +15,8 @@ public class CustodySync implements SlotEventsChannel {
 
   private final DataColumnSidecarCustody custody;
   private final DataColumnSidecarRetriever retriever;
-  private final int maxParallelColumnRequests = 1024;
-  private final int minParallelColumnRequests = 512;
+  private final int maxPendingColumnRequests = 1024;
+  private final int minPendingColumnRequests = 512;
 
   private Map<ColumnSlotAndIdentifier, PendingRequest> pendingRequests = new HashMap<>();
   private boolean started = false;
@@ -36,13 +34,13 @@ public class CustodySync implements SlotEventsChannel {
   }
 
   private void fillUpIfNeeded() {
-    if (started && pendingRequests.size() <= minParallelColumnRequests) {
+    if (started && pendingRequests.size() <= minPendingColumnRequests) {
       fillUp();
     }
   }
 
   private synchronized void fillUp() {
-    int newRequestCount = maxParallelColumnRequests - pendingRequests.size();
+    int newRequestCount = maxPendingColumnRequests - pendingRequests.size();
     Set<ColumnSlotAndIdentifier> missingColumnsToRequest = custody.streamMissingColumns()
         .filter(c -> !pendingRequests.containsKey(c.identifier()))
         .limit(newRequestCount)
