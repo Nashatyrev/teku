@@ -220,8 +220,9 @@ public class Spec {
   }
 
   /**
-   * Networking config with Electra constants. Use {@link tech.pegasys.teku.spec.config.SpecConfigElectra#required(SpecConfig)} when
-   * you are sure that Electra is available, otherwise use this method
+   * Networking config with Electra constants. Use {@link
+   * tech.pegasys.teku.spec.config.SpecConfigElectra#required(SpecConfig)} when you are sure that
+   * Electra is available, otherwise use this method
    */
   public Optional<NetworkingSpecConfigElectra> getNetworkingConfigElectra() {
     return Optional.ofNullable(forMilestone(ELECTRA))
@@ -418,6 +419,17 @@ public class Spec {
                     "Bellatrix milestone is required to deserialize execution payload header"))
         .getExecutionPayloadHeaderSchema()
         .jsonDeserialize(objectMapper.createParser(jsonFile));
+  }
+
+  public DataColumnSidecar deserializeSidecar(final Bytes serializedSidecar, final UInt64 slot) {
+    return atSlot(slot)
+        .getSchemaDefinitions()
+        .toVersionElectra()
+        .orElseThrow(
+            () ->
+                new RuntimeException("Electra milestone is required to deserialize column sidecar"))
+        .getDataColumnSidecarSchema()
+        .sszDeserialize(serializedSidecar);
   }
 
   // BeaconState

@@ -22,6 +22,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.SlotAndBlockRootAndBlobIndex;
 
 public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnapshotState {
@@ -47,6 +48,10 @@ public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnaps
   public KvStoreColumn<SlotAndBlockRootAndBlobIndex, Bytes>
       getColumnNonCanonicalBlobSidecarBySlotRootBlobIndex() {
     return delegate.getColumnNonCanonicalBlobSidecarBySlotRootBlobIndex();
+  }
+
+  public KvStoreColumn<ColumnSlotAndIdentifier, Bytes> getColumnSidecarByColumnSlotAndIdentifier() {
+    return delegate.getColumnSidecarByColumnSlotAndIdentifier();
   }
 
   public Map<String, KvStoreColumn<?, ?>> getColumnMap() {
@@ -106,11 +111,17 @@ public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnaps
     return delegate.getVariableEarliestBlobSidecarSlot();
   }
 
+  public KvStoreVariable<UInt64> getVariableFirstIncompleteSlot() {
+    return delegate.getVariableFirstIncompleteSlot();
+  }
+
   public Map<String, KvStoreVariable<?>> getVariableMap() {
     return Map.of(
         "OPTIMISTIC_TRANSITION_BLOCK_SLOT",
         getOptimisticTransitionBlockSlot(),
         "EARLIEST_BLOB_SIDECAR_SLOT",
-        getVariableEarliestBlobSidecarSlot());
+        getVariableEarliestBlobSidecarSlot(),
+        "FIRST_INCOMPLETE_SLOT",
+        getVariableFirstIncompleteSlot());
   }
 }
