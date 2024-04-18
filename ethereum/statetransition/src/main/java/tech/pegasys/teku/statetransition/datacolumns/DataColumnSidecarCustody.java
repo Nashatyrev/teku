@@ -5,6 +5,7 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public interface DataColumnSidecarCustody {
 
@@ -12,4 +13,5 @@ public interface DataColumnSidecarCustody {
 
   SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(DataColumnIdentifier columnId);
 
+  Stream<ColumnSlotAndIdentifier> streamMissingColumns();
 }
