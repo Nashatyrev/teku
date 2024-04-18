@@ -311,19 +311,20 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
   }
 
   @Override
-  public Optional<Bytes> getSidecar(ColumnSlotAndIdentifier identifier) {
+  public Optional<Bytes> getSidecar(final ColumnSlotAndIdentifier identifier) {
     return finalizedDao.getSidecar(identifier);
   }
 
   @Override
   @MustBeClosed
   public Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(
-      UInt64 startSlot, UInt64 endSlot) {
+      final UInt64 startSlot, final UInt64 endSlot) {
     return finalizedDao.streamDataColumnIdentifiers(startSlot, endSlot);
   }
 
   @Override
-  public List<ColumnSlotAndIdentifier> getDataColumnIdentifiers(SlotAndBlockRoot slotAndBlockRoot) {
+  public List<ColumnSlotAndIdentifier> getDataColumnIdentifiers(
+      final SlotAndBlockRoot slotAndBlockRoot) {
     return finalizedDao.getDataColumnIdentifiers(slotAndBlockRoot);
   }
 
@@ -598,17 +599,17 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     }
 
     @Override
-    public void setFirstIncompleteSlot(UInt64 slot) {
+    public void setFirstIncompleteSlot(final UInt64 slot) {
       finalizedUpdater.setFirstIncompleteSlot(slot);
     }
 
     @Override
-    public void addSidecar(DataColumnSidecar sidecar) {
+    public void addSidecar(final DataColumnSidecar sidecar) {
       finalizedUpdater.addSidecar(sidecar);
     }
 
     @Override
-    public void removeSidecar(ColumnSlotAndIdentifier identifier) {
+    public void removeSidecar(final ColumnSlotAndIdentifier identifier) {
       finalizedUpdater.removeSidecar(identifier);
     }
 

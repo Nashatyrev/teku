@@ -431,12 +431,12 @@ public class V4FinalizedKvStoreDao {
     }
 
     @Override
-    public void setFirstIncompleteSlot(UInt64 slot) {
+    public void setFirstIncompleteSlot(final UInt64 slot) {
       transaction.put(schema.getVariableFirstIncompleteSlot(), slot);
     }
 
     @Override
-    public void addSidecar(DataColumnSidecar sidecar) {
+    public void addSidecar(final DataColumnSidecar sidecar) {
       transaction.put(
           schema.getColumnSidecarByColumnSlotAndIdentifier(),
           new ColumnSlotAndIdentifier(
@@ -445,7 +445,7 @@ public class V4FinalizedKvStoreDao {
     }
 
     @Override
-    public void removeSidecar(ColumnSlotAndIdentifier identifier) {
+    public void removeSidecar(final ColumnSlotAndIdentifier identifier) {
       transaction.delete(schema.getColumnSidecarByColumnSlotAndIdentifier(), identifier);
     }
 

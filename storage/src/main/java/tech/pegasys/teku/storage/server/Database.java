@@ -239,7 +239,7 @@ public interface Database extends AutoCloseable {
    */
   UInt64 pruneFinalizedBlocks(UInt64 lastSlotToPrune, int pruneLimit);
 
-  // read
+  // Sidecars
   Optional<UInt64> getFirstIncompleteSlot();
 
   Optional<DataColumnSidecar> getSidecar(ColumnSlotAndIdentifier identifier);
@@ -251,9 +251,7 @@ public interface Database extends AutoCloseable {
   default Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(final UInt64 slot) {
     return streamDataColumnIdentifiers(slot, slot);
   }
-  ;
 
-  // write
   void setFirstIncompleteSlot(UInt64 slot);
 
   void addSidecar(DataColumnSidecar sidecar);

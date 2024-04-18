@@ -943,7 +943,7 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
-  public void setFirstIncompleteSlot(UInt64 slot) {
+  public void setFirstIncompleteSlot(final UInt64 slot) {
     try (final FinalizedUpdater updater = finalizedUpdater()) {
       updater.setFirstIncompleteSlot(slot);
       updater.commit();
@@ -951,7 +951,7 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
-  public void addSidecar(DataColumnSidecar sidecar) {
+  public void addSidecar(final DataColumnSidecar sidecar) {
     try (final FinalizedUpdater updater = finalizedUpdater()) {
       updater.addSidecar(sidecar);
       updater.commit();
@@ -959,9 +959,9 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
-  public void pruneAllSidecars(UInt64 tillSlot) {
+  public void pruneAllSidecars(final UInt64 tillSlotInclusive) {
     try (final Stream<ColumnSlotAndIdentifier> prunableIdentifiers =
-            streamDataColumnIdentifiers(UInt64.ZERO, tillSlot);
+            streamDataColumnIdentifiers(UInt64.ZERO, tillSlotInclusive);
         final FinalizedUpdater updater = finalizedUpdater()) {
       prunableIdentifiers.forEach(updater::removeSidecar);
     }

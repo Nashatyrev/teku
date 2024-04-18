@@ -523,7 +523,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
   }
 
   @Override
-  public Optional<Bytes> getSidecar(ColumnSlotAndIdentifier identifier) {
+  public Optional<Bytes> getSidecar(final ColumnSlotAndIdentifier identifier) {
     return db.get(schema.getColumnSidecarByColumnSlotAndIdentifier(), identifier);
   }
 
@@ -824,7 +824,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
     }
 
     @Override
-    public void removeSidecar(ColumnSlotAndIdentifier identifier) {
+    public void removeSidecar(final ColumnSlotAndIdentifier identifier) {
       transaction.delete(schema.getColumnSidecarByColumnSlotAndIdentifier(), identifier);
     }
   }

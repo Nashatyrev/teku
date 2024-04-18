@@ -335,14 +335,14 @@ public class NoOpDatabase implements Database {
   }
 
   @Override
-  public Optional<DataColumnSidecar> getSidecar(ColumnSlotAndIdentifier identifier) {
+  public Optional<DataColumnSidecar> getSidecar(final ColumnSlotAndIdentifier identifier) {
     return Optional.empty();
   }
 
   @Override
   @MustBeClosed
   public Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(
-      UInt64 fromSlot, UInt64 toSlot) {
+      final UInt64 fromSlot, final UInt64 toSlot) {
     return Stream.empty();
   }
 
