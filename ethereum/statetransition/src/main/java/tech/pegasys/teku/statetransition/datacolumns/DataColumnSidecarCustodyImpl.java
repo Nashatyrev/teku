@@ -19,10 +19,9 @@ import java.util.stream.Stream;
 
 public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, SlotEventsChannel {
 
-  interface BlockChainAccessor {
+  public interface BlockChainAccessor {
 
     Optional<Bytes32> getCanonicalBlockRootAtSlot(UInt64 slot);
-
   }
 
   private record SlotCustody(
@@ -51,7 +50,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
   }
 
   // for how long the custody will wait for a missing column to be gossiped
-  private final UInt64 gossipWaitSlots = UInt64.ONE;
+  private final int gossipWaitSlots = 2;
 
   private final Spec spec;
   private final DataColumnSidecarDB db;
@@ -59,7 +58,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
 
-  private UInt64 currentSlot; // TODO initialize and update it
+  private UInt64 currentSlot = null;
 
   public DataColumnSidecarCustodyImpl(
       Spec spec,
@@ -112,6 +111,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
 
   @Override
   public void onSlot(UInt64 slot) {
+    currentSlot = slot;
     UInt64 epoch = spec.computeEpochAtSlot(slot);
     if (slot.equals(spec.computeStartSlotAtEpoch(epoch))) {
       onEpoch(epoch);
@@ -126,10 +126,17 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
   }
 
   private Stream<SlotCustody> streamSlotCustodies() {
+    if (currentSlot == null) {
+      return Stream.empty();
+    }
+
     UInt64 firstIncompleteSlot = db.getFirstIncompleteSlot()
         .orElseGet(() -> getEarliestCustodySlot(currentSlot));
 
-    return Stream.iterate(firstIncompleteSlot, UInt64::increment)
+    return Stream.iterate(
+            firstIncompleteSlot,
+            slot -> slot.plus(gossipWaitSlots).isLessThanOrEqualTo(currentSlot),
+            UInt64::increment)
         .map(slot -> {
           Optional<Bytes32> maybeCanonicalBlockRoot = blockChainAccessor.getCanonicalBlockRootAtSlot(slot);
           Set<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);

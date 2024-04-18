@@ -1,6 +1,8 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
@@ -11,19 +13,15 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class CustodySync {
+public class CustodySync implements SlotEventsChannel {
 
   private final DataColumnSidecarCustody custody;
   private final DataColumnSidecarRetriever retriever;
   private final int maxParallelColumnRequests = 1024;
   private final int minParallelColumnRequests = 512;
 
-  record PendingRequest(
-      ColumnSlotAndIdentifier columnId,
-      SafeFuture<DataColumnSidecar> columnPromise
-  ){}
-
   private Map<ColumnSlotAndIdentifier, PendingRequest> pendingRequests = new HashMap<>();
+  private boolean started = false;
 
   public CustodySync(DataColumnSidecarCustody custody, DataColumnSidecarRetriever retriever) {
     this.custody = custody;
@@ -37,10 +35,8 @@ public class CustodySync {
     fillUpIfNeeded();
   }
 
-  // TODO need to trigger periodically when initial sync is done
-
   private void fillUpIfNeeded() {
-    if (pendingRequests.size() <= minParallelColumnRequests) {
+    if (started && pendingRequests.size() <= minParallelColumnRequests) {
       fillUp();
     }
   }
@@ -71,13 +67,25 @@ public class CustodySync {
   }
 
   public void start() {
+    started = true;
     fillUp();
   }
 
   public synchronized void stop() {
+    started = false;
     for (PendingRequest request : pendingRequests.values()) {
       request.columnPromise.cancel(true);
     }
     pendingRequests.clear();
   }
+
+  @Override
+  public void onSlot(UInt64 slot) {
+    fillUpIfNeeded();
+  }
+
+  private record PendingRequest(
+      ColumnSlotAndIdentifier columnId,
+      SafeFuture<DataColumnSidecar> columnPromise
+  ){}
 }
