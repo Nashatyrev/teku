@@ -13,6 +13,9 @@
 
 package tech.pegasys.teku.spec.logic.versions.electra.helpers;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.IntStream;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
