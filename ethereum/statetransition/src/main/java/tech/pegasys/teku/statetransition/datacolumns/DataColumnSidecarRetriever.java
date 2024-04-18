@@ -13,5 +13,5 @@ public interface DataColumnSidecarRetriever {
    * Queues the specified sidecar for search
    * @return a future which may run indefinitely until finds a requested data or cancelled
    */
-  SafeFuture<DataColumnSidecar> retrieve(DataColumnIdentifier columnId);
+  SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId);
 }
