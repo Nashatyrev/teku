@@ -17,9 +17,6 @@ import java.util.stream.Stream;
 
 public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, SlotEventsChannel {
 
-  // TODO move to the spec
-  private static final UInt64 MIN_EPOCHS_FOR_DATA_COLUMN_SIDECARS_REQUESTS = UInt64.valueOf(4096);
-
   interface BlockChainAccessor {
 
     Optional<Bytes32> getCanonicalBlockRootAtSlot(UInt64 slot);
@@ -72,7 +69,8 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
   }
 
   private UInt64 getEarliestCustodyEpoch(UInt64 currentEpoch) {
-    return currentEpoch.minus(MIN_EPOCHS_FOR_DATA_COLUMN_SIDECARS_REQUESTS);
+    int custodyPeriod = spec.getSpecConfig(currentEpoch).toVersionElectra().orElseThrow().getMinEpochsForDataColumnSidecarsRequests();
+    return currentEpoch.minus(custodyPeriod);
   }
 
   private List<UInt64> getCustodyColumnsForSlot(UInt64 slot) {

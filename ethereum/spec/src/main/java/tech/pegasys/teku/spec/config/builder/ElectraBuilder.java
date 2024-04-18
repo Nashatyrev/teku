@@ -50,7 +50,7 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
   private UInt64 fieldElementsPerCell;
   private Integer dataColumnSidecarSubnetCount;
   private Integer custodyRequirement;
-
+  private Integer minEpochsForDataColumnSidecarsRequests;
   ElectraBuilder() {}
 
   @Override
@@ -76,7 +76,8 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
         maxConsolidations,
         fieldElementsPerCell,
         dataColumnSidecarSubnetCount,
-        custodyRequirement);
+        custodyRequirement,
+        minEpochsForDataColumnSidecarsRequests);
   }
 
   public ElectraBuilder electraForkEpoch(final UInt64 electraForkEpoch) {
@@ -203,6 +204,12 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
     return this;
   }
 
+  public ElectraBuilder minEpochsForDataColumnSidecarsRequests(final Integer custodyEpochs) {
+    checkNotNull(custodyEpochs);
+    this.minEpochsForDataColumnSidecarsRequests = custodyEpochs;
+    return this;
+  }
+
   @Override
   public void validate() {
     if (electraForkEpoch == null) {
@@ -240,6 +247,7 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
     constants.put("maxConsolidations", maxConsolidations);
     constants.put("dataColumnSidecarSubnetCount", dataColumnSidecarSubnetCount);
     constants.put("custodyRequirement", custodyRequirement);
+    constants.put("minEpochsForDataColumnSidecarsRequests", minEpochsForDataColumnSidecarsRequests);
 
     return constants;
   }
