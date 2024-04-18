@@ -156,6 +156,11 @@ public class V6SchemaCombinedTreeState extends V6SchemaCombined implements Schem
   }
 
   @Override
+  public KvStoreColumn<ColumnSlotAndIdentifier, Bytes> getColumnSidecarByColumnSlotAndIdentifier() {
+    return sidecarByColumnSlotAndIdentifier;
+  }
+
+  @Override
   public Map<String, KvStoreVariable<?>> getVariableMap() {
     return ImmutableMap.<String, KvStoreVariable<?>>builder()
         .put("GENESIS_TIME", getVariableGenesisTime())

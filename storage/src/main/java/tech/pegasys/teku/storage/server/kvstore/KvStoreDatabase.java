@@ -1158,6 +1158,7 @@ public class KvStoreDatabase implements Database {
   }
 
   // TODO: link on storage update when sidecars are enabled
+  @SuppressWarnings("UnusedMethod")
   private void removeNonCanonicalSidecars(
       final Map<Bytes32, UInt64> deletedHotBlocks,
       final Map<Bytes32, Bytes32> finalizedChildToParentMap) {
