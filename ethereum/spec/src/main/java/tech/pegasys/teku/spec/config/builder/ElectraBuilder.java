@@ -51,6 +51,7 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
   private Integer dataColumnSidecarSubnetCount;
   private Integer custodyRequirement;
   private Integer minEpochsForDataColumnSidecarsRequests;
+
   ElectraBuilder() {}
 
   @Override

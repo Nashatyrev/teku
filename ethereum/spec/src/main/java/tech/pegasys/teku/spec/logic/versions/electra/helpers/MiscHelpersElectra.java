@@ -13,9 +13,13 @@
 
 package tech.pegasys.teku.spec.logic.versions.electra.helpers;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
@@ -25,14 +29,6 @@ import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class MiscHelpersElectra extends MiscHelpersDeneb {
 
@@ -70,15 +66,18 @@ public class MiscHelpersElectra extends MiscHelpersDeneb {
     return columnIndex.mod(specConfigElectra.getDataColumnSidecarSubnetCount());
   }
 
-  public Set<UInt64> computeCustodyColumnIndexes(final UInt256 nodeId, final UInt64 epoch, final int subnetCount) {
-    Set<UInt64> subnets = new HashSet<>(computeDataColumnSidecarBackboneSubnets(nodeId, epoch, subnetCount));
+  public Set<UInt64> computeCustodyColumnIndexes(
+      final UInt256 nodeId, final UInt64 epoch, final int subnetCount) {
+    Set<UInt64> subnets =
+        new HashSet<>(computeDataColumnSidecarBackboneSubnets(nodeId, epoch, subnetCount));
     return Stream.iterate(UInt64.ZERO, UInt64::increment)
         .limit(specConfigElectra.getNumberOfColumns().intValue())
         .filter(columnIndex -> subnets.contains(computeSubnetForDataColumnSidecar(columnIndex)))
         .collect(Collectors.toSet());
   }
 
-  public List<UInt64> computeDataColumnSidecarBackboneSubnets(final UInt256 nodeId, final UInt64 epoch, final int subnetCount) {
+  public List<UInt64> computeDataColumnSidecarBackboneSubnets(
+      final UInt256 nodeId, final UInt64 epoch, final int subnetCount) {
     // TODO: implement whatever formula is finalized
     return IntStream.range(0, subnetCount)
         .mapToObj(index -> computeSubscribedSubnet(nodeId, epoch, index))

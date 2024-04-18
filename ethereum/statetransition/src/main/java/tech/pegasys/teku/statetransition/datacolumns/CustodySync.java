@@ -1,15 +1,27 @@
-package tech.pegasys.teku.statetransition.datacolumns;
+/*
+ * Copyright Consensys Software Inc., 2024
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
-import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
+package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
 
 public class CustodySync implements SlotEventsChannel {
 
@@ -41,13 +53,16 @@ public class CustodySync implements SlotEventsChannel {
 
   private synchronized void fillUp() {
     int newRequestCount = maxPendingColumnRequests - pendingRequests.size();
-    Set<ColumnSlotAndIdentifier> missingColumnsToRequest = custody.streamMissingColumns()
-        .filter(c -> !pendingRequests.containsKey(c.identifier()))
-        .limit(newRequestCount)
-        .collect(Collectors.toSet());
+    Set<ColumnSlotAndIdentifier> missingColumnsToRequest =
+        custody
+            .streamMissingColumns()
+            .filter(c -> !pendingRequests.containsKey(c.identifier()))
+            .limit(newRequestCount)
+            .collect(Collectors.toSet());
 
     // cancel those which are not missing anymore for whatever reason
-    Iterator<Map.Entry<ColumnSlotAndIdentifier, PendingRequest>> it = pendingRequests.entrySet().iterator();
+    Iterator<Map.Entry<ColumnSlotAndIdentifier, PendingRequest>> it =
+        pendingRequests.entrySet().iterator();
     while (it.hasNext()) {
       Map.Entry<ColumnSlotAndIdentifier, PendingRequest> pendingEntry = it.next();
       if (!missingColumnsToRequest.contains(pendingEntry.getKey())) {
@@ -83,7 +98,5 @@ public class CustodySync implements SlotEventsChannel {
   }
 
   private record PendingRequest(
-      ColumnSlotAndIdentifier columnId,
-      SafeFuture<DataColumnSidecar> columnPromise
-  ){}
+      ColumnSlotAndIdentifier columnId, SafeFuture<DataColumnSidecar> columnPromise) {}
 }

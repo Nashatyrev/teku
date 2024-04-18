@@ -1,5 +1,24 @@
+/*
+ * Copyright Consensys Software Inc., 2024
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
@@ -9,13 +28,6 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, SlotEventsChannel {
 
@@ -28,18 +40,20 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
       UInt64 slot,
       Optional<Bytes32> canonicalBlockRoot,
       Collection<UInt64> requiredColumnIndices,
-      Collection<DataColumnIdentifier> custodiedColumnIndices
-  ) {
+      Collection<DataColumnIdentifier> custodiedColumnIndices) {
     public Collection<DataColumnIdentifier> getIncompleteColumns() {
-      return canonicalBlockRoot.map(blockRoot -> {
-            Set<UInt64> collectedIndices = custodiedColumnIndices.stream()
-                .filter(identifier -> identifier.getBlockRoot().equals(blockRoot))
-                .map(DataColumnIdentifier::getIndex)
-                .collect(Collectors.toSet());
-            return requiredColumnIndices.stream()
-                .filter(requiredColIdx -> !collectedIndices.contains(requiredColIdx))
-                .map(missedColIdx -> new DataColumnIdentifier(blockRoot, missedColIdx));
-          })
+      return canonicalBlockRoot
+          .map(
+              blockRoot -> {
+                Set<UInt64> collectedIndices =
+                    custodiedColumnIndices.stream()
+                        .filter(identifier -> identifier.getBlockRoot().equals(blockRoot))
+                        .map(DataColumnIdentifier::getIndex)
+                        .collect(Collectors.toSet());
+                return requiredColumnIndices.stream()
+                    .filter(requiredColIdx -> !collectedIndices.contains(requiredColIdx))
+                    .map(missedColIdx -> new DataColumnIdentifier(blockRoot, missedColIdx));
+              })
           .orElse(Stream.empty())
           .toList();
     }
@@ -65,8 +79,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
       DataColumnSidecarDB db,
       BlockChainAccessor blockChainAccessor,
       UInt256 nodeId,
-      int totalCustodySubnetCount
-  ) {
+      int totalCustodySubnetCount) {
     this.spec = spec;
     this.db = db;
     this.blockChainAccessor = blockChainAccessor;
@@ -80,7 +93,11 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
   }
 
   private UInt64 getEarliestCustodyEpoch(UInt64 currentEpoch) {
-    int custodyPeriod = spec.getSpecConfig(currentEpoch).toVersionElectra().orElseThrow().getMinEpochsForDataColumnSidecarsRequests();
+    int custodyPeriod =
+        spec.getSpecConfig(currentEpoch)
+            .toVersionElectra()
+            .orElseThrow()
+            .getMinEpochsForDataColumnSidecarsRequests();
     return currentEpoch.minusMinZero(custodyPeriod);
   }
 
@@ -99,7 +116,8 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
   }
 
   @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(DataColumnIdentifier columnId) {
+  public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
+      DataColumnIdentifier columnId) {
     return SafeFuture.completedFuture(db.getSidecar(columnId));
   }
 
@@ -130,25 +148,30 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
       return Stream.empty();
     }
 
-    UInt64 firstIncompleteSlot = db.getFirstIncompleteSlot()
-        .orElseGet(() -> getEarliestCustodySlot(currentSlot));
+    UInt64 firstIncompleteSlot =
+        db.getFirstIncompleteSlot().orElseGet(() -> getEarliestCustodySlot(currentSlot));
 
     return Stream.iterate(
             firstIncompleteSlot,
             slot -> slot.plus(gossipWaitSlots).isLessThanOrEqualTo(currentSlot),
             UInt64::increment)
-        .map(slot -> {
-          Optional<Bytes32> maybeCanonicalBlockRoot = blockChainAccessor.getCanonicalBlockRootAtSlot(slot);
-          Set<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
-          List<DataColumnIdentifier> existingColumns = db.streamColumnIdentifiers(slot).toList();
-          return new SlotCustody(slot, maybeCanonicalBlockRoot, requiredColumns, existingColumns);
-        });
+        .map(
+            slot -> {
+              Optional<Bytes32> maybeCanonicalBlockRoot =
+                  blockChainAccessor.getCanonicalBlockRootAtSlot(slot);
+              Set<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
+              List<DataColumnIdentifier> existingColumns =
+                  db.streamColumnIdentifiers(slot).toList();
+              return new SlotCustody(
+                  slot, maybeCanonicalBlockRoot, requiredColumns, existingColumns);
+            });
   }
 
   public Stream<ColumnSlotAndIdentifier> streamMissingColumns() {
     return streamSlotCustodies()
-        .flatMap(slotCustody -> slotCustody.getIncompleteColumns()
-            .stream().map(colId -> new ColumnSlotAndIdentifier(slotCustody.slot(), colId))
-        );
+        .flatMap(
+            slotCustody ->
+                slotCustody.getIncompleteColumns().stream()
+                    .map(colId -> new ColumnSlotAndIdentifier(slotCustody.slot(), colId)));
   }
 }
