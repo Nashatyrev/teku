@@ -68,6 +68,7 @@ public class MiscHelpersElectra extends MiscHelpersDeneb {
 
   public Set<UInt64> computeCustodyColumnIndexes(
       final UInt256 nodeId, final UInt64 epoch, final int subnetCount) {
+    // TODO: implement whatever formula is finalized
     Set<UInt64> subnets =
         new HashSet<>(computeDataColumnSidecarBackboneSubnets(nodeId, epoch, subnetCount));
     return Stream.iterate(UInt64.ZERO, UInt64::increment)
