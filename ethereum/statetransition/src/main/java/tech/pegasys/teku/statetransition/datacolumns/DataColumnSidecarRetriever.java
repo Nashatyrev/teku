@@ -11,18 +11,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.kzg;
+package tech.pegasys.teku.statetransition.datacolumns;
 
-import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
 
-import java.util.List;
-import org.apache.tuweni.bytes.Bytes;
+/** The class which searches for a specific {@link DataColumnSidecar} across nodes in the network */
+public interface DataColumnSidecarRetriever {
 
-public record KZGCell(Bytes bytes) {
-
-  static final KZGCell ZERO = new KZGCell(Bytes.wrap(new byte[BYTES_PER_CELL]));
-
-  static List<KZGCell> splitBytes(Bytes bytes) {
-    return CKZG4844Utils.bytesChunked(bytes, BYTES_PER_CELL).stream().map(KZGCell::new).toList();
-  }
+  /**
+   * Queues the specified sidecar for search
+   *
+   * @return a future which may run indefinitely until finds a requested data or cancelled
+   */
+  SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId);
 }

@@ -11,18 +11,20 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.kzg;
+package tech.pegasys.teku.statetransition.validation;
 
-import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
 
-import java.util.List;
-import org.apache.tuweni.bytes.Bytes;
+/** Check the DataColumnSidecar strict validity received either via Pubsub or Req/Resp */
+public interface DataColumnSidecarValidator {
 
-public record KZGCell(Bytes bytes) {
+  public static DataColumnSidecarValidator NOOP = sidecar -> SafeFuture.COMPLETE;
 
-  static final KZGCell ZERO = new KZGCell(Bytes.wrap(new byte[BYTES_PER_CELL]));
-
-  static List<KZGCell> splitBytes(Bytes bytes) {
-    return CKZG4844Utils.bytesChunked(bytes, BYTES_PER_CELL).stream().map(KZGCell::new).toList();
+  public static DataColumnSidecarValidator create() {
+    // TODO
+    return NOOP;
   }
+
+  SafeFuture<Void> validate(DataColumnSidecar sidecar);
 }
