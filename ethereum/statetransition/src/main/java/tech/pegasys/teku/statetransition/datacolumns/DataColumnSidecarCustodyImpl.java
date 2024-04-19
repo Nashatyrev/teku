@@ -25,6 +25,7 @@ import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
@@ -72,6 +73,8 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
 
+  private final UInt64 electraStartEpoch;
+
   private UInt64 currentSlot = null;
 
   public DataColumnSidecarCustodyImpl(
@@ -85,6 +88,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
     this.blockChainAccessor = blockChainAccessor;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
+    this.electraStartEpoch = spec.getForkSchedule().getFork(SpecMilestone.ELECTRA).getEpoch();
   }
 
   private UInt64 getEarliestCustodySlot(UInt64 currentSlot) {
@@ -98,7 +102,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
             .toVersionElectra()
             .orElseThrow()
             .getMinEpochsForDataColumnSidecarsRequests();
-    return currentEpoch.minusMinZero(custodyPeriod);
+    return currentEpoch.minusMinZero(custodyPeriod).max(electraStartEpoch);
   }
 
   private Set<UInt64> getCustodyColumnsForSlot(UInt64 slot) {
