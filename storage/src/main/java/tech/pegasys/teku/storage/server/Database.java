@@ -245,7 +245,7 @@ public interface Database extends AutoCloseable {
   Optional<DataColumnSidecar> getSidecar(ColumnSlotAndIdentifier identifier);
 
   @MustBeClosed
-  Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(UInt64 fromSlot, UInt64 toSlot);
+  Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(UInt64 firstSlot, UInt64 lastSlot);
 
   @MustBeClosed
   default Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(final UInt64 slot) {

@@ -938,8 +938,8 @@ public class KvStoreDatabase implements Database {
   @Override
   @MustBeClosed
   public Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(
-      final UInt64 fromSlot, final UInt64 toSlot) {
-    return dao.streamDataColumnIdentifiers(fromSlot, toSlot);
+      final UInt64 firstSlot, final UInt64 lastSlot) {
+    return dao.streamDataColumnIdentifiers(firstSlot, lastSlot);
   }
 
   @Override

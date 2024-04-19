@@ -342,7 +342,7 @@ public class NoOpDatabase implements Database {
   @Override
   @MustBeClosed
   public Stream<ColumnSlotAndIdentifier> streamDataColumnIdentifiers(
-      final UInt64 fromSlot, final UInt64 toSlot) {
+      final UInt64 firstSlot, final UInt64 lastSlot) {
     return Stream.empty();
   }
 
