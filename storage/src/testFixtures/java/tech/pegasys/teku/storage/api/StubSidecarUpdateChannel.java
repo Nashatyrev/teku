@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2024
+ * Copyright Consensys Software Inc., 2022
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -11,18 +11,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.kzg;
+package tech.pegasys.teku.storage.api;
 
-import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.electra.DataColumnSidecar;
 
-import java.util.List;
-import org.apache.tuweni.bytes.Bytes;
+public class StubSidecarUpdateChannel implements SidecarUpdateChannel {
+  @Override
+  public void onFirstIncompleteSlot(UInt64 slot) {}
 
-public record KZGCell(Bytes bytes) {
+  @Override
+  public void onNewSidecar(DataColumnSidecar sidecar) {}
 
-  static final KZGCell ZERO = new KZGCell(Bytes.wrap(new byte[BYTES_PER_CELL]));
-
-  static List<KZGCell> splitBytes(Bytes bytes) {
-    return CKZG4844Utils.bytesChunked(bytes, BYTES_PER_CELL).stream().map(KZGCell::new).toList();
-  }
+  @Override
+  public void onSidecarsAvailabilitySlot(UInt64 earliestSlotRequired) {}
 }

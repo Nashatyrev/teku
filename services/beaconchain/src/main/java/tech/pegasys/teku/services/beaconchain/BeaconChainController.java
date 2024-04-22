@@ -176,6 +176,7 @@ import tech.pegasys.teku.storage.api.ChainHeadChannel;
 import tech.pegasys.teku.storage.api.CombinedStorageChannel;
 import tech.pegasys.teku.storage.api.Eth1DepositStorageChannel;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
+import tech.pegasys.teku.storage.api.SidecarUpdateChannel;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.api.StorageUpdateChannel;
 import tech.pegasys.teku.storage.api.VoteUpdateChannel;
@@ -429,6 +430,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
                     storageQueryChannel,
                     storageUpdateChannel,
                     voteUpdateChannel,
+                    eventChannels.getPublisher(SidecarUpdateChannel.class),
                     eventChannels.getPublisher(FinalizedCheckpointChannel.class, beaconAsyncRunner),
                     coalescingChainHeadChannel,
                     validatorIsConnectedProvider,
@@ -900,7 +902,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             .orElseThrow(
                 () ->
                     new InvalidConfigurationException(
-                        ("NodeID is required for DataColumnSidecarSubnetBackboneSubscriber")));
+                        "NodeID is required for DataColumnSidecarSubnetBackboneSubscriber"));
     DataColumnSidecarSubnetBackboneSubscriber subnetBackboneSubscriber =
         new DataColumnSidecarSubnetBackboneSubscriber(
             spec, p2pNetwork, nodeId, beaconConfig.p2pConfig().getDasExtraCustodySubnetCount());
