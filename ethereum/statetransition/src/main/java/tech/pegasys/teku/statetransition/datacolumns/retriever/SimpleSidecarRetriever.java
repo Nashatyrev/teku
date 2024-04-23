@@ -117,6 +117,7 @@ public class SimpleSidecarRetriever
     }
   }
 
+  // TODO implement triggering of rounds or do it in a finer grained fashion
   void nextRound() {
     List<RequestMatch> matches = matchRequestsAndPeers();
     for (RequestMatch match : matches) {
