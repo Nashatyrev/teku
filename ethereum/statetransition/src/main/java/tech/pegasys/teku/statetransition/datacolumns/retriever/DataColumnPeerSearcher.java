@@ -17,9 +17,9 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public interface DataColumnPeerSearcher {
 
-  PeerRequest requestPeers(UInt64 slot, UInt64 columnIndex);
+  PeerSearchRequest requestPeers(UInt64 slot, UInt64 columnIndex);
 
-  interface PeerRequest {
+  interface PeerSearchRequest {
 
     void dispose();
   }

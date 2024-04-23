@@ -60,17 +60,17 @@ public class SimpleSidecarRetriever
 
   @Override
   public synchronized SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId) {
-    DataColumnPeerSearcher.PeerRequest peerRequest =
+    DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest =
         peerManager.requestPeers(columnId.slot(), columnId.identifier().getIndex());
 
     synchronized (this) {
       RetrieveRequest existingRequest = pendingRequests.get(columnId);
       if (existingRequest == null) {
-        RetrieveRequest request = new RetrieveRequest(columnId, peerRequest);
+        RetrieveRequest request = new RetrieveRequest(columnId, peerSearchRequest);
         pendingRequests.put(columnId, request);
         return request.result;
       } else {
-        peerRequest.dispose();
+        peerSearchRequest.dispose();
         return existingRequest.result;
       }
     }
@@ -109,7 +109,7 @@ public class SimpleSidecarRetriever
       RetrieveRequest pendingRequest = pendingEntry.getValue();
       if (pendingRequest.result.isCancelled()) {
         pendingIterator.remove();
-        pendingRequest.peerRequest.dispose();
+        pendingRequest.peerSearchRequest.dispose();
         if (pendingRequest.activeRpcRequest != null) {
           pendingRequest.activeRpcRequest.cancel(true);
         }
@@ -138,7 +138,7 @@ public class SimpleSidecarRetriever
       synchronized (this) {
         pendingRequests.remove(request.columnId);
       }
-      request.peerRequest.dispose();
+      request.peerSearchRequest.dispose();
     } else {
       request.activeRpcRequest = null;
     }
@@ -156,14 +156,14 @@ public class SimpleSidecarRetriever
 
   private static class RetrieveRequest {
     final ColumnSlotAndIdentifier columnId;
-    final DataColumnPeerSearcher.PeerRequest peerRequest;
+    final DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest;
     final SafeFuture<DataColumnSidecar> result = new SafeFuture<>();
     volatile SafeFuture<DataColumnSidecar> activeRpcRequest = null;
 
     private RetrieveRequest(
-        ColumnSlotAndIdentifier columnId, DataColumnPeerSearcher.PeerRequest peerRequest) {
+        ColumnSlotAndIdentifier columnId, DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest) {
       this.columnId = columnId;
-      this.peerRequest = peerRequest;
+      this.peerSearchRequest = peerSearchRequest;
     }
   }
 
