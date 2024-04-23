@@ -46,8 +46,7 @@ public class SimpleDataAvailabilitySampler implements DataAvailabilitySampler {
     List<UInt64> allColumnIndexes =
         Stream.iterate(0, (idx) -> idx < extBlobColumnCount, (idx) -> idx + 1)
             .map(UInt64::valueOf)
-            .collect(Collectors.toList());
-    ;
+            .collect(Collectors.toList()); // Use Collectors to get a mutable List instance
 
     List<UInt64> selectedIndexes = new ArrayList<>();
     for (int i = 0; i < samplesPerSlot; i++) {
