@@ -21,6 +21,8 @@ import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarRetriever;
 import tech.pegasys.teku.statetransition.validation.DataColumnSidecarValidator;
 
+// TODO improve thread-safety: external calls are better to do outside of the synchronize block to
+// prevent potential dead locks
 public class SimpleSidecarRetriever
     implements DataColumnSidecarRetriever, DataColumnPeerManager.PeerListener {
 
@@ -45,15 +47,19 @@ public class SimpleSidecarRetriever
 
   @Override
   public synchronized SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId) {
-    RetrieveRequest existingRequest = pendingRequests.get(columnId);
-    if (existingRequest == null) {
-      DataColumnPeerManager.PeerRequest peerRequest =
-          peerManager.requestPeers(columnId.slot(), columnId.identifier().getIndex());
-      RetrieveRequest request = new RetrieveRequest(columnId, peerRequest);
-      pendingRequests.put(columnId, request);
-      return request.result;
-    } else {
-      return existingRequest.result;
+    DataColumnPeerManager.PeerRequest peerRequest =
+        peerManager.requestPeers(columnId.slot(), columnId.identifier().getIndex());
+
+    synchronized (this) {
+      RetrieveRequest existingRequest = pendingRequests.get(columnId);
+      if (existingRequest == null) {
+        RetrieveRequest request = new RetrieveRequest(columnId, peerRequest);
+        pendingRequests.put(columnId, request);
+        return request.result;
+      } else {
+        peerRequest.dispose();
+        return existingRequest.result;
+      }
     }
   }
 
@@ -101,28 +107,26 @@ public class SimpleSidecarRetriever
   void nextRound() {
     List<RequestMatch> matches = matchRequestsAndPeers();
     for (RequestMatch match : matches) {
-      SafeFuture<DataColumnSidecar> result =
+      SafeFuture<DataColumnSidecar> reqRespPromise =
           reqResp.requestDataColumnSidecar(match.peer.nodeId, match.request.columnId.identifier());
       match.request.activeRpcRequest =
-          result.handle(
-              (sidecar, err) -> {
-                if (err == null) {
-                  requestCompleted(match.request);
-                } else {
-                  match.request.activeRpcRequest = null;
-                }
-                return sidecar;
-              });
+          reqRespPromise.whenComplete(
+              (sidecar, err) -> reqRespCompleted(match.request, sidecar, err));
     }
 
     reqResp.flush();
   }
 
-  private void requestCompleted(RetrieveRequest request) {
-    synchronized (this) {
-      pendingRequests.remove(request.columnId);
+  private void reqRespCompleted(
+      RetrieveRequest request, DataColumnSidecar maybeResult, Throwable maybeError) {
+    if (maybeResult != null) {
+      synchronized (this) {
+        pendingRequests.remove(request.columnId);
+      }
+      request.peerRequest.dispose();
+    } else {
+      request.activeRpcRequest = null;
     }
-    request.peerRequest.dispose();
   }
 
   @Override
@@ -135,11 +139,11 @@ public class SimpleSidecarRetriever
     connectedPeers.remove(nodeId);
   }
 
-  private class RetrieveRequest {
+  private static class RetrieveRequest {
     final ColumnSlotAndIdentifier columnId;
     final DataColumnPeerManager.PeerRequest peerRequest;
-    SafeFuture<DataColumnSidecar> result = new SafeFuture<>();
-    SafeFuture<DataColumnSidecar> activeRpcRequest = null;
+    final SafeFuture<DataColumnSidecar> result = new SafeFuture<>();
+    volatile SafeFuture<DataColumnSidecar> activeRpcRequest = null;
 
     private RetrieveRequest(
         ColumnSlotAndIdentifier columnId, DataColumnPeerManager.PeerRequest peerRequest) {
