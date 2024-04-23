@@ -60,7 +60,7 @@ public class SimpleSidecarRetriever
 
   @Override
   public synchronized SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId) {
-    DataColumnPeerManager.PeerRequest peerRequest =
+    DataColumnPeerSearcher.PeerRequest peerRequest =
         peerManager.requestPeers(columnId.slot(), columnId.identifier().getIndex());
 
     synchronized (this) {
@@ -130,6 +130,7 @@ public class SimpleSidecarRetriever
     reqResp.flush();
   }
 
+  @SuppressWarnings("unused")
   private void reqRespCompleted(
       RetrieveRequest request, DataColumnSidecar maybeResult, Throwable maybeError) {
     if (maybeResult != null) {
@@ -154,12 +155,12 @@ public class SimpleSidecarRetriever
 
   private static class RetrieveRequest {
     final ColumnSlotAndIdentifier columnId;
-    final DataColumnPeerManager.PeerRequest peerRequest;
+    final DataColumnPeerSearcher.PeerRequest peerRequest;
     final SafeFuture<DataColumnSidecar> result = new SafeFuture<>();
     volatile SafeFuture<DataColumnSidecar> activeRpcRequest = null;
 
     private RetrieveRequest(
-        ColumnSlotAndIdentifier columnId, DataColumnPeerManager.PeerRequest peerRequest) {
+        ColumnSlotAndIdentifier columnId, DataColumnPeerSearcher.PeerRequest peerRequest) {
       this.columnId = columnId;
       this.peerRequest = peerRequest;
     }
