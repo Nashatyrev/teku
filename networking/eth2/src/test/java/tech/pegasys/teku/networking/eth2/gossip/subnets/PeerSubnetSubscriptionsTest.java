@@ -207,7 +207,7 @@ class PeerSubnetSubscriptionsTest {
   private PeerSubnetSubscriptions createPeerSubnetSubscriptions() {
     return PeerSubnetSubscriptions.create(
         currentSpecVersionSupplier.get(),
-        currentSlotSupplier.get(),
+        NodeIdToDataColumnSidecarSubnetsCalculator.NOOP,
         gossipNetwork,
         attestationTopicProvider,
         syncCommitteeTopicProvider,
