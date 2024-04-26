@@ -957,7 +957,7 @@ public class Spec {
     return blobSidecar.getIndex().mod(specConfigDeneb.getBlobSidecarSubnetCount());
   }
 
-  public Optional<UInt64> getNumberOfColumns() {
+  public Optional<UInt64> getNumberOfDataColumns() {
     return getSpecConfigElectra().map(SpecConfigElectra::getNumberOfColumns);
   }
 
