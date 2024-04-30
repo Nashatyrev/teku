@@ -53,7 +53,7 @@ public interface NodeIdToDataColumnSidecarSubnetsCalculator {
 
   static NodeIdToDataColumnSidecarSubnetsCalculator createAtSlot(Spec spec, UInt64 slot) {
     SpecVersion specVersion = spec.atSlot(slot);
-    if (specVersion.getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
+    if (specVersion.getMilestone().isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
       return createAtSlot(
           SpecConfigEip7594.required(specVersion.getConfig()),
           MiscHelpersEip7594.required(specVersion.miscHelpers()),
