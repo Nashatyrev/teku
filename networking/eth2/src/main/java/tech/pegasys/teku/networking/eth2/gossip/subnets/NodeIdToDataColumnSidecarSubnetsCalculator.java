@@ -51,6 +51,18 @@ public interface NodeIdToDataColumnSidecarSubnetsCalculator {
     };
   }
 
+  static NodeIdToDataColumnSidecarSubnetsCalculator createAtSlot(Spec spec, UInt64 slot) {
+    SpecVersion specVersion = spec.atSlot(slot);
+    if (specVersion.getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
+      return createAtSlot(
+          SpecConfigElectra.required(specVersion.getConfig()),
+          MiscHelpersElectra.required(specVersion.miscHelpers()),
+          slot);
+    } else {
+      return NOOP;
+    }
+  }
+
   /** Create an instance base on the current slot */
   static NodeIdToDataColumnSidecarSubnetsCalculator create(
       Spec spec, Supplier<Optional<UInt64>> currentSlotSupplier) {
@@ -58,20 +70,6 @@ public interface NodeIdToDataColumnSidecarSubnetsCalculator {
     return (nodeId, extraSubnetCount) ->
         currentSlotSupplier
             .get()
-            .flatMap(
-                slot -> {
-                  SpecVersion specVersion = spec.atSlot(slot);
-                  final NodeIdToDataColumnSidecarSubnetsCalculator calculatorAtSlot;
-                  if (specVersion.getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
-                    calculatorAtSlot =
-                        createAtSlot(
-                            SpecConfigElectra.required(specVersion.getConfig()),
-                            MiscHelpersElectra.required(specVersion.miscHelpers()),
-                            slot);
-                  } else {
-                    calculatorAtSlot = NOOP;
-                  }
-                  return calculatorAtSlot.calculateSubnets(nodeId, extraSubnetCount);
-                });
+            .flatMap(slot -> createAtSlot(spec, slot).calculateSubnets(nodeId, extraSubnetCount));
   }
 }

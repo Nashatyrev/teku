@@ -1,38 +1,26 @@
 package tech.pegasys.teku.networking.eth2.peers.das;
 
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.networking.eth2.peers.DasPeerScorer;
+import tech.pegasys.teku.networking.eth2.gossip.subnets.NodeIdToDataColumnSidecarSubnetsCalculator;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryPeer;
+import tech.pegasys.teku.networking.p2p.libp2p.MultiaddrUtil;
 import tech.pegasys.teku.networking.p2p.peer.NodeId;
+import tech.pegasys.teku.spec.Spec;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * Scores peers with respect to missing data for the DAS custody
- * which can fill its gaps in a more relaxed way
+ * Scores peers with respect to missing data for the DAS custody which equally scores
+ * requests for different epochs
  */
-public class DasCustodySyncPeerScorer implements DasPeerScorer {
+public class DasCustodySyncPeerScorer extends AbstractDasPeerScorer {
 
-  private record Query(
-      UInt64 epoch,
-      int dataColumnSubnetIndex
-  ){}
-
-  @Override
-  public void addSamplingQuery(UInt64 slot, int dataColumnSubnetIndex) {
-
+  public DasCustodySyncPeerScorer(Spec spec) {
+    super(spec);
   }
 
   @Override
-  public void removeSamplingQuery(UInt64 slot, int dataColumnSubnetIndex) {
-
-  }
-
-  @Override
-  public int scoreExistingPeer(NodeId peerId) {
-    return 0;
-  }
-
-  @Override
-  public int scoreCandidatePeer(DiscoveryPeer candidate) {
-    return 0;
+  protected int score(NodeId nodeId, int extraSubnetCount) {
+    return epochEntries.values().stream().mapToInt(entry -> entry.score(nodeId, extraSubnetCount)).sum();
   }
 }
