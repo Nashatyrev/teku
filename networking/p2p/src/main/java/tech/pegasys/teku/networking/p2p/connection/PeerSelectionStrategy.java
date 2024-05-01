@@ -14,6 +14,7 @@
 package tech.pegasys.teku.networking.p2p.connection;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryPeer;
@@ -22,6 +23,26 @@ import tech.pegasys.teku.networking.p2p.network.PeerAddress;
 import tech.pegasys.teku.networking.p2p.peer.Peer;
 
 public interface PeerSelectionStrategy {
+
+  PeerSelectionStrategy ALL_IN_STRATEGY =
+      new PeerSelectionStrategy() {
+        @Override
+        public List<PeerAddress> selectPeersToConnect(
+            P2PNetwork<?> network,
+            PeerPools peerPools,
+            Supplier<? extends Collection<DiscoveryPeer>> candidates) {
+          return candidates.get().stream()
+              .map(network::createPeerAddress)
+              .filter(peerAddress -> !network.isConnected(peerAddress))
+              .toList();
+        }
+
+        @Override
+        public List<Peer> selectPeersToDisconnect(P2PNetwork<?> network, PeerPools peerPools) {
+          return Collections.emptyList();
+        }
+      };
+
   List<PeerAddress> selectPeersToConnect(
       P2PNetwork<?> network,
       PeerPools peerPools,
