@@ -1,3 +1,6 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
 dependencies {
   implementation project(':beacon:pow')
   implementation project(':beacon:validator')
@@ -71,4 +74,11 @@ dependencies {
 
   testImplementation project(':data:provider')
   testImplementation 'org.awaitility:awaitility'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+repositories {
+    mavenCentral()
+}
+kotlin {
+    jvmToolchain(17)
 }
