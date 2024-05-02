@@ -35,37 +35,14 @@ class RunBootNode {
         @JvmStatic
         fun main(vararg args: String) {
             val dasTeku = DasTeku()
-//            lineaTeku.createGenesisIfRequired()
+            dasTeku.createGenesisIfRequired()
             dasTeku.resetWithNewGenesis()
             dasTeku.createAndStartBootNode(0, 0 until 64)
         }
     }
 }
 
-/*
-
-class RunNode {
-    companion object {
-
-        @JvmStatic
-        fun main(vararg args: String) {
-            LineaTeku().createNode(1, 32 until 64)
-        }
-    }
-}
-
-class RunClientNode {
-    companion object {
-
-        @JvmStatic
-        fun main(vararg args: String) {
-            LineaTeku().createNode(2, 48 until 64)
-        }
-    }
-}
-*/
-
-const val STARTUP_TIME_SECONDS = 4
+const val STARTUP_TIME_SECONDS = 7
 
 class DasTeku(
     val validatorsCount: Int = 64,
@@ -75,7 +52,7 @@ class DasTeku(
         it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(2)) }
         it.eip7594Builder { it.eip7594ForkEpoch(UInt64.valueOf(3)) }
         it.secondsPerSlot(2)
-        it.slotsPerEpoch(8)
+        it.slotsPerEpoch(6)
         it.eth1FollowDistance(UInt64.valueOf(1))
     },
     val validatorDepositAmount: UInt64 = spec.genesisSpecConfig.maxEffectiveBalance * 100,
