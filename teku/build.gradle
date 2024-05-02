@@ -14,6 +14,7 @@ dependencies {
   implementation project(':data:dataexchange')
   implementation project(':ethereum:dataproviders')
   implementation project(':ethereum:executionclient')
+  implementation project(':ethereum:executionlayer')
   implementation project(':ethereum:json-types')
   implementation project(':ethereum:networks')
   implementation project(':ethereum:pow:api')
