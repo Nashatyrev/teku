@@ -4,6 +4,7 @@ import io.libp2p.core.crypto.KeyType
 import io.libp2p.core.crypto.generateKeyPair
 import org.apache.logging.log4j.Level
 import org.apache.tuweni.bytes.Bytes
+import org.apache.tuweni.units.bigints.UInt256
 import tech.pegasys.teku.TekuFacade
 import tech.pegasys.teku.bls.BLSKeyPair
 import tech.pegasys.teku.cli.subcommand.internal.validator.tools.EncryptedKeystoreWriter
@@ -64,24 +65,23 @@ class RunClientNode {
 }
 */
 
+const val STARTUP_TIME_SECONDS = 4
+
 class DasTeku(
     val validatorsCount: Int = 64,
-    val genesisTime: Long = System.currentTimeMillis() / 1000,
     val spec: Spec = TestSpecFactory.createMinimalEip7594 {
-//        it
-//            .secondsPerSlot(1)
-//            .slotsPerEpoch(1)
-//            .eth1FollowDistance(1.toUInt64())
-//            .altairBuilder {
-//                it
-//                    // TODO: can't change NetworkConstants.SYNC_COMMITTEE_SUBNET_COUNT
-//                    .syncCommitteeSize(4)
-//            }
+        it.bellatrixBuilder { it.bellatrixForkEpoch(UInt64.valueOf(0)) }
+        it.capellaBuilder { it.capellaForkEpoch(UInt64.valueOf(1)) }
+        it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(2)) }
+        it.eip7594Builder { it.eip7594ForkEpoch(UInt64.valueOf(3)) }
+        it.secondsPerSlot(2)
+        it.slotsPerEpoch(8)
+        it.eth1FollowDistance(UInt64.valueOf(1))
     },
     val validatorDepositAmount: UInt64 = spec.genesisSpecConfig.maxEffectiveBalance * 100,
     val stateStorageMode: StateStorageMode = StateStorageMode.PRUNE,
 
-    val workDir: String = "./work.dir/linea",
+    val workDir: String = "./work.dir/das",
     val advertisedIp: String = "10.150.1.122",
 ) {
 
@@ -148,6 +148,7 @@ class DasTeku(
                     it
                         .applyNetworkDefaults(Eth2Network.MINIMAL)
                         .customGenesisState(genesisFile)
+                        .totalTerminalDifficultyOverride(UInt256.ZERO)
                         .spec(spec)
                     if (bootnodeEnr != null) {
                         it.discoveryBootnodes(bootnodeEnr)
@@ -225,6 +226,7 @@ class DasTeku(
         )
 
     fun writeGenesis() {
+        val genesisTime: Long = System.currentTimeMillis() / 1000 + STARTUP_TIME_SECONDS
         val genesisStateBuilder = GenesisStateBuilder()
             .spec(spec)
             .genesisTime(genesisTime)

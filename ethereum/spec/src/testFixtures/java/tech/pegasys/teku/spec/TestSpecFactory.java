@@ -89,7 +89,11 @@ public class TestSpecFactory {
   }
 
   public static Spec createMinimalCapella() {
-    final SpecConfigCapella specConfig = getCapellaSpecConfig(Eth2Network.MINIMAL);
+    return createMinimalCapella((__) -> {});
+  }
+
+  public static Spec createMinimalCapella(final Consumer<SpecConfigBuilder> configAdapter) {
+    final SpecConfigCapella specConfig = getCapellaSpecConfig(Eth2Network.MINIMAL, configAdapter);
     return create(specConfig, SpecMilestone.CAPELLA);
   }
 
