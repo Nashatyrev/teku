@@ -118,7 +118,22 @@ public class DataColumnSidecarCustodyImpl
 
   @Override
   public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
-    db.addSidecar(dataColumnSidecar);
+    if (isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex())) {
+      db.addSidecar(dataColumnSidecar);
+    }
+  }
+
+  private boolean isMyCustody(UInt64 slot, UInt64 columnIndex) {
+    UInt64 epoch = spec.computeEpochAtSlot(slot);
+    return spec.atEpoch(epoch)
+        .miscHelpers()
+        .toVersionEip7594()
+        .map(
+            miscHelpersEip7594 ->
+                miscHelpersEip7594
+                    .computeCustodyColumnIndexes(nodeId, epoch, totalCustodySubnetCount)
+                    .contains(columnIndex))
+        .orElse(false);
   }
 
   @Override
