@@ -22,8 +22,7 @@ import java.nio.ByteOrder;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
-
-import it.unimi.dsi.fastutil.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.crypto.Hash;
@@ -90,7 +89,7 @@ public class BlobsUtil {
         .parallel()
         .map(
             blobAndCommitment ->
-                computeKzgProof(blobAndCommitment.first(), blobAndCommitment.second()))
+                computeKzgProof(blobAndCommitment.getLeft(), blobAndCommitment.getRight()))
         .toList();
   }
 
