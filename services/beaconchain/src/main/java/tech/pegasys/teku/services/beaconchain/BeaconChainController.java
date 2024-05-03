@@ -34,6 +34,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
+import java.util.function.Supplier;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
@@ -504,7 +506,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
     initBlockBlobSidecarsTrackersPool();
     initBlobSidecarManager();
     initDataColumnSidecarManager();
-    initDasCustody();
     initForkChoiceStateProvider();
     initForkChoiceNotifier();
     initMergeMonitors();
@@ -524,6 +525,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     initBlockManager();
     initSyncCommitteePools();
     initP2PNetwork();
+    initDasCustody();
     initSyncService();
     initSlotProcessor();
     initMetrics();
