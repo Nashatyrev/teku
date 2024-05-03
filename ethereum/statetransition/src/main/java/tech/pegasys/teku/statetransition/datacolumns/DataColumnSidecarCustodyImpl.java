@@ -35,7 +35,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 public class DataColumnSidecarCustodyImpl
     implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
 
-  public interface BlockChainAccessor {
+  public interface BlockRootResolver {
 
     Optional<Bytes32> getCanonicalBlockRootAtSlot(UInt64 slot);
   }
@@ -72,7 +72,7 @@ public class DataColumnSidecarCustodyImpl
 
   private final Spec spec;
   private final DataColumnSidecarDB db;
-  private final BlockChainAccessor blockChainAccessor;
+  private final BlockRootResolver blockRootResolver;
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
 
@@ -82,20 +82,20 @@ public class DataColumnSidecarCustodyImpl
 
   public DataColumnSidecarCustodyImpl(
       Spec spec,
-      BlockChainAccessor blockChainAccessor,
+      BlockRootResolver blockRootResolver,
       DataColumnSidecarDB db,
       UInt256 nodeId,
       int totalCustodySubnetCount) {
 
     checkNotNull(spec);
-    checkNotNull(blockChainAccessor);
+    checkNotNull(blockRootResolver);
     checkNotNull(db);
     checkNotNull(nodeId);
 
     this.spec = spec;
     this.db = db;
     // FIXME: I stink!
-    this.blockChainAccessor = blockChainAccessor;
+    this.blockRootResolver = blockRootResolver;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
     this.eip7594StartEpoch = spec.getForkSchedule().getFork(SpecMilestone.EIP7594).getEpoch();
@@ -187,7 +187,7 @@ public class DataColumnSidecarCustodyImpl
         .map(
             slot -> {
               Optional<Bytes32> maybeCanonicalBlockRoot =
-                  blockChainAccessor.getCanonicalBlockRootAtSlot(slot);
+                  blockRootResolver.getCanonicalBlockRootAtSlot(slot);
               Set<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
               List<DataColumnIdentifier> existingColumns =
                   db.streamColumnIdentifiers(slot).toList();

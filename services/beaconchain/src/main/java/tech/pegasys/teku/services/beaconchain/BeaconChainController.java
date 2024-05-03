@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
-import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -616,7 +615,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     DataColumnSidecarDBImpl sidecarDB =
         new DataColumnSidecarDBImpl(
             combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
-    DataColumnSidecarCustodyImpl.BlockChainAccessor blockChainAccessor =
+    DataColumnSidecarCustodyImpl.BlockRootResolver blockRootResolver =
         slot ->
             combinedChainDataClient
                 .getBlockAtSlotExact(slot)
@@ -633,7 +632,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
         new DataColumnSidecarCustodyImpl(
-            spec, blockChainAccessor, sidecarDB, nodeId, totalCustodySubnets);
+            spec, blockRootResolver, sidecarDB, nodeId, totalCustodySubnets);
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         dataColumnSidecarCustodyImpl::onNewValidatedDataColumnSidecar);
     this.dataColumnSidecarCustody = dataColumnSidecarCustodyImpl;
