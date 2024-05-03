@@ -94,7 +94,6 @@ public class DataColumnSidecarCustodyImpl
 
     this.spec = spec;
     this.db = db;
-    // FIXME: I stink!
     this.blockRootResolver = blockRootResolver;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
