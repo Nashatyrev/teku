@@ -75,6 +75,7 @@ dependencies {
 
   testImplementation project(':data:provider')
   testImplementation 'org.awaitility:awaitility'
+  testImplementation 'tech.pegasys.discovery:discovery'
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 repositories {

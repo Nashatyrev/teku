@@ -2,6 +2,7 @@ package tech.pegasys.teku.das
 
 import io.libp2p.core.crypto.KeyType
 import io.libp2p.core.crypto.generateKeyPair
+import io.libp2p.core.crypto.unmarshalPrivateKey
 import org.apache.logging.log4j.Level
 import org.apache.tuweni.bytes.Bytes
 import org.apache.tuweni.units.bigints.UInt256
@@ -31,13 +32,22 @@ import java.util.*
 
 class RunBootNode {
     companion object {
-
         @JvmStatic
         fun main(vararg args: String) {
             val dasTeku = DasTeku()
             dasTeku.createGenesisIfRequired()
             dasTeku.resetWithNewGenesis()
             dasTeku.createAndStartBootNode(0, 0 until 64)
+        }
+    }
+}
+
+class RunOtherNode {
+    companion object {
+        @JvmStatic
+        fun main(vararg args: String) {
+            val dasTeku = DasTeku()
+            dasTeku.createAndStartNode(1, IntRange.EMPTY)
         }
     }
 }
@@ -50,8 +60,11 @@ class DasTeku(
         it.bellatrixBuilder { it.bellatrixForkEpoch(UInt64.valueOf(0)) }
         it.capellaBuilder { it.capellaForkEpoch(UInt64.valueOf(1)) }
         it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(2)) }
-        it.eip7594Builder { it.eip7594ForkEpoch(UInt64.valueOf(3)) }
-        it.secondsPerSlot(2)
+        it.eip7594Builder {
+            it.eip7594ForkEpoch(UInt64.valueOf(3))
+            it.custodyRequirement(64)
+        }
+        it.secondsPerSlot(4)
         it.slotsPerEpoch(6)
         it.eth1FollowDistance(UInt64.valueOf(1))
     },
@@ -59,7 +72,7 @@ class DasTeku(
     val stateStorageMode: StateStorageMode = StateStorageMode.PRUNE,
 
     val workDir: String = "./work.dir/das",
-    val advertisedIp: String = "10.150.1.122",
+    val advertisedIp: String = "127.0.0.1",
 ) {
 
     val genesisFile = "$workDir/genesis.ssz"
@@ -90,27 +103,24 @@ class DasTeku(
         validators: IntRange
     ) {
         val bootNodeConfig = createNodeConfig(number, validatorKeys.slice(validators), null)
-//        val enr = bootNode.getEnr()
-//        File(bootnodeEnrFile).writeText(enr)
-
-        val node = TekuFacade.startBeaconNode(bootNodeConfig)
-
-//        return bootNodeConfig
+        val enr = createEnrFromTekuConfig(bootNodeConfig)
+        File(bootnodeEnrFile).writeText(enr)
+        TekuFacade.startBeaconNode(bootNodeConfig)
     }
 
-//    fun createNodeConfig(
-//        number: Int,
-//        validators: IntRange
-//    ) {
-//        val bootnodeEnr = File(bootnodeEnrFile).readText()
-//        return createNodeConfig(number, validatorKeys.slice(validators), bootnodeEnr)
-//    }
+    fun createAndStartNode(
+        number: Int,
+        validators: IntRange
+    ) {
+        val bootnodeEnr = File(bootnodeEnrFile).readText()
+        val nodeConfig = createNodeConfig(number, validatorKeys.slice(validators), bootnodeEnr)
+        TekuFacade.startBeaconNode(nodeConfig)
+    }
 
     fun createNodeConfig(
         number: Int,
         validators: List<BLSKeyPair>,
-        bootnodeEnr: String?,
-        consoleOn: Boolean = true,
+        bootnodeEnr: String?
     ): TekuConfiguration {
         val port = 9004 + number
         val dataPath = "$workDir/node-$number"
@@ -182,16 +192,15 @@ class DasTeku(
 
     }
 
-//    private fun createEnrFromTekuConfig(tekuConfig: TekuConfiguration) {
-//
-//        val privateKeyBytes = tekuConfig.network().privateKeySource.orElseThrow().orGeneratePrivateKeyBytes
-//        val privKey = unmarshalPrivateKey(privateKeyBytes.toArrayUnsafe())
-//        return EnrBuilder()
-//            .privateKey(privKey)
-//            .address(tekuConfig.network().advertisedIp, tekuConfig.network().advertisedPort)
-//            .build()
-//            .asEnr()
-//    }
+    private fun createEnrFromTekuConfig(tekuConfig: TekuConfiguration): String {
+        val privateKeyBytes = tekuConfig.network().privateKeySource.orElseThrow().orGeneratePrivateKeyBytes
+        val privKey = unmarshalPrivateKey(privateKeyBytes.toArrayUnsafe())
+        return EnrBuilder()
+            .privateKey(privKey)
+            .address(tekuConfig.network().advertisedIp, tekuConfig.network().advertisedPort)
+            .build()
+            .asEnr()
+    }
 
     private fun createStubExecutionManager(serviceConfig: ServiceConfig) =
         ExecutionLayerManagerStub(
