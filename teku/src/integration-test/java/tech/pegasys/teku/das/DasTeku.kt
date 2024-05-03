@@ -148,6 +148,14 @@ class DasTeku(
                         .isDiscoveryEnabled(true)
                         .siteLocalAddressesEnabled(true)
                 }
+                .p2p {
+                    it
+                        // TODO with default value one Teku disconnects the other Teku with
+                        // 'disconnected due to request rate limits' on blobSidecar RPC
+                        .peerRateLimit(1000000)
+                        .peerRequestLimit(1000000)
+                        .subscribeAllSubnetsEnabled(true)
+                }
                 .network {
                     it
                         .listenPort(port)
@@ -170,15 +178,15 @@ class DasTeku(
                         }
                 }
 
-            if (validators.isNotEmpty()) {
-                tekuConfigBuilder
-                    .validator {
-                        it
-                            .validatorKeys(listOf("$validatorKeysPath;$validatorKeysPath"))
-                            .validatorKeystoreLockingEnabled(false)
-                            .proposerDefaultFeeRecipient("0x7777777777777777777777777777777777777777")
-                    }
-            }
+        if (validators.isNotEmpty()) {
+            tekuConfigBuilder
+                .validator {
+                    it
+                        .validatorKeys(listOf("$validatorKeysPath;$validatorKeysPath"))
+                        .validatorKeystoreLockingEnabled(false)
+                        .proposerDefaultFeeRecipient("0x7777777777777777777777777777777777777777")
+                }
+        }
 
         val loggingConfig = LoggingConfig.builder()
             .logLevel(Level.DEBUG)
