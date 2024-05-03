@@ -27,12 +27,11 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
-import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
-public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, SlotEventsChannel {
+public class DataColumnSidecarCustodyImpl
+    implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
 
   public interface BlockChainAccessor {
 
@@ -81,20 +80,14 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
 
   public DataColumnSidecarCustodyImpl(
       Spec spec,
-      CombinedChainDataClient combinedChainDataClient,
-      DataColumnSidecarDB db,
       BlockChainAccessor blockChainAccessor,
+      DataColumnSidecarDB db,
       UInt256 nodeId,
       int totalCustodySubnetCount) {
     this.spec = spec;
     this.db = db;
     // FIXME: I stink!
-    this.blockChainAccessor =
-        slot ->
-            combinedChainDataClient
-                .getBlockAtSlotExact(slot)
-                .thenApply(maybeBlock -> maybeBlock.map(SignedBeaconBlock::getRoot))
-                .join();
+    this.blockChainAccessor = blockChainAccessor;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
     this.eip7594StartEpoch = spec.getForkSchedule().getFork(SpecMilestone.EIP7594).getEpoch();
@@ -125,7 +118,22 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
 
   @Override
   public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
-    db.addSidecar(dataColumnSidecar);
+    if (isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex())) {
+      db.addSidecar(dataColumnSidecar);
+    }
+  }
+
+  private boolean isMyCustody(UInt64 slot, UInt64 columnIndex) {
+    UInt64 epoch = spec.computeEpochAtSlot(slot);
+    return spec.atEpoch(epoch)
+        .miscHelpers()
+        .toVersionEip7594()
+        .map(
+            miscHelpersEip7594 ->
+                miscHelpersEip7594
+                    .computeCustodyColumnIndexes(nodeId, epoch, totalCustodySubnetCount)
+                    .contains(columnIndex))
+        .orElse(false);
   }
 
   @Override
