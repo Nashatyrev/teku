@@ -612,6 +612,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDasCustody() {
+    if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
+      return;
+    }
     DataColumnSidecarDBImpl sidecarDB =
         new DataColumnSidecarDBImpl(
             combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
