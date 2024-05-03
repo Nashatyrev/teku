@@ -30,6 +30,8 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 public class DataColumnSidecarCustodyImpl
     implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
 
@@ -84,6 +86,12 @@ public class DataColumnSidecarCustodyImpl
       DataColumnSidecarDB db,
       UInt256 nodeId,
       int totalCustodySubnetCount) {
+
+    checkNotNull(spec);
+    checkNotNull(blockChainAccessor);
+    checkNotNull(db);
+    checkNotNull(nodeId);
+
     this.spec = spec;
     this.db = db;
     // FIXME: I stink!
