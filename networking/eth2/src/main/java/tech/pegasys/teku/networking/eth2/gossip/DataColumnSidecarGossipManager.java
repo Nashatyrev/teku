@@ -34,10 +34,13 @@ public class DataColumnSidecarGossipManager implements GossipManager {
         .finish(
             __ -> {
               LOG.debug(
-                  "Successfully published data column sidecar for slot {}", dataColumnSidecar.toLogString());
+                  "Successfully published data column sidecar for slot {}",
+                  dataColumnSidecar.toLogString());
             },
             error -> {
-              LOG.warn("Error publishing data column sidecar for slot {}", dataColumnSidecar.toLogString());
+              LOG.warn(
+                  "Error publishing data column sidecar for slot {}",
+                  dataColumnSidecar.toLogString());
             });
   }
 
