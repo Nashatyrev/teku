@@ -11,10 +11,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns;
+package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
 
 /** The class which searches for a specific {@link DataColumnSidecar} across nodes in the network */
 public interface DataColumnSidecarRetriever {
