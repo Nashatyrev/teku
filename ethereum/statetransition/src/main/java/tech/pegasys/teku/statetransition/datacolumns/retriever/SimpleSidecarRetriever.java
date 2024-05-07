@@ -202,13 +202,12 @@ public class SimpleSidecarRetriever
     }
 
     private Set<UInt64> getNodeCustodyIndexes(UInt64 slot) {
-      UInt64 epoch = spec.computeEpochAtSlot(slot);
       SpecVersion specVersion = spec.atSlot(slot);
       //      int minCustodyRequirement =
       //          SpecConfigEip7594.required(specVersion.getConfig()).getCustodyRequirement();
       return MiscHelpersEip7594.required(specVersion.miscHelpers())
           .computeCustodyColumnIndexes(
-              nodeId, epoch, custodyCountSupplier.getCustodyCountForPeer(nodeId));
+              nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId));
     }
 
     public boolean isCustodyFor(ColumnSlotAndIdentifier columnId) {
