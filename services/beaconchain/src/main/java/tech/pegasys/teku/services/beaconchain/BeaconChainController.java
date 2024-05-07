@@ -96,6 +96,7 @@ import tech.pegasys.teku.services.executionlayer.ExecutionLayerBlockManagerFacto
 import tech.pegasys.teku.services.timer.TimerService;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
+import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -135,7 +136,11 @@ import tech.pegasys.teku.statetransition.block.BlockImporter;
 import tech.pegasys.teku.statetransition.block.BlockManager;
 import tech.pegasys.teku.statetransition.block.FailedExecutionPool;
 import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustody;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceNotifier;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceNotifierImpl;
@@ -281,6 +286,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   protected volatile KZG kzg;
   protected volatile BlobSidecarManager blobSidecarManager;
   protected volatile DataColumnSidecarManager dataColumnSidecarManager;
+  protected volatile DataColumnSidecarCustody dataColumnSidecarCustody;
   protected volatile Optional<TerminalPowBlockMonitor> terminalPowBlockMonitor = Optional.empty();
   protected volatile ProposersDataManager proposersDataManager;
   protected volatile KeyValueStore<String, Bytes> keyValueStore;
@@ -295,6 +301,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   protected PoolFactory poolFactory;
   protected SettableLabelledGauge futureItemsMetric;
   protected IntSupplier rejectedExecutionCountSupplier;
+  protected volatile UInt256 nodeId;
 
   public BeaconChainController(
       final ServiceConfig serviceConfig, final BeaconChainConfiguration beaconConfig) {
@@ -516,6 +523,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     initBlockManager();
     initSyncCommitteePools();
     initP2PNetwork();
+    initDasCustody();
     initSyncService();
     initSlotProcessor();
     initMetrics();
@@ -593,10 +601,43 @@ public class BeaconChainController extends Service implements BeaconChainControl
       DataColumnSidecarValidator dataColumnSidecarValidator = DataColumnSidecarValidator.create();
       DataColumnSidecarGossipValidator gossipValidator =
           DataColumnSidecarGossipValidator.create(dataColumnSidecarValidator);
-      dataColumnSidecarManager = DataColumnSidecarManager.create(gossipValidator);
+      dataColumnSidecarManager = new DataColumnSidecarManagerImpl(gossipValidator);
+      eventChannels.subscribe(
+          DataColumnSidecarGossipChannel.class,
+          dataColumnSidecarManager::onDataColumnSidecarPublish);
     } else {
       dataColumnSidecarManager = DataColumnSidecarManager.NOOP;
     }
+  }
+
+  protected void initDasCustody() {
+    if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
+      return;
+    }
+    DataColumnSidecarDBImpl sidecarDB =
+        new DataColumnSidecarDBImpl(
+            combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
+    DataColumnSidecarCustodyImpl.BlockRootResolver blockRootResolver =
+        slot ->
+            combinedChainDataClient
+                .getBlockAtSlotExact(slot)
+                .thenApply(maybeBlock -> maybeBlock.map(SignedBeaconBlock::getRoot))
+                .join();
+
+    int dasExtraCustodySubnetCount = beaconConfig.p2pConfig().getDasExtraCustodySubnetCount();
+    SpecConfigEip7594 configEip7594 =
+        SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
+    int custodyRequirement = configEip7594.getCustodyRequirement();
+    int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
+    int totalCustodySubnets =
+        Integer.min(maxSubnets, custodyRequirement + dasExtraCustodySubnetCount);
+
+    DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
+        new DataColumnSidecarCustodyImpl(
+            spec, blockRootResolver, sidecarDB, nodeId, totalCustodySubnets);
+    dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
+        dataColumnSidecarCustodyImpl::onNewValidatedDataColumnSidecar);
+    this.dataColumnSidecarCustody = dataColumnSidecarCustodyImpl;
   }
 
   protected void initMergeMonitors() {
@@ -897,13 +938,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
   protected void initDataColumnSidecarSubnetBackboneSubscriber() {
     LOG.debug("BeaconChainController.initDataColumnSidecarSubnetBackboneSubscriber");
-    UInt256 nodeId =
-        p2pNetwork
-            .getDiscoveryNodeId()
-            .orElseThrow(
-                () ->
-                    new InvalidConfigurationException(
-                        "NodeID is required for DataColumnSidecarSubnetBackboneSubscriber"));
     DataColumnSidecarSubnetBackboneSubscriber subnetBackboneSubscriber =
         new DataColumnSidecarSubnetBackboneSubscriber(
             spec, p2pNetwork, nodeId, beaconConfig.p2pConfig().getDasExtraCustodySubnetCount());
@@ -1167,6 +1201,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
         new LocalOperationAcceptedFilter<>(p2pNetwork::publishVoluntaryExit));
     blsToExecutionChangePool.subscribeOperationAdded(
         new LocalOperationAcceptedFilter<>(p2pNetwork::publishSignedBlsToExecutionChange));
+
+    nodeId =
+        p2pNetwork
+            .getDiscoveryNodeId()
+            .orElseThrow(() -> new InvalidConfigurationException("NodeID is required"));
   }
 
   protected Eth2P2PNetworkBuilder createEth2P2PNetworkBuilder() {
