@@ -666,7 +666,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
             dataColumnPeerSearcher,
             custodyCountSupplier,
             dasRpc,
-            dataColumnSidecarValidator);
+            dataColumnSidecarValidator,
+            operationPoolAsyncRunner,
+            Duration.ofSeconds(1));
     DasCustodySync dasCustodySync =
         new DasCustodySync(dataColumnSidecarCustodyImpl, sidecarRetriever);
   }
