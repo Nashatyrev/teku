@@ -141,9 +141,11 @@ import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.datacolumns.DasCustodySync;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
+import tech.pegasys.teku.statetransition.datacolumns.debug.DasDBDebug;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerSearcher;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
@@ -623,9 +625,26 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       return;
     }
-    DataColumnSidecarDBImpl sidecarDB =
-        new DataColumnSidecarDBImpl(
-            combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
+
+    final DataColumnSidecarDB sidecarDB;
+    {
+      DataColumnSidecarDBImpl dbImpl = new DataColumnSidecarDBImpl(
+          combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
+      DasDBDebug dbDebug = new DasDBDebug(dbImpl);
+      long t0 = System.currentTimeMillis();
+      dbDebug.collectInitialInfo(recentChainData.getCurrentSlot().orElseThrow());
+      LOG.warn("#### Collecting DAS DB data took " + (System.currentTimeMillis() - t0) + " ms: ");
+      LOG.warn("#### " + dbDebug.createDigest());
+
+      AsyncRunner debugRunner = asyncRunnerFactory.create("debug", 1);
+      debugRunner.runWithFixedDelay(
+          () -> LOG.warn("#### " + dbDebug.createDigest()),
+          Duration.ofSeconds(getSpec().getGenesisSpec().getConfig().getSecondsPerSlot()),
+          err -> LOG.error("Err", err));
+
+      sidecarDB = dbDebug;
+    }
+
     DataColumnSidecarCustodyImpl.BlockRootResolver blockRootResolver =
         slot ->
             combinedChainDataClient

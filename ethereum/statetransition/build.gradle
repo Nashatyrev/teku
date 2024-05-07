@@ -1,3 +1,6 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
 idea {
   module {
     testSourceDirs += sourceSets.jmh.java.srcDirs
@@ -52,4 +55,11 @@ dependencies {
   testImplementation testFixtures(project(':infrastructure:logging'))
 
   jmhImplementation testFixtures(project(':infrastructure:bls'))
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}
+repositories {
+    mavenCentral()
+}
+kotlin {
+    jvmToolchain(17)
 }
