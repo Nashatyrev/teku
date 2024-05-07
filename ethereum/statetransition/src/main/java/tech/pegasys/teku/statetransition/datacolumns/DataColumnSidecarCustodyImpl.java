@@ -120,7 +120,7 @@ public class DataColumnSidecarCustodyImpl implements DataColumnSidecarCustody, S
 
   private Set<UInt64> getCustodyColumnsForEpoch(UInt64 epoch) {
     return MiscHelpersEip7594.required(spec.atEpoch(epoch).miscHelpers())
-        .computeCustodyColumnIndexes(nodeId, epoch, totalCustodySubnetCount);
+        .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount);
   }
 
   @Override
