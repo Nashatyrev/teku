@@ -21,6 +21,7 @@ import tech.pegasys.teku.spec.Spec
 import tech.pegasys.teku.spec.TestSpecFactory
 import tech.pegasys.teku.spec.datastructures.interop.GenesisStateBuilder
 import tech.pegasys.teku.spec.networks.Eth2Network
+import tech.pegasys.teku.spec.util.DataStructureUtil
 import tech.pegasys.teku.storage.server.StateStorageMode
 import java.io.File
 import java.nio.charset.Charset
@@ -58,10 +59,10 @@ class DasTeku(
     val validatorsCount: Int = 64,
     val spec: Spec = TestSpecFactory.createMinimalEip7594 {
         it.bellatrixBuilder { it.bellatrixForkEpoch(UInt64.valueOf(0)) }
-        it.capellaBuilder { it.capellaForkEpoch(UInt64.valueOf(1)) }
-        it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(2)) }
+        it.capellaBuilder { it.capellaForkEpoch(UInt64.valueOf(0)) }
+        it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(0)) }
         it.eip7594Builder {
-            it.eip7594ForkEpoch(UInt64.valueOf(3))
+            it.eip7594ForkEpoch(UInt64.valueOf(0))
             it.custodyRequirement(64)
         }
         it.secondsPerSlot(4)
@@ -220,9 +221,11 @@ class DasTeku(
         )
 
     fun writeGenesis() {
+        val executionPayloadHeader = DataStructureUtil(spec).randomExecutionPayloadHeader()
         val genesisTime: Long = System.currentTimeMillis() / 1000 + STARTUP_TIME_SECONDS
         val genesisStateBuilder = GenesisStateBuilder()
             .spec(spec)
+            .executionPayloadHeader(executionPayloadHeader)
             .genesisTime(genesisTime)
 
         validatorKeys.forEach {
