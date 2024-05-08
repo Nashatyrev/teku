@@ -161,6 +161,7 @@ public class SimpleSidecarRetriever
       synchronized (this) {
         pendingRequests.remove(request.columnId);
       }
+      request.result.complete(maybeResult);
       request.peerSearchRequest.dispose();
     } else {
       request.activeRpcRequest = null;
