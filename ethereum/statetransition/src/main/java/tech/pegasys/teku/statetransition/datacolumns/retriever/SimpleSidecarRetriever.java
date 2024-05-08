@@ -201,7 +201,7 @@ public class SimpleSidecarRetriever
       //      this.extraCustodySubnetCount = extraCustodySubnetCount;
     }
 
-    private Set<UInt64> getNodeCustodyIndexes(UInt64 slot) {
+    private List<UInt64> getNodeCustodyIndexes(UInt64 slot) {
       SpecVersion specVersion = spec.atSlot(slot);
       //      int minCustodyRequirement =
       //          SpecConfigEip7594.required(specVersion.getConfig()).getCustodyRequirement();
