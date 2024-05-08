@@ -17,7 +17,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -25,26 +30,55 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 
 public class DasCustodySync implements SlotEventsChannel {
+  private static final Logger LOG = LogManager.getLogger();
 
   private final UpdatableDataColumnSidecarCustody custody;
   private final DataColumnSidecarRetriever retriever;
-  private final int maxPendingColumnRequests = 1024;
-  private final int minPendingColumnRequests = 512;
+  private final int maxPendingColumnRequests;
+  private final int minPendingColumnRequests;
 
-  private Map<ColumnSlotAndIdentifier, PendingRequest> pendingRequests = new HashMap<>();
+  private final Map<ColumnSlotAndIdentifier, PendingRequest> pendingRequests = new HashMap<>();
   private boolean started = false;
+  private final AtomicLong syncedColumnCount = new AtomicLong();
+
+  public DasCustodySync(
+      UpdatableDataColumnSidecarCustody custody,
+      DataColumnSidecarRetriever retriever,
+      int maxPendingColumnRequests,
+      int minPendingColumnRequests) {
+    this.custody = custody;
+    this.retriever = retriever;
+    this.maxPendingColumnRequests = maxPendingColumnRequests;
+    this.minPendingColumnRequests = minPendingColumnRequests;
+  }
 
   public DasCustodySync(
       UpdatableDataColumnSidecarCustody custody, DataColumnSidecarRetriever retriever) {
-    this.custody = custody;
-    this.retriever = retriever;
+    this(custody, retriever, 16, 8);
   }
 
   private synchronized void onRequestComplete(PendingRequest request) {
     DataColumnSidecar result = request.columnPromise.join();
     custody.onNewValidatedDataColumnSidecar(result);
     pendingRequests.remove(request.columnId);
+    syncedColumnCount.incrementAndGet();
     fillUpIfNeeded();
+  }
+
+  private boolean wasCancelledImplicitly(Throwable exception) {
+    return exception instanceof CancellationException
+        || (exception instanceof CompletionException
+            && exception.getCause() instanceof CancellationException);
+  }
+
+  private synchronized void onRequestException(PendingRequest request, Throwable exception) {
+    if (wasCancelledImplicitly(exception)) {
+      // request was cancelled explicitly here
+//      pendingRequests.remove(request.columnId);
+    } else {
+      LOG.warn("Unexpected exception", exception);
+    }
+
   }
 
   private void fillUpIfNeeded() {
@@ -63,6 +97,7 @@ public class DasCustodySync implements SlotEventsChannel {
             .collect(Collectors.toSet());
 
     // cancel those which are not missing anymore for whatever reason
+    int cancelCount = 0;
     Iterator<Map.Entry<ColumnSlotAndIdentifier, PendingRequest>> it =
         pendingRequests.entrySet().iterator();
     while (it.hasNext()) {
@@ -70,6 +105,7 @@ public class DasCustodySync implements SlotEventsChannel {
       if (!missingColumnsToRequest.contains(pendingEntry.getKey())) {
         pendingEntry.getValue().columnPromise().cancel(true);
         it.remove();
+        cancelCount++;
       }
     }
 
@@ -77,7 +113,23 @@ public class DasCustodySync implements SlotEventsChannel {
       SafeFuture<DataColumnSidecar> promise = retriever.retrieve(missingColumn);
       PendingRequest request = new PendingRequest(missingColumn, promise);
       pendingRequests.put(missingColumn, request);
-      promise.thenAccept(__ -> onRequestComplete(request)).ifExceptionGetsHereRaiseABug();
+      promise.finish(__ -> onRequestComplete(request), err -> onRequestException(request, err));
+    }
+
+    { // TODO remove debug println
+      Set<UInt64> missingSlots =
+          missingColumnsToRequest.stream()
+              .map(ColumnSlotAndIdentifier::slot)
+              .collect(Collectors.toSet());
+      final String slotsString = missingSlots.toString();
+      System.err.println(
+          String.format(
+              "DataCustodySync.fillUp: synced=%s pending=%s, justCancelled: %s, missingColumns=%s(%s)",
+              syncedColumnCount,
+              pendingRequests.size(),
+              cancelCount,
+              missingColumnsToRequest.size(),
+              slotsString));
     }
   }
 
