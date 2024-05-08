@@ -26,6 +26,7 @@ class DasDBDebug(val delegate: DataColumnSidecarDB) : DataColumnSidecarDB by del
     @Synchronized
     override fun addSidecar(sidecar: DataColumnSidecar) {
         slotToColumns.computeIfAbsent(sidecar.slot) { mutableSetOf() } += sidecar.index
+        delegate.addSidecar(sidecar)
     }
 
     @Synchronized
