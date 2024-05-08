@@ -647,11 +647,22 @@ public class BeaconChainController extends Service implements BeaconChainControl
       sidecarDB = dbDebug;
     }
 
-    DataColumnSidecarCustodyImpl.BlockRootResolver blockRootResolver =
+    DataColumnSidecarCustodyImpl.DataColumnBlockRootResolver blockRootResolver =
         slot ->
             combinedChainDataClient
                 .getBlockAtSlotExact(slot)
-                .thenApply(maybeBlock -> maybeBlock.map(SignedBeaconBlock::getRoot))
+                .thenApply(
+                    maybeBlock ->
+                        maybeBlock
+                            .filter(
+                                block ->
+                                    block
+                                            .getBeaconBlock()
+                                            .flatMap(b -> b.getBody().toVersionEip7594())
+                                            .map(b -> b.getBlobKzgCommitments().size())
+                                            .orElse(0)
+                                        > 0)
+                            .map(SignedBeaconBlock::getRoot))
                 .join();
 
     int dasExtraCustodySubnetCount = beaconConfig.p2pConfig().getDasExtraCustodySubnetCount();
