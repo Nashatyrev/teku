@@ -35,9 +35,14 @@ import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 public class DataColumnSidecarCustodyImpl
     implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
 
-  public interface BlockRootResolver {
+  public interface DataColumnBlockRootResolver {
 
-    Optional<Bytes32> getCanonicalBlockRootAtSlot(UInt64 slot);
+    /**
+     * Should return the canonical block root at slot if:
+     * - a block exist at this slot
+     * - block contains any blobs
+     */
+    Optional<Bytes32> getColumnBlockRootAtSlot(UInt64 slot);
   }
 
   private record SlotCustody(
@@ -72,7 +77,7 @@ public class DataColumnSidecarCustodyImpl
 
   private final Spec spec;
   private final DataColumnSidecarDB db;
-  private final BlockRootResolver blockRootResolver;
+  private final DataColumnBlockRootResolver blockRootResolver;
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
 
@@ -82,7 +87,7 @@ public class DataColumnSidecarCustodyImpl
 
   public DataColumnSidecarCustodyImpl(
       Spec spec,
-      BlockRootResolver blockRootResolver,
+      DataColumnBlockRootResolver blockRootResolver,
       DataColumnSidecarDB db,
       UInt256 nodeId,
       int totalCustodySubnetCount) {
@@ -114,11 +119,11 @@ public class DataColumnSidecarCustodyImpl
     return currentEpoch.minusMinZero(custodyPeriod).max(eip7594StartEpoch);
   }
 
-  private Set<UInt64> getCustodyColumnsForSlot(UInt64 slot) {
+  private List<UInt64> getCustodyColumnsForSlot(UInt64 slot) {
     return getCustodyColumnsForEpoch(spec.computeEpochAtSlot(slot));
   }
 
-  private Set<UInt64> getCustodyColumnsForEpoch(UInt64 epoch) {
+  private List<UInt64> getCustodyColumnsForEpoch(UInt64 epoch) {
     return MiscHelpersEip7594.required(spec.atEpoch(epoch).miscHelpers())
         .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount);
   }
@@ -186,8 +191,8 @@ public class DataColumnSidecarCustodyImpl
         .map(
             slot -> {
               Optional<Bytes32> maybeCanonicalBlockRoot =
-                  blockRootResolver.getCanonicalBlockRootAtSlot(slot);
-              Set<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
+                  blockRootResolver.getColumnBlockRootAtSlot(slot);
+              List<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
               List<DataColumnIdentifier> existingColumns =
                   db.streamColumnIdentifiers(slot).toList();
               return new SlotCustody(
