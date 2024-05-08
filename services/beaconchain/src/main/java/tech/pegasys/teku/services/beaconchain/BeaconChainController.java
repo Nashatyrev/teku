@@ -295,6 +295,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   protected volatile BlobSidecarManager blobSidecarManager;
   protected volatile DataColumnSidecarManager dataColumnSidecarManager;
   protected volatile DataColumnSidecarCustody dataColumnSidecarCustody;
+  protected volatile DasCustodySync dasCustodySync;
   protected volatile Optional<TerminalPowBlockMonitor> terminalPowBlockMonitor = Optional.empty();
   protected volatile ProposersDataManager proposersDataManager;
   protected volatile KeyValueStore<String, Bytes> keyValueStore;
@@ -384,7 +385,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
             blockManager.start(),
             syncService.start(),
             SafeFuture.fromRunnable(
-                () -> terminalPowBlockMonitor.ifPresent(TerminalPowBlockMonitor::start)))
+                () -> terminalPowBlockMonitor.ifPresent(TerminalPowBlockMonitor::start)),
+            SafeFuture.fromRunnable(() -> dasCustodySync.start()))
         .finish(
             error -> {
               Throwable rootCause = Throwables.getRootCause(error);
@@ -643,6 +645,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
         new DataColumnSidecarCustodyImpl(
             spec, blockRootResolver, sidecarDB, nodeId, totalCustodySubnets);
+    eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         dataColumnSidecarCustodyImpl::onNewValidatedDataColumnSidecar);
     this.dataColumnSidecarCustody = dataColumnSidecarCustodyImpl;
@@ -668,8 +671,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
             dataColumnSidecarValidator,
             operationPoolAsyncRunner,
             Duration.ofSeconds(1));
-    DasCustodySync dasCustodySync =
-        new DasCustodySync(dataColumnSidecarCustodyImpl, sidecarRetriever);
+    dasCustodySync = new DasCustodySync(dataColumnSidecarCustodyImpl, sidecarRetriever);
+    eventChannels.subscribe(SlotEventsChannel.class, dasCustodySync);
   }
 
   protected void initMergeMonitors() {
