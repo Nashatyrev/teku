@@ -74,7 +74,7 @@ public class DasCustodySync implements SlotEventsChannel {
     if (wasCancelledImplicitly(exception)) {
       // request was cancelled explicitly here
     } else {
-      LOG.warn("Unexpected exception", exception);
+      LOG.warn("Unexpected exception for request " + request, exception);
     }
   }
 
