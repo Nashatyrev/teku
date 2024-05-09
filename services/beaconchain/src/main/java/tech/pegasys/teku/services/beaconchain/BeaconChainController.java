@@ -629,20 +629,20 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     final DataColumnSidecarDB sidecarDB;
     {
-      DataColumnSidecarDBImpl dbImpl =
+      DataColumnSidecarDB dbImpl =
           new DataColumnSidecarDBImpl(
               combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
       DasDBDebug dbDebug = new DasDBDebug(dbImpl);
       long t0 = System.currentTimeMillis();
       dbDebug.collectInitialInfo(recentChainData.getCurrentSlot().orElseThrow());
-      LOG.warn("#### Collecting DAS DB data took " + (System.currentTimeMillis() - t0) + " ms: ");
-      LOG.warn("#### " + dbDebug.createDigest());
+      System.err.println("#### Collecting DAS DB data took " + (System.currentTimeMillis() - t0) + " ms: ");
+      System.err.println("#### " + dbDebug.createDigest());
 
       AsyncRunner debugRunner = asyncRunnerFactory.create("debug", 1);
       debugRunner.runWithFixedDelay(
-          () -> LOG.error("#### " + dbDebug.createDigest()),
+          () -> System.err.println("#### " + dbDebug.createDigest()),
           Duration.ofSeconds(getSpec().getGenesisSpec().getConfig().getSecondsPerSlot()),
-          err -> LOG.error("Err", err));
+          err -> LOG.warn("Err", err));
 
       sidecarDB = dbDebug;
     }
