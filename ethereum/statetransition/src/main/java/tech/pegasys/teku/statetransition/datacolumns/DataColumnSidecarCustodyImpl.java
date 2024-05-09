@@ -38,9 +38,8 @@ public class DataColumnSidecarCustodyImpl
   public interface DataColumnBlockRootResolver {
 
     /**
-     * Should return the canonical block root at slot if:
-     * - a block exist at this slot
-     * - block contains any blobs
+     * Should return the canonical block root at slot if: - a block exist at this slot - block
+     * contains any blobs
      */
     Optional<Bytes32> getColumnBlockRootAtSlot(UInt64 slot);
   }
@@ -65,6 +64,10 @@ public class DataColumnSidecarCustodyImpl
               })
           .orElse(Stream.empty())
           .toList();
+    }
+
+    public boolean isComplete() {
+      return canonicalBlockRoot().isPresent() && !isIncomplete();
     }
 
     public boolean isIncomplete() {
@@ -170,13 +173,13 @@ public class DataColumnSidecarCustodyImpl
   }
 
   private void advanceLatestCompleteSlot() {
-    streamSlotCustodies()
-        .dropWhile(slotCustody -> !slotCustody.isIncomplete())
-        .findFirst()
-        .ifPresent(firstIncomplete -> db.setFirstIncompleteSlot(firstIncomplete.slot));
+    streamPotentiallyIncompleteSlotCustodies()
+        .filter(SlotCustody::isComplete)
+        .reduce((first, second) -> second) // find last complete
+        .ifPresent(lastComplete -> db.setFirstIncompleteSlot(lastComplete.slot.increment()));
   }
 
-  private Stream<SlotCustody> streamSlotCustodies() {
+  private Stream<SlotCustody> streamPotentiallyIncompleteSlotCustodies() {
     if (currentSlot == null) {
       return Stream.empty();
     }
@@ -185,9 +188,7 @@ public class DataColumnSidecarCustodyImpl
         db.getFirstIncompleteSlot().orElseGet(() -> getEarliestCustodySlot(currentSlot));
 
     return Stream.iterate(
-            firstIncompleteSlot,
-            slot -> slot.plus(gossipWaitSlots).isLessThanOrEqualTo(currentSlot),
-            UInt64::increment)
+            firstIncompleteSlot, slot -> slot.isLessThanOrEqualTo(currentSlot), UInt64::increment)
         .map(
             slot -> {
               Optional<Bytes32> maybeCanonicalBlockRoot =
@@ -202,7 +203,11 @@ public class DataColumnSidecarCustodyImpl
 
   @Override
   public Stream<ColumnSlotAndIdentifier> streamMissingColumns() {
-    return streamSlotCustodies()
+    return streamPotentiallyIncompleteSlotCustodies()
+        // waiting a column for [gossipWaitSlots] to be delivered by gossip
+        // and not considering it missing yet
+        .takeWhile(
+            slotCustody -> slotCustody.slot.plus(gossipWaitSlots).isLessThanOrEqualTo(currentSlot))
         .flatMap(
             slotCustody ->
                 slotCustody.getIncompleteColumns().stream()
