@@ -65,7 +65,8 @@ class NodeRecordConverterTest {
 
     final NodeRecord nodeRecord = NodeRecordFactory.DEFAULT.fromBase64(enr);
 
-    Bytes pubKey = Bytes.fromHexString("0x03B86ED9F747A7FA99963F39E3B176B45E9E863108A2D145EA3A4E76D8D0935194");
+    Bytes pubKey =
+        Bytes.fromHexString("0x03B86ED9F747A7FA99963F39E3B176B45E9E863108A2D145EA3A4E76D8D0935194");
     Bytes nodeId = CONVERTER.convertPublicKeyToNodeId(pubKey);
     final DiscoveryPeer expectedPeer =
         new DiscoveryPeer(
@@ -101,7 +102,6 @@ class NodeRecordConverterTest {
                 new EnrField(EnrField.UDP, 30303)))
         .isEmpty();
   }
-
 
   @Test
   public void shouldUseV4PortIfV6PortSpecifiedWithNoV6Ip() {
@@ -294,7 +294,6 @@ class NodeRecordConverterTest {
                 SYNCNETS,
                 Optional.empty()));
   }
-
 
   private Optional<DiscoveryPeer> convertNodeRecordWithFields(final EnrField... fields) {
     return CONVERTER.convertToDiscoveryPeer(createNodeRecord(fields), SCHEMA_DEFINITIONS);

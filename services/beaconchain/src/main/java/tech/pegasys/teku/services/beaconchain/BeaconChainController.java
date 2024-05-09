@@ -635,7 +635,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
       DasDBDebug dbDebug = new DasDBDebug(dbImpl);
       long t0 = System.currentTimeMillis();
       dbDebug.collectInitialInfo(recentChainData.getCurrentSlot().orElseThrow());
-      System.err.println("#### Collecting DAS DB data took " + (System.currentTimeMillis() - t0) + " ms: ");
+      System.err.println(
+          "#### Collecting DAS DB data took " + (System.currentTimeMillis() - t0) + " ms: ");
       System.err.println("#### " + dbDebug.createDigest());
 
       AsyncRunner debugRunner = asyncRunnerFactory.create("debug", 1);

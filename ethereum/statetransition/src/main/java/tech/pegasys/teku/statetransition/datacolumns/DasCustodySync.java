@@ -14,7 +14,6 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -104,7 +103,6 @@ public class DasCustodySync implements SlotEventsChannel {
           response -> onRequestComplete(request, response),
           err -> onRequestException(request, err));
     }
-
 
     if (missingColumnsToRequest.isEmpty()) {
       coolDownTillNextSlot = true;
