@@ -39,6 +39,7 @@ public class DasCustodySync implements SlotEventsChannel {
 
   private final Map<ColumnSlotAndIdentifier, PendingRequest> pendingRequests = new HashMap<>();
   private boolean started = false;
+  private boolean coolDownTillNextSlot = false;
   private final AtomicLong syncedColumnCount = new AtomicLong();
 
   public DasCustodySync(
@@ -54,12 +55,11 @@ public class DasCustodySync implements SlotEventsChannel {
 
   public DasCustodySync(
       UpdatableDataColumnSidecarCustody custody, DataColumnSidecarRetriever retriever) {
-    this(custody, retriever, 16, 8);
+    this(custody, retriever, 10 * 1024, 2 * 1024);
   }
 
-  private synchronized void onRequestComplete(PendingRequest request) {
-    DataColumnSidecar result = request.columnPromise.join();
-    custody.onNewValidatedDataColumnSidecar(result);
+  private synchronized void onRequestComplete(PendingRequest request, DataColumnSidecar response) {
+    custody.onNewValidatedDataColumnSidecar(response);
     pendingRequests.remove(request.columnId);
     syncedColumnCount.incrementAndGet();
     fillUpIfNeeded();
@@ -74,15 +74,13 @@ public class DasCustodySync implements SlotEventsChannel {
   private synchronized void onRequestException(PendingRequest request, Throwable exception) {
     if (wasCancelledImplicitly(exception)) {
       // request was cancelled explicitly here
-//      pendingRequests.remove(request.columnId);
     } else {
       LOG.warn("Unexpected exception", exception);
     }
-
   }
 
   private void fillUpIfNeeded() {
-    if (started && pendingRequests.size() <= minPendingColumnRequests) {
+    if (started && pendingRequests.size() <= minPendingColumnRequests && !coolDownTillNextSlot) {
       fillUp();
     }
   }
@@ -92,28 +90,24 @@ public class DasCustodySync implements SlotEventsChannel {
     Set<ColumnSlotAndIdentifier> missingColumnsToRequest =
         custody
             .streamMissingColumns()
-            .filter(c -> !pendingRequests.containsKey(c))
+            .filter(columnSlotId -> !pendingRequests.containsKey(columnSlotId))
             .limit(newRequestCount)
             .collect(Collectors.toSet());
 
-    // cancel those which are not missing anymore for whatever reason
-    int cancelCount = 0;
-    Iterator<Map.Entry<ColumnSlotAndIdentifier, PendingRequest>> it =
-        pendingRequests.entrySet().iterator();
-    while (it.hasNext()) {
-      Map.Entry<ColumnSlotAndIdentifier, PendingRequest> pendingEntry = it.next();
-      if (!missingColumnsToRequest.contains(pendingEntry.getKey())) {
-        pendingEntry.getValue().columnPromise().cancel(true);
-        it.remove();
-        cancelCount++;
-      }
-    }
+    // TODO cancel those which are not missing anymore for whatever reason
 
     for (ColumnSlotAndIdentifier missingColumn : missingColumnsToRequest) {
       SafeFuture<DataColumnSidecar> promise = retriever.retrieve(missingColumn);
       PendingRequest request = new PendingRequest(missingColumn, promise);
       pendingRequests.put(missingColumn, request);
-      promise.finish(__ -> onRequestComplete(request), err -> onRequestException(request, err));
+      promise.finish(
+          response -> onRequestComplete(request, response),
+          err -> onRequestException(request, err));
+    }
+
+
+    if (missingColumnsToRequest.isEmpty()) {
+      coolDownTillNextSlot = true;
     }
 
     { // TODO remove debug println
@@ -124,10 +118,9 @@ public class DasCustodySync implements SlotEventsChannel {
       final String slotsString = missingSlots.toString();
       System.err.println(
           String.format(
-              "DataCustodySync.fillUp: synced=%s pending=%s, justCancelled: %s, missingColumns=%s(%s)",
+              "DataCustodySync.fillUp: synced=%s pending=%s, missingColumns=%s(%s)",
               syncedColumnCount,
               pendingRequests.size(),
-              cancelCount,
               missingColumnsToRequest.size(),
               slotsString));
     }
@@ -148,6 +141,7 @@ public class DasCustodySync implements SlotEventsChannel {
 
   @Override
   public void onSlot(UInt64 slot) {
+    coolDownTillNextSlot = false;
     fillUpIfNeeded();
   }
 
