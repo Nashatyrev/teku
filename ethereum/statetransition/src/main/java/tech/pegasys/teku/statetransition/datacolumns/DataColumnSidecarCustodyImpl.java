@@ -19,6 +19,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes32;
@@ -160,7 +162,7 @@ public class DataColumnSidecarCustodyImpl
   private void onEpoch(UInt64 epoch) {
     UInt64 pruneSlot = spec.computeStartSlotAtEpoch(getEarliestCustodyEpoch(epoch));
     db.pruneAllSidecars(pruneSlot);
-    advanceLatestCompleteSlot();
+    advanceFirstIncompleteSlot();
   }
 
   @Override
@@ -172,11 +174,37 @@ public class DataColumnSidecarCustodyImpl
     }
   }
 
-  private void advanceLatestCompleteSlot() {
+  private void advanceFirstIncompleteSlot() {
+    record CompleteIncomplete(SlotCustody firstIncomplete, SlotCustody lastComplete) {
+      static final CompleteIncomplete ZERO = new CompleteIncomplete(null, null);
+
+      CompleteIncomplete add(SlotCustody newCustody) {
+        if (firstIncomplete == null && newCustody.isIncomplete()) {
+          return new CompleteIncomplete(newCustody, lastComplete);
+        } else if (newCustody.isComplete()) {
+          return new CompleteIncomplete(firstIncomplete, newCustody);
+        } else {
+          return this;
+        }
+      }
+
+      Optional<UInt64> getFirstIncompleteSlot() {
+        if (firstIncomplete != null) {
+          return Optional.of(firstIncomplete.slot);
+        } else if (lastComplete != null) {
+          return Optional.of(lastComplete.slot.increment());
+        } else {
+          return Optional.empty();
+        }
+      }
+    }
+
     streamPotentiallyIncompleteSlotCustodies()
-        .filter(SlotCustody::isComplete)
-        .reduce((first, second) -> second) // find last complete
-        .ifPresent(lastComplete -> db.setFirstIncompleteSlot(lastComplete.slot.increment()));
+        .map(scan(CompleteIncomplete.ZERO, CompleteIncomplete::add))
+            .takeWhile(c -> c.firstIncomplete == null)
+                .reduce((a, b) -> b)
+        .flatMap(CompleteIncomplete::getFirstIncompleteSlot) // take the last lement
+        .ifPresent(db::setFirstIncompleteSlot);
   }
 
   private Stream<SlotCustody> streamPotentiallyIncompleteSlotCustodies() {
@@ -212,5 +240,18 @@ public class DataColumnSidecarCustodyImpl
             slotCustody ->
                 slotCustody.getIncompleteColumns().stream()
                     .map(colId -> new ColumnSlotAndIdentifier(slotCustody.slot(), colId)));
+  }
+
+  private static <TElem, TAccum> Function<TElem, TAccum> scan(
+      TAccum identity, BiFunction<TAccum, TElem, TAccum> combiner) {
+    return new Function<>() {
+      private TAccum curValue = identity;
+
+      @Override
+      public TAccum apply(TElem elem) {
+        curValue = combiner.apply(curValue, elem);
+        return curValue;
+      }
+    };
   }
 }
