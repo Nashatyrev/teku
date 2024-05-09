@@ -169,9 +169,9 @@ public class DataColumnSidecarsByRootMessageHandler
               }
               final UInt64 requestedEpoch = spec.computeEpochAtSlot(maybeSlot.get());
               if (!spec.isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
-                      combinedChainDataClient.getStore(), requestedEpoch)
-                  // TODO uncomment when sync by range is ready
-                 /* || requestedEpoch.isLessThan(finalizedEpoch)*/) {
+                  combinedChainDataClient.getStore(), requestedEpoch)
+              // TODO uncomment when sync by range is ready
+              /* || requestedEpoch.isLessThan(finalizedEpoch)*/ ) {
                 throw new RpcException(
                     INVALID_REQUEST_CODE,
                     String.format(
