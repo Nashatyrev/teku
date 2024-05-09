@@ -63,10 +63,10 @@ class DasTeku(
         it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(0)) }
         it.eip7594Builder {
             it.eip7594ForkEpoch(UInt64.valueOf(0))
-            it.custodyRequirement(64)
+            it.custodyRequirement(32)
         }
-        it.secondsPerSlot(4)
-        it.slotsPerEpoch(6)
+        it.secondsPerSlot(8)
+        it.slotsPerEpoch(8)
         it.eth1FollowDistance(UInt64.valueOf(1))
     },
     val validatorDepositAmount: UInt64 = spec.genesisSpecConfig.maxEffectiveBalance * 100,
