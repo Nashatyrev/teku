@@ -211,7 +211,6 @@ public class EventLogger {
       final UInt64 nodeSlot,
       final UInt64 headSlot,
       final Bytes32 bestBlockRoot,
-      final Bytes32 bestBlockParentRoot,
       final UInt64 justifiedCheckpoint,
       final UInt64 finalizedCheckpoint,
       final int numPeers) {
@@ -221,13 +220,8 @@ public class EventLogger {
     }
     final String slotEventLog =
         String.format(
-            "Slot Event  *** Slot: %s, Block: %.8s ~> %.8s, Justified: %s, Finalized: %s, Peers: %d",
-            nodeSlot,
-            blockRoot,
-            LogFormatter.formatHashRoot(bestBlockParentRoot),
-            justifiedCheckpoint,
-            finalizedCheckpoint,
-            numPeers);
+            "Slot Event  *** Slot: %s, Block: %s, Justified: %s, Finalized: %s, Peers: %d",
+            nodeSlot, blockRoot, justifiedCheckpoint, finalizedCheckpoint, numPeers);
     info(slotEventLog, Color.WHITE);
   }
 

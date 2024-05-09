@@ -137,9 +137,6 @@ public class DataColumnSidecarCustodyImpl
   public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     if (isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex())) {
       db.addSidecar(dataColumnSidecar);
-    } else {
-      System.out.println("NOT!!!");
-      isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex());
     }
   }
 

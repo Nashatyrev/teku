@@ -95,8 +95,7 @@ public class TerminalPowBlockMonitor {
     }
     specConfigBellatrix = maybeSpecConfigBellatrix.get();
 
-    pollingPeriod =
-        Duration.ofSeconds(1); // spec.getGenesisSpec().getConfig().getSecondsPerEth1Block());
+    pollingPeriod = Duration.ofSeconds(spec.getGenesisSpec().getConfig().getSecondsPerEth1Block());
     timer =
         Optional.of(
             asyncRunner.runWithFixedDelay(

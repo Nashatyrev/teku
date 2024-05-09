@@ -129,9 +129,4 @@ public class BlobSidecarsAndValidationResult {
         "%s, blob sidecars: %d, cause: %s",
         validationResult, blobSidecars.size(), cause.map(ExceptionUtil::getMessageOrSimpleName));
   }
-
-  @Override
-  public String toString() {
-    return toLogString();
-  }
 }
