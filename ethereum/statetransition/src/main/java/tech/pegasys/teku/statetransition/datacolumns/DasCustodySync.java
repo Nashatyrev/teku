@@ -105,24 +105,21 @@ public class DasCustodySync implements SlotEventsChannel {
           err -> onRequestException(request, err));
     }
 
-
     if (missingColumnsToRequest.isEmpty()) {
       coolDownTillNextSlot = true;
     }
 
-    { // TODO remove debug println
+    {
       Set<UInt64> missingSlots =
           missingColumnsToRequest.stream()
               .map(ColumnSlotAndIdentifier::slot)
               .collect(Collectors.toSet());
-      final String slotsString = missingSlots.toString();
-      System.err.println(
-          String.format(
-              "DataCustodySync.fillUp: synced=%s pending=%s, missingColumns=%s(%s)",
-              syncedColumnCount,
-              pendingRequests.size(),
-              missingColumnsToRequest.size(),
-              slotsString));
+      LOG.debug(
+          "DataCustodySync.fillUp: synced={} pending={}, missingColumns={}({})",
+          syncedColumnCount,
+          pendingRequests.size(),
+          missingColumnsToRequest.size(),
+          missingSlots);
     }
   }
 
