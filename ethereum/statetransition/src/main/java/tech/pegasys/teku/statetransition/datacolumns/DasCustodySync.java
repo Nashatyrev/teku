@@ -113,12 +113,13 @@ public class DasCustodySync implements SlotEventsChannel {
           missingColumnsToRequest.stream()
               .map(ColumnSlotAndIdentifier::slot)
               .collect(Collectors.toSet());
-      LOG.debug(
-          "DataCustodySync.fillUp: synced={} pending={}, missingColumns={}({})",
+      System.err.println(
+          String.format(
+          "DataCustodySync.fillUp: synced=%s pending=%s, missingColumns=%s(%s)",
           syncedColumnCount,
           pendingRequests.size(),
           missingColumnsToRequest.size(),
-          missingSlots);
+          missingSlots));
     }
   }
 
