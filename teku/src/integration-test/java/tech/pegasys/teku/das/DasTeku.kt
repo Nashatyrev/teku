@@ -63,12 +63,13 @@ class DasTeku(
         it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(0)) }
         it.eip7594Builder {
             it.eip7594ForkEpoch(UInt64.valueOf(0))
-            it.custodyRequirement(32)
+            it.custodyRequirement(2)
         }
         it.secondsPerSlot(8)
         it.slotsPerEpoch(8)
         it.eth1FollowDistance(UInt64.valueOf(1))
     },
+    val extraDasCustodySubnetCount: Int = 32,
     val validatorDepositAmount: UInt64 = spec.genesisSpecConfig.maxEffectiveBalance * 100,
     val stateStorageMode: StateStorageMode = StateStorageMode.PRUNE,
 
@@ -156,6 +157,7 @@ class DasTeku(
                         .peerRateLimit(1000000)
                         .peerRequestLimit(1000000)
                         .subscribeAllSubnetsEnabled(true)
+                        .dasExtraCustodySubnetCount(extraDasCustodySubnetCount)
                 }
                 .network {
                     it
