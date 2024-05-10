@@ -15,10 +15,18 @@ package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
 import org.apache.tuweni.units.bigints.UInt256;
 
+import static java.lang.Integer.max;
+import static java.lang.Integer.min;
+
 public interface DasPeerCustodyCountSupplier {
 
   static DasPeerCustodyCountSupplier createStub(int defaultValue) {
     return (__) -> defaultValue;
+  }
+
+  static DasPeerCustodyCountSupplier capped(DasPeerCustodyCountSupplier delegate, int minValue, int maxValue) {
+    return (nodeId) ->
+        min(maxValue, max(minValue, delegate.getCustodyCountForPeer(nodeId)));
   }
 
   int getCustodyCountForPeer(UInt256 nodeId);

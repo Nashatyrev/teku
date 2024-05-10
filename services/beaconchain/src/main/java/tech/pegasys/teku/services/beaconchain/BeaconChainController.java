@@ -88,6 +88,7 @@ import tech.pegasys.teku.networking.eth2.gossip.subnets.StableSubnetSubscriber;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.SyncCommitteeSubscriptionManager;
 import tech.pegasys.teku.networking.eth2.mock.NoOpEth2P2PNetwork;
 import tech.pegasys.teku.networking.eth2.peers.DataColumnPeerManagerImpl;
+import tech.pegasys.teku.networking.eth2.peers.GossipTopicDasPeerCustodyTracker;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig;
 import tech.pegasys.teku.networks.Eth2NetworkConfiguration;
 import tech.pegasys.teku.networks.StateBoostrapConfig;
@@ -665,9 +666,18 @@ public class BeaconChainController extends Service implements BeaconChainControl
     p2pNetwork.subscribeConnect(dasPeerManager);
 
     DataColumnReqResp dasRpc = new DataColumnReqRespBatchingImpl(dasPeerManager);
-    // TODO there is no generic solution to retrieve extra custody subnet count for a connected peer
+
+    GossipTopicDasPeerCustodyTracker peerCustodyTracker =
+        new GossipTopicDasPeerCustodyTracker(
+            spec,
+            p2pNetwork,
+            beaconConfig.p2pConfig().getGossipEncoding(),
+            () -> recentChainData.getCurrentForkInfo());
+
+    p2pNetwork.subscribeConnect(peerCustodyTracker);
     DasPeerCustodyCountSupplier custodyCountSupplier =
-        DasPeerCustodyCountSupplier.createStub(custodyRequirement);
+        DasPeerCustodyCountSupplier.capped(peerCustodyTracker, minCustodyRequirement, maxSubnets);
+
     // TODO NOOP peer searcher should work for interop but needs to be implemented
     DataColumnPeerSearcher dataColumnPeerSearcher = DataColumnPeerSearcher.NOOP;
     // TODO
