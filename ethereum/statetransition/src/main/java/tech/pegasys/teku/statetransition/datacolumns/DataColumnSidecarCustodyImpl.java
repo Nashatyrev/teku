@@ -230,17 +230,17 @@ public class DataColumnSidecarCustodyImpl
   }
 
   private Optional<Bytes32> getBlockRootIfHaveBlobs(UInt64 slot) {
-                 return blockResolver   .getBlockAtSlot(slot)
-                    .filter(
-                        block ->
-                            block
-                                .getBeaconBlock()
-                                .flatMap(b -> b.getBody().toVersionEip7594())
-                                .map(b -> b.getBlobKzgCommitments().size())
-                                .orElse(0)
-                                > 0)
-                    .map(BeaconBlock::getRoot);
-
+    return blockResolver
+        .getBlockAtSlot(slot)
+        .filter(
+            block ->
+                block
+                        .getBeaconBlock()
+                        .flatMap(b -> b.getBody().toVersionEip7594())
+                        .map(b -> b.getBlobKzgCommitments().size())
+                        .orElse(0)
+                    > 0)
+        .map(BeaconBlock::getRoot);
   }
 
   @Override

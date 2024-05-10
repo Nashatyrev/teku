@@ -72,9 +72,7 @@ public class GossipTopicDasPeerCustodyTracker
         .map(
             forkInfo ->
                 GossipTopics.getAllDataColumnSidecarSubnetTopics(
-                    gossipEncoding,
-                    forkInfo.getForkDigest(spec),
-                    spec))
+                    gossipEncoding, forkInfo.getForkDigest(spec), spec))
         .orElse(Collections.emptySet());
   }
 
