@@ -638,14 +638,14 @@ public class BeaconChainController extends Service implements BeaconChainControl
     int dasExtraCustodySubnetCount = beaconConfig.p2pConfig().getDasExtraCustodySubnetCount();
     SpecConfigEip7594 configEip7594 =
         SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
-    int custodyRequirement = configEip7594.getCustodyRequirement();
+    int minCustodyRequirement = configEip7594.getCustodyRequirement();
     int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
-    int totalCustodySubnets =
-        Integer.min(maxSubnets, custodyRequirement + dasExtraCustodySubnetCount);
+    int totalMyCustodySubnets =
+        Integer.min(maxSubnets, minCustodyRequirement + dasExtraCustodySubnetCount);
 
     DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
         new DataColumnSidecarCustodyImpl(
-            spec, blockRootResolver, sidecarDB, nodeId, totalCustodySubnets);
+            spec, blockRootResolver, sidecarDB, nodeId, totalMyCustodySubnets);
     eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         dataColumnSidecarCustodyImpl::onNewValidatedDataColumnSidecar);
