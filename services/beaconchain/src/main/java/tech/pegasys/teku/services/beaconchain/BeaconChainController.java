@@ -628,22 +628,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
     DataColumnSidecarDBImpl sidecarDB =
         new DataColumnSidecarDBImpl(
             combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
-    DataColumnSidecarCustodyImpl.DataColumnBlockRootResolver blockRootResolver =
+    DataColumnSidecarCustodyImpl.CanonicalBlockResolver blockRootResolver =
         slot ->
             combinedChainDataClient
                 .getBlockAtSlotExact(slot)
-                .thenApply(
-                    maybeBlock ->
-                        maybeBlock
-                            .filter(
-                                block ->
-                                    block
-                                            .getBeaconBlock()
-                                            .flatMap(b -> b.getBody().toVersionEip7594())
-                                            .map(b -> b.getBlobKzgCommitments().size())
-                                            .orElse(0)
-                                        > 0)
-                            .map(SignedBeaconBlock::getRoot))
+                .thenApply(sbb -> sbb.flatMap(SignedBeaconBlock::getBeaconBlock))
                 .join();
 
     int dasExtraCustodySubnetCount = beaconConfig.p2pConfig().getDasExtraCustodySubnetCount();
