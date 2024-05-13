@@ -50,6 +50,7 @@ public class DataColumnSidecarsByRangeRequestMessage
       return new DataColumnSidecarsByRangeRequestMessage(this, node);
     }
 
+    @SuppressWarnings("unchecked")
     public SszListSchema<SszUInt64, ?> getColumnsSchema() {
       return (SszListSchema<SszUInt64, ?>) getFieldSchema2();
     }

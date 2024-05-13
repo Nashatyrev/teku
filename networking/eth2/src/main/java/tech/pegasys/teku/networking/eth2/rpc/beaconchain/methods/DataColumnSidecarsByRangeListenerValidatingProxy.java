@@ -35,6 +35,8 @@ public class DataColumnSidecarsByRangeListenerValidatingProxy
 
   private final UInt64 startSlot;
   private final UInt64 endSlot;
+
+  @SuppressWarnings("UnusedVariable")
   private final List<UInt64> columns;
 
   public DataColumnSidecarsByRangeListenerValidatingProxy(
