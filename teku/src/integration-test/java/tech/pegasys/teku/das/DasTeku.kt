@@ -185,7 +185,7 @@ class DasTeku(
             tekuConfigBuilder
                 .validator {
                     it
-                        .validatorKeys(listOf("$validatorKeysPath;$validatorKeysPath"))
+                        .validatorKeys(listOf("$validatorKeysPath${File.pathSeparator}$validatorKeysPath"))
                         .validatorKeystoreLockingEnabled(false)
                         .proposerDefaultFeeRecipient("0x7777777777777777777777777777777777777777")
                 }
