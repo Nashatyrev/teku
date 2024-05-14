@@ -106,52 +106,34 @@ public class SimpleSidecarRetriever
     }
   }
 
-  private synchronized Map<UInt256, Integer> computeCurrentPeerRequestCount() {
-    return pendingRequests.values().stream()
-        .map(r -> r.activeRpcRequest)
-        .filter(Objects::nonNull)
-        .map(r -> r.peer().nodeId)
-        .collect(Collectors.groupingBy(r -> r, Collectors.reducing(0, e -> 1, Integer::sum)));
-  }
-
   private synchronized List<RequestMatch> matchRequestsAndPeers() {
     disposeCancelledRequests();
-    Map<UInt256, Integer> ongoingRequestsTracker = computeCurrentPeerRequestCount();
+    RequestTracker ongoingRequestsTracker = createFromCurrentPendingRequests();
     return pendingRequests.entrySet().stream()
         .filter(entry -> entry.getValue().activeRpcRequest == null)
         .flatMap(
             entry -> {
               RetrieveRequest request = entry.getValue();
               return findBestMatchingPeer(request, ongoingRequestsTracker).stream()
-                  .peek(
-                      peer ->
-                          ongoingRequestsTracker.compute(
-                              peer.nodeId, (__, cnt) -> cnt == null ? 1 : cnt + 1))
+                  .peek(peer -> ongoingRequestsTracker.decreaseAvailableRequests(peer.nodeId))
                   .map(peer -> new RequestMatch(peer, request));
             })
         .toList();
   }
 
   private Optional<ConnectedPeer> findBestMatchingPeer(
-      RetrieveRequest request, Map<UInt256, Integer> ongoingRequestsTracker) {
+      RetrieveRequest request, RequestTracker ongoingRequestsTracker) {
     return findMatchingPeers(request, ongoingRequestsTracker).stream()
         .max(
             Comparator.comparing(
-                peer ->
-                    reqResp.getCurrentRequestLimit(peer.nodeId)
-                        - ongoingRequestsTracker.getOrDefault(peer.nodeId, 0)));
+                peer -> ongoingRequestsTracker.getAvailableRequestCount(peer.nodeId)));
   }
 
   private Collection<ConnectedPeer> findMatchingPeers(
-      RetrieveRequest request, Map<UInt256, Integer> ongoingRequestsTracker) {
+      RetrieveRequest request, RequestTracker ongoingRequestsTracker) {
     return connectedPeers.values().stream()
         .filter(peer -> peer.isCustodyFor(request.columnId))
-        .filter(peer -> ongoingRequestsTracker.getOrDefault(peer.nodeId, 0) < maxRequestCount)
-        .filter(
-            peer ->
-                reqResp.getCurrentRequestLimit(peer.nodeId)
-                        - ongoingRequestsTracker.getOrDefault(peer.nodeId, 0)
-                    > 0)
+        .filter(peer -> ongoingRequestsTracker.hasAvailableRequests(peer.nodeId))
         .toList();
   }
 
@@ -250,4 +232,34 @@ public class SimpleSidecarRetriever
   }
 
   private record RequestMatch(ConnectedPeer peer, RetrieveRequest request) {}
+
+  private RequestTracker createFromCurrentPendingRequests() {
+    Map<UInt256, Integer> pendingRequestsCount =
+        pendingRequests.values().stream()
+            .map(r -> r.activeRpcRequest)
+            .filter(Objects::nonNull)
+            .map(r -> r.peer().nodeId)
+            .collect(Collectors.groupingBy(r -> r, Collectors.reducing(0, e -> 1, Integer::sum)));
+    return new RequestTracker(pendingRequestsCount);
+  }
+
+  private class RequestTracker {
+    private final Map<UInt256, Integer> pendingRequestsCount;
+
+    private RequestTracker(Map<UInt256, Integer> pendingRequestsCount) {
+      this.pendingRequestsCount = pendingRequestsCount;
+    }
+
+    int getAvailableRequestCount(UInt256 nodeId) {
+      return Integer.min(maxRequestCount, reqResp.getCurrentRequestLimit(nodeId)) - pendingRequestsCount.getOrDefault(nodeId, 0);
+    }
+
+    boolean hasAvailableRequests(UInt256 nodeId) {
+      return getAvailableRequestCount(nodeId) > 0;
+    }
+
+    void decreaseAvailableRequests(UInt256 nodeId) {
+      pendingRequestsCount.compute(nodeId, (__, cnt) -> cnt == null ? 1 : cnt + 1);
+    }
+  }
 }
