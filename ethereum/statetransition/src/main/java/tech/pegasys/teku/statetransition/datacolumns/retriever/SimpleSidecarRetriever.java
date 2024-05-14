@@ -21,7 +21,9 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.units.bigints.UInt256;
@@ -29,7 +31,9 @@ import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
+import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
@@ -47,6 +51,7 @@ public class SimpleSidecarRetriever
   private final DataColumnReqResp reqResp;
   private final AsyncRunner asyncRunner;
   private final Duration roundPeriod;
+  private final int maxRequestCount;
 
   public SimpleSidecarRetriever(
       Spec spec,
@@ -64,6 +69,9 @@ public class SimpleSidecarRetriever
     this.roundPeriod = roundPeriod;
     this.reqResp = new ValidatingDataColumnReqResp(peerManager, reqResp, validator);
     peerManager.addPeerListener(this);
+    this.maxRequestCount =
+        SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig())
+            .getMaxRequestDataColumnSidecars();
   }
 
   private final Map<ColumnSlotAndIdentifier, RetrieveRequest> pendingRequests =
@@ -98,28 +106,52 @@ public class SimpleSidecarRetriever
     }
   }
 
+  private synchronized Map<UInt256, Integer> computeCurrentPeerRequestCount() {
+    return pendingRequests.values().stream()
+        .map(r -> r.activeRpcRequest)
+        .filter(Objects::nonNull)
+        .map(r -> r.peer().nodeId)
+        .collect(Collectors.groupingBy(r -> r, Collectors.reducing(0, e -> 1, Integer::sum)));
+  }
+
   private synchronized List<RequestMatch> matchRequestsAndPeers() {
     disposeCancelledRequests();
+    Map<UInt256, Integer> ongoingRequestsTracker = computeCurrentPeerRequestCount();
     return pendingRequests.entrySet().stream()
         .filter(entry -> entry.getValue().activeRpcRequest == null)
         .flatMap(
             entry -> {
               RetrieveRequest request = entry.getValue();
-              return findBestMatchingPeer(request).stream()
+              return findBestMatchingPeer(request, ongoingRequestsTracker).stream()
+                  .peek(
+                      peer ->
+                          ongoingRequestsTracker.compute(
+                              peer.nodeId, (__, cnt) -> cnt == null ? 1 : cnt + 1))
                   .map(peer -> new RequestMatch(peer, request));
             })
         .toList();
   }
 
-  private Optional<ConnectedPeer> findBestMatchingPeer(RetrieveRequest request) {
-    return findMatchingPeers(request).stream()
-        .max(Comparator.comparing(peer -> reqResp.getCurrentRequestLimit(peer.nodeId)));
+  private Optional<ConnectedPeer> findBestMatchingPeer(
+      RetrieveRequest request, Map<UInt256, Integer> ongoingRequestsTracker) {
+    return findMatchingPeers(request, ongoingRequestsTracker).stream()
+        .max(
+            Comparator.comparing(
+                peer ->
+                    reqResp.getCurrentRequestLimit(peer.nodeId)
+                        - ongoingRequestsTracker.getOrDefault(peer.nodeId, 0)));
   }
 
-  private Collection<ConnectedPeer> findMatchingPeers(RetrieveRequest request) {
+  private Collection<ConnectedPeer> findMatchingPeers(
+      RetrieveRequest request, Map<UInt256, Integer> ongoingRequestsTracker) {
     return connectedPeers.values().stream()
         .filter(peer -> peer.isCustodyFor(request.columnId))
-        .filter(peer -> reqResp.getCurrentRequestLimit(peer.nodeId) > 0)
+        .filter(peer -> ongoingRequestsTracker.getOrDefault(peer.nodeId, 0) < maxRequestCount)
+        .filter(
+            peer ->
+                reqResp.getCurrentRequestLimit(peer.nodeId)
+                        - ongoingRequestsTracker.getOrDefault(peer.nodeId, 0)
+                    > 0)
         .toList();
   }
 
@@ -133,7 +165,7 @@ public class SimpleSidecarRetriever
         pendingIterator.remove();
         pendingRequest.peerSearchRequest.dispose();
         if (pendingRequest.activeRpcRequest != null) {
-          pendingRequest.activeRpcRequest.cancel(true);
+          pendingRequest.activeRpcRequest.promise().cancel(true);
         }
       }
     }
@@ -145,8 +177,10 @@ public class SimpleSidecarRetriever
       SafeFuture<DataColumnSidecar> reqRespPromise =
           reqResp.requestDataColumnSidecar(match.peer.nodeId, match.request.columnId.identifier());
       match.request.activeRpcRequest =
-          reqRespPromise.whenComplete(
-              (sidecar, err) -> reqRespCompleted(match.request, sidecar, err));
+          new ActiveRequest(
+              reqRespPromise.whenComplete(
+                  (sidecar, err) -> reqRespCompleted(match.request, sidecar, err)),
+              match.peer);
     }
 
     reqResp.flush();
@@ -176,11 +210,13 @@ public class SimpleSidecarRetriever
     connectedPeers.remove(nodeId);
   }
 
+  private record ActiveRequest(SafeFuture<DataColumnSidecar> promise, ConnectedPeer peer) {}
+
   private static class RetrieveRequest {
     final ColumnSlotAndIdentifier columnId;
     final DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest;
     final SafeFuture<DataColumnSidecar> result = new SafeFuture<>();
-    volatile SafeFuture<DataColumnSidecar> activeRpcRequest = null;
+    volatile ActiveRequest activeRpcRequest = null;
 
     private RetrieveRequest(
         ColumnSlotAndIdentifier columnId,
