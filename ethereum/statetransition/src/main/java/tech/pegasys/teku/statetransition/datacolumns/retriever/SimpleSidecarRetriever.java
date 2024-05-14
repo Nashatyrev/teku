@@ -251,7 +251,8 @@ public class SimpleSidecarRetriever
     }
 
     int getAvailableRequestCount(UInt256 nodeId) {
-      return Integer.min(maxRequestCount, reqResp.getCurrentRequestLimit(nodeId)) - pendingRequestsCount.getOrDefault(nodeId, 0);
+      return Integer.min(maxRequestCount, reqResp.getCurrentRequestLimit(nodeId))
+          - pendingRequestsCount.getOrDefault(nodeId, 0);
     }
 
     boolean hasAvailableRequests(UInt256 nodeId) {
