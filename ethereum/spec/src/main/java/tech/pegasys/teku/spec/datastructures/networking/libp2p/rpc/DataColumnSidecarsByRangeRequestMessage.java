@@ -42,7 +42,7 @@ public class DataColumnSidecarsByRangeRequestMessage
           namedSchema("count", SszPrimitiveSchemas.UINT64_SCHEMA),
           namedSchema(
               "columns",
-              SszUInt64ListSchema.create(specConfigEip7594.getNumberOfColumns().intValue())));
+              SszUInt64ListSchema.create(specConfigEip7594.getNumberOfColumns())));
     }
 
     @Override
