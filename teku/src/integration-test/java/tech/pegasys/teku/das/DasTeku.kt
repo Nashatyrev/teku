@@ -35,7 +35,7 @@ class RunBootNode {
             val dasTeku = DasTeku()
             dasTeku.createGenesisIfRequired()
             dasTeku.resetWithNewGenesis()
-            dasTeku.createAndStartBootNode(0, 0 until 64)
+            dasTeku.createAndStartBootNode(0, 0 until 32)
         }
     }
 }
@@ -45,7 +45,7 @@ class RunOtherNode {
         @JvmStatic
         fun main(vararg args: String) {
             val dasTeku = DasTeku()
-            dasTeku.createAndStartNode(1, IntRange.EMPTY)
+            dasTeku.createAndStartNode(1, 32 until 64)
         }
     }
 }
@@ -78,7 +78,7 @@ class DasTeku(
     val validatorKeyPass = "1234"
     val bootnodeEnrFile = "$workDir/bootnode-enr.txt"
 
-    val random = SecureRandom(byteArrayOf())
+    val random = createDeterministicRandom()
     val validatorKeys: List<BLSKeyPair> = List(validatorsCount) { BLSKeyPair.random(random) }
 
     fun createGenesisIfRequired() {
@@ -255,4 +255,8 @@ class DasTeku(
 
     fun generatePrivateKeyFromSeed(seed: Long) = generatePrivateKeysFromSeed(1, seed)[0]
 
+    companion object {
+        fun createDeterministicRandom() = SecureRandom.getInstance("SHA1PRNG")
+            .also { it.setSeed(byteArrayOf()) }
+    }
 }
