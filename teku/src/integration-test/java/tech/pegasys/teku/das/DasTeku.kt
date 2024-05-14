@@ -176,9 +176,9 @@ class DasTeku(
                 .executionLayer {
                     it
                         .engineEndpoint("unsafe-test-stub")
-                        .stubExecutionLayerManagerConstructor { serviceConfig, _ ->
-                            createStubExecutionManager(serviceConfig)
-                        }
+//                        .stubExecutionLayerManagerConstructor { serviceConfig, _ ->
+//                            createStubExecutionManager(serviceConfig)
+//                        }
                 }
 
         if (validators.isNotEmpty()) {

@@ -116,13 +116,7 @@ public class ExecutionLayerService extends Service {
     final ExecutionLayerManager executionLayerManager;
     if (engineWeb3jClientProvider.isStub()) {
       executionLayerManager =
-          config
-              .getStubExecutionLayerManagerConstructor()
-              .map(ctor -> ctor.create(serviceConfig, config))
-              .orElseGet(
-                  () ->
-                      createStubExecutionLayerManager(
-                          serviceConfig, config, builderCircuitBreaker));
+          createStubExecutionLayerManager(serviceConfig, config, builderCircuitBreaker);
     } else {
       executionLayerManager =
           createRealExecutionLayerManager(

@@ -141,11 +141,9 @@ import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.datacolumns.DasCustodySync;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
-import tech.pegasys.teku.statetransition.datacolumns.debug.DasDBDebug;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerSearcher;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
@@ -627,28 +625,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       return;
     }
-
-    final DataColumnSidecarDB sidecarDB;
-    {
-      DataColumnSidecarDB dbImpl =
-          new DataColumnSidecarDBImpl(
-              combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
-      DasDBDebug dbDebug = new DasDBDebug(dbImpl);
-      long t0 = System.currentTimeMillis();
-      dbDebug.collectInitialInfo(recentChainData.getCurrentSlot().orElseThrow());
-      System.err.println(
-          "#### Collecting DAS DB data took " + (System.currentTimeMillis() - t0) + " ms: ");
-      System.err.println("#### " + dbDebug.createDigest());
-
-      AsyncRunner debugRunner = asyncRunnerFactory.create("debug", 1);
-      debugRunner.runWithFixedDelay(
-          () -> System.err.println("#### " + dbDebug.createDigest()),
-          Duration.ofSeconds(getSpec().getGenesisSpec().getConfig().getSecondsPerSlot()),
-          err -> LOG.warn("Err", err));
-
-      sidecarDB = dbDebug;
-    }
-
+    DataColumnSidecarDBImpl sidecarDB =
+        new DataColumnSidecarDBImpl(
+            combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
     DataColumnSidecarCustodyImpl.CanonicalBlockResolver blockRootResolver =
         slot ->
             combinedChainDataClient
