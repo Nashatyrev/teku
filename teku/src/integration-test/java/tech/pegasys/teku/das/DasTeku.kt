@@ -10,13 +10,10 @@ import tech.pegasys.teku.TekuFacade
 import tech.pegasys.teku.bls.BLSKeyPair
 import tech.pegasys.teku.cli.subcommand.internal.validator.tools.EncryptedKeystoreWriter
 import tech.pegasys.teku.config.TekuConfiguration
-import tech.pegasys.teku.ethereum.executionlayer.BuilderCircuitBreaker
-import tech.pegasys.teku.ethereum.executionlayer.ExecutionLayerManagerStub
 import tech.pegasys.teku.infrastructure.logging.LoggingConfig
 import tech.pegasys.teku.infrastructure.logging.LoggingConfigurator
 import tech.pegasys.teku.infrastructure.logging.LoggingDestination
 import tech.pegasys.teku.infrastructure.unsigned.UInt64
-import tech.pegasys.teku.service.serviceutils.ServiceConfig
 import tech.pegasys.teku.spec.Spec
 import tech.pegasys.teku.spec.TestSpecFactory
 import tech.pegasys.teku.spec.datastructures.interop.GenesisStateBuilder
@@ -212,15 +209,6 @@ class DasTeku(
             .build()
             .asEnr()
     }
-
-    private fun createStubExecutionManager(serviceConfig: ServiceConfig) =
-        ExecutionLayerManagerStub(
-            spec,
-            serviceConfig.timeProvider,
-            true,
-            Optional.empty(),
-            BuilderCircuitBreaker.NOOP
-        )
 
     fun writeGenesis() {
         val executionPayloadHeader = DataStructureUtil(spec).randomExecutionPayloadHeader()
