@@ -115,11 +115,11 @@ public class DasCustodySync implements SlotEventsChannel {
               .collect(Collectors.toSet());
       System.err.println(
           String.format(
-          "DataCustodySync.fillUp: synced=%s pending=%s, missingColumns=%s(%s)",
-          syncedColumnCount,
-          pendingRequests.size(),
-          missingColumnsToRequest.size(),
-          missingSlots));
+              "DataCustodySync.fillUp: synced=%s pending=%s, missingColumns=%s(%s)",
+              syncedColumnCount,
+              pendingRequests.size(),
+              missingColumnsToRequest.size(),
+              missingSlots));
     }
   }
 
