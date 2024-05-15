@@ -81,10 +81,11 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
     synchronized (this) {
       if (slot > maxAddedSlot) {
         LOG.info(
-            "DataColumnSidecarDB.addSidecar: new slot: {}, prevSlot count: {}, total count: {}",
+            "DataColumnSidecarDB.addSidecar: new slot: {}, prevSlot count: {}, total added: {}, finalizedSlot: {}",
             slot,
             streamColumnIdentifiers(UInt64.valueOf(maxAddedSlot)).count(),
-            addCounter.get());
+            addCounter.get(),
+            getFirstIncompleteSlot().orElse(UInt64.ONE).decrement());
         maxAddedSlot = slot;
       }
     }
