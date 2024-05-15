@@ -209,7 +209,7 @@ public class DataColumnSidecarCustodyImpl
     UInt64 firstNonFinalizedSlot = spec.computeStartSlotAtEpoch(finalizedEpoch.increment());
 
     streamPotentiallyIncompleteSlotCustodies()
-          // will move FirstIncompleteSlot only to finalized slots
+        // will move FirstIncompleteSlot only to finalized slots
         .takeWhile(sc -> sc.slot.isLessThan(firstNonFinalizedSlot))
         .map(scan(CompleteIncomplete.ZERO, CompleteIncomplete::add))
         .takeWhile(c -> c.firstIncomplete == null)
