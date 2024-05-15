@@ -90,7 +90,7 @@ public class DataColumnSidecarsByRootMessageHandler
         message.size(),
         message);
     LOG_DAS.info(
-        "DataColumnSidecarsByRootMessageHandler: REQUEST {} data column sidecars from {}",
+        "[nyota] DataColumnSidecarsByRootMessageHandler: REQUEST {} data column sidecars from {}",
         message.size(),
         peer.getId());
 
@@ -136,7 +136,7 @@ public class DataColumnSidecarsByRootMessageHandler
           }
           callback.completeSuccessfully();
           LOG_DAS.info(
-              "DataColumnSidecarsByRootMessageHandler: RESPOND {} data column sidecars to {}",
+              "[nyota] DataColumnSidecarsByRootMessageHandler: RESPOND {} data column sidecars to {}",
               sentDataColumnSidecars.get(),
               peer.getId());
         },
@@ -144,7 +144,7 @@ public class DataColumnSidecarsByRootMessageHandler
           peer.adjustDataColumnSidecarsRequest(dataColumnSidecarsRequestApproval.get(), 0);
           handleError(callback, err);
           LOG_DAS.info(
-              "DataColumnSidecarsByRootMessageHandler: ERROR to {}: {}",
+              "[nyota] DataColumnSidecarsByRootMessageHandler: ERROR to {}: {}",
               peer.getId(),
               err.toString());
         });

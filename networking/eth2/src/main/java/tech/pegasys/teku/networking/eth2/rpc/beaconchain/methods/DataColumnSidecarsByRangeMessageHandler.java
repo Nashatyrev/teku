@@ -104,7 +104,7 @@ public class DataColumnSidecarsByRangeMessageHandler
         columns,
         startSlot);
     LOG_DAS.info(
-        "DataColumnSidecarsByRangeMessageHandler: REQUEST {} slots with columns {} of data column sidecars starting at slot {} from {}",
+        "[nyota] DataColumnSidecarsByRangeMessageHandler: REQUEST {} slots with columns {} of data column sidecars starting at slot {} from {}",
         message.getCount(),
         columns,
         startSlot,
@@ -193,7 +193,7 @@ public class DataColumnSidecarsByRangeMessageHandler
               LOG.trace(
                   "Sent {} data column sidecars to peer {}.", sentDataColumnSidecars, peer.getId());
               LOG_DAS.info(
-                  "DataColumnSidecarsByRangeMessageHandler: RESPONSE sent {} sidecars to {}",
+                  "[nyota] DataColumnSidecarsByRangeMessageHandler: RESPONSE sent {} sidecars to {}",
                   sentDataColumnSidecars,
                   peer.getId());
               callback.completeSuccessfully();
@@ -202,7 +202,7 @@ public class DataColumnSidecarsByRangeMessageHandler
               peer.adjustDataColumnSidecarsRequest(dataColumnSidecarsRequestApproval.get(), 0);
               handleProcessingRequestError(error, callback);
               LOG_DAS.info(
-                  "DataColumnSidecarsByRangeMessageHandler: ERROR to {}: {}",
+                  "[nyota] DataColumnSidecarsByRangeMessageHandler: ERROR to {}: {}",
                   peer.getId(),
                   error.toString());
             });
