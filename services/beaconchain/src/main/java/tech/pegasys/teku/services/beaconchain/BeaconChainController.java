@@ -636,15 +636,14 @@ public class BeaconChainController extends Service implements BeaconChainControl
                 .thenApply(sbb -> sbb.flatMap(SignedBeaconBlock::getBeaconBlock))
                 .join();
 
-    int dasExtraCustodySubnetCount = beaconConfig.p2pConfig().getDasExtraCustodySubnetCount();
     SpecConfigEip7594 configEip7594 =
         SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
     int minCustodyRequirement = configEip7594.getCustodyRequirement();
     int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
     int totalMyCustodySubnets =
-        Integer.min(
-            maxSubnets,
-            MathHelpers.intPlusMaxIntCapped(minCustodyRequirement, dasExtraCustodySubnetCount));
+        beaconConfig
+            .p2pConfig()
+            .getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.EIP7594));
 
     DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
         new DataColumnSidecarCustodyImpl(
