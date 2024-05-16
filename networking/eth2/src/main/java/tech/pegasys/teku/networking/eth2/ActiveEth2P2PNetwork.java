@@ -74,7 +74,7 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
   private final SubnetSubscriptionService dataColumnSidecarSubnetService;
   private final ProcessedAttestationSubscriptionProvider processedAttestationSubscriptionProvider;
   private final AtomicBoolean gossipStarted = new AtomicBoolean(false);
-  private final Optional<Integer> dasExtraCustodySubnetCount;
+  private final int dasExtraCustodySubnetCount;
 
   private final GossipForkManager gossipForkManager;
 
@@ -99,7 +99,7 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
       final GossipEncoding gossipEncoding,
       final GossipConfigurator gossipConfigurator,
       final ProcessedAttestationSubscriptionProvider processedAttestationSubscriptionProvider,
-      final Optional<Integer> dasExtraCustodySubnetCount,
+      final int dasExtraCustodySubnetCount,
       final boolean allTopicsFilterEnabled) {
     super(discoveryNetwork);
     this.spec = spec;
@@ -160,17 +160,9 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
         syncCommitteeSubnetService.subscribeToUpdates(
             discoveryNetwork::setSyncCommitteeSubnetSubscriptions);
     if (spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
-      final int extraCustodySubnetCountConfig = dasExtraCustodySubnetCount.orElse(0);
-      final SpecConfigEip7594 configEip7594 =
-          SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
-      final int minCustodyRequirement = configEip7594.getCustodyRequirement();
-      final int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
-      final int extraCustodySubnetCount =
-          Integer.min(
-              Integer.max(0, maxSubnets - minCustodyRequirement), extraCustodySubnetCountConfig);
-      LOG.info("Using extra custody sidecar columns count: {}", extraCustodySubnetCount);
-      if (extraCustodySubnetCount != 0) {
-        discoveryNetwork.setDASExtraCustodySubnetCount(extraCustodySubnetCount);
+      LOG.info("Using extra custody sidecar columns count: {}", dasExtraCustodySubnetCount);
+      if (dasExtraCustodySubnetCount != 0) {
+        discoveryNetwork.setDASExtraCustodySubnetCount(dasExtraCustodySubnetCount);
       }
     }
 
