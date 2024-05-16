@@ -92,17 +92,15 @@ public class SimpleSidecarRetriever
     DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest =
         peerSearcher.requestPeers(columnId.slot(), columnId.identifier().getIndex());
 
-    synchronized (this) {
-      RetrieveRequest existingRequest = pendingRequests.get(columnId);
-      if (existingRequest == null) {
-        RetrieveRequest request = new RetrieveRequest(columnId, peerSearchRequest);
-        pendingRequests.put(columnId, request);
-        startIfNecessary();
-        return request.result;
-      } else {
-        peerSearchRequest.dispose();
-        return existingRequest.result;
-      }
+    RetrieveRequest existingRequest = pendingRequests.get(columnId);
+    if (existingRequest == null) {
+      RetrieveRequest request = new RetrieveRequest(columnId, peerSearchRequest);
+      pendingRequests.put(columnId, request);
+      startIfNecessary();
+      return request.result;
+    } else {
+      peerSearchRequest.dispose();
+      return existingRequest.result;
     }
   }
 
@@ -153,7 +151,7 @@ public class SimpleSidecarRetriever
     }
   }
 
-  void nextRound() {
+  private synchronized void nextRound() {
     List<RequestMatch> matches = matchRequestsAndPeers();
     for (RequestMatch match : matches) {
       SafeFuture<DataColumnSidecar> reqRespPromise =
@@ -165,11 +163,15 @@ public class SimpleSidecarRetriever
               match.peer);
     }
 
+    long activeRequestCount = pendingRequests.values().stream().filter(r -> r.activeRpcRequest != null).count();
+    LOG.info("[nyota] SimpleSidecarRetriever.nextRound: total pending: {}, active pending: {}, new pending: {}",
+            pendingRequests.size(), activeRequestCount, matches.size());
+
     reqResp.flush();
   }
 
   @SuppressWarnings("unused")
-  private void reqRespCompleted(
+  private synchronized void reqRespCompleted(
       RetrieveRequest request, DataColumnSidecar maybeResult, Throwable maybeError) {
     if (maybeResult != null) {
       synchronized (this) {
