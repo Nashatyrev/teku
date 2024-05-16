@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.units.bigints.UInt256;
@@ -50,11 +49,11 @@ public class GossipTopicDasPeerCustodyTracker
   private final Map<UInt256, Entry> connectedPeerExtraSubnets = new ConcurrentHashMap<>();
 
   public GossipTopicDasPeerCustodyTracker(
-          Spec spec,
-          GossipNetwork gossipNetwork,
-          GossipEncoding gossipEncoding,
-          Supplier<Optional<ForkInfo>> currentForkInfoSupplier,
-          AsyncRunner asyncRunner) {
+      Spec spec,
+      GossipNetwork gossipNetwork,
+      GossipEncoding gossipEncoding,
+      Supplier<Optional<ForkInfo>> currentForkInfoSupplier,
+      AsyncRunner asyncRunner) {
     this.spec = spec;
     this.gossipNetwork = gossipNetwork;
     this.gossipEncoding = gossipEncoding;

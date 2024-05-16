@@ -22,8 +22,6 @@ import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.Eth2P2PNetwork;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
-import tech.pegasys.teku.spec.logic.common.helpers.MathHelpers;
 
 public class DataColumnSidecarSubnetBackboneSubscriber implements SlotEventsChannel {
   private final Eth2P2PNetwork eth2P2PNetwork;

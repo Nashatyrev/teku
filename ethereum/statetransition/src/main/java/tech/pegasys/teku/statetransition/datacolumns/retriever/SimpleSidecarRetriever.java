@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.units.bigints.UInt256;
@@ -166,9 +165,14 @@ public class SimpleSidecarRetriever
               match.peer);
     }
 
-    long activeRequestCount = pendingRequests.values().stream().filter(r -> r.activeRpcRequest != null).count();
-    LOG.info("[nyota] SimpleSidecarRetriever.nextRound: total pending: {}, active pending: {}, new pending: {}, number of custody peers: {}",
-            pendingRequests.size(), activeRequestCount, matches.size(), gatherAvailableCustodiesInfo());
+    long activeRequestCount =
+        pendingRequests.values().stream().filter(r -> r.activeRpcRequest != null).count();
+    LOG.info(
+        "[nyota] SimpleSidecarRetriever.nextRound: total pending: {}, active pending: {}, new pending: {}, number of custody peers: {}",
+        pendingRequests.size(),
+        activeRequestCount,
+        matches.size(),
+        gatherAvailableCustodiesInfo());
 
     reqResp.flush();
   }
@@ -189,15 +193,17 @@ public class SimpleSidecarRetriever
 
   private String gatherAvailableCustodiesInfo() {
     SpecVersion specVersion = spec.forMilestone(SpecMilestone.EIP7594);
-    Map<UInt64, Long> colIndexToCount = connectedPeers.values().stream()
+    Map<UInt64, Long> colIndexToCount =
+        connectedPeers.values().stream()
             .flatMap(p -> p.getNodeCustodyIndexes(specVersion).stream())
             .collect(Collectors.groupingBy(i -> i, Collectors.counting()));
     int numberOfColumns = SpecConfigEip7594.required(specVersion.getConfig()).getNumberOfColumns();
     IntStream.range(0, numberOfColumns)
-            .mapToObj(UInt64::valueOf)
-            .forEach(idx -> colIndexToCount.putIfAbsent(idx, 0L));
+        .mapToObj(UInt64::valueOf)
+        .forEach(idx -> colIndexToCount.putIfAbsent(idx, 0L));
     colIndexToCount.replaceAll((colIdx, count) -> Long.min(3, count));
-    Map<Long, Long> custodyCountToPeerCount = colIndexToCount.entrySet().stream()
+    Map<Long, Long> custodyCountToPeerCount =
+        colIndexToCount.entrySet().stream()
             .collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.counting()));
     return new TreeMap<>(custodyCountToPeerCount)
         .entrySet().stream()
@@ -254,7 +260,8 @@ public class SimpleSidecarRetriever
     }
 
     public boolean isCustodyFor(ColumnSlotAndIdentifier columnId) {
-      return getNodeCustodyIndexes(spec.atSlot(columnId.slot())).contains(columnId.identifier().getIndex());
+      return getNodeCustodyIndexes(spec.atSlot(columnId.slot()))
+          .contains(columnId.identifier().getIndex());
     }
   }
 
