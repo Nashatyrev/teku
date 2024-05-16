@@ -664,7 +664,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
             spec,
             p2pNetwork,
             beaconConfig.p2pConfig().getGossipEncoding(),
-            () -> recentChainData.getCurrentForkInfo());
+            () -> recentChainData.getCurrentForkInfo(),
+            operationPoolAsyncRunner);
 
     p2pNetwork.subscribeConnect(peerCustodyTracker);
     DasPeerCustodyCountSupplier custodyCountSupplier =
@@ -991,7 +992,13 @@ public class BeaconChainController extends Service implements BeaconChainControl
     LOG.debug("BeaconChainController.initDataColumnSidecarSubnetBackboneSubscriber");
     DataColumnSidecarSubnetBackboneSubscriber subnetBackboneSubscriber =
         new DataColumnSidecarSubnetBackboneSubscriber(
-            spec, p2pNetwork, nodeId, beaconConfig.p2pConfig().getDasExtraCustodySubnetCount());
+            spec,
+            p2pNetwork,
+            nodeId,
+            beaconConfig
+                .p2pConfig()
+                .getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.EIP7594)));
+
     eventChannels.subscribe(SlotEventsChannel.class, subnetBackboneSubscriber);
   }
 
