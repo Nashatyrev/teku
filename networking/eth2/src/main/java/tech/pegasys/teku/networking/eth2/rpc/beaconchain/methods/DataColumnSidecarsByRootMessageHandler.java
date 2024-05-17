@@ -201,7 +201,7 @@ public class DataColumnSidecarsByRootMessageHandler
 
   private SafeFuture<Optional<DataColumnSidecar>> retrieveDataColumnSidecar(
       final DataColumnIdentifier identifier) {
-    return combinedChainDataClient.getSidecar(identifier);
+    return dataColumnSidecarCustody.getCustodyDataColumnSidecar(identifier);
   }
 
   private void handleError(
