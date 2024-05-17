@@ -653,6 +653,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarCustodyImpl);
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         dataColumnSidecarCustodyImpl::onNewValidatedDataColumnSidecar);
+    // TODO fix this dirty hack
+    // This is to resolve the initialization loop Network <--> DAS Custody
     this.dataColumnSidecarCustody.init(dataColumnSidecarCustodyImpl);
 
     DataColumnPeerManagerImpl dasPeerManager = new DataColumnPeerManagerImpl();
