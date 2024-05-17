@@ -15,7 +15,12 @@ package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -76,13 +81,15 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   public SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId) {
     SafeFuture<DataColumnSidecar> promise = delegate.retrieve(columnId);
     // TODO we probably need a better heuristics to submit requests for recovery
-    asyncRunner.runAfterDelay(
-        () -> {
-          if (!promise.isDone()) {
-            maybeInitiateRecovery(columnId, promise);
-          }
-        },
-        recoverInitiationTimeout);
+    asyncRunner
+        .runAfterDelay(
+            () -> {
+              if (!promise.isDone()) {
+                maybeInitiateRecovery(columnId, promise);
+              }
+            },
+            recoverInitiationTimeout)
+        .ifExceptionGetsHereRaiseABug();
     return promise;
   }
 
@@ -117,7 +124,9 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     }
   }
 
-  private synchronized void recoveryComplete(RecoveryEntry entry) {}
+  private synchronized void recoveryComplete(RecoveryEntry entry) {
+    LOG.trace("Recovery complete for entry {}", entry);
+  }
 
   private RecoveryEntry createNewRecovery(BeaconBlock block) {
     RecoveryEntry recoveryEntry = new RecoveryEntry(block, kzg, specHelpers);
@@ -208,7 +217,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                             new ColumnSlotAndIdentifier(
                                 block.getSlot(),
                                 new DataColumnIdentifier(block.getRoot(), columnIdx))))
-                .peek(promise -> promise.thenPeek(this::addSidecar))
+                .peek(promise -> promise.thenPeek(this::addSidecar).ifExceptionGetsHereRaiseABug())
                 .toList();
       }
     }
