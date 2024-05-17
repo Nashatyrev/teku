@@ -55,8 +55,6 @@ public class RecoveringSidecarRetrieverTest {
       SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
   final MiscHelpersEip7594 miscHelpers =
       MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).miscHelpers());
-  final int subnetCount = config.getDataColumnSidecarSubnetCount();
-  final int custodyCount = config.getCustodyRequirement();
   final int columnCount = config.getNumberOfColumns();
   final KZG kzg = KZG.getInstance();
 
@@ -64,10 +62,6 @@ public class RecoveringSidecarRetrieverTest {
 
   public RecoveringSidecarRetrieverTest() {
     TrustedSetupLoader.loadTrustedSetupForTests(kzg);
-  }
-
-  private DataColumnSidecar createSidecar(BeaconBlock block, int column) {
-    return dataStructureUtil.randomDataColumnSidecar(createSigned(block), UInt64.valueOf(column));
   }
 
   private SignedBeaconBlockHeader createSigned(BeaconBlock block) {

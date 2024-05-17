@@ -20,6 +20,8 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 
 public interface DataColumnSidecarCustody {
 
+  DataColumnSidecarCustody NOOP = (__) -> SafeFuture.completedFuture(Optional.empty());
+
   SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnIdentifier columnId);
 }
