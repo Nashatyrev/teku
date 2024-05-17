@@ -55,6 +55,7 @@ public class DataColumnSidecarCustodyImplTest {
   }
 
   @Test
+  @SuppressWarnings("JavaCase")
   void sanityTest() throws Throwable {
     DataColumnSidecarCustodyImpl custody =
         new DataColumnSidecarCustodyImpl(

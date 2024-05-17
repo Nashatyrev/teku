@@ -84,30 +84,6 @@ public class MappedOperationPoolTest {
   }
 
   @Test
-  void cancelTest() throws InterruptedException {
-    SafeFuture<Integer> f1 = new SafeFuture<>();
-    SafeFuture<Integer> f2 = f1.thenApply(i -> i + 1);
-
-    SafeFuture<Integer> f3 = f2.orTimeout(Duration.ofSeconds(1));
-
-    f1.finish(
-        succ -> System.out.println("f1 Succ: " + succ),
-        err -> System.out.println("f1 Err: " + err));
-    f2.finish(
-        succ -> System.out.println("f2 Succ: " + succ),
-        err -> System.out.println("f2 Err: " + err));
-    f3.finish(
-        succ -> System.out.println("f3 Succ: " + succ),
-        err -> System.out.println("f3 Err: " + err));
-
-    Thread.sleep(2000);
-
-    System.out.println("f1: " + f1.isDone() + ", " + f1.isCancelled());
-    System.out.println("f2: " + f2.isDone() + ", " + f2.isCancelled());
-    System.out.println("f3: " + f3.isDone() + ", " + f3.isCancelled());
-  }
-
-  @Test
   void emptyPoolShouldReturnEmptyList() {
     assertThat(pool.getItemsForBlock(state)).isEmpty();
   }
