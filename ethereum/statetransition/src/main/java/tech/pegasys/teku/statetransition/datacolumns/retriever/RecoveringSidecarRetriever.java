@@ -38,6 +38,8 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   private final DataColumnSidecarDB sidecarDB;
   private final AsyncRunner asyncRunner;
   private final Duration recoverInitiationTimeout;
+  private final int columnCount = 128;
+  private final int recoverColumnCount = columnCount / 2;
 
   private final Map<UInt64, RecoveryEntry> recoveryBySlot = new ConcurrentHashMap<>();
 
@@ -61,6 +63,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   @Override
   public SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId) {
     SafeFuture<DataColumnSidecar> promise = delegate.retrieve(columnId);
+    // TODO we probably need a better heuristics to submit requests for recovery
     asyncRunner.runAfterDelay(
         () -> {
           if (!promise.isDone()) {
@@ -72,15 +75,17 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   }
 
   @VisibleForTesting
-  void maybeInitiateRecovery(
+  synchronized void maybeInitiateRecovery(
       ColumnSlotAndIdentifier columnId, SafeFuture<DataColumnSidecar> promise) {
     Optional<BeaconBlock> maybeBlock = blockResolver.getBlockAtSlot(columnId.slot());
     if (!maybeBlock
         .map(b -> b.getRoot().equals(columnId.identifier().getBlockRoot()))
         .orElse(false)) {
+      LOG.info("[nyota] Recovery: CAN'T initiate recovery for " + columnId);
       promise.completeExceptionally(new NotOnCanonicalChainException(columnId, maybeBlock));
     } else {
       BeaconBlock block = maybeBlock.orElseThrow();
+      LOG.info("[nyota] Recovery: initiating recovery for " + columnId);
       RecoveryEntry recovery =
           recoveryBySlot.compute(
               columnId.slot(),
@@ -96,24 +101,28 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                   return existingRecovery;
                 }
               });
-      LOG.info("[nyota] Recovery: initiated recovery for " + columnId);
       recovery.addRequest(columnId.identifier().getIndex(), promise);
     }
   }
 
-  private void recoveryComplete(RecoveryEntry entry) {
-    recoveryBySlot.remove(entry.block.getSlot(), entry);
+  private synchronized void recoveryComplete(RecoveryEntry entry) {
   }
 
   private RecoveryEntry createNewRecovery(BeaconBlock block) {
     RecoveryEntry recoveryEntry = new RecoveryEntry(block, kzg, specHelpers);
+    LOG.info(
+        "[nyota] Recovery: new RecoveryEntry for slot {} and block {} ",
+        recoveryEntry.block.getSlot(),
+        recoveryEntry.block.getRoot());
     sidecarDB
         .streamColumnIdentifiers(block.getSlot())
+        .limit(recoverColumnCount)
         .forEach(
             colId -> {
               Optional<DataColumnSidecar> maybeSidecar = sidecarDB.getSidecar(colId);
               maybeSidecar.ifPresent(recoveryEntry::addSidecar);
             });
+
     recoveryEntry.initRecoveryRequests();
     return recoveryEntry;
   }
@@ -122,13 +131,11 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     private final BeaconBlock block;
     private final KZG kzg;
     private final MiscHelpersEip7594 specHelpers;
-    private final int columnCount = 128;
 
     private final Map<UInt64, DataColumnSidecar> existingSidecarsByColIdx = new HashMap<>();
     private final Map<UInt64, List<CompletableFuture<DataColumnSidecar>>> promisesByColIdx =
         new HashMap<>();
     private List<SafeFuture<DataColumnSidecar>> recoveryRequests;
-    private final int recoverColumnCount = columnCount / 2;
     private boolean recovered = false;
     private boolean cancelled = false;
 
@@ -141,9 +148,10 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     public synchronized void addRequest(
         UInt64 columnIndex, CompletableFuture<DataColumnSidecar> promise) {
       if (recovered) {
-        return;
+        promise.complete(existingSidecarsByColIdx.get(columnIndex));
+      } else {
+        promisesByColIdx.computeIfAbsent(columnIndex, __ -> new ArrayList<>()).add(promise);
       }
-      promisesByColIdx.computeIfAbsent(columnIndex, __ -> new ArrayList<>()).add(promise);
     }
 
     public synchronized void addSidecar(DataColumnSidecar sidecar) {
