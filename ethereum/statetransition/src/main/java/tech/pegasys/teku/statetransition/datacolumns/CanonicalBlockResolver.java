@@ -19,9 +19,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 
 public interface CanonicalBlockResolver {
 
-  /**
-   * Should return the canonical block root at slot if: - a block exist at this slot - block
-   * contains any blobs
-   */
+  /** Should return the canonical block at slot */
   Optional<BeaconBlock> getBlockAtSlot(UInt64 slot);
 }

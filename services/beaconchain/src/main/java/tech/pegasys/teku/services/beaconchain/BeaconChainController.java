@@ -706,7 +706,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
             canonicalBlockResolver,
             sidecarDB,
             operationPoolAsyncRunner,
-            Duration.ofMinutes(5));
+            Duration.ofMinutes(5),
+            configEip7594.getNumberOfColumns());
     dasCustodySync = new DasCustodySync(dataColumnSidecarCustodyImpl, recoveringSidecarRetriever);
     eventChannels.subscribe(SlotEventsChannel.class, dasCustodySync);
   }

@@ -55,8 +55,8 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   private final DataColumnSidecarDB sidecarDB;
   private final AsyncRunner asyncRunner;
   private final Duration recoverInitiationTimeout;
-  private final int columnCount = 128;
-  private final int recoverColumnCount = columnCount / 2;
+  private final int columnCount;
+  private final int recoverColumnCount;
 
   private final Map<UInt64, RecoveryEntry> recoveryBySlot = new ConcurrentHashMap<>();
 
@@ -67,7 +67,8 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       CanonicalBlockResolver blockResolver,
       DataColumnSidecarDB sidecarDB,
       AsyncRunner asyncRunner,
-      Duration recoverInitiationTimeout) {
+      Duration recoverInitiationTimeout,
+      int columnCount) {
     this.delegate = delegate;
     this.kzg = kzg;
     this.specHelpers = specHelpers;
@@ -75,6 +76,8 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     this.sidecarDB = sidecarDB;
     this.asyncRunner = asyncRunner;
     this.recoverInitiationTimeout = recoverInitiationTimeout;
+    this.columnCount = columnCount;
+    this.recoverColumnCount = columnCount / 2;
   }
 
   @Override

@@ -110,7 +110,7 @@ public class SimpleSidecarRetriever
   }
 
   private synchronized List<RequestMatch> matchRequestsAndPeers() {
-    disposeCancelledRequests();
+    disposeCompletedRequests();
     RequestTracker ongoingRequestsTracker = createFromCurrentPendingRequests();
     return pendingRequests.entrySet().stream()
         .filter(entry -> entry.getValue().activeRpcRequest == null)
@@ -140,7 +140,7 @@ public class SimpleSidecarRetriever
         .toList();
   }
 
-  private void disposeCancelledRequests() {
+  private void disposeCompletedRequests() {
     Iterator<Map.Entry<ColumnSlotAndIdentifier, RetrieveRequest>> pendingIterator =
         pendingRequests.entrySet().iterator();
     while (pendingIterator.hasNext()) {

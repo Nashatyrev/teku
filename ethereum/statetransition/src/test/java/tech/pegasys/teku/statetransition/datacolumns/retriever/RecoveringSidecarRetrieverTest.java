@@ -21,7 +21,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
-import org.apache.tuweni.units.bigints.UInt256;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
@@ -49,7 +48,6 @@ public class RecoveringSidecarRetrieverTest {
   final Spec spec = TestSpecFactory.createMinimalEip7594();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
-  final UInt256 myNodeId = UInt256.ONE;
 
   final SpecConfigEip7594 config =
       SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
@@ -87,7 +85,8 @@ public class RecoveringSidecarRetrieverTest {
             blockResolver,
             db,
             new StubAsyncRunner(),
-            Duration.ofSeconds(1));
+            Duration.ofSeconds(1),
+            128);
     List<Bytes> blobs =
         Stream.generate(dataStructureUtil::randomBlob)
             .map(SszByteVectorImpl::getBytes)
