@@ -29,6 +29,7 @@ import io.libp2p.core.mux.StreamMuxerProtocol;
 import io.libp2p.etc.types.ByteArrayExtKt;
 import io.libp2p.protocol.Identify;
 import io.libp2p.protocol.Ping;
+import io.libp2p.pubsub.gossip.Gossip;
 import io.libp2p.security.noise.NoiseXXSecureChannel;
 import io.libp2p.transport.tcp.TcpTransport;
 import io.netty.handler.logging.LogLevel;
@@ -39,8 +40,10 @@ import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.version.VersionProvider;
+import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessageFactory;
 import tech.pegasys.teku.networking.p2p.libp2p.LibP2PNetwork.PrivateKeyProvider;
+import tech.pegasys.teku.networking.p2p.libp2p.gossip.DaggerGossipNetworkComponent;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.GossipTopicFilter;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetwork;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetworkBuilder;
@@ -81,7 +84,8 @@ public class LibP2PNetworkBuilder {
   protected MuxFirewall muxFirewall =
       new MuxFirewall(REMOTE_OPEN_STREAMS_RATE_LIMIT, REMOTE_PARALLEL_OPEN_STREAMS_COUNT_LIMIT);
 
-  protected LibP2PGossipNetwork gossipNetwork;
+  protected GossipNetwork gossipNetwork;
+  protected Gossip gossip;
 
   protected Defaults hostBuilderDefaults = Defaults.None;
   protected Host host;
@@ -95,7 +99,18 @@ public class LibP2PNetworkBuilder {
   @SuppressWarnings("AddressSelection")
   public P2PNetwork<Peer> build() {
 
-    gossipNetwork = createGossipNetwork();
+    LibP2PGossipNetworkBuilder networkBuilder = createGossipNetworkBuilder();
+
+    // create using old method
+//    LibP2PGossipNetwork network = networkBuilder.build();
+//    gossipNetwork = network;
+//    gossip = network.getGossip();
+
+    // create using Dagger method
+    DaggerGossipNetworkComponent gossipNetworkComponent = networkBuilder.buildWithDagger();
+    gossipNetwork = gossipNetworkComponent.gossipNetworkComponent();
+    gossip = gossipNetworkComponent.gossipComponent();
+
     // Setup rpc methods
     rpcHandlers = createRpcHandlers();
     // Setup peers
@@ -122,7 +137,7 @@ public class LibP2PNetworkBuilder {
     return rpcMethods.stream().map(m -> new RpcHandler<>(asyncRunner, m)).toList();
   }
 
-  protected LibP2PGossipNetwork createGossipNetwork() {
+  protected LibP2PGossipNetworkBuilder createGossipNetworkBuilder() {
     return createLibP2PGossipNetworkBuilder()
         .metricsSystem(metricsSystem)
         .gossipConfig(config.getGossipConfig())
@@ -131,8 +146,7 @@ public class LibP2PNetworkBuilder {
         .gossipTopicFilter(gossipTopicFilter)
         .logWireGossip(config.getWireLogsConfig().isLogWireGossip())
         .timeProvider(timeProvider)
-        .recordArrivalTime(recordMessageArrival)
-        .build();
+        .recordArrivalTime(recordMessageArrival);
   }
 
   protected PeerManager createPeerManager() {
@@ -141,7 +155,7 @@ public class LibP2PNetworkBuilder {
         reputationManager,
         peerHandlers,
         rpcHandlers,
-        (peerId) -> gossipNetwork.getGossip().getGossipScore(peerId));
+        (peerId) -> gossip.getGossipScore(peerId));
   }
 
   @SuppressWarnings("AddressSelection")
@@ -174,7 +188,7 @@ public class LibP2PNetworkBuilder {
           b.getNetwork().listen(listenAddr.toString());
 
           b.getProtocols().addAll(getDefaultProtocols(privKey.publicKey(), advertisedAddr));
-          b.getProtocols().add(gossipNetwork.getGossip());
+          b.getProtocols().add(gossip);
           b.getProtocols().addAll(rpcHandlers);
 
           if (config.getWireLogsConfig().isLogWireCipher()) {
@@ -207,7 +221,7 @@ public class LibP2PNetworkBuilder {
             .setObservedAddr(ByteArrayExtKt.toProtobuf(advertisedAddr.serialize()))
             .addAllProtocols(ping.getProtocolDescriptor().getAnnounceProtocols())
             .addAllProtocols(
-                gossipNetwork.getGossip().getProtocolDescriptor().getAnnounceProtocols())
+                gossip.getProtocolDescriptor().getAnnounceProtocols())
             .build();
     return List.of(ping, new Identify(identifyMsg));
   }
