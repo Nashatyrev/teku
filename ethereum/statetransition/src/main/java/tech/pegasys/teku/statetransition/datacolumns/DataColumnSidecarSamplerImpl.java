@@ -132,7 +132,7 @@ public class DataColumnSidecarSamplerImpl
     final List<UInt64> assignedSampleColumns =
         this.assignedSampleColumns.computeIfAbsent(slot, this::computeSampleColumns);
     if (!alreadyAssigned) {
-      LOG.info("For slot {} assigned columns: {}", slot, assignedSampleColumns);
+      LOG.info("Slot {} assigned columns: {}", slot, assignedSampleColumns);
     }
 
     return assignedSampleColumns;
