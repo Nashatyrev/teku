@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2022
+ * Copyright Consensys Software Inc., 2024
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -11,23 +11,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.config;
+package tech.pegasys.teku.statetransition.datacolumns;
 
-/**
- * Networking constants
- *
- * <p>These constants are unified among forks and are not overridden, new constant name is used if
- * it's changed in the new fork
- */
-public interface NetworkingSpecConfigEip7594 extends NetworkingSpecConfig {
+public interface DasSamplerSync {
+  DasSamplerSync NOOP =
+      new DasSamplerSync() {
+        @Override
+        public void start() {}
 
-  int getDataColumnSidecarSubnetCount();
+        @Override
+        public void stop() {}
+      };
 
-  int getCustodyRequirement();
+  void start();
 
-  int getSamplesPerSlot();
-
-  int getMinEpochsForDataColumnSidecarsRequests();
-
-  int getMaxRequestDataColumnSidecars();
+  void stop();
 }

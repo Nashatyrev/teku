@@ -23,7 +23,9 @@ public interface DataColumnSidecarDB {
 
   // read
 
-  Optional<UInt64> getFirstIncompleteSlot();
+  Optional<UInt64> getFirstCustodyIncompleteSlot();
+
+  Optional<UInt64> getFirstSamplerIncompleteSlot();
 
   Optional<DataColumnSidecar> getSidecar(DataColumnIdentifier identifier);
 
@@ -31,7 +33,9 @@ public interface DataColumnSidecarDB {
 
   // update
 
-  void setFirstIncompleteSlot(UInt64 slot);
+  void setFirstCustodyIncompleteSlot(UInt64 slot);
+
+  void setFirstSamplerIncompleteSlot(UInt64 slot);
 
   void addSidecar(DataColumnSidecar sidecar);
 

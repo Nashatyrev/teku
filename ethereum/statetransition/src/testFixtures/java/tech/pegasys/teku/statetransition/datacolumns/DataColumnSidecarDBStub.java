@@ -26,18 +26,29 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 
 public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
 
-  private Optional<UInt64> firstIncompleteSlot = Optional.empty();
+  private Optional<UInt64> firstCustodyIncompleteSlot = Optional.empty();
+  private Optional<UInt64> firstSamplerIncompleteSlot = Optional.empty();
   private Map<DataColumnIdentifier, DataColumnSidecar> db = new HashMap<>();
   private Map<UInt64, Set<DataColumnIdentifier>> slotIds = new HashMap<>();
 
   @Override
-  public void setFirstIncompleteSlot(UInt64 slot) {
-    this.firstIncompleteSlot = Optional.of(slot);
+  public void setFirstCustodyIncompleteSlot(UInt64 slot) {
+    this.firstCustodyIncompleteSlot = Optional.of(slot);
   }
 
   @Override
-  public Optional<UInt64> getFirstIncompleteSlot() {
-    return firstIncompleteSlot;
+  public Optional<UInt64> getFirstCustodyIncompleteSlot() {
+    return firstCustodyIncompleteSlot;
+  }
+
+  @Override
+  public Optional<UInt64> getFirstSamplerIncompleteSlot() {
+    return firstSamplerIncompleteSlot;
+  }
+
+  @Override
+  public void setFirstSamplerIncompleteSlot(UInt64 slot) {
+    this.firstSamplerIncompleteSlot = Optional.of(slot);
   }
 
   @Override

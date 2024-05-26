@@ -42,8 +42,13 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
   }
 
   @Override
-  public Optional<UInt64> getFirstIncompleteSlot() {
-    return combinedChainDataClient.getFirstIncompleteSlot().join();
+  public Optional<UInt64> getFirstCustodyIncompleteSlot() {
+    return combinedChainDataClient.getFirstCustodyIncompleteSlot().join();
+  }
+
+  @Override
+  public Optional<UInt64> getFirstSamplerIncompleteSlot() {
+    return combinedChainDataClient.getFirstSamplerIncompleteSlot().join();
   }
 
   @Override
@@ -58,18 +63,30 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
   }
 
   @Override
-  public void setFirstIncompleteSlot(final UInt64 slot) {
-    Optional<UInt64> oldValue = getFirstIncompleteSlot();
-    sidecarUpdateChannel.onFirstIncompleteSlot(slot);
+  public void setFirstCustodyIncompleteSlot(final UInt64 slot) {
+    Optional<UInt64> oldValue = getFirstCustodyIncompleteSlot();
+    sidecarUpdateChannel.onFirstCustodyIncompleteSlot(slot);
     if (oldValue.isEmpty() || !oldValue.get().equals(slot)) {
       long oldSlotColCount = oldValue.map(s -> streamColumnIdentifiers(s).count()).orElse(0L);
       long newSlotCount = streamColumnIdentifiers(slot).count();
       LOG.info(
-          "[nyota] DataColumnSidecarDB: setFirstIncompleteSlot {} ({} cols) ~> {} ({} cols)",
+          "[nyota] DataColumnSidecarDB: setFirstCustodyIncompleteSlot {} ({} cols) ~> {} ({} cols)",
           oldValue.map(UInt64::toString).orElse("NA"),
           oldSlotColCount,
           slot,
           newSlotCount);
+    }
+  }
+
+  @Override
+  public void setFirstSamplerIncompleteSlot(final UInt64 slot) {
+    Optional<UInt64> oldValue = getFirstSamplerIncompleteSlot();
+    sidecarUpdateChannel.onFirstSamplerIncompleteSlot(slot);
+    if (oldValue.isEmpty() || !oldValue.get().equals(slot)) {
+      LOG.info(
+          "[nyota] DataColumnSidecarDB: setFirstSamplerIncompleteSlot {} ~> {}",
+          oldValue.map(UInt64::toString).orElse("NA"),
+          slot);
     }
   }
 
@@ -85,7 +102,7 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
             slot,
             streamColumnIdentifiers(UInt64.valueOf(maxAddedSlot)).count(),
             addCounter.get(),
-            getFirstIncompleteSlot().orElse(UInt64.ONE).decrement());
+            getFirstCustodyIncompleteSlot().orElse(UInt64.ONE).decrement());
         maxAddedSlot = slot;
       }
     }
