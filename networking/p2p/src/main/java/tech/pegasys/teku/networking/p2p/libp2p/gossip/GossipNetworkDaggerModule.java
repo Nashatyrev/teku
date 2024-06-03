@@ -19,9 +19,9 @@ import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
 
 @Module(includes = {
-    DaggerGossipRouterModule.class
+    GossipRouterDaggerModule.class
 })
-public interface DaggerGossipNetworkModule {
+public interface GossipNetworkDaggerModule {
 
   @Provides
   static GossipNetwork provideGossipNetwork(

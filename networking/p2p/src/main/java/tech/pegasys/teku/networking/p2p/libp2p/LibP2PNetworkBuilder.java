@@ -43,9 +43,8 @@ import tech.pegasys.teku.infrastructure.version.VersionProvider;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessageFactory;
 import tech.pegasys.teku.networking.p2p.libp2p.LibP2PNetwork.PrivateKeyProvider;
-import tech.pegasys.teku.networking.p2p.libp2p.gossip.DaggerGossipNetworkComponent;
+import tech.pegasys.teku.networking.p2p.libp2p.gossip.GossipNetworkDaggerSubcomponent;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.GossipTopicFilter;
-import tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetwork;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetworkBuilder;
 import tech.pegasys.teku.networking.p2p.libp2p.rpc.RpcHandler;
 import tech.pegasys.teku.networking.p2p.network.P2PNetwork;
@@ -107,7 +106,7 @@ public class LibP2PNetworkBuilder {
 //    gossip = network.getGossip();
 
     // create using Dagger method
-    DaggerGossipNetworkComponent gossipNetworkComponent = networkBuilder.buildWithDagger();
+    GossipNetworkDaggerSubcomponent gossipNetworkComponent = networkBuilder.buildWithDagger();
     gossipNetwork = gossipNetworkComponent.gossipNetworkComponent();
     gossip = gossipNetworkComponent.gossipComponent();
 

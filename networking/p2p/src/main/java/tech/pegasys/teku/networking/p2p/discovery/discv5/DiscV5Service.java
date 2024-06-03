@@ -50,7 +50,6 @@ import tech.pegasys.teku.storage.store.KeyValueStore;
 
 public class DiscV5Service extends Service implements DiscoveryService {
   private static final Logger LOG = LogManager.getLogger();
-  private static final String SEQ_NO_STORE_KEY = "local-enr-seqno";
   private static final Duration BOOTNODE_REFRESH_DELAY = Duration.ofMinutes(2);
   public static final NodeRecordConverter DEFAULT_NODE_RECORD_CONVERTER = new NodeRecordConverter();
 
@@ -59,81 +58,32 @@ public class DiscV5Service extends Service implements DiscoveryService {
   }
 
   private final AsyncRunner asyncRunner;
-  private final SecretKey localNodePrivateKey;
   private final SchemaDefinitionsSupplier currentSchemaDefinitionsSupplier;
   private final NodeRecordConverter nodeRecordConverter;
 
   private final DiscoverySystem discoverySystem;
-  private final KeyValueStore<String, Bytes> kvStore;
   private final List<NodeRecord> bootnodes;
   private volatile Cancellable bootnodeRefreshTask;
 
   public DiscV5Service(
+      final DiscoverySystem discoverySystem,
       final MetricsSystem metricsSystem,
       final AsyncRunner asyncRunner,
-      final DiscoveryConfig discoConfig,
-      final NetworkConfig p2pConfig,
-      final KeyValueStore<String, Bytes> kvStore,
-      final Bytes privateKey,
+      final List<NodeRecord> bootnodes,
       final SchemaDefinitionsSupplier currentSchemaDefinitionsSupplier,
-      final DiscoverySystemBuilder discoverySystemBuilder,
       final NodeRecordConverter nodeRecordConverter) {
+
+    this.discoverySystem = discoverySystem;
     this.asyncRunner = asyncRunner;
-    this.localNodePrivateKey = SecretKeyParser.fromLibP2pPrivKey(privateKey);
+    this.bootnodes = bootnodes;
     this.currentSchemaDefinitionsSupplier = currentSchemaDefinitionsSupplier;
     this.nodeRecordConverter = nodeRecordConverter;
-    final String listenAddress = p2pConfig.getNetworkInterface();
-    final int listenUdpPort = discoConfig.getListenUdpPort();
-    final String advertisedAddress = p2pConfig.getAdvertisedIp();
-    final int advertisedTcpPort = p2pConfig.getAdvertisedPort();
-    final int advertisedUdpPort = discoConfig.getAdvertisedUdpPort();
-    final UInt64 seqNo =
-        kvStore.get(SEQ_NO_STORE_KEY).map(UInt64::fromBytes).orElse(UInt64.ZERO).add(1);
-    final NewAddressHandler maybeUpdateNodeRecordHandler =
-        maybeUpdateNodeRecord(p2pConfig.hasUserExplicitlySetAdvertisedIp(), advertisedTcpPort);
-    this.bootnodes =
-        discoConfig.getBootnodes().stream().map(NodeRecordFactory.DEFAULT::fromEnr).toList();
-    final NodeRecordBuilder nodeRecordBuilder =
-        new NodeRecordBuilder().secretKey(localNodePrivateKey).seq(seqNo);
-    if (p2pConfig.hasUserExplicitlySetAdvertisedIp()) {
-      nodeRecordBuilder.address(advertisedAddress, advertisedUdpPort, advertisedTcpPort);
-    }
-    final NodeRecord localNodeRecord = nodeRecordBuilder.build();
-    this.discoverySystem =
-        discoverySystemBuilder
-            .listen(listenAddress, listenUdpPort)
-            .secretKey(localNodePrivateKey)
-            .bootnodes(bootnodes)
-            .localNodeRecord(localNodeRecord)
-            .newAddressHandler(maybeUpdateNodeRecordHandler)
-            .localNodeRecordListener(this::localNodeRecordUpdated)
-            .addressAccessPolicy(
-                discoConfig.areSiteLocalAddressesEnabled()
-                    ? AddressAccessPolicy.ALLOW_ALL
-                    : address -> !address.getAddress().isSiteLocalAddress())
-            .build();
-    this.kvStore = kvStore;
+
     metricsSystem.createIntegerGauge(
         TekuMetricCategory.DISCOVERY,
         "live_nodes_current",
         "Current number of live nodes tracked by the discovery system",
         () -> discoverySystem.getBucketStats().getTotalLiveNodeCount());
-  }
-
-  private NewAddressHandler maybeUpdateNodeRecord(
-      boolean userExplicitlySetAdvertisedIpOrPort, final int advertisedTcpPort) {
-    if (userExplicitlySetAdvertisedIpOrPort) {
-      return (oldRecord, newAddress) -> Optional.of(oldRecord);
-    } else {
-      return (oldRecord, newAddress) ->
-          Optional.of(
-              oldRecord.withNewAddress(
-                  newAddress, Optional.of(advertisedTcpPort), localNodePrivateKey));
-    }
-  }
-
-  private void localNodeRecordUpdated(NodeRecord oldRecord, NodeRecord newRecord) {
-    kvStore.put(SEQ_NO_STORE_KEY, newRecord.getSeq().toBytes());
   }
 
   @Override

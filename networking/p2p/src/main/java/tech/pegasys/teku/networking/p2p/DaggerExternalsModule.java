@@ -5,14 +5,20 @@ import dagger.Module;
 import javax.inject.Singleton;
 
 import dagger.Provides;
+import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
+import tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessageFactory;
 import tech.pegasys.teku.networking.p2p.gossip.config.GossipConfig;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.GossipTopicFilter;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetwork;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
+import tech.pegasys.teku.storage.store.KeyValueStore;
+
+import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodePrivateKeyBytes;
 
 @Module
 public class DaggerExternalsModule {
@@ -38,6 +44,32 @@ public class DaggerExternalsModule {
     this.gossipTopicFilter = gossipTopicFilter;
     this.timeProvider = timeProvider;
   }
+
+  @Provides
+  @Singleton
+  @DaggerQualifier(LocalNodePrivateKeyBytes)
+  Bytes provideLocalNodePrivateKeyBytes() {
+    throw new UnsupportedOperationException("TODO");
+  }
+
+  @Provides
+  @Singleton
+  DiscoveryConfig provideDiscoveryConfig() {
+    throw new UnsupportedOperationException("TODO");
+  }
+
+  @Provides
+  @Singleton
+  KeyValueStore<String, Bytes> provideKVStore() {
+    throw new UnsupportedOperationException("TODO");
+  }
+
+  @Provides
+  @Singleton
+  SchemaDefinitionsSupplier provideCurrentSchemaDefinitionsSupplier() {
+    throw new UnsupportedOperationException("TODO");
+  }
+
 
   @Provides
   @Singleton

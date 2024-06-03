@@ -35,7 +35,7 @@ import static tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetwork
 import static tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetworkBuilder.MAX_SUBSCRIBED_TOPICS;
 
 @Module
-public interface DaggerGossipRouterModule {
+public interface GossipRouterDaggerModule {
 
   interface PubsubMessageFactory extends Function1<Rpc.Message, PubsubMessage> {};
 

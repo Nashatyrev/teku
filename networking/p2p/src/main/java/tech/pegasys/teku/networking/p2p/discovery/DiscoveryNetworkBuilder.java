@@ -35,6 +35,7 @@ import tech.pegasys.teku.storage.store.KeyValueStore;
  */
 public class DiscoveryNetworkBuilder {
 
+
   public static DiscoveryNetworkBuilder create() {
     return new DiscoveryNetworkBuilder();
   }
@@ -56,13 +57,13 @@ public class DiscoveryNetworkBuilder {
   protected DiscoveryNetworkBuilder() {}
 
   protected void initMissingDefaults() {
-    if (discoveryService == null) {
-      discoveryService = createDiscoveryService();
-    }
-
-    if (connectionManager == null) {
-      connectionManager = createConnectionManager();
-    }
+//    if (discoveryService == null) {
+//      discoveryService = createDiscoveryService();
+//    }
+//
+//    if (connectionManager == null) {
+//      connectionManager = createConnectionManager();
+//    }
   }
 
   public DiscoveryNetwork<?> build() {
@@ -96,6 +97,7 @@ public class DiscoveryNetworkBuilder {
         peerPools);
   }
 
+/*
   protected DiscoveryService createDiscoveryService() {
     final DiscoveryService discoveryService;
 
@@ -124,6 +126,7 @@ public class DiscoveryNetworkBuilder {
     }
     return discoveryService;
   }
+*/
 
   public DiscoveryNetworkBuilder metricsSystem(MetricsSystem metricsSystem) {
     this.metricsSystem = metricsSystem;
@@ -186,4 +189,5 @@ public class DiscoveryNetworkBuilder {
     this.connectionManager = connectionManager;
     return this;
   }
+
 }

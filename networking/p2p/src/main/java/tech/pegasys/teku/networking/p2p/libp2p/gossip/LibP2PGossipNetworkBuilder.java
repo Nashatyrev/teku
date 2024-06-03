@@ -76,7 +76,7 @@ public class LibP2PGossipNetworkBuilder {
 
   protected LibP2PGossipNetworkBuilder() {}
 
-  public DaggerGossipNetworkComponent buildWithDagger() {
+  public GossipNetworkDaggerSubcomponent buildWithDagger() {
     validate();
     DaggerExternalsModule daggerExternalsModule = new DaggerExternalsModule(
         metricsSystem,
