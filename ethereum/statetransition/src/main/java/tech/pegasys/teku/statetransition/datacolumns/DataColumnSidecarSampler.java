@@ -14,7 +14,6 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.stream.Stream;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 
 public interface DataColumnSidecarSampler {
@@ -22,20 +21,4 @@ public interface DataColumnSidecarSampler {
   void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar);
 
   Stream<ColumnSlotAndIdentifier> streamMissingColumns();
-
-  static int computeSamplesCount(
-      final SpecConfigEip7594 specConfig, final int myTotalCustodySubnets) {
-    final int availableSubnets =
-        specConfig.getDataColumnSidecarSubnetCount() - myTotalCustodySubnets;
-    if (availableSubnets == 0) {
-      return 0;
-    }
-    final int availableColumns =
-        availableSubnets
-            * specConfig.getNumberOfColumns()
-            / specConfig.getDataColumnSidecarSubnetCount();
-    final int samplesPerSlot = specConfig.getSamplesPerSlot();
-
-    return Math.min(samplesPerSlot, availableColumns);
-  }
 }

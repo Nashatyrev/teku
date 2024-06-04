@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -95,8 +96,7 @@ public class DataColumnSidecarSamplerImpl
 
   @Override
   public synchronized void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
-    if (dataColumnSidecar.getSlot().isGreaterThanOrEqualTo(getFirstIncompleteSlot())
-        && !getMyCustody(dataColumnSidecar.getSlot()).contains(dataColumnSidecar.getIndex())) {
+    if (dataColumnSidecar.getSlot().isGreaterThanOrEqualTo(getFirstIncompleteSlot())) {
       collectedSamples.compute(
           dataColumnSidecar.getSlot(),
           (__, dataColumnIdentifiers) -> {
@@ -109,6 +109,24 @@ public class DataColumnSidecarSamplerImpl
               return collectedIdentifiers;
             }
           });
+
+      final Set<DataColumnIdentifier> dataColumnIdentifiers =
+          collectedSamples.get(dataColumnSidecar.getSlot());
+
+      // IF we've collected 50% everything from this slot is available
+      final int columnsCount =
+          SpecConfigEip7594.required(spec.atSlot(dataColumnSidecar.getSlot()).getConfig())
+              .getNumberOfColumns();
+      if (dataColumnIdentifiers.size() * 2 >= columnsCount) {
+        IntStream.range(0, columnsCount)
+            .mapToObj(
+                index ->
+                    new DataColumnIdentifier(
+                        dataColumnSidecar.getBlockRoot(), UInt64.valueOf(index)))
+            .forEach(dataColumnIdentifiers::add);
+      }
+
+      // Debug logging
       if (assignedSampleColumns.containsKey(dataColumnSidecar.getSlot())
           && assignedSampleColumns.get(dataColumnSidecar.getSlot()).stream()
               .map(
@@ -141,29 +159,16 @@ public class DataColumnSidecarSamplerImpl
   private List<UInt64> computeSampleColumns(UInt64 slot) {
     final int columnsCount =
         SpecConfigEip7594.required(spec.atSlot(slot).getConfig()).getNumberOfColumns();
-    final List<UInt64> myCustodyColumns = getMyCustody(slot);
-
     final List<UInt64> assignedSamples = new ArrayList<>();
     while (assignedSamples.size() < myDataColumnSampleCount) {
       final UInt64 candidate = UInt64.valueOf(rnd.nextInt(columnsCount));
-      if (myCustodyColumns.contains(candidate) || assignedSamples.contains(candidate)) {
+      if (assignedSamples.contains(candidate)) {
         continue;
       }
       assignedSamples.add(candidate);
     }
 
     return assignedSamples;
-  }
-
-  private List<UInt64> getMyCustody(UInt64 slot) {
-    UInt64 epoch = spec.computeEpochAtSlot(slot);
-    return spec.atEpoch(epoch)
-        .miscHelpers()
-        .toVersionEip7594()
-        .map(
-            miscHelpersEip7594 ->
-                miscHelpersEip7594.computeCustodyColumnIndexes(nodeId, myDataColumnSampleCount))
-        .orElse(List.of());
   }
 
   @Override

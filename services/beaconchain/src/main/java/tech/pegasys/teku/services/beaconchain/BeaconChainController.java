@@ -147,7 +147,6 @@ import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImp
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarSampler;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarSamplerImpl;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
@@ -716,7 +715,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             configEip7594.getNumberOfColumns());
 
     final int myDataColumnSampleCount =
-        DataColumnSidecarSampler.computeSamplesCount(configEip7594, totalMyCustodySubnets);
+        Math.min(configEip7594.getSamplesPerSlot(), configEip7594.getNumberOfColumns());
     if (myDataColumnSampleCount != 0) {
       final DataColumnSidecarSamplerImpl dataColumnSidecarSamplerImpl =
           new DataColumnSidecarSamplerImpl(
