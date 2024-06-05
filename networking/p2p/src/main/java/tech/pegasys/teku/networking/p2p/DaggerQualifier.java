@@ -10,11 +10,10 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 public @interface DaggerQualifier {
 
   enum P2PDependency {
-    LocalNodePrivateKeyBytes,
-    LocalNodeTuweniPrivateKey,
+    LocalNodeDiscoveryPrivateKey,
     LocalNodeLibp2pPrivateKey,
     LocalNodeLibp2pPublicKey,
-    LocalNodeId,
+    LocalNodeLibp2pPeerId,
     LocalNodeRecord,
     Bootnodes,
     AdvertisedMultiaddr,

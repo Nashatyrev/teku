@@ -3,7 +3,7 @@ package tech.pegasys.teku.networking.p2p.libp2p;
 import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.AdvertisedMultiaddr;
 import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.DefaultLibp2pProtocols;
 import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.ListenMultiaddr;
-import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodeId;
+import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodeLibp2pPeerId;
 import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodeLibp2pPrivateKey;
 import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodeLibp2pPublicKey;
 import static tech.pegasys.teku.networking.p2p.libp2p.LibP2PNetwork.REMOTE_OPEN_STREAMS_RATE_LIMIT;
@@ -13,7 +13,6 @@ import dagger.Module;
 import dagger.Provides;
 import identify.pb.IdentifyOuterClass;
 import io.libp2p.core.Host;
-import io.libp2p.core.PeerId;
 import io.libp2p.core.crypto.PrivKey;
 import io.libp2p.core.crypto.PubKey;
 import io.libp2p.core.dsl.Builder;
@@ -48,28 +47,6 @@ import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
 public interface LibP2PNetworkModule {
 
   @Provides
-  @Singleton
-  @DaggerQualifier(LocalNodeLibp2pPrivateKey)
-  static PrivKey provideNodePrivateKey(LibP2PNetwork.PrivateKeyProvider privateKeyProvider) {
-    return privateKeyProvider.get();
-  }
-
-  @Provides
-  @Singleton
-  @DaggerQualifier(LocalNodeLibp2pPublicKey)
-  static PubKey provideNodePublicKey(
-      @DaggerQualifier(LocalNodeLibp2pPrivateKey) PrivKey privateKey) {
-    return privateKey.publicKey();
-  }
-
-  @Provides
-  @Singleton
-  @DaggerQualifier(LocalNodeId)
-  static NodeId provideLocalNodeId(@DaggerQualifier(LocalNodeLibp2pPublicKey) PubKey nodePubKey) {
-    return new LibP2PNodeId(PeerId.fromPubKey(nodePubKey));
-  }
-
-  @Provides
   static List<? extends RpcHandler<?, ?, ?>> provideRpcHandlers(
       AsyncRunner asyncRunner, List<RpcMethod<?, ?, ?>> rpcMethods) {
     return rpcMethods.stream().map(m -> new RpcHandler<>(asyncRunner, m)).toList();
@@ -78,7 +55,7 @@ public interface LibP2PNetworkModule {
   @Provides
   @DaggerQualifier(AdvertisedMultiaddr)
   static Multiaddr provideAdvertisedMultiaddr(
-      NetworkConfig networkConfig, @DaggerQualifier(LocalNodeId) NodeId nodeId) {
+      NetworkConfig networkConfig, @DaggerQualifier(LocalNodeLibp2pPeerId) NodeId nodeId) {
     return MultiaddrUtil.fromInetSocketAddress(
         new InetSocketAddress(networkConfig.getAdvertisedIp(), networkConfig.getAdvertisedPort()),
         nodeId);
@@ -209,7 +186,7 @@ public interface LibP2PNetworkModule {
   @Singleton
   static LibP2PNetwork provideLibp2pNetwork(
       @DaggerQualifier(LocalNodeLibp2pPrivateKey) PrivKey privKey,
-      @DaggerQualifier(LocalNodeId) NodeId nodeId,
+      @DaggerQualifier(LocalNodeLibp2pPeerId) NodeId nodeId,
       Host host,
       PeerManager peerManager,
       @DaggerQualifier(AdvertisedMultiaddr) Multiaddr advertisedMultiaddr,

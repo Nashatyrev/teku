@@ -26,20 +26,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.Bootnodes;
-import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodeTuweniPrivateKey;
-import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodePrivateKeyBytes;
+import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodeDiscoveryPrivateKey;
 import static tech.pegasys.teku.networking.p2p.DaggerQualifier.P2PDependency.LocalNodeRecord;
 
 @Module
 public interface DiscV5DaggerModule {
-
-  @Provides
-  @Singleton
-  @DaggerQualifier(LocalNodeTuweniPrivateKey)
-  static SECP256K1.SecretKey provideLocalNodePrivateKey(
-      @DaggerQualifier(LocalNodePrivateKeyBytes) Bytes localNodePrivateKeyBytes) {
-    return SecretKeyParser.fromLibP2pPrivKey(localNodePrivateKeyBytes);
-  }
 
   @Provides
   @Singleton
@@ -67,7 +58,7 @@ public interface DiscV5DaggerModule {
   @Provides
   static NewAddressHandler provideNewAddressHandler(
       Optional<DiscoveryAdvertisedAddress> maybeDiscoveryAdvertisedAddress,
-      @DaggerQualifier(LocalNodeTuweniPrivateKey) SECP256K1.SecretKey localNodePrivateKey) {
+      @DaggerQualifier(LocalNodeDiscoveryPrivateKey) SECP256K1.SecretKey localNodePrivateKey) {
     return maybeDiscoveryAdvertisedAddress
         .map(
             advertiseAddress ->
@@ -101,7 +92,7 @@ public interface DiscV5DaggerModule {
   @DaggerQualifier(LocalNodeRecord)
   static NodeRecord provideLocalNodeRecord(
       NodeRecordBuilder nodeRecordBuilder,
-      @DaggerQualifier(LocalNodeTuweniPrivateKey) SECP256K1.SecretKey localNodePrivateKey,
+      @DaggerQualifier(LocalNodeDiscoveryPrivateKey) SECP256K1.SecretKey localNodePrivateKey,
       DiscV5SeqNoStore discV5SeqNoStore,
       Optional<DiscoveryAdvertisedAddress> maybeDiscoveryAdvertisedAddress) {
 
@@ -145,7 +136,7 @@ public interface DiscV5DaggerModule {
       DiscoveryConfig discoConfig,
       NetworkConfig p2pConfig,
       DiscoverySystemBuilder discoverySystemBuilder,
-      @DaggerQualifier(LocalNodeTuweniPrivateKey) SECP256K1.SecretKey localNodePrivateKey,
+      @DaggerQualifier(LocalNodeDiscoveryPrivateKey) SECP256K1.SecretKey localNodePrivateKey,
       @DaggerQualifier(Bootnodes) List<NodeRecord> bootnodes,
       @DaggerQualifier(LocalNodeRecord) NodeRecord localNodeRecord,
       NodeRecordListener nodeRecordListener,

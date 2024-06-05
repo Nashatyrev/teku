@@ -18,7 +18,8 @@ import javax.inject.Singleton;
     DiscV5DaggerModule.class,
     DiscoveryNetworkDaggerModule.class,
     LibP2PNetworkModule.class,
-    NetworkDaggerModule.class
+    NetworkDaggerModule.class,
+    NodeKeysDaggerModule.class
 })
 public interface NetworkDaggerComponent {
 

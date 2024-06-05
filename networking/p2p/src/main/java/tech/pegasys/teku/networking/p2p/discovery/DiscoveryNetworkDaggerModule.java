@@ -18,9 +18,6 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 @Module
 public interface DiscoveryNetworkDaggerModule {
 
-  @Binds
-  DiscoveryService bindDiscoveryService(DiscV5Service discV5Service);
-
   @Singleton
   @Provides
   static ConnectionManager provideConnectionManager(
