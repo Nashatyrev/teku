@@ -47,23 +47,7 @@ public class ExternalsDaggerModule {
   protected Spec spec;
   protected SchemaDefinitionsSupplier currentSchemaDefinitionsSupplier;
 
-  private final GossipConfig gossipConfig;
-  private final PreparedGossipMessageFactory defaultMessageFactory;
-
-  public ExternalsDaggerModule(
-      MetricsSystem metricsSystem,
-      GossipConfig gossipConfig,
-      NetworkingSpecConfig networkingSpecConfig,
-      PreparedGossipMessageFactory defaultMessageFactory,
-      GossipTopicFilter gossipTopicFilter,
-      TimeProvider timeProvider) {
-    this.metricsSystem = metricsSystem;
-    this.gossipConfig = gossipConfig;
-    this.networkingSpecConfig = networkingSpecConfig;
-    this.defaultMessageFactory = defaultMessageFactory;
-    this.gossipTopicFilter = gossipTopicFilter;
-    this.timeProvider = timeProvider;
-  }
+  public ExternalsDaggerModule() {}
 
   @Provides
   @Singleton
@@ -127,12 +111,6 @@ public class ExternalsDaggerModule {
 
   @Provides
   @Singleton
-  public GossipConfig provideGossipConfig() {
-    return gossipConfig;
-  }
-
-  @Provides
-  @Singleton
   public NetworkingSpecConfig provideNetworkingSpecConfig() {
     return networkingSpecConfig;
   }
@@ -140,7 +118,7 @@ public class ExternalsDaggerModule {
   @Provides
   @Singleton
   public PreparedGossipMessageFactory provideDefaultMessageFactory() {
-    return defaultMessageFactory;
+    return preparedGossipMessageFactory;
   }
 
   @Provides

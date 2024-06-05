@@ -24,6 +24,7 @@ import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessage;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessageFactory;
 import tech.pegasys.teku.networking.p2p.gossip.config.GossipConfig;
 import tech.pegasys.teku.networking.p2p.libp2p.config.LibP2PParamsFactory;
+import tech.pegasys.teku.networking.p2p.network.config.NetworkConfig;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
 
 import javax.inject.Named;
@@ -38,6 +39,11 @@ import static tech.pegasys.teku.networking.p2p.libp2p.gossip.LibP2PGossipNetwork
 public interface GossipRouterDaggerModule {
 
   interface PubsubMessageFactory extends Function1<Rpc.Message, PubsubMessage> {};
+
+  @Provides
+  static GossipConfig provideGossipConfig(NetworkConfig networkConfig) {
+    return networkConfig.getGossipConfig();
+  }
 
   @Provides
   static GossipParams provideGossipParams(GossipConfig gossipConfig) {

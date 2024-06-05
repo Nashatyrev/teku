@@ -50,6 +50,8 @@ import tech.pegasys.teku.networking.eth2.peers.Eth2PeerManager;
 import tech.pegasys.teku.networking.eth2.peers.Eth2PeerSelectionStrategy;
 import tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods.StatusMessageFactory;
 import tech.pegasys.teku.networking.eth2.rpc.core.encodings.RpcEncoding;
+import tech.pegasys.teku.networking.p2p.DaggerNetworkDaggerComponent;
+import tech.pegasys.teku.networking.p2p.ExternalsDaggerModule;
 import tech.pegasys.teku.networking.p2p.connection.PeerPools;
 import tech.pegasys.teku.networking.p2p.connection.PeerSelectionStrategy;
 import tech.pegasys.teku.networking.p2p.connection.TargetPeerRange;
@@ -210,111 +212,117 @@ public class Eth2P2PNetworkBuilder {
       final DiscoveryNetwork<?> network,
       final GossipEncoding gossipEncoding) {
     return switch (forkAndSpecMilestone.getSpecMilestone()) {
-      case PHASE0 -> new GossipForkSubscriptionsPhase0(
-          forkAndSpecMilestone.getFork(),
-          spec,
-          asyncRunner,
-          metricsSystem,
-          network,
-          combinedChainDataClient.getRecentChainData(),
-          gossipEncoding,
-          gossipedBlockProcessor,
-          gossipedAttestationConsumer,
-          gossipedAggregateProcessor,
-          gossipedAttesterSlashingConsumer,
-          gossipedProposerSlashingConsumer,
-          gossipedVoluntaryExitConsumer,
-          p2pDebugDataDumper);
-      case ALTAIR -> new GossipForkSubscriptionsAltair(
-          forkAndSpecMilestone.getFork(),
-          spec,
-          asyncRunner,
-          metricsSystem,
-          network,
-          combinedChainDataClient.getRecentChainData(),
-          gossipEncoding,
-          gossipedBlockProcessor,
-          gossipedAttestationConsumer,
-          gossipedAggregateProcessor,
-          gossipedAttesterSlashingConsumer,
-          gossipedProposerSlashingConsumer,
-          gossipedVoluntaryExitConsumer,
-          gossipedSignedContributionAndProofProcessor,
-          gossipedSyncCommitteeMessageProcessor,
-          p2pDebugDataDumper);
-      case BELLATRIX -> new GossipForkSubscriptionsBellatrix(
-          forkAndSpecMilestone.getFork(),
-          spec,
-          asyncRunner,
-          metricsSystem,
-          network,
-          combinedChainDataClient.getRecentChainData(),
-          gossipEncoding,
-          gossipedBlockProcessor,
-          gossipedAttestationConsumer,
-          gossipedAggregateProcessor,
-          gossipedAttesterSlashingConsumer,
-          gossipedProposerSlashingConsumer,
-          gossipedVoluntaryExitConsumer,
-          gossipedSignedContributionAndProofProcessor,
-          gossipedSyncCommitteeMessageProcessor,
-          p2pDebugDataDumper);
-      case CAPELLA -> new GossipForkSubscriptionsCapella(
-          forkAndSpecMilestone.getFork(),
-          spec,
-          asyncRunner,
-          metricsSystem,
-          network,
-          combinedChainDataClient.getRecentChainData(),
-          gossipEncoding,
-          gossipedBlockProcessor,
-          gossipedAttestationConsumer,
-          gossipedAggregateProcessor,
-          gossipedAttesterSlashingConsumer,
-          gossipedProposerSlashingConsumer,
-          gossipedVoluntaryExitConsumer,
-          gossipedSignedContributionAndProofProcessor,
-          gossipedSyncCommitteeMessageProcessor,
-          gossipedSignedBlsToExecutionChangeProcessor,
-          p2pDebugDataDumper);
-      case DENEB -> new GossipForkSubscriptionsDeneb(
-          forkAndSpecMilestone.getFork(),
-          spec,
-          asyncRunner,
-          metricsSystem,
-          network,
-          combinedChainDataClient.getRecentChainData(),
-          gossipEncoding,
-          gossipedBlockProcessor,
-          gossipedBlobSidecarProcessor,
-          gossipedAttestationConsumer,
-          gossipedAggregateProcessor,
-          gossipedAttesterSlashingConsumer,
-          gossipedProposerSlashingConsumer,
-          gossipedVoluntaryExitConsumer,
-          gossipedSignedContributionAndProofProcessor,
-          gossipedSyncCommitteeMessageProcessor,
-          gossipedSignedBlsToExecutionChangeProcessor,
-          p2pDebugDataDumper);
-      case ELECTRA -> new GossipForkSubscriptionsElectra(
-          forkAndSpecMilestone.getFork(),
-          spec,
-          asyncRunner,
-          metricsSystem,
-          network,
-          combinedChainDataClient.getRecentChainData(),
-          gossipEncoding,
-          gossipedBlockProcessor,
-          gossipedBlobSidecarProcessor,
-          gossipedAttestationConsumer,
-          gossipedAggregateProcessor,
-          gossipedAttesterSlashingConsumer,
-          gossipedProposerSlashingConsumer,
-          gossipedVoluntaryExitConsumer,
-          gossipedSignedContributionAndProofProcessor,
-          gossipedSyncCommitteeMessageProcessor,
-          gossipedSignedBlsToExecutionChangeProcessor,
-          p2pDebugDataDumper);
+      case PHASE0 ->
+          new GossipForkSubscriptionsPhase0(
+              forkAndSpecMilestone.getFork(),
+              spec,
+              asyncRunner,
+              metricsSystem,
+              network,
+              combinedChainDataClient.getRecentChainData(),
+              gossipEncoding,
+              gossipedBlockProcessor,
+              gossipedAttestationConsumer,
+              gossipedAggregateProcessor,
+              gossipedAttesterSlashingConsumer,
+              gossipedProposerSlashingConsumer,
+              gossipedVoluntaryExitConsumer,
+              p2pDebugDataDumper);
+      case ALTAIR ->
+          new GossipForkSubscriptionsAltair(
+              forkAndSpecMilestone.getFork(),
+              spec,
+              asyncRunner,
+              metricsSystem,
+              network,
+              combinedChainDataClient.getRecentChainData(),
+              gossipEncoding,
+              gossipedBlockProcessor,
+              gossipedAttestationConsumer,
+              gossipedAggregateProcessor,
+              gossipedAttesterSlashingConsumer,
+              gossipedProposerSlashingConsumer,
+              gossipedVoluntaryExitConsumer,
+              gossipedSignedContributionAndProofProcessor,
+              gossipedSyncCommitteeMessageProcessor,
+              p2pDebugDataDumper);
+      case BELLATRIX ->
+          new GossipForkSubscriptionsBellatrix(
+              forkAndSpecMilestone.getFork(),
+              spec,
+              asyncRunner,
+              metricsSystem,
+              network,
+              combinedChainDataClient.getRecentChainData(),
+              gossipEncoding,
+              gossipedBlockProcessor,
+              gossipedAttestationConsumer,
+              gossipedAggregateProcessor,
+              gossipedAttesterSlashingConsumer,
+              gossipedProposerSlashingConsumer,
+              gossipedVoluntaryExitConsumer,
+              gossipedSignedContributionAndProofProcessor,
+              gossipedSyncCommitteeMessageProcessor,
+              p2pDebugDataDumper);
+      case CAPELLA ->
+          new GossipForkSubscriptionsCapella(
+              forkAndSpecMilestone.getFork(),
+              spec,
+              asyncRunner,
+              metricsSystem,
+              network,
+              combinedChainDataClient.getRecentChainData(),
+              gossipEncoding,
+              gossipedBlockProcessor,
+              gossipedAttestationConsumer,
+              gossipedAggregateProcessor,
+              gossipedAttesterSlashingConsumer,
+              gossipedProposerSlashingConsumer,
+              gossipedVoluntaryExitConsumer,
+              gossipedSignedContributionAndProofProcessor,
+              gossipedSyncCommitteeMessageProcessor,
+              gossipedSignedBlsToExecutionChangeProcessor,
+              p2pDebugDataDumper);
+      case DENEB ->
+          new GossipForkSubscriptionsDeneb(
+              forkAndSpecMilestone.getFork(),
+              spec,
+              asyncRunner,
+              metricsSystem,
+              network,
+              combinedChainDataClient.getRecentChainData(),
+              gossipEncoding,
+              gossipedBlockProcessor,
+              gossipedBlobSidecarProcessor,
+              gossipedAttestationConsumer,
+              gossipedAggregateProcessor,
+              gossipedAttesterSlashingConsumer,
+              gossipedProposerSlashingConsumer,
+              gossipedVoluntaryExitConsumer,
+              gossipedSignedContributionAndProofProcessor,
+              gossipedSyncCommitteeMessageProcessor,
+              gossipedSignedBlsToExecutionChangeProcessor,
+              p2pDebugDataDumper);
+      case ELECTRA ->
+          new GossipForkSubscriptionsElectra(
+              forkAndSpecMilestone.getFork(),
+              spec,
+              asyncRunner,
+              metricsSystem,
+              network,
+              combinedChainDataClient.getRecentChainData(),
+              gossipEncoding,
+              gossipedBlockProcessor,
+              gossipedBlobSidecarProcessor,
+              gossipedAttestationConsumer,
+              gossipedAggregateProcessor,
+              gossipedAttesterSlashingConsumer,
+              gossipedProposerSlashingConsumer,
+              gossipedVoluntaryExitConsumer,
+              gossipedSignedContributionAndProofProcessor,
+              gossipedSyncCommitteeMessageProcessor,
+              gossipedSignedBlsToExecutionChangeProcessor,
+              p2pDebugDataDumper);
     };
   }
 
@@ -374,34 +382,36 @@ public class Eth2P2PNetworkBuilder {
     LibP2PNetwork.PrivateKeyProvider privateKeyLoader =
         new LibP2PPrivateKeyLoader(keyValueStore, networkConfig.getPrivateKeySource());
 
-    final P2PNetwork<Peer> p2pNetwork =
-        createLibP2PNetworkBuilder()
+    ExternalsDaggerModule externalsP2PNetworkDaggerModule =
+        new ExternalsDaggerModule()
+            // common components
             .asyncRunner(asyncRunner)
+            .timeProvider(timeProvider)
             .metricsSystem(metricsSystem)
-            .config(networkConfig)
+            .kvStore(keyValueStore)
+            // config components
+            .spec(config.getSpec())
+            .p2pConfig(networkConfig)
+            .discoveryConfig(discoConfig)
             .networkingSpecConfig(config.getNetworkingSpecConfig())
             .privateKeyProvider(privateKeyLoader)
-            .reputationManager(reputationManager)
+            .currentSchemaDefinitionsSupplier(currentSchemaDefinitions)
+            // eth2 network components
             .rpcMethods(rpcMethods)
             .peerHandlers(peerHandlers)
+            .reputationManager(reputationManager)
             .preparedGossipMessageFactory(defaultMessageFactory)
             .gossipTopicFilter(gossipTopicsFilter)
-            .timeProvider(timeProvider)
-            .recordMessageArrival(recordMessageArrival)
-            .build();
+            .peerPools(peerPools)
+            .peerSelectionStrategy(peerSelectionStrategy);
 
-    return createDiscoveryNetworkBuilder()
-        .metricsSystem(metricsSystem)
-        .asyncRunner(asyncRunner)
-        .kvStore(keyValueStore)
-        .p2pNetwork(p2pNetwork)
-        .peerPools(peerPools)
-        .peerSelectionStrategy(peerSelectionStrategy)
-        .discoveryConfig(discoConfig)
-        .p2pConfig(networkConfig)
-        .spec(config.getSpec())
-        .currentSchemaDefinitionsSupplier(currentSchemaDefinitions)
-        .build();
+    DiscoveryNetwork<?> discoveryNetwork =
+        DaggerNetworkDaggerComponent.builder()
+            .externalsDaggerModule(externalsP2PNetworkDaggerModule)
+            .build()
+            .discoveryNetwork();
+
+    return discoveryNetwork;
   }
 
   protected DiscoveryNetworkBuilder createDiscoveryNetworkBuilder() {
