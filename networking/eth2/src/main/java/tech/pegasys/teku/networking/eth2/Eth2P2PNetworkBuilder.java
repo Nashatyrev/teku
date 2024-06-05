@@ -51,11 +51,13 @@ import tech.pegasys.teku.networking.eth2.peers.Eth2PeerSelectionStrategy;
 import tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods.StatusMessageFactory;
 import tech.pegasys.teku.networking.eth2.rpc.core.encodings.RpcEncoding;
 import tech.pegasys.teku.networking.p2p.connection.PeerPools;
+import tech.pegasys.teku.networking.p2p.connection.PeerSelectionStrategy;
 import tech.pegasys.teku.networking.p2p.connection.TargetPeerRange;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetwork;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetworkBuilder;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessageFactory;
+import tech.pegasys.teku.networking.p2p.libp2p.LibP2PNetwork;
 import tech.pegasys.teku.networking.p2p.libp2p.LibP2PNetworkBuilder;
 import tech.pegasys.teku.networking.p2p.libp2p.LibP2PPrivateKeyLoader;
 import tech.pegasys.teku.networking.p2p.libp2p.gossip.GossipTopicFilter;
@@ -332,23 +334,6 @@ public class Eth2P2PNetworkBuilder {
     final NetworkConfig networkConfig = config.getNetworkConfig();
     final DiscoveryConfig discoConfig = config.getDiscoveryConfig();
 
-    final P2PNetwork<Peer> p2pNetwork =
-        createLibP2PNetworkBuilder()
-            .asyncRunner(asyncRunner)
-            .metricsSystem(metricsSystem)
-            .config(networkConfig)
-            .networkingSpecConfig(config.getNetworkingSpecConfig())
-            .privateKeyProvider(
-                new LibP2PPrivateKeyLoader(keyValueStore, networkConfig.getPrivateKeySource()))
-            .reputationManager(reputationManager)
-            .rpcMethods(rpcMethods)
-            .peerHandlers(peerHandlers)
-            .preparedGossipMessageFactory(defaultMessageFactory)
-            .gossipTopicFilter(gossipTopicsFilter)
-            .timeProvider(timeProvider)
-            .recordMessageArrival(recordMessageArrival)
-            .build();
-
     final AttestationSubnetTopicProvider attestationSubnetTopicProvider =
         new AttestationSubnetTopicProvider(
             combinedChainDataClient.getRecentChainData(), gossipEncoding);
@@ -370,26 +355,48 @@ public class Eth2P2PNetworkBuilder {
             "subnet_peer_count",
             "Number of currently connected peers subscribed to each subnet",
             "subnet");
+
+    PeerSelectionStrategy peerSelectionStrategy =
+        new Eth2PeerSelectionStrategy(
+            targetPeerRange,
+            network ->
+                PeerSubnetSubscriptions.create(
+                    currentSchemaDefinitions,
+                    network,
+                    attestationSubnetTopicProvider,
+                    syncCommitteeSubnetTopicProvider,
+                    syncCommitteeSubnetService,
+                    config.getTargetSubnetSubscriberCount(),
+                    subnetPeerCountGauge),
+            reputationManager,
+            Collections::shuffle);
+
+    LibP2PNetwork.PrivateKeyProvider privateKeyLoader =
+        new LibP2PPrivateKeyLoader(keyValueStore, networkConfig.getPrivateKeySource());
+
+    final P2PNetwork<Peer> p2pNetwork =
+        createLibP2PNetworkBuilder()
+            .asyncRunner(asyncRunner)
+            .metricsSystem(metricsSystem)
+            .config(networkConfig)
+            .networkingSpecConfig(config.getNetworkingSpecConfig())
+            .privateKeyProvider(privateKeyLoader)
+            .reputationManager(reputationManager)
+            .rpcMethods(rpcMethods)
+            .peerHandlers(peerHandlers)
+            .preparedGossipMessageFactory(defaultMessageFactory)
+            .gossipTopicFilter(gossipTopicsFilter)
+            .timeProvider(timeProvider)
+            .recordMessageArrival(recordMessageArrival)
+            .build();
+
     return createDiscoveryNetworkBuilder()
         .metricsSystem(metricsSystem)
         .asyncRunner(asyncRunner)
         .kvStore(keyValueStore)
         .p2pNetwork(p2pNetwork)
         .peerPools(peerPools)
-        .peerSelectionStrategy(
-            new Eth2PeerSelectionStrategy(
-                targetPeerRange,
-                network ->
-                    PeerSubnetSubscriptions.create(
-                        currentSchemaDefinitions,
-                        network,
-                        attestationSubnetTopicProvider,
-                        syncCommitteeSubnetTopicProvider,
-                        syncCommitteeSubnetService,
-                        config.getTargetSubnetSubscriberCount(),
-                        subnetPeerCountGauge),
-                reputationManager,
-                Collections::shuffle))
+        .peerSelectionStrategy(peerSelectionStrategy)
         .discoveryConfig(discoConfig)
         .p2pConfig(networkConfig)
         .spec(config.getSpec())
