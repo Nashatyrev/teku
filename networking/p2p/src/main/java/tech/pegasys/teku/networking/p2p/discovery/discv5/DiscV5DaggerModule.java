@@ -81,6 +81,7 @@ public interface DiscV5DaggerModule {
         .orElse((oldRecord, newAddress) -> Optional.of(oldRecord));
   }
 
+  @Provides
   static Optional<DiscoveryAdvertisedAddress> provideDiscoveryAdvertisedAddress(
       DiscoveryConfig discoConfig, NetworkConfig p2pConfig) {
 

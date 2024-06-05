@@ -9,14 +9,13 @@ import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.networking.p2p.connection.ConnectionManager;
 import tech.pegasys.teku.networking.p2p.connection.PeerPools;
 import tech.pegasys.teku.networking.p2p.connection.PeerSelectionStrategy;
-import tech.pegasys.teku.networking.p2p.discovery.discv5.DiscV5DaggerSubcomponent;
 import tech.pegasys.teku.networking.p2p.discovery.discv5.DiscV5Service;
 import tech.pegasys.teku.networking.p2p.network.P2PNetwork;
 import tech.pegasys.teku.networking.p2p.peer.Peer;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 
-@Module(subcomponents = DiscV5DaggerSubcomponent.class)
+@Module
 public interface DiscoveryNetworkDaggerModule {
 
   @Binds

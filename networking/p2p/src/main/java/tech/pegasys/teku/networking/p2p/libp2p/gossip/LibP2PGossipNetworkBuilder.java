@@ -43,7 +43,7 @@ import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.networking.p2p.DaggerExternalsModule;
+import tech.pegasys.teku.networking.p2p.ExternalsDaggerModule;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessage;
 import tech.pegasys.teku.networking.p2p.gossip.PreparedGossipMessageFactory;
 import tech.pegasys.teku.networking.p2p.gossip.config.GossipConfig;
@@ -76,21 +76,21 @@ public class LibP2PGossipNetworkBuilder {
 
   protected LibP2PGossipNetworkBuilder() {}
 
-  public GossipNetworkDaggerSubcomponent buildWithDagger() {
-    validate();
-    DaggerExternalsModule daggerExternalsModule = new DaggerExternalsModule(
-        metricsSystem,
-        gossipConfig,
-        networkingSpecConfig,
-        defaultMessageFactory,
-        gossipTopicFilter,
-        timeProvider);
-
-    return DaggerDaggerGossipNetworkComponent.builder()
-        .daggerExternalsModule(daggerExternalsModule)
-        .build();
-  }
-
+//  public GossipNetworkDaggerSubcomponent buildWithDagger() {
+//    validate();
+//    ExternalsDaggerModule daggerExternalsModule = new ExternalsDaggerModule(
+//        metricsSystem,
+//        gossipConfig,
+//        networkingSpecConfig,
+//        defaultMessageFactory,
+//        gossipTopicFilter,
+//        timeProvider);
+//
+//    return DaggerDaggerGossipNetworkComponent.builder()
+//        .daggerExternalsModule(daggerExternalsModule)
+//        .build();
+//  }
+//
   public LibP2PGossipNetwork build() {
     validate();
     final GossipTopicHandlers topicHandlers = new GossipTopicHandlers();
