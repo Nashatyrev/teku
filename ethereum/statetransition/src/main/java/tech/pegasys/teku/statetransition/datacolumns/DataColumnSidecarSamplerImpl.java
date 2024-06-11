@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
-import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -49,7 +48,6 @@ public class DataColumnSidecarSamplerImpl
   private final Spec spec;
   private final DataColumnSidecarDB db;
   private final CanonicalBlockResolver blockResolver;
-  private final UInt256 nodeId;
   private final int myDataColumnSampleCount;
 
   private final UInt64 eip7594StartEpoch;
@@ -63,18 +61,15 @@ public class DataColumnSidecarSamplerImpl
       Spec spec,
       CanonicalBlockResolver blockResolver,
       DataColumnSidecarDB db,
-      UInt256 nodeId,
       int myDataColumnSampleCount) {
 
     checkNotNull(spec);
     checkNotNull(blockResolver);
     checkNotNull(db);
-    checkNotNull(nodeId);
 
     this.spec = spec;
     this.db = db;
     this.blockResolver = blockResolver;
-    this.nodeId = nodeId;
     this.myDataColumnSampleCount = myDataColumnSampleCount;
     this.eip7594StartEpoch = spec.getForkSchedule().getFork(SpecMilestone.EIP7594).getEpoch();
     this.rnd = new Random();
@@ -97,52 +92,88 @@ public class DataColumnSidecarSamplerImpl
   @Override
   public synchronized void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     if (dataColumnSidecar.getSlot().isGreaterThanOrEqualTo(getFirstIncompleteSlot())) {
-      collectedSamples.compute(
-          dataColumnSidecar.getSlot(),
-          (__, dataColumnIdentifiers) -> {
-            if (dataColumnIdentifiers != null) {
-              dataColumnIdentifiers.add(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
-              return dataColumnIdentifiers;
-            } else {
-              Set<DataColumnIdentifier> collectedIdentifiers = new HashSet<>();
-              collectedIdentifiers.add(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
-              return collectedIdentifiers;
-            }
-          });
+      final Set<DataColumnIdentifier> newIdentifiers =
+          onMaybeNewValidatedIdentifier(
+              dataColumnSidecar.getSlot(),
+              DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
 
-      final Set<DataColumnIdentifier> dataColumnIdentifiers =
+      // IF we've collected 50%, everything from this slot is available
+      final Set<DataColumnIdentifier> thisSlotDataColumnIdentifiers =
           collectedSamples.get(dataColumnSidecar.getSlot());
-
-      // IF we've collected 50% everything from this slot is available
       final int columnsCount =
           SpecConfigEip7594.required(spec.atSlot(dataColumnSidecar.getSlot()).getConfig())
               .getNumberOfColumns();
-      if (dataColumnIdentifiers.size() * 2 >= columnsCount) {
+      if (thisSlotDataColumnIdentifiers.size() * 2 >= columnsCount
+          && thisSlotDataColumnIdentifiers.size() != columnsCount) {
         IntStream.range(0, columnsCount)
             .mapToObj(
                 index ->
                     new DataColumnIdentifier(
                         dataColumnSidecar.getBlockRoot(), UInt64.valueOf(index)))
-            .forEach(dataColumnIdentifiers::add);
+            .forEach(
+                identifier -> {
+                  final boolean wasAdded = thisSlotDataColumnIdentifiers.add(identifier);
+                  if (wasAdded) {
+                    newIdentifiers.add(identifier);
+                  }
+                });
       }
 
       // Debug logging
-      if (assignedSampleColumns.containsKey(dataColumnSidecar.getSlot())
+      if (areSlotAssignedColumnsCompleted(dataColumnSidecar.getSlot())
+          // Were it just completed, on this DataColumnSidecar?
           && assignedSampleColumns.get(dataColumnSidecar.getSlot()).stream()
               .map(
                   assignedIndex ->
-                      collectedSamples.get(dataColumnSidecar.getSlot()).stream()
-                          .map(DataColumnIdentifier::getIndex)
-                          .filter(collectedIndex -> collectedIndex.equals(assignedIndex))
-                          .map(__ -> true)
-                          .findFirst()
-                          .orElse(false))
-              .filter(columnResult -> columnResult.equals(false))
+                      newIdentifiers.contains(
+                          new DataColumnIdentifier(
+                              dataColumnSidecar.getBlockRoot(), assignedIndex)))
+              .filter(couldBeTrue -> couldBeTrue)
               .findFirst()
-              .orElse(true)) {
+              .orElse(false)) {
         LOG.info("Slot {} sampling is completed successfully", dataColumnSidecar.getSlot());
       }
     }
+  }
+
+  private Set<DataColumnIdentifier> onMaybeNewValidatedIdentifier(
+      final UInt64 slot, final DataColumnIdentifier dataColumnIdentifier) {
+    final Set<DataColumnIdentifier> newIdentifiers = new HashSet<>();
+    collectedSamples.compute(
+        slot,
+        (__, dataColumnIdentifiers) -> {
+          if (dataColumnIdentifiers != null) {
+            final boolean wasAdded = dataColumnIdentifiers.add(dataColumnIdentifier);
+            if (wasAdded) {
+              newIdentifiers.add(dataColumnIdentifier);
+            }
+            return dataColumnIdentifiers;
+          } else {
+            newIdentifiers.add(dataColumnIdentifier);
+            Set<DataColumnIdentifier> collectedIdentifiers = new HashSet<>();
+            collectedIdentifiers.add(dataColumnIdentifier);
+            return collectedIdentifiers;
+          }
+        });
+
+    return newIdentifiers;
+  }
+
+  private boolean areSlotAssignedColumnsCompleted(final UInt64 slot) {
+    return assignedSampleColumns.containsKey(slot)
+        // All assigned are collected
+        && assignedSampleColumns.get(slot).stream()
+            .map(
+                assignedIndex ->
+                    collectedSamples.get(slot).stream()
+                        .map(DataColumnIdentifier::getIndex)
+                        .filter(collectedIndex -> collectedIndex.equals(assignedIndex))
+                        .map(__ -> true)
+                        .findFirst()
+                        .orElse(false))
+            .filter(columnResult -> columnResult.equals(false))
+            .findFirst()
+            .orElse(true);
   }
 
   private synchronized List<UInt64> getSampleColumns(UInt64 slot) {

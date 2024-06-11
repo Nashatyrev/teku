@@ -719,7 +719,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (myDataColumnSampleCount != 0) {
       final DataColumnSidecarSamplerImpl dataColumnSidecarSamplerImpl =
           new DataColumnSidecarSamplerImpl(
-              spec, canonicalBlockResolver, sidecarDB, nodeId, myDataColumnSampleCount);
+              spec, canonicalBlockResolver, sidecarDB, myDataColumnSampleCount);
       eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarSamplerImpl);
       eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarSamplerImpl);
       dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
