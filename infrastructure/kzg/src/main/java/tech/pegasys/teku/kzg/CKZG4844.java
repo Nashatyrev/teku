@@ -14,7 +14,7 @@
 package tech.pegasys.teku.kzg;
 
 import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
-
+import ethereum.cryptography.LibPeerDASKZG;
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CellsAndProofs;
 import java.util.List;
@@ -34,6 +34,7 @@ final class CKZG4844 implements KZG {
   private static final Logger LOG = LogManager.getLogger();
 
   private static CKZG4844 instance;
+  private static LibPeerDASKZG PeerDASinstance;
 
   static synchronized CKZG4844 getInstance() {
     if (instance == null) {
