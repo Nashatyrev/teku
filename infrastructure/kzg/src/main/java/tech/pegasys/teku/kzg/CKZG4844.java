@@ -213,11 +213,19 @@ final class CKZG4844 implements KZG {
   @Override
   public boolean verifyCellProof(
       KZGCommitment commitment, KZGCellWithColumnId cellWithColumnId, KZGProof proof) {
-    return CKZG4844JNI.verifyCellKzgProof(
-        commitment.toArrayUnsafe(),
-        cellWithColumnId.columnId().id().longValue(),
-        cellWithColumnId.cell().bytes().toArrayUnsafe(),
-        proof.toArrayUnsafe());
+    if (USE_PEER_DAS) {
+      return peerDASinstance.verifyCellKZGProof(
+          commitment.toArrayUnsafe(),
+          cellWithColumnId.columnId().id().longValue(),
+          cellWithColumnId.cell().bytes().toArrayUnsafe(),
+          proof.toArrayUnsafe());
+    } else {
+      return CKZG4844JNI.verifyCellKzgProof(
+          commitment.toArrayUnsafe(),
+          cellWithColumnId.columnId().id().longValue(),
+          cellWithColumnId.cell().bytes().toArrayUnsafe(),
+          proof.toArrayUnsafe());
+    }
   }
 
   @Override
