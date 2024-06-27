@@ -264,11 +264,22 @@ final class CKZG4844 implements KZG {
 
   @Override
   public List<KZGCell> recoverCells(List<KZGCellWithColumnId> cells) {
-    long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
-    byte[] cellBytes =
-        CKZG4844Utils.flattenBytes(
-            cells.stream().map(c -> c.cell().bytes()).toList(), cells.size() * BYTES_PER_CELL);
-    byte[] recovered = CKZG4844JNI.recoverAllCells(cellIds, cellBytes);
-    return KZGCell.splitBytes(Bytes.wrap(recovered));
+    if (USE_PEER_DAS) {
+      long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
+      byte[][] cellBytes =
+          cells.stream().map(c -> c.cell().bytes().toArrayUnsafe()).toArray(byte[][]::new);
+      byte[][] recovered = peerDASinstance.recoverAllCells(cellIds, cellBytes);
+      return Arrays.stream(recovered)
+          .map(Bytes::wrap)
+          .map(KZGCell::new)
+          .collect(Collectors.toList());
+    } else {
+      long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
+      byte[] cellBytes =
+          CKZG4844Utils.flattenBytes(
+              cells.stream().map(c -> c.cell().bytes()).toList(), cells.size() * BYTES_PER_CELL);
+      byte[] recovered = CKZG4844JNI.recoverAllCells(cellIds, cellBytes);
+      return KZGCell.splitBytes(Bytes.wrap(recovered));
+    }
   }
 }
