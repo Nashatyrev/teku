@@ -26,6 +26,7 @@ import java.util.stream.IntStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes48;
 
 /**
  * Wrapper around jc-kzg-4844
@@ -166,11 +167,8 @@ final class CKZG4844 implements KZG {
   @Override
   public List<KZGCell> computeCells(Bytes blob) {
     if (USE_PEER_DAS) {
-      byte[][] cellBytes = peerDASinstance.computeCells(blob.toArrayUnsafe());
-      return Arrays.stream(cellBytes)
-          .map(Bytes::wrap)
-          .map(KZGCell::new)
-          .collect(Collectors.toList());
+      byte[][] cells = peerDASinstance.computeCells(blob.toArrayUnsafe());
+      return Arrays.stream(cells).map(Bytes::wrap).map(KZGCell::new).collect(Collectors.toList());
     } else {
       byte[] cellBytes = CKZG4844JNI.computeCells(blob.toArrayUnsafe());
       return KZGCell.splitBytes(Bytes.wrap(cellBytes));
@@ -179,15 +177,39 @@ final class CKZG4844 implements KZG {
 
   @Override
   public List<KZGCellAndProof> computeCellsAndProofs(Bytes blob) {
-    CellsAndProofs cellsAndProofs = CKZG4844JNI.computeCellsAndKzgProofs(blob.toArrayUnsafe());
-    List<KZGCell> cells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
-    List<KZGProof> proofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
-    if (cells.size() != proofs.size()) {
-      throw new KZGException("Cells and proofs size differ");
+    if (USE_PEER_DAS) {
+      ethereum.cryptography.CellsAndProofs cellsAndProofs =
+          peerDASinstance.computeCellsAndKZGProofs(blob.toArrayUnsafe());
+      List<KZGCell> cells =
+          Arrays.stream(cellsAndProofs.getCells())
+              .map(Bytes::wrap)
+              .map(KZGCell::new)
+              .collect(Collectors.toList());
+
+      List<KZGProof> proofs =
+          Arrays.stream(cellsAndProofs.getProofs())
+              .map(Bytes48::wrap)
+              .map(KZGProof::new)
+              .collect(Collectors.toList());
+
+      if (cells.size() != proofs.size()) {
+        throw new KZGException("Cells and proofs size differ");
+      }
+      return IntStream.range(0, cells.size())
+          .mapToObj(i -> new KZGCellAndProof(cells.get(i), proofs.get(i)))
+          .toList();
+
+    } else {
+      CellsAndProofs cellsAndProofs = CKZG4844JNI.computeCellsAndKzgProofs(blob.toArrayUnsafe());
+      List<KZGCell> cells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
+      List<KZGProof> proofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
+      if (cells.size() != proofs.size()) {
+        throw new KZGException("Cells and proofs size differ");
+      }
+      return IntStream.range(0, cells.size())
+          .mapToObj(i -> new KZGCellAndProof(cells.get(i), proofs.get(i)))
+          .toList();
     }
-    return IntStream.range(0, cells.size())
-        .mapToObj(i -> new KZGCellAndProof(cells.get(i), proofs.get(i)))
-        .toList();
   }
 
   @Override
