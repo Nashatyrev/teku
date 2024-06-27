@@ -177,39 +177,37 @@ final class CKZG4844 implements KZG {
 
   @Override
   public List<KZGCellAndProof> computeCellsAndProofs(Bytes blob) {
+
+    List<KZGCell> cells;
+    List<KZGProof> proofs;
+
     if (USE_PEER_DAS) {
       ethereum.cryptography.CellsAndProofs cellsAndProofs =
           peerDASinstance.computeCellsAndKZGProofs(blob.toArrayUnsafe());
-      List<KZGCell> cells =
+      cells =
           Arrays.stream(cellsAndProofs.getCells())
               .map(Bytes::wrap)
               .map(KZGCell::new)
               .collect(Collectors.toList());
 
-      List<KZGProof> proofs =
+      proofs =
           Arrays.stream(cellsAndProofs.getProofs())
               .map(Bytes48::wrap)
               .map(KZGProof::new)
               .collect(Collectors.toList());
 
-      if (cells.size() != proofs.size()) {
-        throw new KZGException("Cells and proofs size differ");
-      }
-      return IntStream.range(0, cells.size())
-          .mapToObj(i -> new KZGCellAndProof(cells.get(i), proofs.get(i)))
-          .toList();
-
     } else {
       CellsAndProofs cellsAndProofs = CKZG4844JNI.computeCellsAndKzgProofs(blob.toArrayUnsafe());
-      List<KZGCell> cells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
-      List<KZGProof> proofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
-      if (cells.size() != proofs.size()) {
-        throw new KZGException("Cells and proofs size differ");
-      }
-      return IntStream.range(0, cells.size())
-          .mapToObj(i -> new KZGCellAndProof(cells.get(i), proofs.get(i)))
-          .toList();
+      cells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
+      proofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
     }
+
+    if (cells.size() != proofs.size()) {
+      throw new KZGException("Cells and proofs size differ");
+    }
+    return IntStream.range(0, cells.size())
+        .mapToObj(i -> new KZGCellAndProof(cells.get(i), proofs.get(i)))
+        .toList();
   }
 
   @Override
