@@ -14,11 +14,14 @@
 package tech.pegasys.teku.kzg;
 
 import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
-import ethereum.cryptography.LibPeerDASKZG;
+
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CellsAndProofs;
+import ethereum.cryptography.LibPeerDASKZG;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +37,8 @@ final class CKZG4844 implements KZG {
   private static final Logger LOG = LogManager.getLogger();
 
   private static CKZG4844 instance;
-  private static LibPeerDASKZG PeerDASinstance;
+  private static LibPeerDASKZG peerDASinstance;
+  private static final boolean USE_PEER_DAS = Boolean.getBoolean("use.peer.das");
 
   static synchronized CKZG4844 getInstance() {
     if (instance == null) {
@@ -63,6 +67,7 @@ final class CKZG4844 implements KZG {
       return;
     }
     try {
+      peerDASinstance = new LibPeerDASKZG();
       loadedTrustedSetupFile.ifPresent(
           currentTrustedSetupFile -> {
             LOG.debug(
@@ -90,6 +95,7 @@ final class CKZG4844 implements KZG {
   public synchronized void freeTrustedSetup() throws KZGException {
     try {
       CKZG4844JNI.freeTrustedSetup();
+      peerDASinstance.close();
       loadedTrustedSetupFile = Optional.empty();
       LOG.debug("Trusted setup was freed");
     } catch (final Exception ex) {
@@ -159,8 +165,16 @@ final class CKZG4844 implements KZG {
 
   @Override
   public List<KZGCell> computeCells(Bytes blob) {
-    byte[] cellBytes = CKZG4844JNI.computeCells(blob.toArrayUnsafe());
-    return KZGCell.splitBytes(Bytes.wrap(cellBytes));
+    if (USE_PEER_DAS) {
+      byte[][] cellBytes = peerDASinstance.computeCells(blob.toArrayUnsafe());
+      return Arrays.stream(cellBytes)
+          .map(Bytes::wrap)
+          .map(KZGCell::new)
+          .collect(Collectors.toList());
+    } else {
+      byte[] cellBytes = CKZG4844JNI.computeCells(blob.toArrayUnsafe());
+      return KZGCell.splitBytes(Bytes.wrap(cellBytes));
+    }
   }
 
   @Override
