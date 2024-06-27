@@ -233,18 +233,33 @@ final class CKZG4844 implements KZG {
       List<KZGCommitment> commitments,
       List<KZGCellWithIds> cellWithIdsList,
       List<KZGProof> proofs) {
-    return CKZG4844JNI.verifyCellKzgProofBatch(
-        CKZG4844Utils.flattenCommitments(commitments),
-        cellWithIdsList.stream()
-            .mapToLong(cellWithIds -> cellWithIds.rowId().id().longValue())
-            .toArray(),
-        cellWithIdsList.stream()
-            .mapToLong(cellWithIds -> cellWithIds.columnId().id().longValue())
-            .toArray(),
-        CKZG4844Utils.flattenBytes(
-            cellWithIdsList.stream().map(cellWithIds -> cellWithIds.cell().bytes()).toList(),
-            cellWithIdsList.size() * BYTES_PER_CELL),
-        CKZG4844Utils.flattenProofs(proofs));
+    if (USE_PEER_DAS) {
+      return peerDASinstance.verifyCellKZGProofBatch(
+          commitments.stream().map(KZGCommitment::toArrayUnsafe).toArray(byte[][]::new),
+          cellWithIdsList.stream()
+              .mapToLong(cellWithIds -> cellWithIds.rowId().id().longValue())
+              .toArray(),
+          cellWithIdsList.stream()
+              .mapToLong(cellWithIds -> cellWithIds.columnId().id().longValue())
+              .toArray(),
+          cellWithIdsList.stream()
+              .map(cellWithIds -> cellWithIds.cell().bytes().toArrayUnsafe())
+              .toArray(byte[][]::new),
+          proofs.stream().map(KZGProof::toArrayUnsafe).toArray(byte[][]::new));
+    } else {
+      return CKZG4844JNI.verifyCellKzgProofBatch(
+          CKZG4844Utils.flattenCommitments(commitments),
+          cellWithIdsList.stream()
+              .mapToLong(cellWithIds -> cellWithIds.rowId().id().longValue())
+              .toArray(),
+          cellWithIdsList.stream()
+              .mapToLong(cellWithIds -> cellWithIds.columnId().id().longValue())
+              .toArray(),
+          CKZG4844Utils.flattenBytes(
+              cellWithIdsList.stream().map(cellWithIds -> cellWithIds.cell().bytes()).toList(),
+              cellWithIdsList.size() * BYTES_PER_CELL),
+          CKZG4844Utils.flattenProofs(proofs));
+    }
   }
 
   @Override
