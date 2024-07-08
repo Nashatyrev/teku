@@ -44,21 +44,18 @@ final class RustKZG implements KZG {
     return instance;
   }
 
-  private RustKZG() {
-    try {
-      this.library = new LibPeerDASKZG();
-      this.initialized = true;
-      LOG.info("Loaded LibPeerDASKZG library");
-    } catch (final Exception ex) {
-      throw new KZGException("Failed to load LibPeerDASKZG Rust library", ex);
-    }
-  }
+  private RustKZG() {}
 
   @Override
   public synchronized void loadTrustedSetup(final String trustedSetupFile) throws KZGException {
     if (!initialized) {
-      this.library = new LibPeerDASKZG();
-      this.initialized = true;
+      try {
+        this.library = new LibPeerDASKZG();
+        this.initialized = true;
+        LOG.info("Loaded LibPeerDASKZG library");
+      } catch (final Exception ex) {
+        throw new KZGException("Failed to load LibPeerDASKZG Rust library", ex);
+      }
     }
   }
 

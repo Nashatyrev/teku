@@ -327,7 +327,7 @@ public abstract class KZGAbstractTest {
     }
   }
 
-  private Bytes getSampleBlob() {
+  Bytes getSampleBlob() {
     return IntStream.range(0, FIELD_ELEMENTS_PER_BLOB)
         .mapToObj(__ -> randomBLSFieldElement())
         .map(fieldElement -> Bytes.wrap(fieldElement.toArray(ByteOrder.BIG_ENDIAN)))

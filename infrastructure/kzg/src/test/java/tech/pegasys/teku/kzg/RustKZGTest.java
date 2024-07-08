@@ -15,6 +15,7 @@ package tech.pegasys.teku.kzg;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.apache.tuweni.bytes.Bytes;
 import org.junit.jupiter.api.Test;
 
 public final class RustKZGTest extends KZGAbstractTest {
@@ -23,10 +24,15 @@ public final class RustKZGTest extends KZGAbstractTest {
     super(RustKZG.getInstance());
   }
 
+  @Test
   @Override
   @SuppressWarnings("JavaCase")
   public void testUsageWithoutLoadedTrustedSetup_shouldThrowException() {
-    // skip, will not trow, not needed to load in RustKZG
+    kzg.freeTrustedSetup();
+    final Bytes blob = getSampleBlob();
+    assertThatThrownBy(() -> kzg.computeCellsAndProofs(blob))
+        .isOfAnyClassIn(IllegalStateException.class)
+        .hasMessageStartingWith("PeerDAS context has been destroyed");
   }
 
   @Test
