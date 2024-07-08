@@ -10,8 +10,3 @@ dependencies {
 
   testFixturesImplementation 'com.google.guava:guava'
 }
-// This is temporary and allows us to test with the rust kzg lib
-// TODO: we likely want this for building too
-task testWithRustKZG(type: Test) {
-    systemProperty 'use.rust.kzg', 'true'
-}
