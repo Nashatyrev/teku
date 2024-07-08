@@ -15,6 +15,7 @@ package tech.pegasys.teku.kzg;
 
 import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
 
+import com.google.common.collect.Streams;
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CellsAndProofs;
 import ethereum.cryptography.LibPeerDASKZG;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
@@ -251,31 +253,33 @@ final class CKZG4844 implements KZG {
 
   @Override
   public List<KZGCellAndProof> recoverCellsAndProofs(List<KZGCellWithColumnId> cells) {
-      if (USE_PEER_DAS) {
-          long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
-          byte[][] cellBytes =
-                  cells.stream().map(c -> c.cell().bytes().toArrayUnsafe()).toArray(byte[][]::new);
-          byte[][] recovered = peerDASinstance.recoverAllCells(cellIds, cellBytes);
-          return Arrays.stream(recovered)
-                  .map(Bytes::wrap)
-                  .map(KZGCell::new)
-                  // TODO: fix stub Proofs
-                  .map(cell -> new KZGCellAndProof(cell, KZGProof.fromArray(new byte[]{})))
-                  .collect(Collectors.toList());
-      } else {
-        long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
-        byte[] cellBytes =
-                CKZG4844Utils.flattenBytes(
-                        cells.stream().map(c -> c.cell().bytes()).toList(), cells.size() * BYTES_PER_CELL);
-        CellsAndProofs cellsAndProofs = CKZG4844JNI.recoverCellsAndKzgProofs(cellIds, cellBytes);
-        List<KZGCell> fullCells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
-        List<KZGProof> fullProofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
-        if (fullCells.size() != fullProofs.size()) {
-          throw new KZGException("Cells and proofs size differ");
-        }
-        return IntStream.range(0, fullCells.size())
-        .mapToObj(i -> new KZGCellAndProof(fullCells.get(i), fullProofs.get(i)))
-        .toList();
+    if (USE_PEER_DAS) {
+      long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
+      byte[][] cellBytes =
+          cells.stream().map(c -> c.cell().bytes().toArrayUnsafe()).toArray(byte[][]::new);
+      final ethereum.cryptography.CellsAndProofs cellsAndProofs =
+          peerDASinstance.recoverCellsAndProofs(cellIds, cellBytes);
+      final byte[][] recoveredCells = cellsAndProofs.getCells();
+      final Stream<KZGCell> kzgCellStream =
+          Arrays.stream(recoveredCells).map(Bytes::wrap).map(KZGCell::new);
+      final byte[][] recoveredProofs = cellsAndProofs.getProofs();
+      final Stream<KZGProof> kzgProofStream =
+          Arrays.stream(recoveredProofs).map(Bytes48::wrap).map(KZGProof::new);
+      return Streams.zip(kzgCellStream, kzgProofStream, KZGCellAndProof::new).toList();
+    } else {
+      long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
+      byte[] cellBytes =
+          CKZG4844Utils.flattenBytes(
+              cells.stream().map(c -> c.cell().bytes()).toList(), cells.size() * BYTES_PER_CELL);
+      CellsAndProofs cellsAndProofs = CKZG4844JNI.recoverCellsAndKzgProofs(cellIds, cellBytes);
+      List<KZGCell> fullCells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
+      List<KZGProof> fullProofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
+      if (fullCells.size() != fullProofs.size()) {
+        throw new KZGException("Cells and proofs size differ");
+      }
+      return IntStream.range(0, fullCells.size())
+          .mapToObj(i -> new KZGCellAndProof(fullCells.get(i), fullProofs.get(i)))
+          .toList();
     }
   }
 }
