@@ -42,7 +42,7 @@ final class CKZG4844 implements KZG {
 
   private static CKZG4844 instance;
   private static LibPeerDASKZG peerDASinstance;
-  private static final boolean USE_PEER_DAS = Boolean.getBoolean("use.peer.das");
+  private static final boolean USE_RUST_KZG_LIB = Boolean.getBoolean("use.rust.kzg");
 
   static synchronized CKZG4844 getInstance() {
     if (instance == null) {
@@ -71,7 +71,9 @@ final class CKZG4844 implements KZG {
       return;
     }
     try {
-      peerDASinstance = new LibPeerDASKZG();
+      if (USE_RUST_KZG_LIB) {
+        peerDASinstance = new LibPeerDASKZG();
+      }
       loadedTrustedSetupFile.ifPresent(
           currentTrustedSetupFile -> {
             LOG.debug(
@@ -102,7 +104,9 @@ final class CKZG4844 implements KZG {
   public synchronized void freeTrustedSetup() throws KZGException {
     try {
       CKZG4844JNI.freeTrustedSetup();
-      peerDASinstance.close();
+      if (USE_RUST_KZG_LIB) {
+        peerDASinstance.close();
+      }
       loadedTrustedSetupFile = Optional.empty();
       LOG.debug("Trusted setup was freed");
     } catch (final Exception ex) {
@@ -170,7 +174,7 @@ final class CKZG4844 implements KZG {
     List<KZGCell> cells;
     List<KZGProof> proofs;
 
-    if (USE_PEER_DAS) {
+    if (USE_RUST_KZG_LIB) {
       ethereum.cryptography.CellsAndProofs cellsAndProofs =
           peerDASinstance.computeCellsAndKZGProofs(blob.toArrayUnsafe());
       cells =
@@ -202,7 +206,7 @@ final class CKZG4844 implements KZG {
   @Override
   public boolean verifyCellProof(
       KZGCommitment commitment, KZGCellWithColumnId cellWithColumnId, KZGProof proof) {
-    if (USE_PEER_DAS) {
+    if (USE_RUST_KZG_LIB) {
       return peerDASinstance.verifyCellKZGProof(
           commitment.toArrayUnsafe(),
           cellWithColumnId.columnId().id().longValue(),
@@ -222,7 +226,7 @@ final class CKZG4844 implements KZG {
       List<KZGCommitment> commitments,
       List<KZGCellWithIds> cellWithIdsList,
       List<KZGProof> proofs) {
-    if (USE_PEER_DAS) {
+    if (USE_RUST_KZG_LIB) {
       return peerDASinstance.verifyCellKZGProofBatch(
           commitments.stream().map(KZGCommitment::toArrayUnsafe).toArray(byte[][]::new),
           cellWithIdsList.stream()
@@ -253,7 +257,7 @@ final class CKZG4844 implements KZG {
 
   @Override
   public List<KZGCellAndProof> recoverCellsAndProofs(List<KZGCellWithColumnId> cells) {
-    if (USE_PEER_DAS) {
+    if (USE_RUST_KZG_LIB) {
       long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
       byte[][] cellBytes =
           cells.stream().map(c -> c.cell().bytes().toArrayUnsafe()).toArray(byte[][]::new);

@@ -10,8 +10,8 @@ dependencies {
 
   testFixturesImplementation 'com.google.guava:guava'
 }
-// This is temporary and allows us to test with the peerDAS features
+// This is temporary and allows us to test with the rust kzg lib
 // TODO: we likely want this for building too
-task testWithPeerDas(type: Test) {
-    systemProperty 'use.peer.das', 'true'
+task testWithRustKZG(type: Test) {
+    systemProperty 'use.rust.kzg', 'true'
 }
