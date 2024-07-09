@@ -189,7 +189,9 @@ public class SimpleSidecarRetriever
       synchronized (this) {
         pendingRequests.remove(request.columnId);
       }
-      request.result.complete(maybeResult);
+      asyncRunner
+          .runAsync(() -> request.result.complete(maybeResult))
+          .ifExceptionGetsHereRaiseABug();
       request.peerSearchRequest.dispose();
       retrieveCounter.incrementAndGet();
     } else {
