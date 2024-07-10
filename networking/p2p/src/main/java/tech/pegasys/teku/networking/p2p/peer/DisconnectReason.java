@@ -25,7 +25,9 @@ public enum DisconnectReason {
   REMOTE_FAULT(GoodbyeMessage.REASON_FAULT_ERROR, false),
   UNRESPONSIVE(GoodbyeMessage.REASON_FAULT_ERROR, false),
   SHUTTING_DOWN(GoodbyeMessage.REASON_CLIENT_SHUT_DOWN, false),
-  RATE_LIMITING(GoodbyeMessage.REASON_RATE_LIMITING, false);
+  RATE_LIMITING(GoodbyeMessage.REASON_RATE_LIMITING, false),
+  NO_STATUS_RECEIVED(GoodbyeMessage.REASON_FAULT_ERROR, false),
+  DUPLICATE_CONNECTION(GoodbyeMessage.REASON_FAULT_ERROR, false);
 
   private final UInt64 reasonCode;
   private final boolean isPermanent;
