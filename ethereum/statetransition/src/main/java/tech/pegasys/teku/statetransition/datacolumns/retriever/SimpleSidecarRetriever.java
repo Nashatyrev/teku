@@ -186,9 +186,7 @@ public class SimpleSidecarRetriever
   private synchronized void reqRespCompleted(
       RetrieveRequest request, DataColumnSidecar maybeResult, Throwable maybeError) {
     if (maybeResult != null) {
-      synchronized (this) {
-        pendingRequests.remove(request.columnId);
-      }
+      pendingRequests.remove(request.columnId);
       asyncRunner
           .runAsync(() -> request.result.complete(maybeResult))
           .ifExceptionGetsHereRaiseABug();
