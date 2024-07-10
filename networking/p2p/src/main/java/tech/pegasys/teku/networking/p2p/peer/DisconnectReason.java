@@ -26,6 +26,8 @@ public enum DisconnectReason {
   UNRESPONSIVE(GoodbyeMessage.REASON_FAULT_ERROR, false),
   SHUTTING_DOWN(GoodbyeMessage.REASON_CLIENT_SHUT_DOWN, false),
   RATE_LIMITING(GoodbyeMessage.REASON_RATE_LIMITING, false),
+  BAD_SCORE(GoodbyeMessage.REASON_BAD_SCORE, false),
+  BANNED(GoodbyeMessage.REASON_BANNED, false),
   NO_STATUS_RECEIVED(GoodbyeMessage.REASON_FAULT_ERROR, false),
   DUPLICATE_CONNECTION(GoodbyeMessage.REASON_FAULT_ERROR, false);
 
