@@ -572,7 +572,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
   protected void initKzg() {
     if (spec.isMilestoneSupported(SpecMilestone.DENEB)) {
-      kzg = KZG.getInstance();
+      kzg = KZG.getInstance(beaconConfig.eth2NetworkConfig().isRustKzgEnabled());
       final String trustedSetupFile =
           beaconConfig
               .eth2NetworkConfig()
@@ -642,8 +642,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
         slot ->
             combinedChainDataClient
                 .getBlockAtSlotExact(slot)
-                .thenApply(sbb -> sbb.flatMap(SignedBeaconBlock::getBeaconBlock))
-                .join();
+                .thenApply(sbb -> sbb.flatMap(SignedBeaconBlock::getBeaconBlock));
 
     SpecConfigEip7594 configEip7594 =
         SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());

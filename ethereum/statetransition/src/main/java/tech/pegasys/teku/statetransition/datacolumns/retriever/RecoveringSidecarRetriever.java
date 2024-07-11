@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -28,12 +27,12 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.tuweni.bytes.Bytes;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.kzg.KZGCell;
+import tech.pegasys.teku.kzg.KZGCellAndProof;
 import tech.pegasys.teku.kzg.KZGCellID;
 import tech.pegasys.teku.kzg.KZGCellWithColumnId;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -97,57 +96,72 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   }
 
   @VisibleForTesting
-  synchronized void maybeInitiateRecovery(
+  void maybeInitiateRecovery(
       ColumnSlotAndIdentifier columnId, SafeFuture<DataColumnSidecar> promise) {
-    Optional<BeaconBlock> maybeBlock = blockResolver.getBlockAtSlot(columnId.slot());
-    if (!maybeBlock
-        .map(b -> b.getRoot().equals(columnId.identifier().getBlockRoot()))
-        .orElse(false)) {
-      LOG.info("[nyota] Recovery: CAN'T initiate recovery for " + columnId);
-      promise.completeExceptionally(new NotOnCanonicalChainException(columnId, maybeBlock));
-    } else {
-      BeaconBlock block = maybeBlock.orElseThrow();
-      LOG.info("[nyota] Recovery: initiating recovery for " + columnId);
-      RecoveryEntry recovery =
-          recoveryBySlot.compute(
-              columnId.slot(),
-              (slot, existingRecovery) -> {
-                if (existingRecovery != null
-                    && !existingRecovery.block.getRoot().equals(block.getRoot())) {
-                  // we are recovering obsolete column which is no more on our canonical chain
-                  existingRecovery.cancel();
-                }
-                if (existingRecovery == null || existingRecovery.cancelled) {
-                  return createNewRecovery(block);
-                } else {
-                  return existingRecovery;
-                }
-              });
-      recovery.addRequest(columnId.identifier().getIndex(), promise);
-    }
+    blockResolver
+        .getBlockAtSlot(columnId.slot())
+        .thenPeek(
+            maybeBlock -> {
+              if (!maybeBlock
+                  .map(b -> b.getRoot().equals(columnId.identifier().getBlockRoot()))
+                  .orElse(false)) {
+                LOG.info("[nyota] Recovery: CAN'T initiate recovery for " + columnId);
+                promise.completeExceptionally(
+                    new NotOnCanonicalChainException(columnId, maybeBlock));
+              } else {
+                final BeaconBlock block = maybeBlock.orElseThrow();
+                LOG.info("[nyota] Recovery: initiating recovery for " + columnId);
+                final RecoveryEntry recovery = addRecovery(columnId, block);
+                recovery.addRequest(columnId.identifier().getIndex(), promise);
+              }
+            })
+        .ifExceptionGetsHereRaiseABug();
   }
 
-  private synchronized void recoveryComplete(RecoveryEntry entry) {
-    LOG.trace("Recovery complete for entry {}", entry);
+  private synchronized RecoveryEntry addRecovery(
+      final ColumnSlotAndIdentifier columnId, final BeaconBlock block) {
+    return recoveryBySlot.compute(
+        columnId.slot(),
+        (slot, existingRecovery) -> {
+          if (existingRecovery != null
+              && !existingRecovery.block.getRoot().equals(block.getRoot())) {
+            // we are recovering obsolete column which is no more on our canonical chain
+            existingRecovery.cancel();
+          }
+          if (existingRecovery == null || existingRecovery.cancelled) {
+            return createNewRecovery(block);
+          } else {
+            return existingRecovery;
+          }
+        });
   }
 
-  private RecoveryEntry createNewRecovery(BeaconBlock block) {
-    RecoveryEntry recoveryEntry = new RecoveryEntry(block, kzg, specHelpers);
+  private RecoveryEntry createNewRecovery(final BeaconBlock block) {
+    final RecoveryEntry recoveryEntry = new RecoveryEntry(block, kzg, specHelpers);
     LOG.info(
         "[nyota] Recovery: new RecoveryEntry for slot {} and block {} ",
         recoveryEntry.block.getSlot(),
         recoveryEntry.block.getRoot());
     sidecarDB
         .streamColumnIdentifiers(block.getSlot())
-        .limit(recoverColumnCount)
-        .forEach(
-            colId -> {
-              Optional<DataColumnSidecar> maybeSidecar = sidecarDB.getSidecar(colId);
-              maybeSidecar.ifPresent(recoveryEntry::addSidecar);
-            });
+        .thenCompose(
+            dataColumnIdentifiers ->
+                SafeFuture.collectAll(
+                    dataColumnIdentifiers.limit(recoverColumnCount).map(sidecarDB::getSidecar)))
+        .thenPeek(
+            maybeDataColumnSidecars -> {
+              maybeDataColumnSidecars.forEach(
+                  maybeDataColumnSidecar ->
+                      maybeDataColumnSidecar.ifPresent(recoveryEntry::addSidecar));
+              recoveryEntry.initRecoveryRequests();
+            })
+        .ifExceptionGetsHereRaiseABug();
 
-    recoveryEntry.initRecoveryRequests();
     return recoveryEntry;
+  }
+
+  private synchronized void recoveryComplete(RecoveryEntry entry) {
+    LOG.trace("Recovery complete for entry {}", entry);
   }
 
   private class RecoveryEntry {
@@ -249,15 +263,15 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                           .toList())
               .toList();
       List<List<KZGCellWithColumnId>> blobColumnCells = transpose(columnBlobCells);
-      List<Bytes> recoveredBlobs =
-          blobColumnCells.stream().parallel().map(kzg::recoverCells).map(kzg::computeBlob).toList();
+      List<List<KZGCellAndProof>> kzgCellsAndProofs =
+          blobColumnCells.stream().parallel().map(kzg::recoverCellsAndProofs).toList();
       DataColumnSidecar anyExistingSidecar =
           existingSidecarsByColIdx.values().stream().findFirst().orElseThrow();
       SignedBeaconBlockHeader signedBeaconBlockHeader =
           anyExistingSidecar.getSignedBeaconBlockHeader();
       List<DataColumnSidecar> recoveredSidecars =
           specHelpers.constructDataColumnSidecars(
-              block, signedBeaconBlockHeader, recoveredBlobs, kzg);
+              block, signedBeaconBlockHeader, kzgCellsAndProofs);
       Map<UInt64, DataColumnSidecar> recoveredSidecarsAsMap =
           recoveredSidecars.stream()
               .collect(Collectors.toUnmodifiableMap(DataColumnSidecar::getIndex, i -> i));
