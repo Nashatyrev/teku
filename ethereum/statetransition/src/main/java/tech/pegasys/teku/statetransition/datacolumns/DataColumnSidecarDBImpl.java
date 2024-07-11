@@ -45,13 +45,13 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
 
   @Override
   public SafeFuture<Optional<UInt64>> getFirstCustodyIncompleteSlot() {
-    return combinedChainDataClient.getFirstIncompleteSlot();
+    return combinedChainDataClient.getFirstCustodyIncompleteSlot();
   }
 
-    @Override
-    public SafeFuture<Optional<UInt64>> getFirstSamplerIncompleteSlot() {
-        return combinedChainDataClient.getFirstSamplerIncompleteSlot().join();
-    }
+  @Override
+  public SafeFuture<Optional<UInt64>> getFirstSamplerIncompleteSlot() {
+    return combinedChainDataClient.getFirstSamplerIncompleteSlot();
+  }
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getSidecar(final DataColumnIdentifier identifier) {
@@ -67,10 +67,10 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
 
   @Override
   public SafeFuture<Void> setFirstCustodyIncompleteSlot(final UInt64 slot) {
-    return getFirstIncompleteSlot()
+    return getFirstCustodyIncompleteSlot()
         .thenAccept(
             maybeFirstIncompleteSlot -> {
-              sidecarUpdateChannel.onFirstIncompleteSlot(slot);
+              sidecarUpdateChannel.onFirstCustodyIncompleteSlot(slot);
               if (maybeFirstIncompleteSlot.isEmpty()
                   || !maybeFirstIncompleteSlot.get().equals(slot)) {
                 streamColumnIdentifiers(slot)
@@ -99,17 +99,21 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
             });
   }
 
-    @Override
-    public SafeFuture<Void> setFirstSamplerIncompleteSlot(final UInt64 slot) {
-        Optional<UInt64> oldValue = getFirstSamplerIncompleteSlot();
-        sidecarUpdateChannel.onFirstSamplerIncompleteSlot(slot);
-        if (oldValue.isEmpty() || !oldValue.get().equals(slot)) {
-            LOG.info(
+  @Override
+  public SafeFuture<Void> setFirstSamplerIncompleteSlot(final UInt64 slot) {
+    return getFirstSamplerIncompleteSlot()
+        .thenAccept(
+            maybeFirstIncompleteSlot -> {
+              sidecarUpdateChannel.onFirstSamplerIncompleteSlot(slot);
+              if (maybeFirstIncompleteSlot.isEmpty()
+                  || !maybeFirstIncompleteSlot.get().equals(slot)) {
+                LOG.info(
                     "[nyota] DataColumnSidecarDB: setFirstSamplerIncompleteSlot {} ~> {}",
-                    oldValue.map(UInt64::toString).orElse("NA"),
+                    maybeFirstIncompleteSlot.map(UInt64::toString).orElse("NA"),
                     slot);
-        }
-    }
+              }
+            });
+  }
 
   @Override
   public void addSidecar(final DataColumnSidecar sidecar) {
@@ -124,7 +128,7 @@ public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
                     dataColumnIdentifierStream ->
                         UInt64.valueOf(dataColumnIdentifierStream.count()));
         final SafeFuture<UInt64> finalizedSlot =
-            getFirstIncompleteSlot()
+            getFirstCustodyIncompleteSlot()
                 .thenApply(
                     maybeFirstIncompleteSlot ->
                         maybeFirstIncompleteSlot.orElse(UInt64.ONE).decrement());

@@ -27,32 +27,32 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 
 public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
 
-    private Optional<UInt64> firstCustodyIncompleteSlot = Optional.empty();
-    private Optional<UInt64> firstSamplerIncompleteSlot = Optional.empty();
-    private Map<DataColumnIdentifier, DataColumnSidecar> db = new HashMap<>();
+  private Optional<UInt64> firstCustodyIncompleteSlot = Optional.empty();
+  private Optional<UInt64> firstSamplerIncompleteSlot = Optional.empty();
+  private Map<DataColumnIdentifier, DataColumnSidecar> db = new HashMap<>();
   private Map<UInt64, Set<DataColumnIdentifier>> slotIds = new HashMap<>();
 
-    @Override
-    public SafeFuture<Void> setFirstCustodyIncompleteSlot(UInt64 slot) {
-        this.firstCustodyIncompleteSlot = Optional.of(slot);
-        return SafeFuture.COMPLETE;
-    }
+  @Override
+  public SafeFuture<Void> setFirstCustodyIncompleteSlot(UInt64 slot) {
+    this.firstCustodyIncompleteSlot = Optional.of(slot);
+    return SafeFuture.COMPLETE;
+  }
 
-    @Override
-    public SafeFuture<Optional<UInt64>> getFirstCustodyIncompleteSlot() {
-        return SafeFuture.completedFuture(firstCustodyIncompleteSlot);
-    }
+  @Override
+  public SafeFuture<Optional<UInt64>> getFirstCustodyIncompleteSlot() {
+    return SafeFuture.completedFuture(firstCustodyIncompleteSlot);
+  }
 
-    @Override
-    public SafeFuture<Void> setFirstSamplerIncompleteSlot(UInt64 slot) {
-        this.firstCustodyIncompleteSlot = Optional.of(slot);
-        return SafeFuture.COMPLETE;
-    }
+  @Override
+  public SafeFuture<Void> setFirstSamplerIncompleteSlot(UInt64 slot) {
+    this.firstSamplerIncompleteSlot = Optional.of(slot);
+    return SafeFuture.COMPLETE;
+  }
 
-    @Override
-    public SafeFuture<Optional<UInt64>> getFirstSamplerIncompleteSlot() {
-        return SafeFuture.completedFuture(firstSamplerIncompleteSlot);
-    }
+  @Override
+  public SafeFuture<Optional<UInt64>> getFirstSamplerIncompleteSlot() {
+    return SafeFuture.completedFuture(firstSamplerIncompleteSlot);
+  }
 
   @Override
   public void addSidecar(DataColumnSidecar sidecar) {
