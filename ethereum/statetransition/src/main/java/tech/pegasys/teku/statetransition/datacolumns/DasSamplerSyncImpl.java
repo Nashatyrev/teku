@@ -86,40 +86,54 @@ public class DasSamplerSyncImpl implements SlotEventsChannel, DasSamplerSync {
 
   private synchronized void fillUp() {
     int newRequestCount = maxPendingColumnRequests - pendingRequests.size();
-    Set<ColumnSlotAndIdentifier> missingColumnsToRequest =
+    final SafeFuture<Set<ColumnSlotAndIdentifier>> missingColumnsToRequestFuture =
         sampler
-            .streamMissingColumns()
-            .filter(columnSlotId -> !pendingRequests.containsKey(columnSlotId))
-            .limit(newRequestCount)
-            .collect(Collectors.toSet());
+            .retrieveMissingColumns()
+            .thenApply(
+                columnIdentifiers ->
+                    columnIdentifiers.stream()
+                        .filter(columnSlotId -> !pendingRequests.containsKey(columnSlotId))
+                        .limit(newRequestCount)
+                        .collect(Collectors.toSet()));
 
     // TODO cancel those which are not missing anymore for whatever reason
 
-    for (ColumnSlotAndIdentifier missingColumn : missingColumnsToRequest) {
-      SafeFuture<DataColumnSidecar> promise = retriever.retrieve(missingColumn);
-      PendingRequest request = new PendingRequest(missingColumn, promise);
-      pendingRequests.put(missingColumn, request);
-      promise.finish(
-          response -> onRequestComplete(request, response),
-          err -> onRequestException(request, err));
-    }
+    missingColumnsToRequestFuture
+        .thenPeek(
+            missingColumnsToRequest -> {
+              for (ColumnSlotAndIdentifier missingColumn : missingColumnsToRequest) {
+                addPendingRequest(missingColumn);
+              }
 
-    if (missingColumnsToRequest.isEmpty()) {
-      coolDownTillNextSlot = true;
-    }
+              if (missingColumnsToRequest.isEmpty()) {
+                coolDownTillNextSlot = true;
+              }
 
-    {
-      Set<UInt64> missingSlots =
-          missingColumnsToRequest.stream()
-              .map(ColumnSlotAndIdentifier::slot)
-              .collect(Collectors.toSet());
-      LOG.info(
-          "[nyota] DataSamplerSync.fillUp: synced={} pending={}, missingColumns={}({})",
-          syncedColumnCount,
-          pendingRequests.size(),
-          missingColumnsToRequest.size(),
-          missingSlots);
+              {
+                Set<UInt64> missingSlots =
+                    missingColumnsToRequest.stream()
+                        .map(ColumnSlotAndIdentifier::slot)
+                        .collect(Collectors.toSet());
+                LOG.info(
+                    "[nyota] DataSamplerSync.fillUp: synced={} pending={}, missingColumns={}({})",
+                    syncedColumnCount,
+                    pendingRequests.size(),
+                    missingColumnsToRequest.size(),
+                    missingSlots);
+              }
+            })
+        .ifExceptionGetsHereRaiseABug();
+  }
+
+  private synchronized void addPendingRequest(final ColumnSlotAndIdentifier missingColumn) {
+    if (pendingRequests.containsKey(missingColumn)) {
+      return;
     }
+    final SafeFuture<DataColumnSidecar> promise = retriever.retrieve(missingColumn);
+    final PendingRequest request = new PendingRequest(missingColumn, promise);
+    pendingRequests.put(missingColumn, request);
+    promise.finish(
+        response -> onRequestComplete(request, response), err -> onRequestException(request, err));
   }
 
   @Override

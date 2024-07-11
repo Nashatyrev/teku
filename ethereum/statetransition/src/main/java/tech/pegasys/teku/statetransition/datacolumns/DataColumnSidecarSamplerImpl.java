@@ -14,7 +14,6 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static tech.pegasys.teku.statetransition.datacolumns.CompleteIncompleteSlot.scan;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,12 +29,13 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.eip7594.BeaconBlockBodyEip7594;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
@@ -44,6 +44,7 @@ public class DataColumnSidecarSamplerImpl
     implements DataColumnSidecarSampler, SlotEventsChannel, FinalizedCheckpointChannel {
 
   private static final Logger LOG = LogManager.getLogger("das-nyota");
+  private static final int MAX_SCAN_SLOTS = 200;
 
   private final Spec spec;
   private final DataColumnSidecarDB db;
@@ -91,49 +92,55 @@ public class DataColumnSidecarSamplerImpl
 
   @Override
   public synchronized void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
-    if (dataColumnSidecar.getSlot().isGreaterThanOrEqualTo(getFirstIncompleteSlot())) {
-      final Set<DataColumnIdentifier> newIdentifiers =
-          onMaybeNewValidatedIdentifier(
-              dataColumnSidecar.getSlot(),
-              DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
+    getFirstIncompleteSlot()
+        .thenAccept(
+            firstIncompleteSlot -> {
+              if (dataColumnSidecar.getSlot().isGreaterThanOrEqualTo(firstIncompleteSlot)) {
+                final Set<DataColumnIdentifier> newIdentifiers =
+                    onMaybeNewValidatedIdentifier(
+                        dataColumnSidecar.getSlot(),
+                        DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
 
-      // IF we've collected 50%, everything from this slot is available
-      final Set<DataColumnIdentifier> thisSlotDataColumnIdentifiers =
-          collectedSamples.get(dataColumnSidecar.getSlot());
-      final int columnsCount =
-          SpecConfigEip7594.required(spec.atSlot(dataColumnSidecar.getSlot()).getConfig())
-              .getNumberOfColumns();
-      if (thisSlotDataColumnIdentifiers.size() * 2 >= columnsCount
-          && thisSlotDataColumnIdentifiers.size() != columnsCount) {
-        IntStream.range(0, columnsCount)
-            .mapToObj(
-                index ->
-                    new DataColumnIdentifier(
-                        dataColumnSidecar.getBlockRoot(), UInt64.valueOf(index)))
-            .forEach(
-                identifier -> {
-                  final boolean wasAdded = thisSlotDataColumnIdentifiers.add(identifier);
-                  if (wasAdded) {
-                    newIdentifiers.add(identifier);
-                  }
-                });
-      }
+                // IF we've collected 50%, everything from this slot is available
+                final Set<DataColumnIdentifier> thisSlotDataColumnIdentifiers =
+                    collectedSamples.get(dataColumnSidecar.getSlot());
+                final int columnsCount =
+                    SpecConfigEip7594.required(spec.atSlot(dataColumnSidecar.getSlot()).getConfig())
+                        .getNumberOfColumns();
+                if (thisSlotDataColumnIdentifiers.size() * 2 >= columnsCount
+                    && thisSlotDataColumnIdentifiers.size() != columnsCount) {
+                  IntStream.range(0, columnsCount)
+                      .mapToObj(
+                          index ->
+                              new DataColumnIdentifier(
+                                  dataColumnSidecar.getBlockRoot(), UInt64.valueOf(index)))
+                      .forEach(
+                          identifier -> {
+                            final boolean wasAdded = thisSlotDataColumnIdentifiers.add(identifier);
+                            if (wasAdded) {
+                              newIdentifiers.add(identifier);
+                            }
+                          });
+                }
 
-      // Debug logging
-      if (areSlotAssignedColumnsCompleted(dataColumnSidecar.getSlot())
-          // Were it just completed, on this DataColumnSidecar?
-          && assignedSampleColumns.get(dataColumnSidecar.getSlot()).stream()
-              .map(
-                  assignedIndex ->
-                      newIdentifiers.contains(
-                          new DataColumnIdentifier(
-                              dataColumnSidecar.getBlockRoot(), assignedIndex)))
-              .filter(couldBeTrue -> couldBeTrue)
-              .findFirst()
-              .orElse(false)) {
-        LOG.info("Slot {} sampling is completed successfully", dataColumnSidecar.getSlot());
-      }
-    }
+                // Debug logging
+                if (areSlotAssignedColumnsCompleted(dataColumnSidecar.getSlot())
+                    // Were it just completed, on this DataColumnSidecar?
+                    && assignedSampleColumns.get(dataColumnSidecar.getSlot()).stream()
+                        .map(
+                            assignedIndex ->
+                                newIdentifiers.contains(
+                                    new DataColumnIdentifier(
+                                        dataColumnSidecar.getBlockRoot(), assignedIndex)))
+                        .filter(couldBeTrue -> couldBeTrue)
+                        .findFirst()
+                        .orElse(false)) {
+                  LOG.info(
+                      "Slot {} sampling is completed successfully", dataColumnSidecar.getSlot());
+                }
+              }
+            })
+        .ifExceptionGetsHereRaiseABug();
   }
 
   private Set<DataColumnIdentifier> onMaybeNewValidatedIdentifier(
@@ -209,24 +216,32 @@ public class DataColumnSidecarSamplerImpl
 
   @Override
   public void onNewFinalizedCheckpoint(Checkpoint checkpoint, boolean fromOptimisticBlock) {
-    advanceFirstIncompleteSlot(checkpoint.getEpoch());
+    advanceFirstIncompleteSlot(checkpoint.getEpoch()).ifExceptionGetsHereRaiseABug();
   }
 
-  private void advanceFirstIncompleteSlot(UInt64 finalizedEpoch) {
+  private SafeFuture<Void> advanceFirstIncompleteSlot(UInt64 finalizedEpoch) {
     UInt64 firstNonFinalizedSlot = spec.computeStartSlotAtEpoch(finalizedEpoch.increment());
 
-    streamPotentiallyIncompleteSlotSamples()
-        // will move FirstIncompleteSlot only to finalized slots
-        .takeWhile(sc -> sc.slot().isLessThan(firstNonFinalizedSlot))
-        .map(scan(CompleteIncompleteSlot.ZERO, CompleteIncompleteSlot::add))
-        .takeWhile(c -> c.firstIncomplete() == null)
-        .reduce((a, b) -> b) // takeLast()
-        .flatMap(CompleteIncompleteSlot::getFirstIncompleteSlot)
-        .ifPresent(
-            slot -> {
-              db.setFirstSamplerIncompleteSlot(slot);
-              prune(slot);
-            });
+    return retrievePotentiallyIncompleteSlotSamples(firstNonFinalizedSlot, MAX_SCAN_SLOTS)
+        .thenAccept(
+            slotTasks ->
+                slotTasks.stream()
+                    .filter(SlotColumnsTask::isIncomplete)
+                    .findFirst()
+                    .ifPresentOrElse(
+                        slotColumnsTask ->
+                            db.setFirstSamplerIncompleteSlot(slotColumnsTask.slot())
+                                .thenPeek(__ -> prune(slotColumnsTask.slot()))
+                                .ifExceptionGetsHereRaiseABug(),
+                        () -> {
+                          if (slotTasks.isEmpty()) {
+                            return;
+                          }
+                          db.setFirstSamplerIncompleteSlot(
+                                  slotTasks.get(slotTasks.size() - 1).slot())
+                              .thenPeek(__ -> prune(slotTasks.get(slotTasks.size() - 1).slot()))
+                              .ifExceptionGetsHereRaiseABug();
+                        }));
   }
 
   private synchronized void prune(final UInt64 slotExclusive) {
@@ -245,51 +260,78 @@ public class DataColumnSidecarSamplerImpl
     assignedSamplesSlotsToPrune.forEach(assignedSampleColumns::remove);
   }
 
-  private Stream<SlotColumnsTask> streamPotentiallyIncompleteSlotSamples() {
-    if (currentSlot == null) {
-      return Stream.empty();
-    }
-
-    UInt64 firstIncompleteSlot = getFirstIncompleteSlot();
-
-    return Stream.iterate(
-            firstIncompleteSlot, slot -> slot.isLessThanOrEqualTo(currentSlot), UInt64::increment)
-        .map(
-            slot -> {
-              final Optional<Bytes32> maybeCanonicalBlockRoot = getBlockRootIfHaveBlobs(slot);
-              final List<UInt64> requiredColumns = getSampleColumns(slot);
-              return new SlotColumnsTask(
-                  slot,
-                  maybeCanonicalBlockRoot,
-                  requiredColumns,
-                  collectedSamples.getOrDefault(slot, Collections.emptySet()));
+  private SafeFuture<List<SlotColumnsTask>> retrievePotentiallyIncompleteSlotSamples(
+      final UInt64 toSlotIncluded, final int limit) {
+    return getFirstIncompleteSlot()
+        .thenCompose(
+            firstIncompleteSlot -> {
+              final UInt64 toSlot;
+              if (firstIncompleteSlot.plus(limit).isLessThan(toSlotIncluded)) {
+                toSlot = firstIncompleteSlot.plus(limit);
+              } else {
+                toSlot = toSlotIncluded;
+              }
+              Stream<SafeFuture<SlotColumnsTask>> slotSamplesStream =
+                  Stream.iterate(
+                          firstIncompleteSlot,
+                          slot -> slot.isLessThanOrEqualTo(toSlot),
+                          UInt64::increment)
+                      .map(this::createSlotColumnsTask);
+              return SafeFuture.collectAll(slotSamplesStream);
             });
   }
 
-  private UInt64 getFirstIncompleteSlot() {
-    return db.getFirstSamplerIncompleteSlot().orElseGet(() -> getEarliestSampleSlot(currentSlot));
+  private SafeFuture<SlotColumnsTask> createSlotColumnsTask(final UInt64 slot) {
+    final SafeFuture<Optional<Bytes32>> maybeCanonicalBlockRootFuture =
+        getBlockRootIfHaveBlobs(slot);
+    final List<UInt64> requiredColumns = getSampleColumns(slot);
+    return maybeCanonicalBlockRootFuture.thenApply(
+        maybeCanonicalBlockRoot ->
+            new SlotColumnsTask(
+                slot,
+                maybeCanonicalBlockRoot,
+                requiredColumns,
+                collectedSamples.getOrDefault(slot, Collections.emptySet())));
   }
 
-  private Optional<Bytes32> getBlockRootIfHaveBlobs(UInt64 slot) {
+  //    if (currentSlot == null) {
+  //      return Stream.empty();
+  //    }
+
+  private SafeFuture<UInt64> getFirstIncompleteSlot() {
+    return db.getFirstSamplerIncompleteSlot()
+        .thenApply(maybeSlot -> maybeSlot.orElseGet(() -> getEarliestSampleSlot(currentSlot)));
+  }
+
+  private SafeFuture<Optional<Bytes32>> getBlockRootIfHaveBlobs(UInt64 slot) {
     return blockResolver
         .getBlockAtSlot(slot)
-        .filter(
-            block ->
-                block
-                        .getBeaconBlock()
-                        .flatMap(b -> b.getBody().toVersionEip7594())
-                        .map(b -> b.getBlobKzgCommitments().size())
-                        .orElse(0)
-                    > 0)
-        .map(BeaconBlock::getRoot);
+        .thenApply(
+            maybeBlock -> {
+              final Optional<BeaconBlockBodyEip7594> beaconBlockBodyEip7594 =
+                  maybeBlock.flatMap(block -> block.getBody().toVersionEip7594());
+              final int kzzCommitmentsCount =
+                  beaconBlockBodyEip7594.map(body -> body.getBlobKzgCommitments().size()).orElse(0);
+              if (kzzCommitmentsCount > 0) {
+                return Optional.of(maybeBlock.get().getRoot());
+              } else {
+                return Optional.empty();
+              }
+            });
   }
 
   @Override
-  public Stream<ColumnSlotAndIdentifier> streamMissingColumns() {
-    return streamPotentiallyIncompleteSlotSamples()
-        .flatMap(
-            samplingSlot ->
-                samplingSlot.getIncompleteColumns().stream()
-                    .map(colId -> new ColumnSlotAndIdentifier(samplingSlot.slot(), colId)));
+  public SafeFuture<List<ColumnSlotAndIdentifier>> retrieveMissingColumns() {
+    // waiting a column for [gossipWaitSlots] to be delivered by gossip
+    // and not considering it missing yet
+    return retrievePotentiallyIncompleteSlotSamples(currentSlot, MAX_SCAN_SLOTS)
+        .thenApply(
+            slotTasks ->
+                slotTasks.stream()
+                    .flatMap(
+                        slotTask ->
+                            slotTask.getIncompleteColumns().stream()
+                                .map(colId -> new ColumnSlotAndIdentifier(slotTask.slot(), colId)))
+                    .toList());
   }
 }
