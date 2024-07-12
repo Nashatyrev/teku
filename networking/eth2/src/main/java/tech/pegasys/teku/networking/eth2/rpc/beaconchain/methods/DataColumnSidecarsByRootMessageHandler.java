@@ -143,7 +143,7 @@ public class DataColumnSidecarsByRootMessageHandler
     SafeFuture<List<Boolean>> listOfResponses = SafeFuture.collectAll(responseStream);
 
     listOfResponses
-        .thenApply(list -> list.stream().filter(b -> b).count())
+        .thenApply(list -> list.stream().filter(isSent -> isSent).count())
         .thenAccept(
             sentDataColumnSidecarsCount -> {
               if (sentDataColumnSidecarsCount != message.size()) {
