@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -182,8 +181,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       this.specHelpers = specHelpers;
     }
 
-    public synchronized void addRequest(
-        UInt64 columnIndex, SafeFuture<DataColumnSidecar> promise) {
+    public synchronized void addRequest(UInt64 columnIndex, SafeFuture<DataColumnSidecar> promise) {
       if (recovered) {
         promise.completeAsync(existingSidecarsByColIdx.get(columnIndex), asyncRunner);
       } else {

@@ -94,8 +94,7 @@ public class DataColumnSidecarCustodyImpl
   private final UInt64 eip7594StartEpoch;
   private final Duration requestTimeout;
 
-  @VisibleForTesting
-  final PendingRequests pendingRequests = new PendingRequests();
+  @VisibleForTesting final PendingRequests pendingRequests = new PendingRequests();
   private volatile UInt64 currentSlot = null;
 
   public DataColumnSidecarCustodyImpl(

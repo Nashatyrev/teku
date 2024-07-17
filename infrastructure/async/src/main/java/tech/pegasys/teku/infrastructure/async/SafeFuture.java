@@ -317,7 +317,6 @@ public class SafeFuture<T> extends CompletableFuture<T> {
     asyncRunner.runAsync(() -> completeExceptionally(exception)).ifExceptionGetsHereRaiseABug();
   }
 
-
   public void finish(final Runnable onSuccess, final Consumer<Throwable> onError) {
     finish(result -> onSuccess.run(), onError);
   }

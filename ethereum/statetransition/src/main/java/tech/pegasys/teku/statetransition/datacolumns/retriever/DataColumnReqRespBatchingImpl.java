@@ -39,7 +39,8 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
       DataColumnIdentifier columnIdentifier,
       SafeFuture<DataColumnSidecar> promise) {}
 
-  private final ConcurrentLinkedQueue<RequestEntry> bufferedRequests = new ConcurrentLinkedQueue<>();
+  private final ConcurrentLinkedQueue<RequestEntry> bufferedRequests =
+      new ConcurrentLinkedQueue<>();
 
   @Override
   public SafeFuture<DataColumnSidecar> requestDataColumnSidecar(
@@ -53,7 +54,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
   public void flush() {
     Map<UInt256, List<RequestEntry>> byNodes = new HashMap<>();
     RequestEntry request;
-    while((request = bufferedRequests.poll()) != null) {
+    while ((request = bufferedRequests.poll()) != null) {
       byNodes.computeIfAbsent(request.nodeId, __ -> new ArrayList<>()).add(request);
     }
     for (Map.Entry<UInt256, List<RequestEntry>> entry : byNodes.entrySet()) {
