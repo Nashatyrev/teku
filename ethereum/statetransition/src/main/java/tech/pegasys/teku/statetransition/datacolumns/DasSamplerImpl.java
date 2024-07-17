@@ -15,6 +15,7 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import com.google.common.collect.Streams;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -32,6 +33,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
@@ -133,7 +135,7 @@ public class DasSamplerImpl
   @Override
   public SafeFuture<Void> checkDataAvailability(
       UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot) {
-    return addSlotTask(slot, blockRoot, parentRoot).thenAccept(__ -> fillUpIfNeeded());
+    return addSlotTask(slot, blockRoot, parentRoot).thenPeek(__ -> fillUpIfNeeded());
   }
 
   private void fillUpIfNeeded() {
@@ -307,57 +309,44 @@ public class DasSamplerImpl
           slotSampled
               .thenCompose(__ -> getFirstIncompleteSlot())
               .thenCompose(
-                  firstSlot -> {
-                    final NavigableMap<UInt64, Bytes32> ancestorsOfRequested =
-                        recentChainData.getAncestorsOnFork(firstSlot, parentRoot);
-                    // FIXME: it could be very big
-                    return SafeFuture.allOf(
-                            ancestorsOfRequested.navigableKeySet().stream()
-                                .map(
-                                    aSlot ->
-                                        scheduleSlotTaskIfNonZeroCommitments(
-                                            aSlot, ancestorsOfRequested.get(aSlot))))
-                        .thenCompose(
-                            __ -> {
-                              UInt64 parentSlot = slot.minusMinZero(1);
-                              if (parentSlot.isGreaterThan(UInt64.ZERO)) {
-                                return scheduleSlotTaskIfNonZeroCommitments(parentSlot, parentRoot);
-                              } else {
-                                return SafeFuture.COMPLETE;
-                              }
-                            });
-                  });
+                  firstSlot ->
+                      SafeFuture.allOf(
+                          getAncestorsInclusive(firstSlot, slot.minusMinZero(1), parentRoot)
+                              .map(
+                                  slotAndBlockRoot ->
+                                      scheduleSlotTaskIfNonZeroCommitments(
+                                          slotAndBlockRoot.getSlot(),
+                                          slotAndBlockRoot.getBlockRoot()))));
     } else {
       final Optional<SlotAndBlockRoot> maybeFirstAssigned =
           assignedSampleColumns.navigableKeySet().stream().findFirst();
       if (maybeFirstAssigned.isPresent()) {
-        final NavigableMap<UInt64, Bytes32> ancestorsOfRequested =
-            recentChainData.getAncestorsOnFork(maybeFirstAssigned.get().getSlot(), parentRoot);
-        // FIXME: it could be very big
         slotSampled =
             slotSampled.thenCompose(
                 __ ->
                     SafeFuture.allOf(
-                            ancestorsOfRequested.navigableKeySet().stream()
-                                .map(
-                                    aSlot ->
-                                        sampleTasks.getOrDefault(
-                                            new SlotAndBlockRoot(
-                                                aSlot, ancestorsOfRequested.get(aSlot)),
-                                            SafeFuture.COMPLETE)))
-                        .thenPeek(
-                            ___ -> {
-                              UInt64 parentSlot = slot.minusMinZero(1);
-                              if (parentSlot.isGreaterThan(UInt64.ZERO)) {
-                                sampleTasks.getOrDefault(
-                                    new SlotAndBlockRoot(parentSlot, parentRoot),
-                                    SafeFuture.COMPLETE);
-                              }
-                            }));
+                        getAncestorsInclusive(
+                                maybeFirstAssigned.get().getSlot(),
+                                slot.minusMinZero(1),
+                                parentRoot)
+                            .map(
+                                slotAndBlockRoot ->
+                                    sampleTasks.getOrDefault(
+                                        slotAndBlockRoot, SafeFuture.COMPLETE))));
       }
     }
 
     return slotSampled.thenCompose(__ -> scheduleSlotTask(slot, blockRoot));
+  }
+
+  private Stream<SlotAndBlockRoot> getAncestorsInclusive(
+      final UInt64 fromSlot, final UInt64 toSlot, final Bytes32 toSlotBlockRoot) {
+    final NavigableMap<UInt64, Bytes32> ancestorsExclusive =
+        recentChainData.getAncestorsOnFork(fromSlot, toSlotBlockRoot);
+    return Streams.concat(
+        Stream.of(new SlotAndBlockRoot(toSlot, toSlotBlockRoot)),
+        ancestorsExclusive.navigableKeySet().stream()
+            .map(aSlot -> new SlotAndBlockRoot(aSlot, ancestorsExclusive.get(aSlot))));
   }
 
   private synchronized SafeFuture<Void> scheduleSlotTaskIfNonZeroCommitments(
@@ -366,16 +355,12 @@ public class DasSamplerImpl
         .retrieveBlockByRoot(blockRoot)
         .thenCompose(
             maybeBlock -> {
-              if (maybeBlock.isEmpty()) {
-                throw new RuntimeException("Not expected");
+              if (!BeaconBlockBodyEip7594.required(maybeBlock.orElseThrow().getBody())
+                  .getBlobKzgCommitments()
+                  .isEmpty()) {
+                return scheduleSlotTask(slot, blockRoot);
               } else {
-                if (!BeaconBlockBodyEip7594.required(maybeBlock.get().getBody())
-                    .getBlobKzgCommitments()
-                    .isEmpty()) {
-                  return scheduleSlotTask(slot, blockRoot);
-                } else {
-                  return SafeFuture.COMPLETE;
-                }
+                return SafeFuture.COMPLETE;
               }
             });
   }
