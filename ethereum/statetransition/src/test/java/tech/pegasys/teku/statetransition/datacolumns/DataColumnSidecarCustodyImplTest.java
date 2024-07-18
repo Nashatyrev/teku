@@ -59,7 +59,11 @@ public class DataColumnSidecarCustodyImplTest {
   void sanityTest() throws Throwable {
     DataColumnSidecarCustodyImpl custody =
         new DataColumnSidecarCustodyImpl(
-            spec, blockResolver, db, myNodeId, subnetCount, Duration.ofMillis(200));
+            spec,
+            blockResolver,
+            db,
+            myNodeId,
+            subnetCount);
     BeaconBlock block = blockResolver.addBlock(10, true);
     DataColumnSidecar sidecar0 = createSidecar(block, 0);
     DataColumnIdentifier columnId0 = DataColumnIdentifier.createFromSidecar(sidecar0);
@@ -91,7 +95,5 @@ public class DataColumnSidecarCustodyImplTest {
 
     custody.onNewValidatedDataColumnSidecar(sidecar1);
     assertThat(fRet4.get().get()).isEqualTo(sidecar1);
-
-    assertThat(custody.pendingRequests.requests).isEmpty();
   }
 }
