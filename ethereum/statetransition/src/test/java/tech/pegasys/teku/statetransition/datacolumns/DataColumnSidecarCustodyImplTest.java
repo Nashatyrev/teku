@@ -15,7 +15,6 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.tuweni.units.bigints.UInt256;
@@ -58,12 +57,7 @@ public class DataColumnSidecarCustodyImplTest {
   @SuppressWarnings("JavaCase")
   void sanityTest() throws Throwable {
     DataColumnSidecarCustodyImpl custody =
-        new DataColumnSidecarCustodyImpl(
-            spec,
-            blockResolver,
-            db,
-            myNodeId,
-            subnetCount);
+        new DataColumnSidecarCustodyImpl(spec, blockResolver, db, myNodeId, subnetCount);
     BeaconBlock block = blockResolver.addBlock(10, true);
     DataColumnSidecar sidecar0 = createSidecar(block, 0);
     DataColumnIdentifier columnId0 = DataColumnIdentifier.createFromSidecar(sidecar0);

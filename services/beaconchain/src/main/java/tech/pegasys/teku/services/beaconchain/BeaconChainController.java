@@ -661,16 +661,13 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
         new DataColumnSidecarCustodyImpl(
-            spec,
-            canonicalBlockResolver,
-            sidecarDB,
-            nodeId,
-            totalMyCustodySubnets);
+            spec, canonicalBlockResolver, sidecarDB, nodeId, totalMyCustodySubnets);
     eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarCustodyImpl);
 
-    DasLongPollCustody custody = new DasLongPollCustody(
-        dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, Duration.ofSeconds(5));
+    DasLongPollCustody custody =
+        new DasLongPollCustody(
+            dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, Duration.ofSeconds(5));
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         custody::onNewValidatedDataColumnSidecar);
     // TODO fix this dirty hack
