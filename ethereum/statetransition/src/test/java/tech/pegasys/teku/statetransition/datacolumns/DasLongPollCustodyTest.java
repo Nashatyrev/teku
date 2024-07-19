@@ -47,7 +47,6 @@ public class DasLongPollCustodyTest {
   final SpecConfigEip7594 config =
       SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
-  final int custodyCount = config.getCustodyRequirement();
 
   final DataColumnSidecarCustodyImpl custodyImpl =
       new DataColumnSidecarCustodyImpl(spec, blockResolver, db, myNodeId, subnetCount);
