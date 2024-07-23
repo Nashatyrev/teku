@@ -714,6 +714,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
             miscHelpersEip7594,
             canonicalBlockResolver,
             sidecarDB,
+            // avoids circular dependency
+            sidecar ->
+                eventChannels
+                    .getPublisher(DataColumnSidecarGossipChannel.class)
+                    .publishDataColumnSidecar(sidecar),
             operationPoolAsyncRunner,
             Duration.ofMinutes(5),
             configEip7594.getNumberOfColumns());
