@@ -265,7 +265,7 @@ public class DasLossySamplerImpl
         final Optional<SafeFuture<Void>> voidSafeFuture =
             Optional.ofNullable(sampleTasks.get(dataColumnSidecar.getSlotAndBlockRoot()));
         voidSafeFuture.ifPresent(future -> future.complete(null));
-        LOG.info("Slot {} sampling is completed successfully", dataColumnSidecar.getSlot());
+        LOG.info("[nyota] Slot {} sampling is completed successfully", dataColumnSidecar.getSlot());
       }
     }
   }
@@ -273,7 +273,9 @@ public class DasLossySamplerImpl
   private synchronized void updateSlotSamplingAssignment(final SlotAndBlockRoot slotAndBlockRoot) {
     final AssignedSampling assignedSampling = assignedSamplings.get(slotAndBlockRoot);
     if (assignedSampling == null) {
-      LOG.warn("updateSlotSamplingAssignment called on removed assignment: {}", slotAndBlockRoot);
+      LOG.warn(
+          "[nyota] updateSlotSamplingAssignment called on removed assignment: {}",
+          slotAndBlockRoot);
       return;
     }
 
@@ -295,19 +297,24 @@ public class DasLossySamplerImpl
       // We could have different designs here, (a) chosen:
       // a. +1 failure on each iteration
       // b. use current number of failures for next iteration
-      final int newSamplesCount = assignedSampling.allowedFailures() + 1;
+      final int newAllowedFailures = assignedSampling.allowedFailures() + 1;
       final int columnsCount =
           SpecConfigEip7594.required(spec.atSlot(slotAndBlockRoot.getSlot()).getConfig())
               .getNumberOfColumns();
-      if (newSamplesCount * 2 > columnsCount) {
+      if (newAllowedFailures * 2 > columnsCount) {
         // sanity check, shouldn't happen
         return;
       }
 
+      LOG.info(
+          "[nyota] Increasing number of samples for slot {} to {}",
+          slotAndBlockRoot,
+          newAllowedFailures);
       assignedSamplings.put(
           slotAndBlockRoot,
-          computeSampleColumns(slotAndBlockRoot, Optional.of(assignedSampling), newSamplesCount));
-      if (((newSamplesCount + 1) * 2) <= columnsCount) {
+          computeSampleColumns(
+              slotAndBlockRoot, Optional.of(assignedSampling), newAllowedFailures));
+      if (((newAllowedFailures + 1) * 2) <= columnsCount) {
         // if next iteration is possible, schedule it
         asyncRunner
             .runAfterDelay(
@@ -434,7 +441,7 @@ public class DasLossySamplerImpl
             assignedSlotAndBlockRoot ->
                 computeSampleColumns(assignedSlotAndBlockRoot, Optional.empty(), 0));
     if (!alreadyAssigned) {
-      LOG.info("Slot {}, root {} assigned sampling: {}", slot, blockRoot, assignedSampling);
+      LOG.info("[nyota] Slot {}, root {} assigned sampling: {}", slot, blockRoot, assignedSampling);
     }
 
     assignedSampling
@@ -507,7 +514,7 @@ public class DasLossySamplerImpl
 
   private synchronized void prune(final UInt64 slotExclusive) {
     LOG.info(
-        "Pruning till slot {}, collectedSamples: {}, assignedSamples: {}",
+        "[nyota] Pruning till slot {}, collectedSamples: {}, assignedSamples: {}",
         slotExclusive,
         collectedSamples
             .subMap(
