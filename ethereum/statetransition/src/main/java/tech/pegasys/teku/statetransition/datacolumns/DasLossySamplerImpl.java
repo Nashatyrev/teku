@@ -15,7 +15,6 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import com.google.common.collect.Streams;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +32,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -118,8 +116,6 @@ public class DasLossySamplerImpl
 
   private synchronized void onRequestComplete(PendingRequest request, DataColumnSidecar response) {
     onNewValidatedDataColumnSidecar(response);
-    pendingRequests.remove(request.columnId);
-    syncedColumnCount.incrementAndGet();
     fillUpIfNeeded();
   }
 
@@ -140,16 +136,15 @@ public class DasLossySamplerImpl
   @Override
   public SafeFuture<Void> checkDataAvailability(
       UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot) {
-    return addSlotTask(slot, blockRoot, parentRoot)
-        .thenPeek(
-            __ -> {
-              fillUpIfNeeded();
-              asyncRunner
-                  .runAfterDelay(
-                      () -> updateSlotSamplingAssignment(new SlotAndBlockRoot(slot, blockRoot)),
-                      SAMPLING_EXTENSION_INTERVAL)
-                  .ifExceptionGetsHereRaiseABug();
-            });
+    final SafeFuture<Void> dataAvailabilityCheckFuture = addSlotTask(slot, blockRoot, parentRoot);
+    fillUpIfNeeded();
+    asyncRunner
+        .runAfterDelay(
+            () -> updateSlotSamplingAssignment(new SlotAndBlockRoot(slot, blockRoot)),
+            SAMPLING_EXTENSION_INTERVAL)
+        .ifExceptionGetsHereRaiseABug();
+
+    return dataAvailabilityCheckFuture;
   }
 
   private void fillUpIfNeeded() {
@@ -227,32 +222,26 @@ public class DasLossySamplerImpl
   private synchronized void onNewValidatedDataColumnSidecar(
       final DataColumnSidecar dataColumnSidecar, final UInt64 firstIncompleteSlot) {
     if (dataColumnSidecar.getSlot().isGreaterThanOrEqualTo(firstIncompleteSlot)) {
-      final Set<DataColumnIdentifier> newIdentifiers =
+      final Optional<DataColumnIdentifier> newIdentifier =
           onMaybeNewValidatedIdentifier(
               dataColumnSidecar.getSlot(),
               DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
-
-      // IF we've collected 50%, everything from this slot is available
-      final Set<DataColumnIdentifier> thisSlotDataColumnIdentifiers =
-          collectedSamples.get(dataColumnSidecar.getSlotAndBlockRoot());
-      final int columnsCount =
-          SpecConfigEip7594.required(spec.atSlot(dataColumnSidecar.getSlot()).getConfig())
-              .getNumberOfColumns();
-      if (thisSlotDataColumnIdentifiers.size() * 2 >= columnsCount
-          && thisSlotDataColumnIdentifiers.size() != columnsCount) {
-        IntStream.range(0, columnsCount)
-            .mapToObj(
-                index ->
-                    new DataColumnIdentifier(
-                        dataColumnSidecar.getBlockRoot(), UInt64.valueOf(index)))
-            .forEach(
-                identifier -> {
-                  final boolean wasAdded = thisSlotDataColumnIdentifiers.add(identifier);
-                  if (wasAdded) {
-                    newIdentifiers.add(identifier);
+      newIdentifier.ifPresent(
+          dataColumnIdentifier -> {
+            // Called not from onRequestComplete, cancelling request
+            final Optional<PendingRequest> maybeRequest =
+                Optional.ofNullable(
+                    pendingRequests.remove(
+                        new ColumnSlotAndIdentifier(
+                            dataColumnSidecar.getSlot(), dataColumnIdentifier)));
+            maybeRequest.ifPresent(
+                request -> {
+                  if (!request.columnPromise().isDone()) {
+                    request.columnPromise().cancel(true);
                   }
+                  syncedColumnCount.incrementAndGet();
                 });
-      }
+          });
 
       // Check if the slot is completed and if it's just completed
       if (isSlotSamplingCompleted(dataColumnSidecar.getSlotAndBlockRoot())
@@ -307,7 +296,7 @@ public class DasLossySamplerImpl
       }
 
       LOG.info(
-          "[nyota] Increasing number of samples for slot {} to {}",
+          "[nyota] Increasing number of allowed failures for slot {} to {}",
           slotAndBlockRoot,
           newAllowedFailures);
       assignedSamplings.put(
@@ -324,7 +313,7 @@ public class DasLossySamplerImpl
     }
   }
 
-  private Set<DataColumnIdentifier> onMaybeNewValidatedIdentifier(
+  private Optional<DataColumnIdentifier> onMaybeNewValidatedIdentifier(
       final UInt64 slot, final DataColumnIdentifier dataColumnIdentifier) {
     final Set<DataColumnIdentifier> newIdentifiers = new HashSet<>();
     collectedSamples.compute(
@@ -344,7 +333,7 @@ public class DasLossySamplerImpl
           }
         });
 
-    return newIdentifiers;
+    return newIdentifiers.stream().findFirst();
   }
 
   private boolean isSlotSamplingCompleted(final SlotAndBlockRoot slotAndBlockRoot) {
@@ -377,7 +366,7 @@ public class DasLossySamplerImpl
               .thenCompose(
                   firstSlot ->
                       SafeFuture.allOf(
-                          getAncestorsInclusive(firstSlot, slot.minusMinZero(1), parentRoot)
+                          getAncestorsInclusive(firstSlot, parentRoot)
                               .map(
                                   slotAndBlockRoot ->
                                       scheduleSlotTaskIfNonZeroCommitments(
@@ -391,10 +380,7 @@ public class DasLossySamplerImpl
             slotSampled.thenCompose(
                 __ ->
                     SafeFuture.allOf(
-                        getAncestorsInclusive(
-                                maybeFirstAssigned.get().getSlot(),
-                                slot.minusMinZero(1),
-                                parentRoot)
+                        getAncestorsInclusive(maybeFirstAssigned.get().getSlot(), parentRoot)
                             .map(
                                 slotAndBlockRoot ->
                                     sampleTasks.getOrDefault(
@@ -402,17 +388,16 @@ public class DasLossySamplerImpl
       }
     }
 
-    return slotSampled.thenCompose(__ -> scheduleSlotTask(slot, blockRoot));
+    final SafeFuture<Void> thisSlotTask = scheduleSlotTask(slot, blockRoot);
+    return slotSampled.thenCompose(__ -> thisSlotTask);
   }
 
   private Stream<SlotAndBlockRoot> getAncestorsInclusive(
-      final UInt64 fromSlot, final UInt64 toSlot, final Bytes32 toSlotBlockRoot) {
-    final NavigableMap<UInt64, Bytes32> ancestorsExclusive =
-        recentChainData.getAncestorsOnFork(fromSlot, toSlotBlockRoot);
-    return Streams.concat(
-        Stream.of(new SlotAndBlockRoot(toSlot, toSlotBlockRoot)),
-        ancestorsExclusive.navigableKeySet().stream()
-            .map(aSlot -> new SlotAndBlockRoot(aSlot, ancestorsExclusive.get(aSlot))));
+      final UInt64 fromSlot, final Bytes32 toSlotBlockRoot) {
+    final NavigableMap<UInt64, Bytes32> ancestors =
+        recentChainData.getAncestorsOnFork(fromSlot.minusMinZero(1), toSlotBlockRoot);
+    return ancestors.navigableKeySet().stream()
+        .map(aSlot -> new SlotAndBlockRoot(aSlot, ancestors.get(aSlot)));
   }
 
   private synchronized SafeFuture<Void> scheduleSlotTaskIfNonZeroCommitments(
