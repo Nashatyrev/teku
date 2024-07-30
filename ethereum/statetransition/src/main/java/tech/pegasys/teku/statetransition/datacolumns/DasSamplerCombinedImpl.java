@@ -53,8 +53,7 @@ import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecar
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
-// TODO: reuse codebase of DasSamplerImpl
-public class DasLossySamplerImpl
+public class DasSamplerCombinedImpl
     implements DataAvailabilitySampler, FinalizedCheckpointChannel, SlotEventsChannel {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
@@ -71,6 +70,7 @@ public class DasLossySamplerImpl
   private final Spec spec;
   private final DataColumnSidecarDB db;
   private final RecentChainData recentChainData;
+  private final boolean isLossy;
 
   private final UInt64 eip7594StartEpoch;
   private final Random rnd;
@@ -82,20 +82,22 @@ public class DasLossySamplerImpl
 
   private UInt64 currentSlot = null;
 
-  public DasLossySamplerImpl(
+  public DasSamplerCombinedImpl(
       final Spec spec,
       final DataColumnSidecarDB db,
       final RecentChainData recentChainData,
       final DataColumnSidecarRetriever retriever,
       final AsyncRunner asyncRunner,
       final int maxPendingColumnRequests,
-      final int minPendingColumnRequests) {
+      final int minPendingColumnRequests,
+      final boolean isLossy) {
     checkNotNull(spec);
     checkNotNull(db);
 
     this.spec = spec;
     this.db = db;
     this.recentChainData = recentChainData;
+    this.isLossy = isLossy;
     this.eip7594StartEpoch = spec.getForkSchedule().getFork(SpecMilestone.EIP7594).getEpoch();
     this.rnd = new Random();
 
@@ -105,13 +107,14 @@ public class DasLossySamplerImpl
     this.minPendingColumnRequests = minPendingColumnRequests;
   }
 
-  public DasLossySamplerImpl(
+  public DasSamplerCombinedImpl(
       final Spec spec,
       final DataColumnSidecarDB db,
       final RecentChainData recentChainData,
       final DataColumnSidecarRetriever retriever,
-      final AsyncRunner asyncRunner) {
-    this(spec, db, recentChainData, retriever, asyncRunner, 10 * 1024, 2 * 1024);
+      final AsyncRunner asyncRunner,
+      final boolean isLossy) {
+    this(spec, db, recentChainData, retriever, asyncRunner, 10 * 1024, 2 * 1024, isLossy);
   }
 
   private synchronized void onRequestComplete(PendingRequest request, DataColumnSidecar response) {
@@ -138,11 +141,13 @@ public class DasLossySamplerImpl
       UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot) {
     final SafeFuture<Void> dataAvailabilityCheckFuture = addSlotTask(slot, blockRoot, parentRoot);
     fillUpIfNeeded();
-    asyncRunner
-        .runAfterDelay(
-            () -> updateSlotSamplingAssignment(new SlotAndBlockRoot(slot, blockRoot)),
-            SAMPLING_EXTENSION_INTERVAL)
-        .ifExceptionGetsHereRaiseABug();
+    if (isLossy) {
+      asyncRunner
+          .runAfterDelay(
+              () -> updateSlotSamplingAssignment(new SlotAndBlockRoot(slot, blockRoot)),
+              SAMPLING_EXTENSION_INTERVAL)
+          .ifExceptionGetsHereRaiseABug();
+    }
 
     return dataAvailabilityCheckFuture;
   }
