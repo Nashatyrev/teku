@@ -17,21 +17,15 @@ import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.statetransition.validation.DataColumnSidecarValidator;
 
-public class ValidatingDataColumnReqResp implements DataColumnReqResp {
+public class DataColumnReqRespImpl implements DataColumnReqResp {
 
   private final DataColumnPeerManager peerManager;
   private final DataColumnReqResp reqResp;
-  private final DataColumnSidecarValidator validator;
 
-  public ValidatingDataColumnReqResp(
-      DataColumnPeerManager peerManager,
-      DataColumnReqResp reqResp,
-      DataColumnSidecarValidator validator) {
+  public DataColumnReqRespImpl(DataColumnPeerManager peerManager, DataColumnReqResp reqResp) {
     this.peerManager = peerManager;
     this.reqResp = reqResp;
-    this.validator = validator;
   }
 
   @Override
@@ -39,12 +33,7 @@ public class ValidatingDataColumnReqResp implements DataColumnReqResp {
       UInt256 nodeId, DataColumnIdentifier columnIdentifier) {
     return reqResp
         .requestDataColumnSidecar(nodeId, columnIdentifier)
-        .thenCompose(
-            sidecar ->
-                validator
-                    .validate(sidecar)
-                    .thenApply(__ -> sidecar)
-                    .catchAndRethrow(err -> peerManager.banNode(nodeId)));
+        .whenException(__ -> peerManager.banNode(nodeId));
   }
 
   @Override
