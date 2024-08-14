@@ -105,11 +105,6 @@ public class SampleSidecarRetrieverTest {
     return craftNodeIds().filter(nodeId -> !nodeCustodyColumns(nodeId).contains(custodyColumn));
   }
 
-  //  private void advanceTime(Duration delta) {
-  //    stubTimeProvider.advanceTimeBy(delta);
-  //    stubAsyncRunner.executeDueActionsRepeatedly();
-  //  }
-
   private void advanceTimeGradually(Duration delta) {
     for (int i = 0; i < delta.toMillis(); i++) {
       stubTimeProvider.advanceTimeBy(Duration.ofMillis(1));
@@ -165,5 +160,7 @@ public class SampleSidecarRetrieverTest {
     // the column
     // and the new connected peer custodyPeers.get(1) has it
     assertThat(resp0).isCompletedWithValue(sidecar0);
+    assertThat(custodyPeers.get(1).getRequests()).isNotEmpty();
+    assertThat(custodyPeers.get(0).getRequests().size()).isLessThan(3);
   }
 }
