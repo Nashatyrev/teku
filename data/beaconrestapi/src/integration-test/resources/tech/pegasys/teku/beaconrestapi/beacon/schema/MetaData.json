@@ -23,7 +23,7 @@
     },
     "custody_subnet_count" : {
       "type" : "string",
-      "description" : "unsigned 64 bit integer",
+      "description" : "PeerDAS custody subnet count.",
       "example" : "1",
       "format" : "uint64"
     }
