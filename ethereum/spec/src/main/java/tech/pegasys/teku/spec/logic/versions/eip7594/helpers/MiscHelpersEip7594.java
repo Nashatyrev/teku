@@ -266,7 +266,7 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
               allowedFailures, specConfigEip7594.getNumberOfColumns()));
     }
     final UInt64 worstCaseMissing = UInt64.valueOf(specConfigEip7594.getNumberOfColumns() / 2 + 1);
-    final float falsePositiveThreshold =
+    final double falsePositiveThreshold =
         hypergeomCdf(
             UInt64.ZERO,
             UInt64.valueOf(specConfigEip7594.getNumberOfColumns()),
@@ -303,22 +303,20 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
   }
 
   @SuppressWarnings("JavaCase")
-  private float hypergeomCdf(final UInt64 k, final UInt64 M, final UInt64 n, final UInt64 N) {
-    return (float)
-        Stream.iterate(UInt64.ZERO, i -> i.isLessThanOrEqualTo(k), UInt64::increment)
-            .mapToDouble(
-                i ->
-                    N.isLessThan(i)
-                        ? 0d
-                        : new BigDecimal(
-                                mathComb(n, i)
-                                    .multiply(mathComb(M.minus(n), N.minus(i)))
-                                    .toBigInteger(),
-                                BIGDECIMAL_PRECISION)
-                            .divide(
-                                new BigDecimal(mathComb(M, N).toBigInteger()), BIGDECIMAL_PRECISION)
-                            .doubleValue())
-            .sum();
+  private double hypergeomCdf(final UInt64 k, final UInt64 M, final UInt64 n, final UInt64 N) {
+    return Stream.iterate(UInt64.ZERO, i -> i.isLessThanOrEqualTo(k), UInt64::increment)
+        .mapToDouble(
+            i ->
+                N.isLessThan(i)
+                    ? 0d
+                    : new BigDecimal(
+                            mathComb(n, i)
+                                .multiply(mathComb(M.minus(n), N.minus(i)))
+                                .toBigInteger(),
+                            BIGDECIMAL_PRECISION)
+                        .divide(new BigDecimal(mathComb(M, N).toBigInteger()), BIGDECIMAL_PRECISION)
+                        .doubleValue())
+        .sum();
   }
 
   @Override
