@@ -20,6 +20,7 @@ import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.CellSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecarSchema;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntrySchema;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockSchema;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockContainer;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockContainerSchema;
@@ -47,6 +48,8 @@ import tech.pegasys.teku.spec.datastructures.execution.versions.eip7594.Executio
 import tech.pegasys.teku.spec.datastructures.execution.versions.eip7594.ExecutionPayloadSchemaEip7594;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessageSchema;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageSchemaEip7594;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.BeaconStateEip7594;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.BeaconStateSchemaEip7594;
@@ -78,11 +81,13 @@ public class SchemaDefinitionsEip7594 extends SchemaDefinitionsDeneb {
   private final CellSchema cellSchema;
   private final DataColumnSchema dataColumnSchema;
   private final DataColumnSidecarSchema dataColumnSidecarSchema;
+  private final MatrixEntrySchema matrixEntrySchema;
   private final DataColumnSidecarsByRootRequestMessageSchema
       dataColumnSidecarsByRootRequestMessageSchema;
   private final DataColumnSidecarsByRangeRequestMessage
           .DataColumnSidecarsByRangeRequestMessageSchema
       dataColumnSidecarsByRangeRequestMessageSchema;
+  private final MetadataMessageSchemaEip7594 metadataMessageSchema;
 
   public SchemaDefinitionsEip7594(final SpecConfigEip7594 specConfig) {
     super(specConfig);
@@ -137,11 +142,14 @@ public class SchemaDefinitionsEip7594 extends SchemaDefinitionsDeneb {
     this.dataColumnSidecarSchema =
         DataColumnSidecarSchema.create(
             SignedBeaconBlockHeader.SSZ_SCHEMA, dataColumnSchema, specConfig);
+    this.matrixEntrySchema = MatrixEntrySchema.create(cellSchema);
     this.dataColumnSidecarsByRootRequestMessageSchema =
         new DataColumnSidecarsByRootRequestMessageSchema(specConfig);
     this.dataColumnSidecarsByRangeRequestMessageSchema =
         new DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema(
             specConfig);
+
+    this.metadataMessageSchema = new MetadataMessageSchemaEip7594(specConfig);
   }
 
   public static SchemaDefinitionsEip7594 required(final SchemaDefinitions schemaDefinitions) {
@@ -260,20 +268,29 @@ public class SchemaDefinitionsEip7594 extends SchemaDefinitionsDeneb {
   }
 
   @Override
+  public MetadataMessageSchema<?> getMetadataMessageSchema() {
+    return metadataMessageSchema;
+  }
+
+  @Override
   public Optional<SchemaDefinitionsEip7594> toVersionEip7594() {
     return Optional.of(this);
   }
 
-  public DataColumnSidecarSchema getDataColumnSidecarSchema() {
-    return dataColumnSidecarSchema;
+  public CellSchema getCellSchema() {
+    return cellSchema;
   }
 
   public DataColumnSchema getDataColumnSchema() {
     return dataColumnSchema;
   }
 
-  public CellSchema getCellSchema() {
-    return cellSchema;
+  public DataColumnSidecarSchema getDataColumnSidecarSchema() {
+    return dataColumnSidecarSchema;
+  }
+
+  public MatrixEntrySchema getMatrixEntrySchema() {
+    return matrixEntrySchema;
   }
 
   public DataColumnSidecarsByRootRequestMessageSchema
