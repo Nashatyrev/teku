@@ -110,10 +110,8 @@ public class DasSamplerImpl
     this(spec, db, recentChainData, myDataColumnSampleCount, retriever, 10 * 1024, 2 * 1024);
   }
 
-  private synchronized void onRequestComplete(PendingRequest request, DataColumnSidecar response) {
+  private synchronized void onRequestComplete(DataColumnSidecar response) {
     onNewValidatedDataColumnSidecar(response);
-    pendingRequests.remove(request.columnId);
-    syncedColumnCount.incrementAndGet();
     fillUpIfNeeded();
   }
 
@@ -178,8 +176,7 @@ public class DasSamplerImpl
     final SafeFuture<DataColumnSidecar> promise = retriever.retrieve(missingColumn);
     final PendingRequest request = new PendingRequest(missingColumn, promise);
     pendingRequests.put(missingColumn, request);
-    promise.finish(
-        response -> onRequestComplete(request, response), err -> onRequestException(request, err));
+    promise.finish(this::onRequestComplete, err -> onRequestException(request, err));
   }
 
   @Override
@@ -216,6 +213,20 @@ public class DasSamplerImpl
           onMaybeNewValidatedIdentifier(
               dataColumnSidecar.getSlot(),
               DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
+      newIdentifiers.forEach(
+          newIdentifier -> {
+            final Optional<PendingRequest> maybeRequest =
+                Optional.ofNullable(
+                    pendingRequests.remove(
+                        new ColumnSlotAndIdentifier(dataColumnSidecar.getSlot(), newIdentifier)));
+            maybeRequest.ifPresent(
+                pendingRequest -> {
+                  if (!pendingRequest.columnPromise().isDone()) {
+                    pendingRequest.columnPromise().cancel(true);
+                  }
+                  syncedColumnCount.incrementAndGet();
+                });
+          });
 
       // IF we've collected 50%, everything from this slot is available
       final Set<DataColumnIdentifier> thisSlotDataColumnIdentifiers =
