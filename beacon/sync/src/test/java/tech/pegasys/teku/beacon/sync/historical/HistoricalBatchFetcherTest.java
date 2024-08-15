@@ -52,6 +52,7 @@ import tech.pegasys.teku.spec.logic.versions.deneb.blobs.BlobSidecarsAndValidati
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.api.StorageUpdateChannel;
+import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.EarliestAvailableBlockSlot;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -129,6 +130,7 @@ public class HistoricalBatchFetcherTest {
         new CombinedChainDataClient(
             recentChainData,
             historicalChainData,
+            mock(BlobSidecarReconstructionProvider.class),
             spec,
             new EarliestAvailableBlockSlot(historicalChainData, new SystemTimeProvider(), 0));
 

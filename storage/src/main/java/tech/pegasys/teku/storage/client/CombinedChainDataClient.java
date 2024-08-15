@@ -15,6 +15,7 @@ package tech.pegasys.teku.storage.client;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Verify.verifyNotNull;
+import static java.util.Collections.emptyList;
 import static tech.pegasys.teku.infrastructure.async.SafeFuture.completedFuture;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -30,6 +31,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockAndState;
@@ -70,14 +72,17 @@ public class CombinedChainDataClient {
   private final Spec spec;
 
   private final EarliestAvailableBlockSlot earliestAvailableBlockSlot;
+  private final BlobSidecarReconstructionProvider blobSidecarReconstructionProvider;
 
   public CombinedChainDataClient(
       final RecentChainData recentChainData,
       final StorageQueryChannel historicalChainData,
+      final BlobSidecarReconstructionProvider blobSidecarReconstructionProvider,
       final Spec spec,
       final EarliestAvailableBlockSlot earliestAvailableBlockSlot) {
     this.recentChainData = recentChainData;
     this.historicalChainData = historicalChainData;
+    this.blobSidecarReconstructionProvider = blobSidecarReconstructionProvider;
     this.spec = spec;
     this.earliestAvailableBlockSlot = earliestAvailableBlockSlot;
   }
@@ -173,6 +178,18 @@ public class CombinedChainDataClient {
    */
   public SafeFuture<List<BlobSidecar>> getBlobSidecars(
       final UInt64 slot, final List<UInt64> indices) {
+    if (spec.atSlot(slot).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
+      // TODO: suboptimal
+      return getBlockAtSlotExact(slot)
+          .thenCompose(
+              maybeBlock -> {
+                if (maybeBlock.isEmpty()) {
+                  return SafeFuture.completedFuture(emptyList());
+                }
+                return blobSidecarReconstructionProvider.reconstructBlobSidecars(
+                    maybeBlock.get().getSlotAndBlockRoot(), indices);
+              });
+    }
     return historicalChainData
         .getBlobSidecarKeys(slot)
         .thenApply(keys -> filterBlobSidecarKeys(keys, indices))
@@ -181,6 +198,12 @@ public class CombinedChainDataClient {
 
   public SafeFuture<List<BlobSidecar>> getBlobSidecars(
       final SlotAndBlockRoot slotAndBlockRoot, final List<UInt64> indices) {
+    if (spec.atSlot(slotAndBlockRoot.getSlot())
+        .getMilestone()
+        .isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
+      return blobSidecarReconstructionProvider.reconstructBlobSidecars(slotAndBlockRoot, indices);
+    }
+
     final Optional<List<BlobSidecar>> maybeBlobSidecars =
         recentChainData.getBlobSidecars(slotAndBlockRoot);
     if (maybeBlobSidecars.isPresent()) {

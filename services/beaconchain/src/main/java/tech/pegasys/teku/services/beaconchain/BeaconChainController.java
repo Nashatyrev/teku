@@ -203,6 +203,7 @@ import tech.pegasys.teku.storage.api.SidecarUpdateChannel;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.api.StorageUpdateChannel;
 import tech.pegasys.teku.storage.api.VoteUpdateChannel;
+import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.EarliestAvailableBlockSlot;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -936,9 +937,16 @@ public class BeaconChainController extends Service implements BeaconChainControl
             timeProvider,
             beaconConfig.storeConfig().getEarliestAvailableBlockSlotFrequency());
 
+    final BlobSidecarReconstructionProvider blobSidecarReconstructionProvider =
+        new BlobSidecarReconstructionProvider(storageQueryChannel, recentChainData, spec, kzg);
+
     combinedChainDataClient =
         new CombinedChainDataClient(
-            recentChainData, storageQueryChannel, spec, earliestAvailableBlockSlot);
+            recentChainData,
+            storageQueryChannel,
+            blobSidecarReconstructionProvider,
+            spec,
+            earliestAvailableBlockSlot);
   }
 
   protected SafeFuture<Void> initWeakSubjectivity(

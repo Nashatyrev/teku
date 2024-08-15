@@ -59,6 +59,7 @@ class CombinedChainDataClientTest {
       new CombinedChainDataClient(
           recentChainData,
           historicalChainData,
+          mock(BlobSidecarReconstructionProvider.class),
           spec,
           new EarliestAvailableBlockSlot(historicalChainData, new SystemTimeProvider(), 0));
   private final ChainHead chainHead = mock(ChainHead.class);

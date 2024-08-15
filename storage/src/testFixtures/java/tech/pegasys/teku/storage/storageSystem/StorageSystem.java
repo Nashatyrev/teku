@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.storage.storageSystem;
 
+import static org.mockito.Mockito.mock;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.infrastructure.async.SyncAsyncRunner.SYNC_RUNNER;
 
@@ -29,6 +30,7 @@ import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 import tech.pegasys.teku.storage.api.StubFinalizedCheckpointChannel;
 import tech.pegasys.teku.storage.api.TrackingChainHeadChannel;
+import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
 import tech.pegasys.teku.storage.client.ChainUpdater;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.EarliestAvailableBlockSlot;
@@ -125,6 +127,7 @@ public class StorageSystem implements AutoCloseable {
         new CombinedChainDataClient(
             recentChainData,
             chainStorageServer,
+            mock(BlobSidecarReconstructionProvider.class),
             spec,
             new EarliestAvailableBlockSlot(chainStorageServer, new SystemTimeProvider(), 0));
 
