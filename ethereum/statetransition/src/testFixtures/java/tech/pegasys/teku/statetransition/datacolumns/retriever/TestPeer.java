@@ -90,7 +90,8 @@ public class TestPeer {
     return currentRequestLimit;
   }
 
-  public void setCurrentRequestLimit(int currentRequestLimit) {
+  public TestPeer currentRequestLimit(int currentRequestLimit) {
     this.currentRequestLimit = currentRequestLimit;
+    return this;
   }
 }

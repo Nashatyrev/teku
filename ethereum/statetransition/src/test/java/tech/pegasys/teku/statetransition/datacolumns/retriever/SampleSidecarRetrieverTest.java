@@ -16,11 +16,15 @@ package tech.pegasys.teku.statetransition.datacolumns.retriever;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
@@ -41,7 +45,6 @@ import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
 import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
-import tech.pegasys.teku.statetransition.validation.DataColumnSidecarValidator;
 
 @SuppressWarnings("unused")
 public class SampleSidecarRetrieverTest {
@@ -61,6 +64,7 @@ public class SampleSidecarRetrieverTest {
   final DasPeerCustodyCountSupplier custodyCountSupplier =
       DasPeerCustodyCountSupplier.createStub(config.getCustodyRequirement());
 
+  final Duration retrieverRound = Duration.ofSeconds(1);
   final SimpleSidecarRetriever simpleSidecarRetriever =
       new SimpleSidecarRetriever(
           spec,
@@ -68,9 +72,8 @@ public class SampleSidecarRetrieverTest {
           dataColumnPeerSearcherStub,
           custodyCountSupplier,
           testPeerManager,
-          DataColumnSidecarValidator.NOOP,
           stubAsyncRunner,
-          Duration.ofSeconds(1));
+          retrieverRound);
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
@@ -112,7 +115,6 @@ public class SampleSidecarRetrieverTest {
     }
   }
 
-  @Disabled
   @Test
   void sanityTest() {
     UInt64 columnId = UInt64.valueOf(1);
@@ -121,14 +123,14 @@ public class SampleSidecarRetrieverTest {
         craftNodeIdsCustodyOf(columnId)
             .limit(2)
             .map(nodeId -> new TestPeer(stubAsyncRunner, nodeId, Duration.ofMillis(100)))
-            .peek(testPeer -> testPeer.setCurrentRequestLimit(1000))
+            .peek(testPeer -> testPeer.currentRequestLimit(1000))
             .toList();
 
     List<TestPeer> nonCustodyPeers =
         craftNodeIdsNotCustodyOf(columnId)
             .limit(1)
             .map(nodeId -> new TestPeer(stubAsyncRunner, nodeId, Duration.ofMillis(100)))
-            .peek(testPeer -> testPeer.setCurrentRequestLimit(1000))
+            .peek(testPeer -> testPeer.currentRequestLimit(1000))
             .toList();
 
     List<Blob> blobs = Stream.generate(dataStructureUtil::randomBlob).limit(1).toList();
@@ -144,23 +146,72 @@ public class SampleSidecarRetrieverTest {
 
     SafeFuture<DataColumnSidecar> resp0 = simpleSidecarRetriever.retrieve(id0);
 
-    advanceTimeGradually(Duration.ofSeconds(2));
+    advanceTimeGradually(retrieverRound.multipliedBy(2));
 
     assertThat(resp0).isNotDone();
-    assertThat(nonCustodyPeers.get(0).getRequests()).isEmpty();
-    assertThat(custodyPeers.get(0).getRequests()).isNotEmpty();
+    assertThat(custodyPeers.get(0).getRequests()).hasSize(2);
 
     custodyPeers.get(1).addSidecar(sidecar0);
     testPeerManager.connectPeer(custodyPeers.get(1));
 
-    advanceTimeGradually(Duration.ofSeconds(30));
+    advanceTimeGradually(retrieverRound.multipliedBy(2));
 
-    assertThat(nonCustodyPeers.get(0).getRequests()).isEmpty();
-    // TOFIX: The Retriever continues to request from the custodyPeers.get(0) even while it misses
-    // the column
-    // and the new connected peer custodyPeers.get(1) has it
     assertThat(resp0).isCompletedWithValue(sidecar0);
-    assertThat(custodyPeers.get(1).getRequests()).isNotEmpty();
-    assertThat(custodyPeers.get(0).getRequests().size()).isLessThan(3);
+    assertThat(nonCustodyPeers.get(0).getRequests()).isEmpty();
+    assertThat(custodyPeers.get(1).getRequests()).hasSize(1);
+    assertThat(custodyPeers.get(0).getRequests()).hasSize(2);
+  }
+
+  @Test
+  void selectingBestPeerShouldRespectPeerMetrics() {
+    UInt64 columnId = UInt64.valueOf(1);
+
+    TestPeer nonCustodyPeer =
+        craftNodeIdsNotCustodyOf(columnId)
+            .map(nodeId -> new TestPeer(stubAsyncRunner, nodeId, Duration.ofMillis(100)))
+            .peek(testPeer -> testPeer.currentRequestLimit(1000))
+            .findFirst()
+            .orElseThrow();
+
+    Iterator<UInt256> custodyNodeIds = craftNodeIdsCustodyOf(columnId).iterator();
+
+    TestPeer overloadedCustodyPeer =
+        new TestPeer(stubAsyncRunner, custodyNodeIds.next(), Duration.ofMillis(100))
+            .currentRequestLimit(0);
+
+    TestPeer busyCustodyPeer =
+        new TestPeer(stubAsyncRunner, custodyNodeIds.next(), Duration.ofMillis(100))
+            .currentRequestLimit(10);
+
+    TestPeer freeCustodyPeer =
+        new TestPeer(stubAsyncRunner, custodyNodeIds.next(), Duration.ofMillis(100))
+            .currentRequestLimit(1000);
+
+    List<TestPeer> allPeers =
+        List.of(nonCustodyPeer, overloadedCustodyPeer, busyCustodyPeer, freeCustodyPeer);
+    Supplier<List<Integer>> allRequestCountsFunc =
+        () -> allPeers.stream().map(peer -> peer.getRequests().size()).toList();
+
+    allPeers.forEach(testPeerManager::connectPeer);
+
+    ColumnSlotAndIdentifier id0 =
+        new ColumnSlotAndIdentifier(UInt64.ONE, new DataColumnIdentifier(Bytes32.ZERO, columnId));
+    SafeFuture<DataColumnSidecar> resp0 = simpleSidecarRetriever.retrieve(id0);
+
+    advanceTimeGradually(retrieverRound);
+
+    assertThat(allRequestCountsFunc.get()).isEqualTo(List.of(0, 0, 0, 1));
+
+    advanceTimeGradually(retrieverRound);
+
+    assertThat(allRequestCountsFunc.get()).isEqualTo(List.of(0, 0, 1, 1));
+
+    advanceTimeGradually(retrieverRound);
+
+    assertThat(allRequestCountsFunc.get()).isEqualTo(List.of(0, 0, 1, 2));
+
+    advanceTimeGradually(retrieverRound);
+
+    assertThat(allRequestCountsFunc.get()).isEqualTo(List.of(0, 0, 2, 2));
   }
 }
