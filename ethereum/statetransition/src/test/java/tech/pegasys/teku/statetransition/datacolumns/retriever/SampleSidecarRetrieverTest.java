@@ -200,5 +200,11 @@ public class SampleSidecarRetrieverTest {
     advanceTimeGradually(retrieverRound);
 
     assertThat(allRequestCountsFunc.get()).isEqualTo(List.of(0, 0, 2, 2));
+
+    overloadedCustodyPeer.currentRequestLimit(1);
+
+    advanceTimeGradually(retrieverRound);
+
+    assertThat(allRequestCountsFunc.get()).isEqualTo(List.of(0, 1, 2, 2));
   }
 }
