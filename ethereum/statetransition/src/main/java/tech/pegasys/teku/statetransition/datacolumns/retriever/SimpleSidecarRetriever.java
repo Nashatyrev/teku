@@ -40,7 +40,6 @@ import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
-import tech.pegasys.teku.statetransition.validation.DataColumnSidecarValidator;
 
 // TODO improve thread-safety: external calls are better to do outside of the synchronize block to
 // prevent potential dead locks
@@ -56,13 +55,19 @@ public class SimpleSidecarRetriever
   private final Duration roundPeriod;
   private final int maxRequestCount;
 
+  private final Map<ColumnSlotAndIdentifier, RetrieveRequest> pendingRequests =
+      new LinkedHashMap<>();
+  private final Map<UInt256, ConnectedPeer> connectedPeers = new HashMap<>();
+  private boolean started = false;
+  private AtomicLong retrieveCounter = new AtomicLong();
+  private AtomicLong errorCounter = new AtomicLong();
+
   public SimpleSidecarRetriever(
       Spec spec,
       DataColumnPeerManager peerManager,
       DataColumnPeerSearcher peerSearcher,
       DasPeerCustodyCountSupplier custodyCountSupplier,
       DataColumnReqResp reqResp,
-      DataColumnSidecarValidator validator,
       AsyncRunner asyncRunner,
       Duration roundPeriod) {
     this.spec = spec;
@@ -70,19 +75,12 @@ public class SimpleSidecarRetriever
     this.custodyCountSupplier = custodyCountSupplier;
     this.asyncRunner = asyncRunner;
     this.roundPeriod = roundPeriod;
-    this.reqResp = new ValidatingDataColumnReqResp(peerManager, reqResp, validator);
+    this.reqResp = new DataColumnReqRespImpl(peerManager, reqResp);
     peerManager.addPeerListener(this);
     this.maxRequestCount =
         SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig())
             .getMaxRequestDataColumnSidecars();
   }
-
-  private final Map<ColumnSlotAndIdentifier, RetrieveRequest> pendingRequests =
-      new LinkedHashMap<>();
-  private final Map<UInt256, ConnectedPeer> connectedPeers = new HashMap<>();
-  private boolean started = false;
-  private AtomicLong retrieveCounter = new AtomicLong();
-  private AtomicLong errorCounter = new AtomicLong();
 
   private void startIfNecessary() {
     if (!started) {
@@ -126,10 +124,16 @@ public class SimpleSidecarRetriever
 
   private Optional<ConnectedPeer> findBestMatchingPeer(
       RetrieveRequest request, RequestTracker ongoingRequestsTracker) {
-    return findMatchingPeers(request, ongoingRequestsTracker).stream()
-        .max(
-            Comparator.comparing(
-                peer -> ongoingRequestsTracker.getAvailableRequestCount(peer.nodeId)));
+    Collection<ConnectedPeer> matchingPeers = findMatchingPeers(request, ongoingRequestsTracker);
+
+    // taking first the peers which were not requested yet, then peers which are less busy
+    Comparator<ConnectedPeer> comparator =
+        Comparator.comparing((ConnectedPeer peer) -> request.getPeerRequestCount(peer.nodeId))
+            .reversed()
+            .thenComparing(
+                (ConnectedPeer peer) ->
+                    ongoingRequestsTracker.getAvailableRequestCount(peer.nodeId));
+    return matchingPeers.stream().max(comparator);
   }
 
   private Collection<ConnectedPeer> findMatchingPeers(
@@ -161,6 +165,7 @@ public class SimpleSidecarRetriever
     for (RequestMatch match : matches) {
       SafeFuture<DataColumnSidecar> reqRespPromise =
           reqResp.requestDataColumnSidecar(match.peer.nodeId, match.request.columnId.identifier());
+      match.request().onPeerRequest(match.peer().nodeId);
       match.request.activeRpcRequest =
           new ActiveRequest(
               reqRespPromise.whenComplete(
@@ -242,6 +247,7 @@ public class SimpleSidecarRetriever
     final ColumnSlotAndIdentifier columnId;
     final DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest;
     final SafeFuture<DataColumnSidecar> result = new SafeFuture<>();
+    final Map<UInt256, Integer> peerRequestCount = new HashMap<>();
     volatile ActiveRequest activeRpcRequest = null;
 
     private RetrieveRequest(
@@ -249,6 +255,14 @@ public class SimpleSidecarRetriever
         DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest) {
       this.columnId = columnId;
       this.peerSearchRequest = peerSearchRequest;
+    }
+
+    public void onPeerRequest(UInt256 peerId) {
+      peerRequestCount.compute(peerId, (__, curCount) -> curCount == null ? 1 : curCount + 1);
+    }
+
+    public int getPeerRequestCount(UInt256 peerId) {
+      return peerRequestCount.getOrDefault(peerId, 0);
     }
   }
 

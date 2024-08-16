@@ -143,7 +143,7 @@ import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.DasCustodySync;
 import tech.pegasys.teku.statetransition.datacolumns.DasLongPollCustody;
-import tech.pegasys.teku.statetransition.datacolumns.DasSamplerImpl;
+import tech.pegasys.teku.statetransition.datacolumns.DasSamplerCombinedImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
@@ -185,7 +185,6 @@ import tech.pegasys.teku.statetransition.validation.BlobSidecarGossipValidator;
 import tech.pegasys.teku.statetransition.validation.BlockGossipValidator;
 import tech.pegasys.teku.statetransition.validation.BlockValidator;
 import tech.pegasys.teku.statetransition.validation.DataColumnSidecarGossipValidator;
-import tech.pegasys.teku.statetransition.validation.DataColumnSidecarValidator;
 import tech.pegasys.teku.statetransition.validation.GossipValidationHelper;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
 import tech.pegasys.teku.statetransition.validation.ProposerSlashingValidator;
@@ -627,10 +626,14 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
   protected void initDataColumnSidecarManager() {
     if (spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
-      DataColumnSidecarValidator dataColumnSidecarValidator = DataColumnSidecarValidator.create();
-      DataColumnSidecarGossipValidator gossipValidator =
-          DataColumnSidecarGossipValidator.create(dataColumnSidecarValidator);
-      dataColumnSidecarManager = new DataColumnSidecarManagerImpl(gossipValidator);
+      final DataColumnSidecarGossipValidator dataColumnSidecarGossipValidator =
+          DataColumnSidecarGossipValidator.create(
+              spec,
+              invalidBlockRoots,
+              gossipValidationHelper,
+              MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).miscHelpers()),
+              kzg);
+      dataColumnSidecarManager = new DataColumnSidecarManagerImpl(dataColumnSidecarGossipValidator);
       eventChannels.subscribe(
           DataColumnSidecarGossipChannel.class,
           dataColumnSidecarManager::onDataColumnSidecarPublish);
@@ -695,8 +698,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     // TODO NOOP peer searcher should work for interop but needs to be implemented
     DataColumnPeerSearcher dataColumnPeerSearcher = DataColumnPeerSearcher.NOOP;
-    // TODO
-    DataColumnSidecarValidator dataColumnSidecarValidator = DataColumnSidecarValidator.NOOP;
     DataColumnSidecarRetriever sidecarRetriever =
         new SimpleSidecarRetriever(
             spec,
@@ -704,7 +705,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
             dataColumnPeerSearcher,
             custodyCountSupplier,
             dasRpc,
-            dataColumnSidecarValidator,
             operationPoolAsyncRunner,
             Duration.ofSeconds(1));
     MiscHelpersEip7594 miscHelpersEip7594 =
@@ -730,19 +730,34 @@ public class BeaconChainController extends Service implements BeaconChainControl
     final int myDataColumnSampleCount =
         Math.min(configEip7594.getSamplesPerSlot(), configEip7594.getNumberOfColumns());
     if (myDataColumnSampleCount != 0) {
-      final DasSamplerImpl dasSamplerImpl =
-          new DasSamplerImpl(
-              spec,
-              sidecarDB,
-              recentChainData,
-              myDataColumnSampleCount,
-              recoveringSidecarRetriever);
-      eventChannels.subscribe(SlotEventsChannel.class, dasSamplerImpl);
-      eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSamplerImpl);
+      final DasSamplerCombinedImpl dasSampler;
+      if (beaconConfig.p2pConfig().isDasLossySamplerEnabled()) {
+        // We don't need recovering for Lossy Sampler
+        // the only issue - we will not gossip failed columns in case we reach half of columns
+        // failures,
+        // but it's not straightforward to sync lossy logic with recovering, so it's postponed
+        dasSampler =
+            new DasSamplerCombinedImpl(
+                spec, sidecarDB, recentChainData, sidecarRetriever, beaconAsyncRunner, true);
+        LOG.info(
+            "DAS Sampler initialized in a lossy mode with {} columns to sample",
+            myDataColumnSampleCount);
+      } else {
+        dasSampler =
+            new DasSamplerCombinedImpl(
+                spec,
+                sidecarDB,
+                recentChainData,
+                recoveringSidecarRetriever,
+                beaconAsyncRunner,
+                false);
+        LOG.info("DAS Sampler initialized with {} columns to sample", myDataColumnSampleCount);
+      }
+      eventChannels.subscribe(SlotEventsChannel.class, dasSampler);
+      eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
       dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
-          dasSamplerImpl::onNewValidatedDataColumnSidecar);
-      this.dataAvailabilitySampler = dasSamplerImpl;
-      LOG.info("DAS Sampler initialized with {} columns to sample", myDataColumnSampleCount);
+          dasSampler::onNewValidatedDataColumnSidecar);
+      this.dataAvailabilitySampler = dasSampler;
     } else {
       this.dataAvailabilitySampler = DataAvailabilitySampler.NOOP;
       LOG.info("DAS Sampler is not initialized, no columns to sample");

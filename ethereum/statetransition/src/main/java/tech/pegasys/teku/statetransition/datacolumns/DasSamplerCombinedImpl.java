@@ -15,6 +15,7 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,6 +38,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -47,11 +49,12 @@ import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.eip7594.BeaconBlockBodyEip7594;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
+import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
-public class DasSamplerImpl
+public class DasSamplerCombinedImpl
     implements DataAvailabilitySampler, FinalizedCheckpointChannel, SlotEventsChannel {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
@@ -63,51 +66,56 @@ public class DasSamplerImpl
   private boolean started = false;
   private final AtomicLong syncedColumnCount = new AtomicLong();
   private static final int MAX_SCAN_SLOTS = 200;
+  private static final Duration SAMPLING_EXTENSION_INTERVAL = Duration.ofSeconds(6);
 
   private final Spec spec;
   private final DataColumnSidecarDB db;
   private final RecentChainData recentChainData;
-  private final int myDataColumnSampleCount;
+  private final boolean isLossy;
 
   private final UInt64 eip7594StartEpoch;
   private final Random rnd;
-  private final TreeMap<SlotAndBlockRoot, List<UInt64>> assignedSampleColumns = new TreeMap<>();
+  private final TreeMap<SlotAndBlockRoot, AssignedSampling> assignedSamplings = new TreeMap<>();
   private final TreeMap<SlotAndBlockRoot, Set<DataColumnIdentifier>> collectedSamples =
       new TreeMap<>();
   private final TreeMap<SlotAndBlockRoot, SafeFuture<Void>> sampleTasks = new TreeMap<>();
+  private final AsyncRunner asyncRunner;
 
   private UInt64 currentSlot = null;
 
-  public DasSamplerImpl(
+  public DasSamplerCombinedImpl(
       final Spec spec,
       final DataColumnSidecarDB db,
       final RecentChainData recentChainData,
-      final int myDataColumnSampleCount,
-      DataColumnSidecarRetriever retriever,
-      int maxPendingColumnRequests,
-      int minPendingColumnRequests) {
+      final DataColumnSidecarRetriever retriever,
+      final AsyncRunner asyncRunner,
+      final int maxPendingColumnRequests,
+      final int minPendingColumnRequests,
+      final boolean isLossy) {
     checkNotNull(spec);
     checkNotNull(db);
 
     this.spec = spec;
     this.db = db;
     this.recentChainData = recentChainData;
-    this.myDataColumnSampleCount = myDataColumnSampleCount;
+    this.isLossy = isLossy;
     this.eip7594StartEpoch = spec.getForkSchedule().getFork(SpecMilestone.EIP7594).getEpoch();
     this.rnd = new Random();
 
     this.retriever = retriever;
+    this.asyncRunner = asyncRunner;
     this.maxPendingColumnRequests = maxPendingColumnRequests;
     this.minPendingColumnRequests = minPendingColumnRequests;
   }
 
-  public DasSamplerImpl(
+  public DasSamplerCombinedImpl(
       final Spec spec,
       final DataColumnSidecarDB db,
       final RecentChainData recentChainData,
-      final int myDataColumnSampleCount,
-      DataColumnSidecarRetriever retriever) {
-    this(spec, db, recentChainData, myDataColumnSampleCount, retriever, 10 * 1024, 2 * 1024);
+      final DataColumnSidecarRetriever retriever,
+      final AsyncRunner asyncRunner,
+      final boolean isLossy) {
+    this(spec, db, recentChainData, retriever, asyncRunner, 10 * 1024, 2 * 1024, isLossy);
   }
 
   private synchronized void onRequestComplete(DataColumnSidecar response) {
@@ -132,7 +140,17 @@ public class DasSamplerImpl
   @Override
   public SafeFuture<Void> checkDataAvailability(
       UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot) {
-    return addSlotTask(slot, blockRoot, parentRoot).thenPeek(__ -> fillUpIfNeeded());
+    final SafeFuture<Void> dataAvailabilityCheckFuture = addSlotTask(slot, blockRoot, parentRoot);
+    fillUpIfNeeded();
+    if (isLossy) {
+      asyncRunner
+          .runAfterDelay(
+              () -> updateSlotSamplingAssignment(new SlotAndBlockRoot(slot, blockRoot)),
+              SAMPLING_EXTENSION_INTERVAL)
+          .ifExceptionGetsHereRaiseABug();
+    }
+
+    return dataAvailabilityCheckFuture;
   }
 
   private void fillUpIfNeeded() {
@@ -209,20 +227,22 @@ public class DasSamplerImpl
   private synchronized void onNewValidatedDataColumnSidecar(
       final DataColumnSidecar dataColumnSidecar, final UInt64 firstIncompleteSlot) {
     if (dataColumnSidecar.getSlot().isGreaterThanOrEqualTo(firstIncompleteSlot)) {
-      final Set<DataColumnIdentifier> newIdentifiers =
+      final Optional<DataColumnIdentifier> newIdentifier =
           onMaybeNewValidatedIdentifier(
               dataColumnSidecar.getSlot(),
               DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
-      newIdentifiers.forEach(
-          newIdentifier -> {
+      newIdentifier.ifPresent(
+          dataColumnIdentifier -> {
+            // Called not from onRequestComplete, cancelling request
             final Optional<PendingRequest> maybeRequest =
                 Optional.ofNullable(
                     pendingRequests.remove(
-                        new ColumnSlotAndIdentifier(dataColumnSidecar.getSlot(), newIdentifier)));
+                        new ColumnSlotAndIdentifier(
+                            dataColumnSidecar.getSlot(), dataColumnIdentifier)));
             maybeRequest.ifPresent(
-                pendingRequest -> {
-                  if (!pendingRequest.columnPromise().isDone()) {
-                    pendingRequest.columnPromise().cancel(true);
+                request -> {
+                  if (!request.columnPromise().isDone()) {
+                    request.columnPromise().cancel(true);
                   }
                   syncedColumnCount.incrementAndGet();
                 });
@@ -241,36 +261,80 @@ public class DasSamplerImpl
                 index ->
                     new DataColumnIdentifier(
                         dataColumnSidecar.getBlockRoot(), UInt64.valueOf(index)))
-            .forEach(
-                identifier -> {
-                  final boolean wasAdded = thisSlotDataColumnIdentifiers.add(identifier);
-                  if (wasAdded) {
-                    newIdentifiers.add(identifier);
-                  }
-                });
+            .forEach(identifier -> syncedColumnCount.incrementAndGet());
       }
 
-      // Check if the slot is completed
-      if (areSlotAssignedColumnsCompleted(dataColumnSidecar.getSlotAndBlockRoot())
-          // Were it just completed, on this DataColumnSidecar?
-          && assignedSampleColumns.get(dataColumnSidecar.getSlotAndBlockRoot()).stream()
-              .map(
-                  assignedIndex ->
-                      newIdentifiers.contains(
-                          new DataColumnIdentifier(
-                              dataColumnSidecar.getBlockRoot(), assignedIndex)))
-              .filter(couldBeTrue -> couldBeTrue)
-              .findFirst()
+      // Check if the slot is completed and if it's just completed
+      if (isSlotSamplingCompleted(dataColumnSidecar.getSlotAndBlockRoot())
+          && Optional.ofNullable(assignedSamplings.get(dataColumnSidecar.getSlotAndBlockRoot()))
+              .map(assignedSampling -> !assignedSampling.completed())
               .orElse(false)) {
+        assignedSamplings.put(
+            dataColumnSidecar.getSlotAndBlockRoot(),
+            assignedSamplings.get(dataColumnSidecar.getSlotAndBlockRoot()).complete());
         final Optional<SafeFuture<Void>> voidSafeFuture =
             Optional.ofNullable(sampleTasks.get(dataColumnSidecar.getSlotAndBlockRoot()));
         voidSafeFuture.ifPresent(future -> future.complete(null));
-        LOG.info("Slot {} sampling is completed successfully", dataColumnSidecar.getSlot());
+        LOG.info("[nyota] Slot {} sampling is completed successfully", dataColumnSidecar.getSlot());
       }
     }
   }
 
-  private Set<DataColumnIdentifier> onMaybeNewValidatedIdentifier(
+  private synchronized void updateSlotSamplingAssignment(final SlotAndBlockRoot slotAndBlockRoot) {
+    final AssignedSampling assignedSampling = assignedSamplings.get(slotAndBlockRoot);
+    if (assignedSampling == null) {
+      LOG.warn(
+          "[nyota] updateSlotSamplingAssignment called on removed assignment: {}",
+          slotAndBlockRoot);
+      return;
+    }
+
+    if (assignedSampling.completed()) {
+      return;
+    }
+
+    final Set<UInt64> collectedSlotSamples =
+        collectedSamples.get(slotAndBlockRoot).stream()
+            .map(DataColumnIdentifier::getIndex)
+            .collect(Collectors.toUnmodifiableSet());
+    final Integer actualFailures =
+        assignedSampling.columns().stream()
+            .map(assignedColumn -> collectedSlotSamples.contains(assignedColumn) ? 0 : 1)
+            .reduce(Integer::sum)
+            .orElse(0);
+
+    if (actualFailures > assignedSampling.allowedFailures()) {
+      // We could have different designs here, (a) chosen:
+      // a. +1 failure on each iteration
+      // b. use current number of failures for next iteration
+      final int newAllowedFailures = assignedSampling.allowedFailures() + 1;
+      final int columnsCount =
+          SpecConfigEip7594.required(spec.atSlot(slotAndBlockRoot.getSlot()).getConfig())
+              .getNumberOfColumns();
+      if (newAllowedFailures * 2 > columnsCount) {
+        // sanity check, shouldn't happen
+        return;
+      }
+
+      LOG.info(
+          "[nyota] Increasing number of allowed failures for slot {} to {}",
+          slotAndBlockRoot,
+          newAllowedFailures);
+      assignedSamplings.put(
+          slotAndBlockRoot,
+          computeSampleColumns(
+              slotAndBlockRoot, Optional.of(assignedSampling), newAllowedFailures));
+      if (((newAllowedFailures + 1) * 2) <= columnsCount) {
+        // if next iteration is possible, schedule it
+        asyncRunner
+            .runAfterDelay(
+                () -> updateSlotSamplingAssignment(slotAndBlockRoot), SAMPLING_EXTENSION_INTERVAL)
+            .ifExceptionGetsHereRaiseABug();
+      }
+    }
+  }
+
+  private Optional<DataColumnIdentifier> onMaybeNewValidatedIdentifier(
       final UInt64 slot, final DataColumnIdentifier dataColumnIdentifier) {
     final Set<DataColumnIdentifier> newIdentifiers = new HashSet<>();
     collectedSamples.compute(
@@ -290,24 +354,26 @@ public class DasSamplerImpl
           }
         });
 
-    return newIdentifiers;
+    return newIdentifiers.stream().findFirst();
   }
 
-  private boolean areSlotAssignedColumnsCompleted(final SlotAndBlockRoot slotAndBlockRoot) {
-    return assignedSampleColumns.containsKey(slotAndBlockRoot)
-        // All assigned are collected
-        && assignedSampleColumns.get(slotAndBlockRoot).stream()
-            .map(
-                assignedIndex ->
-                    collectedSamples.get(slotAndBlockRoot).stream()
-                        .map(DataColumnIdentifier::getIndex)
-                        .filter(collectedIndex -> collectedIndex.equals(assignedIndex))
-                        .map(__ -> true)
-                        .findFirst()
-                        .orElse(false))
-            .filter(columnResult -> columnResult.equals(false))
-            .findFirst()
-            .orElse(true);
+  private boolean isSlotSamplingCompleted(final SlotAndBlockRoot slotAndBlockRoot) {
+    if (!assignedSamplings.containsKey(slotAndBlockRoot)) {
+      return true;
+    }
+    final AssignedSampling assignedSlotSampling = assignedSamplings.get(slotAndBlockRoot);
+    if (assignedSlotSampling.completed()) {
+      return true;
+    }
+    final Set<UInt64> collectedSlotSamples =
+        collectedSamples.get(slotAndBlockRoot).stream()
+            .map(DataColumnIdentifier::getIndex)
+            .collect(Collectors.toUnmodifiableSet());
+    return assignedSlotSampling.columns().stream()
+            .map(assignedColumn -> collectedSlotSamples.contains(assignedColumn) ? 0 : 1)
+            .reduce(Integer::sum)
+            .orElse(0)
+        <= assignedSlotSampling.allowedFailures();
   }
 
   private SafeFuture<Void> assignSampleColumns(
@@ -329,7 +395,7 @@ public class DasSamplerImpl
                                           slotAndBlockRoot.getBlockRoot()))));
     } else {
       final Optional<SlotAndBlockRoot> maybeFirstAssigned =
-          assignedSampleColumns.navigableKeySet().stream().findFirst();
+          assignedSamplings.navigableKeySet().stream().findFirst();
       if (maybeFirstAssigned.isPresent()) {
         slotSampled =
             slotSampled.thenCompose(
@@ -374,30 +440,46 @@ public class DasSamplerImpl
   private synchronized SafeFuture<Void> scheduleSlotTask(
       final UInt64 slot, final Bytes32 blockRoot) {
     final SlotAndBlockRoot slotAndBlockRoot = new SlotAndBlockRoot(slot, blockRoot);
-    final boolean alreadyAssigned = assignedSampleColumns.containsKey(slotAndBlockRoot);
-    final List<UInt64> assignedSampleColumns =
-        this.assignedSampleColumns.computeIfAbsent(slotAndBlockRoot, this::computeSampleColumns);
+    final boolean alreadyAssigned = assignedSamplings.containsKey(slotAndBlockRoot);
+    final AssignedSampling assignedSampling =
+        this.assignedSamplings.computeIfAbsent(
+            slotAndBlockRoot,
+            assignedSlotAndBlockRoot ->
+                computeSampleColumns(assignedSlotAndBlockRoot, Optional.empty(), 0));
     if (!alreadyAssigned) {
-      LOG.info("Slot {}, root {} assigned columns: {}", slot, blockRoot, assignedSampleColumns);
+      LOG.info("[nyota] Slot {}, root {} assigned sampling: {}", slot, blockRoot, assignedSampling);
     }
 
-    assignedSampleColumns.forEach(
-        column ->
-            db.getSidecar(new DataColumnIdentifier(blockRoot, column))
-                .thenPeek(
-                    maybeSidecar -> maybeSidecar.ifPresent(this::onNewValidatedDataColumnSidecar))
-                .ifExceptionGetsHereRaiseABug());
+    assignedSampling
+        .columns()
+        .forEach(
+            column ->
+                db.getSidecar(new DataColumnIdentifier(blockRoot, column))
+                    .thenPeek(
+                        maybeSidecar ->
+                            maybeSidecar.ifPresent(this::onNewValidatedDataColumnSidecar))
+                    .ifExceptionGetsHereRaiseABug());
 
     return sampleTasks.computeIfAbsent(
         new SlotAndBlockRoot(slot, blockRoot), __ -> new SafeFuture<>());
   }
 
-  private List<UInt64> computeSampleColumns(final SlotAndBlockRoot slotAndBlockRoot) {
+  private AssignedSampling computeSampleColumns(
+      final SlotAndBlockRoot slotAndBlockRoot,
+      final Optional<AssignedSampling> maybeOldAssignedSampling,
+      final int allowedFailures) {
     final int columnsCount =
         SpecConfigEip7594.required(spec.atSlot(slotAndBlockRoot.getSlot()).getConfig())
             .getNumberOfColumns();
+    final int failureAdjustedSamplesCount =
+        MiscHelpersEip7594.required(spec.atSlot(slotAndBlockRoot.getSlot()).miscHelpers())
+            .getExtendedSampleCount(UInt64.valueOf(allowedFailures))
+            .intValue();
+
     final List<UInt64> assignedSamples = new ArrayList<>();
-    while (assignedSamples.size() < myDataColumnSampleCount) {
+    maybeOldAssignedSampling.ifPresent(
+        oldAssignedSampling -> assignedSamples.addAll(oldAssignedSampling.columns));
+    while (assignedSamples.size() < failureAdjustedSamplesCount) {
       final UInt64 candidate = UInt64.valueOf(rnd.nextInt(columnsCount));
       if (assignedSamples.contains(candidate)) {
         continue;
@@ -405,7 +487,7 @@ public class DasSamplerImpl
       assignedSamples.add(candidate);
     }
 
-    return assignedSamples;
+    return new AssignedSampling(assignedSamples, allowedFailures, false);
   }
 
   @Override
@@ -430,15 +512,15 @@ public class DasSamplerImpl
               if (slotTasks.isEmpty()) {
                 return;
               }
-              db.setFirstSamplerIncompleteSlot(slotTasks.getLast().slot())
-                  .thenPeek(__ -> prune(slotTasks.getLast().slot()))
+              db.setFirstSamplerIncompleteSlot(slotTasks.get(slotTasks.size() - 1).slot())
+                  .thenPeek(__ -> prune(slotTasks.get(slotTasks.size() - 1).slot()))
                   .ifExceptionGetsHereRaiseABug();
             });
   }
 
   private synchronized void prune(final UInt64 slotExclusive) {
     LOG.info(
-        "Pruning till slot {}, collectedSamples: {}, assignedSamples: {}",
+        "[nyota] Pruning till slot {}, collectedSamples: {}, assignedSamples: {}",
         slotExclusive,
         collectedSamples
             .subMap(
@@ -447,7 +529,7 @@ public class DasSamplerImpl
             .stream()
             .sorted()
             .toList(),
-        assignedSampleColumns
+        assignedSamplings
             .subMap(
                 SlotAndBlockRoot.createLow(UInt64.ZERO), SlotAndBlockRoot.createLow(slotExclusive))
             .keySet()
@@ -461,13 +543,13 @@ public class DasSamplerImpl
             .keySet();
     collectedSampleSlotsToPrune.forEach(collectedSamples::remove);
     final Set<SlotAndBlockRoot> assignedSamplesSlotsToPrune =
-        assignedSampleColumns
+        assignedSamplings
             .subMap(
                 SlotAndBlockRoot.createLow(UInt64.ZERO), SlotAndBlockRoot.createLow(slotExclusive))
             .keySet();
     assignedSamplesSlotsToPrune.forEach(
         slotAndBlockRoot -> {
-          assignedSampleColumns.remove(slotAndBlockRoot);
+          assignedSamplings.remove(slotAndBlockRoot);
           SafeFuture<Void> future = sampleTasks.remove(slotAndBlockRoot);
           if (future != null) {
             future.cancel(true);
@@ -477,10 +559,10 @@ public class DasSamplerImpl
 
   private synchronized List<SlotColumnsTask> retrievePotentiallyIncompleteSlotSamples(
       final UInt64 toSlotIncluded, final int limit) {
-    if (assignedSampleColumns.isEmpty()) {
+    if (assignedSamplings.isEmpty()) {
       return Collections.emptyList();
     }
-    SlotAndBlockRoot from = assignedSampleColumns.navigableKeySet().first();
+    SlotAndBlockRoot from = assignedSamplings.navigableKeySet().first();
     final UInt64 toSlot;
     if (from.getSlot().plus(limit).isLessThan(toSlotIncluded)) {
       toSlot = from.getSlot().plus(limit);
@@ -488,14 +570,18 @@ public class DasSamplerImpl
       toSlot = toSlotIncluded;
     }
     SlotAndBlockRoot to = SlotAndBlockRoot.createHigh(toSlot);
-    return assignedSampleColumns.navigableKeySet().headSet(to).stream()
+    return assignedSamplings.navigableKeySet().headSet(to).stream()
         .map(
             slotAndBlockRoot ->
                 new SlotColumnsTask(
                     slotAndBlockRoot.getSlot(),
                     slotAndBlockRoot.getBlockRoot(),
-                    assignedSampleColumns.get(slotAndBlockRoot),
-                    collectedSamples.getOrDefault(slotAndBlockRoot, Collections.emptySet())))
+                    assignedSamplings.get(slotAndBlockRoot).completed()
+                        ? Collections.emptySet()
+                        : assignedSamplings.get(slotAndBlockRoot).columns(),
+                    assignedSamplings.get(slotAndBlockRoot).completed()
+                        ? Collections.emptySet()
+                        : collectedSamples.getOrDefault(slotAndBlockRoot, Collections.emptySet())))
         .toList();
   }
 
@@ -518,6 +604,12 @@ public class DasSamplerImpl
                 slotTask.getIncompleteColumns().stream()
                     .map(colId -> new ColumnSlotAndIdentifier(slotTask.slot(), colId)))
         .toList();
+  }
+
+  private record AssignedSampling(List<UInt64> columns, int allowedFailures, boolean completed) {
+    AssignedSampling complete() {
+      return new AssignedSampling(columns, allowedFailures, true);
+    }
   }
 
   private record PendingRequest(
