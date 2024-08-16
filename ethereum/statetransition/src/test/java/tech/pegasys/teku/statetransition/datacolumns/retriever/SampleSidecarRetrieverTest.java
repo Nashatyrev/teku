@@ -73,6 +73,11 @@ public class SampleSidecarRetrieverTest {
           stubAsyncRunner,
           retrieverRound);
 
+  UInt64 columnId = UInt64.valueOf(1);
+
+  Iterator<UInt256> custodyNodeIds = craftNodeIdsCustodyOf(columnId).iterator();
+  Iterator<UInt256> nonCustodyNodeIds = craftNodeIdsNotCustodyOf(columnId).iterator();
+
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
 
@@ -115,21 +120,12 @@ public class SampleSidecarRetrieverTest {
 
   @Test
   void sanityTest() {
-    UInt64 columnId = UInt64.valueOf(1);
-
-    List<TestPeer> custodyPeers =
-        craftNodeIdsCustodyOf(columnId)
-            .limit(2)
-            .map(nodeId -> new TestPeer(stubAsyncRunner, nodeId, Duration.ofMillis(100)))
-            .peek(testPeer -> testPeer.currentRequestLimit(1000))
-            .toList();
-
-    List<TestPeer> nonCustodyPeers =
-        craftNodeIdsNotCustodyOf(columnId)
-            .limit(1)
-            .map(nodeId -> new TestPeer(stubAsyncRunner, nodeId, Duration.ofMillis(100)))
-            .peek(testPeer -> testPeer.currentRequestLimit(1000))
-            .toList();
+    TestPeer custodyPeerMissingData =
+        new TestPeer(stubAsyncRunner, custodyNodeIds.next(), Duration.ofMillis(100));
+    TestPeer custodyPeerHavingData =
+        new TestPeer(stubAsyncRunner, custodyNodeIds.next(), Duration.ofMillis(100));
+    TestPeer nonCustodyPeer =
+        new TestPeer(stubAsyncRunner, nonCustodyNodeIds.next(), Duration.ofMillis(100));
 
     List<Blob> blobs = Stream.generate(dataStructureUtil::randomBlob).limit(1).toList();
     BeaconBlock block = blockResolver.addBlock(10, 1);
@@ -139,39 +135,32 @@ public class SampleSidecarRetrieverTest {
 
     ColumnSlotAndIdentifier id0 = createId(block, columnId.intValue());
 
-    testPeerManager.connectPeer(custodyPeers.get(0));
-    testPeerManager.connectPeer(nonCustodyPeers.get(0));
+    testPeerManager.connectPeer(custodyPeerMissingData);
+    testPeerManager.connectPeer(nonCustodyPeer);
 
     SafeFuture<DataColumnSidecar> resp0 = simpleSidecarRetriever.retrieve(id0);
 
     advanceTimeGradually(retrieverRound.multipliedBy(2));
 
     assertThat(resp0).isNotDone();
-    assertThat(custodyPeers.get(0).getRequests()).hasSize(2);
+    assertThat(custodyPeerMissingData.getRequests()).hasSize(2);
 
-    custodyPeers.get(1).addSidecar(sidecar0);
-    testPeerManager.connectPeer(custodyPeers.get(1));
+    custodyPeerHavingData.addSidecar(sidecar0);
+    testPeerManager.connectPeer(custodyPeerHavingData);
 
     advanceTimeGradually(retrieverRound.multipliedBy(2));
 
     assertThat(resp0).isCompletedWithValue(sidecar0);
-    assertThat(nonCustodyPeers.get(0).getRequests()).isEmpty();
-    assertThat(custodyPeers.get(1).getRequests()).hasSize(1);
-    assertThat(custodyPeers.get(0).getRequests()).hasSize(2);
+    assertThat(nonCustodyPeer.getRequests()).isEmpty();
+    assertThat(custodyPeerHavingData.getRequests()).hasSize(1);
+    assertThat(custodyPeerMissingData.getRequests()).hasSize(2);
   }
 
   @Test
   void selectingBestPeerShouldRespectPeerMetrics() {
-    UInt64 columnId = UInt64.valueOf(1);
 
     TestPeer nonCustodyPeer =
-        craftNodeIdsNotCustodyOf(columnId)
-            .map(nodeId -> new TestPeer(stubAsyncRunner, nodeId, Duration.ofMillis(100)))
-            .peek(testPeer -> testPeer.currentRequestLimit(1000))
-            .findFirst()
-            .orElseThrow();
-
-    Iterator<UInt256> custodyNodeIds = craftNodeIdsCustodyOf(columnId).iterator();
+        new TestPeer(stubAsyncRunner, nonCustodyNodeIds.next(), Duration.ofMillis(100));
 
     TestPeer overloadedCustodyPeer =
         new TestPeer(stubAsyncRunner, custodyNodeIds.next(), Duration.ofMillis(100))
