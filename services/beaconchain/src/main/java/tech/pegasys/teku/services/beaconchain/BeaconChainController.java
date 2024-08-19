@@ -151,7 +151,7 @@ import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
-import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
+import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodySubnetCountSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerSearcher;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqRespBatchingImpl;
@@ -685,8 +685,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     MetadataDasPeerCustodyTracker peerCustodyTracker = new MetadataDasPeerCustodyTracker();
     p2pNetwork.subscribeConnect(peerCustodyTracker);
-    DasPeerCustodyCountSupplier custodyCountSupplier =
-        DasPeerCustodyCountSupplier.capped(peerCustodyTracker, minCustodyRequirement, maxSubnets);
+    DasPeerCustodySubnetCountSupplier custodyCountSupplier =
+        DasPeerCustodySubnetCountSupplier.capped(
+            peerCustodyTracker, minCustodyRequirement, maxSubnets);
 
     // TODO NOOP peer searcher should work for interop but needs to be implemented
     DataColumnPeerSearcher dataColumnPeerSearcher = DataColumnPeerSearcher.NOOP;

@@ -59,8 +59,8 @@ public class SampleSidecarRetrieverTest {
   final int columnCount = config.getNumberOfColumns();
   final KZG kzg = KZG.getInstance(false);
 
-  final DasPeerCustodyCountSupplier custodyCountSupplier =
-      DasPeerCustodyCountSupplier.createStub(config.getCustodyRequirement());
+  final DasPeerCustodySubnetCountSupplier custodyCountSupplier =
+      DasPeerCustodySubnetCountSupplier.createStub(config.getCustodyRequirement());
 
   final Duration retrieverRound = Duration.ofSeconds(1);
   final SimpleSidecarRetriever simpleSidecarRetriever =
@@ -96,7 +96,7 @@ public class SampleSidecarRetrieverTest {
 
   List<UInt64> nodeCustodyColumns(UInt256 nodeId) {
     return miscHelpers.computeCustodyColumnIndexes(
-        nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId));
+        nodeId, custodyCountSupplier.getCustodySubnetCountForPeer(nodeId));
   }
 
   Stream<UInt256> craftNodeIds() {

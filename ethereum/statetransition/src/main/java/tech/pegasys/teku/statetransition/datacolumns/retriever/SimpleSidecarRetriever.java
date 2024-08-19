@@ -49,7 +49,7 @@ public class SimpleSidecarRetriever
 
   private final Spec spec;
   private final DataColumnPeerSearcher peerSearcher;
-  private final DasPeerCustodyCountSupplier custodyCountSupplier;
+  private final DasPeerCustodySubnetCountSupplier custodyCountSupplier;
   private final DataColumnReqResp reqResp;
   private final AsyncRunner asyncRunner;
   private final Duration roundPeriod;
@@ -66,7 +66,7 @@ public class SimpleSidecarRetriever
       Spec spec,
       DataColumnPeerManager peerManager,
       DataColumnPeerSearcher peerSearcher,
-      DasPeerCustodyCountSupplier custodyCountSupplier,
+      DasPeerCustodySubnetCountSupplier custodyCountSupplier,
       DataColumnReqResp reqResp,
       AsyncRunner asyncRunner,
       Duration roundPeriod) {
@@ -275,7 +275,8 @@ public class SimpleSidecarRetriever
 
     private List<UInt64> getNodeCustodyIndexes(SpecVersion specVersion) {
       return MiscHelpersEip7594.required(specVersion.miscHelpers())
-          .computeCustodyColumnIndexes(nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId));
+          .computeCustodyColumnIndexes(
+              nodeId, custodyCountSupplier.getCustodySubnetCountForPeer(nodeId));
     }
 
     public boolean isCustodyFor(ColumnSlotAndIdentifier columnId) {

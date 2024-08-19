@@ -18,16 +18,16 @@ import static java.lang.Integer.min;
 
 import org.apache.tuweni.units.bigints.UInt256;
 
-public interface DasPeerCustodyCountSupplier {
+public interface DasPeerCustodySubnetCountSupplier {
 
-  static DasPeerCustodyCountSupplier createStub(int defaultValue) {
+  static DasPeerCustodySubnetCountSupplier createStub(int defaultValue) {
     return (__) -> defaultValue;
   }
 
-  static DasPeerCustodyCountSupplier capped(
-      DasPeerCustodyCountSupplier delegate, int minValue, int maxValue) {
-    return (nodeId) -> min(maxValue, max(minValue, delegate.getCustodyCountForPeer(nodeId)));
+  static DasPeerCustodySubnetCountSupplier capped(
+      DasPeerCustodySubnetCountSupplier delegate, int minValue, int maxValue) {
+    return (nodeId) -> min(maxValue, max(minValue, delegate.getCustodySubnetCountForPeer(nodeId)));
   }
 
-  int getCustodyCountForPeer(UInt256 nodeId);
+  int getCustodySubnetCountForPeer(UInt256 nodeId);
 }

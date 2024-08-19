@@ -33,10 +33,10 @@ import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.networking.p2p.peer.PeerConnectedSubscriber;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
-import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
+import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodySubnetCountSupplier;
 
 public class GossipTopicDasPeerCustodyTracker
-    implements DasPeerCustodyCountSupplier, PeerConnectedSubscriber<Eth2Peer> {
+    implements DasPeerCustodySubnetCountSupplier, PeerConnectedSubscriber<Eth2Peer> {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
   public static final int NO_SUBNET_COUNT_INFO = -1;
@@ -107,7 +107,7 @@ public class GossipTopicDasPeerCustodyTracker
   }
 
   @Override
-  public int getCustodyCountForPeer(UInt256 nodeId) {
+  public int getCustodySubnetCountForPeer(UInt256 nodeId) {
     Entry entry = connectedPeerSubnets.get(nodeId);
     return entry != null ? entry.subnetCount() : 0;
   }

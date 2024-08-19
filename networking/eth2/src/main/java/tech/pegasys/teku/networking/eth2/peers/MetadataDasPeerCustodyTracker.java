@@ -18,10 +18,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.networking.p2p.peer.PeerConnectedSubscriber;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessage;
-import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
+import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodySubnetCountSupplier;
 
 public class MetadataDasPeerCustodyTracker
-    implements DasPeerCustodyCountSupplier, PeerConnectedSubscriber<Eth2Peer> {
+    implements DasPeerCustodySubnetCountSupplier, PeerConnectedSubscriber<Eth2Peer> {
 
   private final Map<UInt256, Integer> connectedPeerSubnetCount = new ConcurrentHashMap<>();
 
@@ -44,7 +44,7 @@ public class MetadataDasPeerCustodyTracker
   }
 
   @Override
-  public int getCustodyCountForPeer(UInt256 nodeId) {
+  public int getCustodySubnetCountForPeer(UInt256 nodeId) {
     return connectedPeerSubnetCount.getOrDefault(nodeId, 0);
   }
 }
