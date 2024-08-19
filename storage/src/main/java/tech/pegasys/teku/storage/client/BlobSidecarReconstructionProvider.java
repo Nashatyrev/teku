@@ -13,7 +13,8 @@
 
 package tech.pegasys.teku.storage.client;
 
-import java.util.Collections;
+import static java.util.Collections.emptyList;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -21,7 +22,6 @@ import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
-import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZG;
@@ -35,37 +35,45 @@ import tech.pegasys.teku.spec.datastructures.type.SszKZGProof;
 import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.storage.api.StorageQueryChannel;
 
 /**
  * PeerDAS BlobSidecar provider, when we don't store blobSidecars in DB as is but could reconstruct
  * from DataColumnSidecar's
  */
 public class BlobSidecarReconstructionProvider {
-  private final RecentChainData recentChainData;
-  private final StorageQueryChannel historicalChainData;
+  private final CombinedChainDataClient combinedChainDataClient;
   private final Spec spec;
   private final KZG kzg;
 
   public BlobSidecarReconstructionProvider(
-      final StorageQueryChannel historicalChainData,
-      final RecentChainData recentChainData,
-      final Spec spec,
-      final KZG kzg) {
-    this.historicalChainData = historicalChainData;
-    this.recentChainData = recentChainData;
+      final CombinedChainDataClient combinedChainDataClient, final Spec spec, final KZG kzg) {
+    this.combinedChainDataClient = combinedChainDataClient;
     this.spec = spec;
     this.kzg = kzg;
   }
 
   public SafeFuture<List<BlobSidecar>> reconstructBlobSidecars(
+      final UInt64 slot, final List<UInt64> indices) {
+    // TODO: suboptimal
+    return combinedChainDataClient
+        .getBlockAtSlotExact(slot)
+        .thenCompose(
+            maybeBlock -> {
+              if (maybeBlock.isEmpty()) {
+                return SafeFuture.completedFuture(emptyList());
+              }
+              return reconstructBlobSidecars(maybeBlock.get().getSlotAndBlockRoot(), indices);
+            });
+  }
+
+  public SafeFuture<List<BlobSidecar>> reconstructBlobSidecars(
       final SlotAndBlockRoot slotAndBlockRoot, final List<UInt64> indices) {
     final SafeFuture<List<ColumnSlotAndIdentifier>> dataColumnIdentifiersFuture =
-        historicalChainData.getDataColumnIdentifiers(slotAndBlockRoot.getSlot());
+        combinedChainDataClient.getDataColumnIdentifiers(slotAndBlockRoot.getSlot());
     return dataColumnIdentifiersFuture.thenCompose(
         dataColumnIdentifiers -> {
           if (dataColumnIdentifiers.isEmpty()) {
-            return SafeFuture.completedFuture(Collections.emptyList());
+            return SafeFuture.completedFuture(emptyList());
           }
           final Set<ColumnSlotAndIdentifier> dbIdentifiers = new HashSet<>(dataColumnIdentifiers);
           final List<ColumnSlotAndIdentifier> requiredIdentifiers =
@@ -81,7 +89,7 @@ public class BlobSidecarReconstructionProvider {
                   .toList();
           if (requiredIdentifiers.stream()
               .anyMatch(identifier -> !dbIdentifiers.contains(identifier))) {
-            return SafeFuture.completedFuture(Collections.emptyList());
+            return SafeFuture.completedFuture(emptyList());
           }
           return reconstructBlobSidecarsForIdentifiers(requiredIdentifiers, indices);
         });
@@ -89,18 +97,20 @@ public class BlobSidecarReconstructionProvider {
 
   private SafeFuture<List<BlobSidecar>> reconstructBlobSidecarsForIdentifiers(
       final List<ColumnSlotAndIdentifier> slotAndIdentifiers, final List<UInt64> indices) {
-    return SafeFuture.collectAll(slotAndIdentifiers.stream().map(historicalChainData::getSidecar))
+    return SafeFuture.collectAll(
+            slotAndIdentifiers.stream().map(combinedChainDataClient::getSidecar))
         .thenCompose(
             sidecarOptionals -> {
               if (sidecarOptionals.stream().anyMatch(Optional::isEmpty)) {
                 // Will not be able to reconstruct if somehow we got a gap
-                return SafeFuture.completedFuture(Collections.emptyList());
+                return SafeFuture.completedFuture(emptyList());
               }
               final List<DataColumnSidecar> dataColumnSidecars =
                   sidecarOptionals.stream().map(Optional::orElseThrow).toList();
 
               final SafeFuture<Optional<SignedBeaconBlock>> signedBeaconBlockFuture =
-                  getBlockByBlockRoot(slotAndIdentifiers.getFirst().identifier().getBlockRoot());
+                  combinedChainDataClient.getBlockByBlockRoot(
+                      slotAndIdentifiers.getFirst().identifier().getBlockRoot());
               return signedBeaconBlockFuture.thenApply(
                   signedBeaconBlock ->
                       signedBeaconBlock
@@ -108,7 +118,7 @@ public class BlobSidecarReconstructionProvider {
                               block ->
                                   reconstructBlobSidecarsFromDataColumns(
                                       dataColumnSidecars, block, indices))
-                          .orElse(Collections.emptyList()));
+                          .orElse(emptyList()));
             });
   }
 
@@ -117,7 +127,7 @@ public class BlobSidecarReconstructionProvider {
       final SignedBeaconBlock signedBeaconBlock,
       final List<UInt64> indices) {
     if (dataColumnSidecars.isEmpty()) {
-      return Collections.emptyList();
+      return emptyList();
     }
 
     final MiscHelpersDeneb miscHelpersDeneb =
@@ -164,17 +174,5 @@ public class BlobSidecarReconstructionProvider {
                     .orElseThrow()
                     .get(blobIndex)
                     .getKZGCommitment())));
-  }
-
-  public SafeFuture<Optional<SignedBeaconBlock>> getBlockByBlockRoot(final Bytes32 blockRoot) {
-    return recentChainData
-        .retrieveSignedBlockByRoot(blockRoot)
-        .thenCompose(
-            maybeBlock -> {
-              if (maybeBlock.isPresent()) {
-                return SafeFuture.completedFuture(maybeBlock);
-              }
-              return historicalChainData.getBlockByBlockRoot(blockRoot);
-            });
   }
 }

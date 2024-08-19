@@ -40,7 +40,6 @@ import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
-import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
 import tech.pegasys.teku.storage.client.ChainHead;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.EarliestAvailableBlockSlot;
@@ -148,7 +147,6 @@ public class StateSelectorFactoryTest {
         new CombinedChainDataClient(
             recentChainData,
             historicalChainData,
-            mock(BlobSidecarReconstructionProvider.class),
             spec,
             new EarliestAvailableBlockSlot(historicalChainData, new SystemTimeProvider(), 0));
     final StateSelectorFactory factory = new StateSelectorFactory(spec, client1);

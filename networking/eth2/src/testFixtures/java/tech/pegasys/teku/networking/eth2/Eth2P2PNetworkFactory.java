@@ -17,7 +17,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import com.google.common.base.Supplier;
 import java.net.BindException;
@@ -110,7 +109,6 @@ import tech.pegasys.teku.statetransition.block.VerifiedBlockOperationsListener;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustody;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.api.StubStorageQueryChannel;
-import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.EarliestAvailableBlockSlot;
 import tech.pegasys.teku.storage.client.MemoryOnlyRecentChainData;
@@ -217,11 +215,7 @@ public class Eth2P2PNetworkFactory {
                 historicalChainData, timeProvider, earliestAvailableBlockSlotFrequency);
         final CombinedChainDataClient combinedChainDataClient =
             new CombinedChainDataClient(
-                recentChainData,
-                historicalChainData,
-                mock(BlobSidecarReconstructionProvider.class),
-                spec,
-                earliestAvailableBlockSlot);
+                recentChainData, historicalChainData, spec, earliestAvailableBlockSlot);
         final DataColumnSidecarSubnetTopicProvider dataColumnSidecarSubnetTopicProvider =
             new DataColumnSidecarSubnetTopicProvider(
                 combinedChainDataClient.getRecentChainData(), gossipEncoding);
