@@ -152,8 +152,8 @@ public interface Eth2Peer extends Peer, SyncSource {
   interface PeerMetadataUpdateSubscriber {
 
     /**
-     * Sends the current peer metadata upon subscription if metadata has been received already.
-     * Then calls the method any time the peer metadata is updated
+     * Sends the current peer metadata upon subscription if metadata has been received already. Then
+     * calls the method any time the peer metadata is updated
      */
     void onPeerMetadataUpdate(Eth2Peer peer, MetadataMessage metadata);
   }
