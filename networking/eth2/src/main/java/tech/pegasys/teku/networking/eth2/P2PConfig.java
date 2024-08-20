@@ -25,8 +25,11 @@ import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig;
 import tech.pegasys.teku.networking.p2p.network.config.NetworkConfig;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.logic.common.helpers.MathHelpers;
 
 public class P2PConfig {
 
@@ -42,6 +45,8 @@ public class P2PConfig {
   public static final int DEFAULT_BATCH_VERIFY_QUEUE_CAPACITY = 15_000;
   public static final int DEFAULT_BATCH_VERIFY_MAX_BATCH_SIZE = 250;
   public static final boolean DEFAULT_BATCH_VERIFY_STRICT_THREAD_LIMIT_ENABLED = false;
+  public static final int DEFAULT_DAS_EXTRA_CUSTODY_SUBNET_COUNT = 0;
+  public static final boolean DEFAULT_DAS_LOSSY_SAMPLER_ENABLED = false;
 
   private final Spec spec;
   private final NetworkConfig networkConfig;
@@ -53,6 +58,7 @@ public class P2PConfig {
   private final int targetSubnetSubscriberCount;
   private final boolean subscribeAllSubnetsEnabled;
   private final int dasExtraCustodySubnetCount;
+  private final boolean dasLossySamplerEnabled;
   private final int peerRateLimit;
   private final int peerRequestLimit;
   private final int batchVerifyMaxThreads;
@@ -71,6 +77,7 @@ public class P2PConfig {
       final int targetSubnetSubscriberCount,
       final boolean subscribeAllSubnetsEnabled,
       final int dasExtraCustodySubnetCount,
+      final boolean dasLossySamplerEnabled,
       final int peerRateLimit,
       final int peerRequestLimit,
       final int batchVerifyMaxThreads,
@@ -86,6 +93,7 @@ public class P2PConfig {
     this.targetSubnetSubscriberCount = targetSubnetSubscriberCount;
     this.subscribeAllSubnetsEnabled = subscribeAllSubnetsEnabled;
     this.dasExtraCustodySubnetCount = dasExtraCustodySubnetCount;
+    this.dasLossySamplerEnabled = dasLossySamplerEnabled;
     this.peerRateLimit = peerRateLimit;
     this.peerRequestLimit = peerRequestLimit;
     this.batchVerifyMaxThreads = batchVerifyMaxThreads;
@@ -128,8 +136,13 @@ public class P2PConfig {
     return subscribeAllSubnetsEnabled;
   }
 
-  public int getDasExtraCustodySubnetCount() {
-    return dasExtraCustodySubnetCount;
+  public int getTotalCustodySubnetCount(SpecVersion specVersion) {
+    SpecConfigEip7594 configEip7594 = SpecConfigEip7594.required(specVersion.getConfig());
+    int minCustodyRequirement = configEip7594.getCustodyRequirement();
+    int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
+    return Integer.min(
+        maxSubnets,
+        MathHelpers.intPlusMaxIntCapped(minCustodyRequirement, dasExtraCustodySubnetCount));
   }
 
   public int getPeerRateLimit() {
@@ -164,6 +177,10 @@ public class P2PConfig {
     return allTopicsFilterEnabled;
   }
 
+  public boolean isDasLossySamplerEnabled() {
+    return dasLossySamplerEnabled;
+  }
+
   public static class Builder {
     private final NetworkConfig.Builder networkConfig = NetworkConfig.builder();
     private final DiscoveryConfig.Builder discoveryConfig = DiscoveryConfig.builder();
@@ -173,7 +190,9 @@ public class P2PConfig {
     private GossipEncoding gossipEncoding = GossipEncoding.SSZ_SNAPPY;
     private Integer targetSubnetSubscriberCount = DEFAULT_P2P_TARGET_SUBNET_SUBSCRIBER_COUNT;
     private Boolean subscribeAllSubnetsEnabled = DEFAULT_SUBSCRIBE_ALL_SUBNETS_ENABLED;
-    private int dasExtraCustodySubnetCount = 0;
+    private Boolean subscribeAllCustodySubnetsEnabled = DEFAULT_SUBSCRIBE_ALL_SUBNETS_ENABLED;
+    private int dasExtraCustodySubnetCount = DEFAULT_DAS_EXTRA_CUSTODY_SUBNET_COUNT;
+    private boolean dasLossySamplerEnabled = DEFAULT_DAS_LOSSY_SAMPLER_ENABLED;
     private Integer peerRateLimit = DEFAULT_PEER_RATE_LIMIT;
     private Integer peerRequestLimit = DEFAULT_PEER_REQUEST_LIMIT;
     private int batchVerifyMaxThreads = DEFAULT_BATCH_VERIFY_MAX_THREADS;
@@ -210,6 +229,10 @@ public class P2PConfig {
       discoveryConfig.listenUdpPortDefault(networkConfig.getListenPort());
       discoveryConfig.advertisedUdpPortDefault(OptionalInt.of(networkConfig.getAdvertisedPort()));
 
+      if (subscribeAllCustodySubnetsEnabled) {
+        dasExtraCustodySubnetCount = Integer.MAX_VALUE;
+      }
+
       return new P2PConfig(
           spec,
           networkConfig,
@@ -219,6 +242,7 @@ public class P2PConfig {
           targetSubnetSubscriberCount,
           subscribeAllSubnetsEnabled,
           dasExtraCustodySubnetCount,
+          dasLossySamplerEnabled,
           peerRateLimit,
           peerRequestLimit,
           batchVerifyMaxThreads,
@@ -270,8 +294,20 @@ public class P2PConfig {
       return this;
     }
 
+    public Builder dasLossySamplerEnabled(final boolean dasLossySamplerEnabled) {
+      this.dasLossySamplerEnabled = dasLossySamplerEnabled;
+      return this;
+    }
+
     public Builder dasExtraCustodySubnetCount(int dasExtraCustodySubnetCount) {
       this.dasExtraCustodySubnetCount = dasExtraCustodySubnetCount;
+      return this;
+    }
+
+    public Builder subscribeAllCustodySubnetsEnabled(
+        final Boolean subscribeAllCustodySubnetsEnabled) {
+      checkNotNull(subscribeAllCustodySubnetsEnabled);
+      this.subscribeAllCustodySubnetsEnabled = subscribeAllCustodySubnetsEnabled;
       return this;
     }
 

@@ -1043,10 +1043,13 @@ public final class DataStructureUtil {
   }
 
   public BeaconBlock randomBeaconBlock(final UInt64 slotNum) {
+    return randomBeaconBlock(slotNum, randomBeaconBlockBody(slotNum));
+  }
+
+  public BeaconBlock randomBeaconBlock(final UInt64 slotNum, BeaconBlockBody body) {
     final UInt64 proposerIndex = randomUInt64();
     final Bytes32 previousRoot = randomBytes32();
     final Bytes32 stateRoot = randomBytes32();
-    final BeaconBlockBody body = randomBeaconBlockBody(slotNum);
 
     return new BeaconBlock(
         spec.atSlot(slotNum).getSchemaDefinitions().getBeaconBlockSchema(),
@@ -2101,7 +2104,13 @@ public final class DataStructureUtil {
 
   public Blob randomBlob() {
     final BlobSchema blobSchema = getDenebSchemaDefinitions(randomSlot()).getBlobSchema();
-    return blobSchema.create(randomBytes(blobSchema.getLength()));
+    List<Bytes> blobElements =
+        Stream.generate(this::randomBlobElement).limit(blobSchema.getLength() / 32).toList();
+    return blobSchema.create(Bytes.wrap(blobElements));
+  }
+
+  private Bytes randomBlobElement() {
+    return Bytes.wrap(Bytes.of(0), randomBytes(31));
   }
 
   public Bytes randomBlobBytes() {

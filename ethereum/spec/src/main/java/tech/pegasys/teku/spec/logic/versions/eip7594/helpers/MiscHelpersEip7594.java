@@ -16,6 +16,9 @@ package tech.pegasys.teku.spec.logic.versions.eip7594.helpers;
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.bytesToUInt64;
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.uint256ToBytes;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -32,16 +35,19 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.kzg.KZGCell;
 import tech.pegasys.teku.kzg.KZGCellAndProof;
+import tech.pegasys.teku.kzg.KZGCellID;
 import tech.pegasys.teku.kzg.KZGCellWithColumnId;
 import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.Cell;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.CellSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumn;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecarSchema;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntry;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.eip7594.BeaconBlockBodyEip7594;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.eip7594.BeaconBlockBodySchemaEip7594;
@@ -53,6 +59,7 @@ import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 
 public class MiscHelpersEip7594 extends MiscHelpersDeneb {
+  private static final MathContext BIGDECIMAL_PRECISION = MathContext.DECIMAL128;
 
   public static MiscHelpersEip7594 required(final MiscHelpers miscHelpers) {
     return miscHelpers
@@ -187,42 +194,71 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
 
   public List<DataColumnSidecar> constructDataColumnSidecars(
       final SignedBeaconBlock signedBeaconBlock, final List<Blob> blobs, final KZG kzg) {
-    if (blobs.isEmpty()) {
+    return constructDataColumnSidecars(
+        signedBeaconBlock.getMessage(),
+        signedBeaconBlock.asHeader(),
+        computeExtendedMatrix(blobs, kzg));
+  }
+
+  /**
+   * Return the full ``ExtendedMatrix``.
+   *
+   * <p>This helper demonstrates the relationship between blobs and ``ExtendedMatrix``.
+   *
+   * <p>>The data structure for storing cells is implementation-dependent.
+   */
+  public List<List<MatrixEntry>> computeExtendedMatrix(final List<Blob> blobs, final KZG kzg) {
+    final List<List<MatrixEntry>> extendedMatrix = new ArrayList<>();
+    for (int blobIndex = 0; blobIndex < blobs.size(); ++blobIndex) {
+      final List<MatrixEntry> row = new ArrayList<>();
+      final List<KZGCellAndProof> kzgCellAndProofs =
+          kzg.computeCellsAndProofs(blobs.get(blobIndex).getBytes());
+      for (int cellIndex = 0; cellIndex < kzgCellAndProofs.size(); ++cellIndex) {
+        row.add(
+            schemaDefinitions
+                .getMatrixEntrySchema()
+                .create(
+                    kzgCellAndProofs.get(cellIndex).cell(),
+                    kzgCellAndProofs.get(cellIndex).proof(),
+                    blobIndex,
+                    cellIndex));
+      }
+      extendedMatrix.add(row);
+    }
+    return extendedMatrix;
+  }
+
+  public List<DataColumnSidecar> constructDataColumnSidecars(
+      final BeaconBlock beaconBlock,
+      final SignedBeaconBlockHeader signedBeaconBlockHeader,
+      final List<List<MatrixEntry>> extendedMatrix) {
+    if (extendedMatrix.isEmpty()) {
       return Collections.emptyList();
     }
     final BeaconBlockBodyEip7594 beaconBlockBody =
-        BeaconBlockBodyEip7594.required(signedBeaconBlock.getMessage().getBody());
+        BeaconBlockBodyEip7594.required(beaconBlock.getBody());
     final SszList<SszKZGCommitment> sszKZGCommitments = beaconBlockBody.getBlobKzgCommitments();
     final List<Bytes32> kzgCommitmentsInclusionProof =
         computeDataColumnKzgCommitmentsInclusionProof(beaconBlockBody);
 
-    final CellSchema cellSchema = schemaDefinitions.getCellSchema();
     final DataColumnSchema dataColumnSchema = schemaDefinitions.getDataColumnSchema();
     final DataColumnSidecarSchema dataColumnSidecarSchema =
         schemaDefinitions.getDataColumnSidecarSchema();
     final SszListSchema<SszKZGProof, ?> kzgProofsSchema =
         dataColumnSidecarSchema.getKzgProofsSchema();
 
-    List<List<KZGCellAndProof>> blobsCellsAndProofs =
-        blobs.stream().parallel().map(blob -> kzg.computeCellsAndProofs(blob.getBytes())).toList();
-
-    int columnCount = blobsCellsAndProofs.get(0).size();
+    int columnCount = extendedMatrix.get(0).size();
 
     return IntStream.range(0, columnCount)
         .mapToObj(
             cellID -> {
-              List<KZGCellAndProof> columnData =
-                  blobsCellsAndProofs.stream().map(row -> row.get(cellID)).toList();
-              List<Cell> columnCells =
-                  columnData.stream()
-                      .map(KZGCellAndProof::cell)
-                      .map(KZGCell::bytes)
-                      .map(cellSchema::create)
-                      .toList();
+              List<MatrixEntry> columnData =
+                  extendedMatrix.stream().map(row -> row.get(cellID)).toList();
+              List<Cell> columnCells = columnData.stream().map(MatrixEntry::getCell).toList();
 
               SszList<SszKZGProof> columnProofs =
                   columnData.stream()
-                      .map(KZGCellAndProof::proof)
+                      .map(MatrixEntry::getKzgProof)
                       .map(SszKZGProof::new)
                       .collect(kzgProofsSchema.collector());
               final DataColumn dataColumn = dataColumnSchema.create(columnCells);
@@ -232,10 +268,118 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
                   dataColumn,
                   sszKZGCommitments,
                   columnProofs,
-                  signedBeaconBlock.asHeader(),
+                  signedBeaconBlockHeader,
                   kzgCommitmentsInclusionProof);
             })
         .toList();
+  }
+
+  /**
+   * Return the recovered extended matrix.
+   *
+   * <p>This helper demonstrates how to apply ``recover_cells_and_kzg_proofs``.
+   *
+   * <p>The data structure for storing cells is implementation-dependent.
+   */
+  public List<List<MatrixEntry>> recoverMatrix(
+      final List<List<MatrixEntry>> partialMatrix, final KZG kzg) {
+    return IntStream.range(0, partialMatrix.size())
+        .parallel()
+        .mapToObj(
+            blobIndex -> {
+              final List<KZGCellWithColumnId> cellWithColumnIds =
+                  partialMatrix.get(blobIndex).stream()
+                      .filter(entry -> entry.getRowIndex().intValue() == blobIndex)
+                      .map(
+                          entry ->
+                              new KZGCellWithColumnId(
+                                  new KZGCell(entry.getCell().getBytes()),
+                                  new KZGCellID(entry.getColumnIndex())))
+                      .toList();
+              final List<KZGCellAndProof> kzgCellAndProofs =
+                  kzg.recoverCellsAndProofs(cellWithColumnIds);
+              return IntStream.range(0, kzgCellAndProofs.size())
+                  .mapToObj(
+                      kzgCellAndProofIndex ->
+                          schemaDefinitions
+                              .getMatrixEntrySchema()
+                              .create(
+                                  kzgCellAndProofs.get(kzgCellAndProofIndex).cell(),
+                                  kzgCellAndProofs.get(kzgCellAndProofIndex).proof(),
+                                  kzgCellAndProofIndex,
+                                  blobIndex))
+                  .toList();
+            })
+        .toList();
+  }
+
+  /**
+   * Return the sample count if allowing failures.
+   *
+   * <p>This helper demonstrates how to calculate the number of columns to query per slot when
+   * allowing given number of failures, assuming uniform random selection without replacement.
+   * Nested functions are direct replacements of Python library functions math.comb and
+   * scipy.stats.hypergeom.cdf, with the same signatures.
+   */
+  public UInt64 getExtendedSampleCount(final UInt64 allowedFailures) {
+    if (allowedFailures.isGreaterThan(specConfigEip7594.getNumberOfColumns() / 2)) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Allowed failures (%s) should be less than half of columns number (%s)",
+              allowedFailures, specConfigEip7594.getNumberOfColumns()));
+    }
+    final UInt64 worstCaseMissing = UInt64.valueOf(specConfigEip7594.getNumberOfColumns() / 2 + 1);
+    final double falsePositiveThreshold =
+        hypergeomCdf(
+            UInt64.ZERO,
+            UInt64.valueOf(specConfigEip7594.getNumberOfColumns()),
+            worstCaseMissing,
+            UInt64.valueOf(specConfigEip7594.getSamplesPerSlot()));
+    UInt64 sampleCount = UInt64.valueOf(specConfigEip7594.getSamplesPerSlot());
+    for (;
+        sampleCount.isLessThanOrEqualTo(specConfigEip7594.getNumberOfColumns());
+        sampleCount = sampleCount.increment()) {
+      if (hypergeomCdf(
+              allowedFailures,
+              UInt64.valueOf(specConfigEip7594.getNumberOfColumns()),
+              worstCaseMissing,
+              sampleCount)
+          <= falsePositiveThreshold) {
+        break;
+      }
+    }
+    return sampleCount;
+  }
+
+  private UInt256 mathComb(final UInt64 n, final UInt64 k) {
+    if (n.isGreaterThanOrEqualTo(k)) {
+      UInt256 r = UInt256.ONE;
+      for (UInt64 i = UInt64.ZERO;
+          i.isLessThan(k.isGreaterThan(n.minus(k)) ? n.minus(k) : k);
+          i = i.plus(1)) {
+        r = r.multiply(n.minus(i).longValue()).divide(i.plus(1).longValue());
+      }
+      return r;
+    } else {
+      return UInt256.ZERO;
+    }
+  }
+
+  @SuppressWarnings("JavaCase")
+  private double hypergeomCdf(final UInt64 k, final UInt64 M, final UInt64 n, final UInt64 N) {
+    return Stream.iterate(UInt64.ZERO, i -> i.isLessThanOrEqualTo(k), UInt64::increment)
+        .mapToDouble(
+            i ->
+                N.isLessThan(i)
+                    ? 0d
+                    : new BigDecimal(
+                            mathComb(n, i)
+                                .multiply(mathComb(M.minus(n), N.minus(i)))
+                                .toBigInteger(),
+                            BIGDECIMAL_PRECISION)
+                        .divide(new BigDecimal(mathComb(M, N).toBigInteger()), BIGDECIMAL_PRECISION)
+                        .doubleValue())
+        .sum();
   }
 
   @Override

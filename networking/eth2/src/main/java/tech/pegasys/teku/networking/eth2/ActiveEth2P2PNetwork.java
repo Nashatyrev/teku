@@ -43,6 +43,7 @@ import tech.pegasys.teku.networking.p2p.network.DelegatingP2PNetwork;
 import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.networking.p2p.peer.PeerConnectedSubscriber;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessage;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
@@ -72,7 +73,7 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
   private final SubnetSubscriptionService dataColumnSidecarSubnetService;
   private final ProcessedAttestationSubscriptionProvider processedAttestationSubscriptionProvider;
   private final AtomicBoolean gossipStarted = new AtomicBoolean(false);
-  private final Optional<Integer> dasExtraCustodySubnetCount;
+  private final int dasTotalCustodySubnetCount;
 
   private final GossipForkManager gossipForkManager;
 
@@ -97,7 +98,7 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
       final GossipEncoding gossipEncoding,
       final GossipConfigurator gossipConfigurator,
       final ProcessedAttestationSubscriptionProvider processedAttestationSubscriptionProvider,
-      final Optional<Integer> dasExtraCustodySubnetCount,
+      final int dasTotalCustodySubnetCount,
       final boolean allTopicsFilterEnabled) {
     super(discoveryNetwork);
     this.spec = spec;
@@ -113,7 +114,7 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
     this.syncCommitteeSubnetService = syncCommitteeSubnetService;
     this.dataColumnSidecarSubnetService = dataColumnSidecarSubnetService;
     this.processedAttestationSubscriptionProvider = processedAttestationSubscriptionProvider;
-    this.dasExtraCustodySubnetCount = dasExtraCustodySubnetCount;
+    this.dasTotalCustodySubnetCount = dasTotalCustodySubnetCount;
     this.allTopicsFilterEnabled = allTopicsFilterEnabled;
   }
 
@@ -157,7 +158,10 @@ public class ActiveEth2P2PNetwork extends DelegatingP2PNetwork<Eth2Peer> impleme
     discoveryNetworkSyncCommitteeSubnetsSubscription =
         syncCommitteeSubnetService.subscribeToUpdates(
             discoveryNetwork::setSyncCommitteeSubnetSubscriptions);
-    dasExtraCustodySubnetCount.ifPresent(discoveryNetwork::setDASExtraCustodySubnetCount);
+    if (spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
+      LOG.info("Using custody sidecar subnets count: {}", dasTotalCustodySubnetCount);
+      discoveryNetwork.setDASTotalCustodySubnetCount(dasTotalCustodySubnetCount);
+    }
 
     gossipForkManager.configureGossipForEpoch(recentChainData.getCurrentEpoch().orElseThrow());
     if (allTopicsFilterEnabled) {

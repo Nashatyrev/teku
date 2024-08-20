@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.networking.eth2.peers;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -21,7 +22,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.units.bigints.UInt256;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
 import tech.pegasys.teku.networking.eth2.gossip.topics.GossipTopics;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
@@ -33,6 +37,7 @@ import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCou
 
 public class GossipTopicDasPeerCustodyTracker
     implements DasPeerCustodyCountSupplier, PeerConnectedSubscriber<Eth2Peer> {
+  private static final Logger LOG = LogManager.getLogger("das-nyota");
 
   public static final int NO_SUBNET_COUNT_INFO = -1;
 
@@ -41,29 +46,34 @@ public class GossipTopicDasPeerCustodyTracker
   private final GossipEncoding gossipEncoding;
   private final Supplier<Optional<ForkInfo>> currentForkInfoSupplier;
 
-  private final Map<UInt256, Entry> connectedPeerExtraSubnets = new ConcurrentHashMap<>();
+  private final Map<UInt256, Entry> connectedPeerSubnets = new ConcurrentHashMap<>();
 
   public GossipTopicDasPeerCustodyTracker(
       Spec spec,
       GossipNetwork gossipNetwork,
       GossipEncoding gossipEncoding,
-      Supplier<Optional<ForkInfo>> currentForkInfoSupplier) {
+      Supplier<Optional<ForkInfo>> currentForkInfoSupplier,
+      AsyncRunner asyncRunner) {
     this.spec = spec;
     this.gossipNetwork = gossipNetwork;
     this.gossipEncoding = gossipEncoding;
     this.currentForkInfoSupplier = currentForkInfoSupplier;
+    asyncRunner.runWithFixedDelay(
+        this::refreshExistingSubscriptions,
+        Duration.ofSeconds(1),
+        e -> LOG.warn("[nyota] Error {}", e, e));
   }
 
   @Override
   public void onConnected(Eth2Peer peer) {
-    connectedPeerExtraSubnets.put(
+    connectedPeerSubnets.put(
         peer.getDiscoveryNodeId(), new Entry(peer.getId(), NO_SUBNET_COUNT_INFO));
     peer.subscribeDisconnect((__, ___) -> peerDisconnected(peer));
     refreshExistingSubscriptions();
   }
 
   private void peerDisconnected(Eth2Peer peer) {
-    connectedPeerExtraSubnets.remove(peer.getDiscoveryNodeId());
+    connectedPeerSubnets.remove(peer.getDiscoveryNodeId());
   }
 
   private Set<String> getCurrentDasTopics() {
@@ -76,7 +86,7 @@ public class GossipTopicDasPeerCustodyTracker
         .orElse(Collections.emptySet());
   }
 
-  private void refreshExistingSubscriptions() {
+  private synchronized void refreshExistingSubscriptions() {
     Map<String, Collection<NodeId>> subscribersByTopic = gossipNetwork.getSubscribersByTopic();
     Set<String> dasTopics = getCurrentDasTopics();
     record NodeTopic(NodeId nodeId, String topic) {}
@@ -88,7 +98,7 @@ public class GossipTopicDasPeerCustodyTracker
                     entry.getValue().stream().map(nodeId -> new NodeTopic(nodeId, entry.getKey())))
             .filter(entry -> dasTopics.contains(entry.topic()))
             .collect(Collectors.groupingBy(NodeTopic::nodeId, Collectors.counting()));
-    connectedPeerExtraSubnets.replaceAll(
+    connectedPeerSubnets.replaceAll(
         (nodeId, entry) -> {
           Long maybeCount = nodeToSubnetCount.get(entry.libp2pPeerId());
           int count = maybeCount == null ? NO_SUBNET_COUNT_INFO : maybeCount.intValue();
@@ -98,7 +108,7 @@ public class GossipTopicDasPeerCustodyTracker
 
   @Override
   public int getCustodyCountForPeer(UInt256 nodeId) {
-    Entry entry = connectedPeerExtraSubnets.get(nodeId);
+    Entry entry = connectedPeerSubnets.get(nodeId);
     return entry != null ? entry.subnetCount() : 0;
   }
 

@@ -67,6 +67,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.StatusMessage
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessage;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustody;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
@@ -122,6 +123,7 @@ public class BeaconChainMethods {
     blobSidecarsByRoot.ifPresent(allMethods::add);
     blobSidecarsByRange.ifPresent(allMethods::add);
     dataColumnSidecarsByRoot.ifPresent(allMethods::add);
+    dataColumnSidecarsByRange.ifPresent(allMethods::add);
   }
 
   public static BeaconChainMethods create(
@@ -129,6 +131,7 @@ public class BeaconChainMethods {
       final AsyncRunner asyncRunner,
       final PeerLookup peerLookup,
       final CombinedChainDataClient combinedChainDataClient,
+      final DataColumnSidecarCustody dataColumnSidecarCustody,
       final RecentChainData recentChainData,
       final MetricsSystem metricsSystem,
       final StatusMessageFactory statusMessageFactory,
@@ -168,6 +171,7 @@ public class BeaconChainMethods {
             metricsSystem,
             asyncRunner,
             combinedChainDataClient,
+            dataColumnSidecarCustody,
             peerLookup,
             rpcEncoding,
             recentChainData),
@@ -384,6 +388,7 @@ public class BeaconChainMethods {
           final MetricsSystem metricsSystem,
           final AsyncRunner asyncRunner,
           final CombinedChainDataClient combinedChainDataClient,
+          final DataColumnSidecarCustody dataColumnSidecarCustody,
           final PeerLookup peerLookup,
           final RpcEncoding rpcEncoding,
           final RecentChainData recentChainData) {
@@ -396,7 +401,8 @@ public class BeaconChainMethods {
             spec, recentChainData, ForkDigestPayloadContext.DATA_COLUMN_SIDECAR);
 
     final DataColumnSidecarsByRootMessageHandler dataColumnSidecarsByRootMessageHandler =
-        new DataColumnSidecarsByRootMessageHandler(spec, metricsSystem, combinedChainDataClient);
+        new DataColumnSidecarsByRootMessageHandler(
+            spec, metricsSystem, combinedChainDataClient, dataColumnSidecarCustody);
     final DataColumnSidecarsByRootRequestMessageSchema
         dataColumnSidecarsByRootRequestMessageSchema =
             SchemaDefinitionsEip7594.required(
@@ -491,6 +497,34 @@ public class BeaconChainMethods {
             peerLookup,
             spec.getNetworkingConfig());
 
+    final List<SingleProtocolEth2RpcMethod<EmptyMessage, MetadataMessage>> versionedMethods =
+        new ArrayList<>();
+
+    if (spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
+      final SszSchema<MetadataMessage> eip7594MetadataSchema =
+          SszSchema.as(
+              MetadataMessage.class,
+              spec.forMilestone(SpecMilestone.EIP7594)
+                  .getSchemaDefinitions()
+                  .getMetadataMessageSchema());
+      final RpcContextCodec<?, MetadataMessage> eip7594ContextCodec =
+          RpcContextCodec.noop(eip7594MetadataSchema);
+
+      final SingleProtocolEth2RpcMethod<EmptyMessage, MetadataMessage> v3Method =
+          new SingleProtocolEth2RpcMethod<>(
+              asyncRunner,
+              BeaconChainMethodIds.GET_METADATA,
+              3,
+              rpcEncoding,
+              requestType,
+              expectResponse,
+              eip7594ContextCodec,
+              messageHandler,
+              peerLookup,
+              spec.getNetworkingConfig());
+      versionedMethods.add(v3Method);
+    }
+
     if (spec.isMilestoneSupported(SpecMilestone.ALTAIR)) {
       final SszSchema<MetadataMessage> altairMetadataSchema =
           SszSchema.as(
@@ -513,8 +547,10 @@ public class BeaconChainMethods {
               messageHandler,
               peerLookup,
               spec.getNetworkingConfig());
+      versionedMethods.add(v2Method);
+      versionedMethods.add(v1Method);
       return VersionedEth2RpcMethod.create(
-          rpcEncoding, requestType, expectResponse, List.of(v2Method, v1Method));
+          rpcEncoding, requestType, expectResponse, versionedMethods);
     } else {
       return v1Method;
     }

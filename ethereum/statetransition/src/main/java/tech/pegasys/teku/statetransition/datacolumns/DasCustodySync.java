@@ -57,11 +57,13 @@ public class DasCustodySync implements SlotEventsChannel {
     this(custody, retriever, 10 * 1024, 2 * 1024);
   }
 
-  private synchronized void onRequestComplete(PendingRequest request, DataColumnSidecar response) {
+  private void onRequestComplete(PendingRequest request, DataColumnSidecar response) {
     custody.onNewValidatedDataColumnSidecar(response);
-    pendingRequests.remove(request.columnId);
-    syncedColumnCount.incrementAndGet();
-    fillUpIfNeeded();
+    synchronized (this) {
+      pendingRequests.remove(request.columnId);
+      syncedColumnCount.incrementAndGet();
+      fillUpIfNeeded();
+    }
   }
 
   private boolean wasCancelledImplicitly(Throwable exception) {
@@ -74,7 +76,7 @@ public class DasCustodySync implements SlotEventsChannel {
     if (wasCancelledImplicitly(exception)) {
       // request was cancelled explicitly here
     } else {
-      LOG.warn("Unexpected exception for request " + request, exception);
+      LOG.warn("[nyota] Unexpected exception for request " + request, exception);
     }
   }
 
@@ -84,42 +86,56 @@ public class DasCustodySync implements SlotEventsChannel {
     }
   }
 
-  private synchronized void fillUp() {
+  private void fillUp() {
     int newRequestCount = maxPendingColumnRequests - pendingRequests.size();
-    Set<ColumnSlotAndIdentifier> missingColumnsToRequest =
+    final SafeFuture<Set<ColumnSlotAndIdentifier>> missingColumnsToRequestFuture =
         custody
-            .streamMissingColumns()
-            .filter(columnSlotId -> !pendingRequests.containsKey(columnSlotId))
-            .limit(newRequestCount)
-            .collect(Collectors.toSet());
+            .retrieveMissingColumns()
+            .thenApply(
+                columnIdentifiers ->
+                    columnIdentifiers.stream()
+                        .filter(columnSlotId -> !pendingRequests.containsKey(columnSlotId))
+                        .limit(newRequestCount)
+                        .collect(Collectors.toSet()));
 
     // TODO cancel those which are not missing anymore for whatever reason
 
-    for (ColumnSlotAndIdentifier missingColumn : missingColumnsToRequest) {
-      SafeFuture<DataColumnSidecar> promise = retriever.retrieve(missingColumn);
-      PendingRequest request = new PendingRequest(missingColumn, promise);
-      pendingRequests.put(missingColumn, request);
-      promise.finish(
-          response -> onRequestComplete(request, response),
-          err -> onRequestException(request, err));
-    }
+    missingColumnsToRequestFuture
+        .thenPeek(
+            missingColumnsToRequest -> {
+              for (ColumnSlotAndIdentifier missingColumn : missingColumnsToRequest) {
+                addPendingRequest(missingColumn);
+              }
 
-    if (missingColumnsToRequest.isEmpty()) {
-      coolDownTillNextSlot = true;
-    }
+              if (missingColumnsToRequest.isEmpty()) {
+                coolDownTillNextSlot = true;
+              }
 
-    {
-      Set<UInt64> missingSlots =
-          missingColumnsToRequest.stream()
-              .map(ColumnSlotAndIdentifier::slot)
-              .collect(Collectors.toSet());
-      LOG.info(
-          "DataCustodySync.fillUp: synced={} pending={}, missingColumns={}({})",
-          syncedColumnCount,
-          pendingRequests.size(),
-          missingColumnsToRequest.size(),
-          missingSlots);
+              {
+                Set<UInt64> missingSlots =
+                    missingColumnsToRequest.stream()
+                        .map(ColumnSlotAndIdentifier::slot)
+                        .collect(Collectors.toSet());
+                LOG.info(
+                    "[nyota] DataCustodySync.fillUp: synced={} pending={}, missingColumns={}({})",
+                    syncedColumnCount,
+                    pendingRequests.size(),
+                    missingColumnsToRequest.size(),
+                    missingSlots);
+              }
+            })
+        .ifExceptionGetsHereRaiseABug();
+  }
+
+  private synchronized void addPendingRequest(final ColumnSlotAndIdentifier missingColumn) {
+    if (pendingRequests.containsKey(missingColumn)) {
+      return;
     }
+    final SafeFuture<DataColumnSidecar> promise = retriever.retrieve(missingColumn);
+    final PendingRequest request = new PendingRequest(missingColumn, promise);
+    pendingRequests.put(missingColumn, request);
+    promise.finish(
+        response -> onRequestComplete(request, response), err -> onRequestException(request, err));
   }
 
   public void start() {

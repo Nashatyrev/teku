@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.units.bigints.UInt256;
@@ -38,10 +39,11 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
       DataColumnIdentifier columnIdentifier,
       SafeFuture<DataColumnSidecar> promise) {}
 
-  private List<RequestEntry> bufferedRequests = new ArrayList<>();
+  private final ConcurrentLinkedQueue<RequestEntry> bufferedRequests =
+      new ConcurrentLinkedQueue<>();
 
   @Override
-  public synchronized SafeFuture<DataColumnSidecar> requestDataColumnSidecar(
+  public SafeFuture<DataColumnSidecar> requestDataColumnSidecar(
       UInt256 nodeId, DataColumnIdentifier columnIdentifier) {
     RequestEntry entry = new RequestEntry(nodeId, columnIdentifier, new SafeFuture<>());
     bufferedRequests.add(entry);
@@ -50,13 +52,9 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
 
   @Override
   public void flush() {
-    final List<RequestEntry> requests;
-    synchronized (this) {
-      requests = bufferedRequests;
-      bufferedRequests = new ArrayList<>();
-    }
     Map<UInt256, List<RequestEntry>> byNodes = new HashMap<>();
-    for (RequestEntry request : requests) {
+    RequestEntry request;
+    while ((request = bufferedRequests.poll()) != null) {
       byNodes.computeIfAbsent(request.nodeId, __ -> new ArrayList<>()).add(request);
     }
     for (Map.Entry<UInt256, List<RequestEntry>> entry : byNodes.entrySet()) {
@@ -66,9 +64,9 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
 
   private void flushForNode(UInt256 nodeId, List<RequestEntry> nodeRequests) {
     LOG.info(
-        "Requesting batch of {} from {}, hash={}",
+        "[nyota] Requesting batch of {} from {}, hash={}",
         nodeRequests.size(),
-        nodeId.mod(65536).toHexString(),
+        "0x..." + nodeId.toHexString().substring(58),
         nodeRequests.hashCode());
     SafeFuture<List<DataColumnSidecar>> response =
         SafeFuture.of(
@@ -79,14 +77,13 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
     response.finish(
         resp -> {
           LOG.info(
-              "Response batch of {} from {}, hash={}",
+              "[nyota] Response batch of {} from {}, hash={}",
               resp.size(),
-              nodeId.mod(65536).toHexString(),
+              "0x..." + nodeId.toHexString().substring(58),
               nodeRequests.hashCode());
           Map<DataColumnIdentifier, DataColumnSidecar> byIds = new HashMap<>();
           for (DataColumnSidecar sidecar : resp) {
-            byIds.put(
-                new DataColumnIdentifier(sidecar.getBlockRoot(), sidecar.getIndex()), sidecar);
+            byIds.put(DataColumnIdentifier.createFromSidecar(sidecar), sidecar);
           }
           for (RequestEntry nodeRequest : nodeRequests) {
             DataColumnSidecar maybeResponse = byIds.get(nodeRequest.columnIdentifier);
@@ -101,7 +98,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
             nodeRequests.forEach(
                 e -> {
                   LOG.info(
-                      "Error batch from {}, hash={}, err: {}",
+                      "[nyota] Error batch from {}, hash={}, err: {}",
                       nodeId.mod(65536).toHexString(),
                       nodeRequests.hashCode(),
                       e.toString());

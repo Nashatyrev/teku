@@ -85,6 +85,7 @@ import tech.pegasys.teku.networking.p2p.reputation.DefaultReputationManager;
 import tech.pegasys.teku.networking.p2p.reputation.ReputationManager;
 import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.config.Constants;
@@ -105,6 +106,7 @@ import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
 import tech.pegasys.teku.statetransition.block.VerifiedBlockOperationsListener;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustody;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.api.StubStorageQueryChannel;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
@@ -222,10 +224,18 @@ public class Eth2P2PNetworkFactory {
           rpcEncoding =
               RpcEncoding.createSszSnappyEncoding(spec.getNetworkingConfig().getMaxChunkSize());
         }
+        final Optional<UInt64> dasTotalCustodySubnetCount =
+            spec.isMilestoneSupported(SpecMilestone.EIP7594)
+                ? Optional.of(
+                    UInt64.valueOf(
+                        config.getTotalCustodySubnetCount(
+                            spec.forMilestone(SpecMilestone.EIP7594))))
+                : Optional.empty();
         final Eth2PeerManager eth2PeerManager =
             Eth2PeerManager.create(
                 asyncRunner,
                 combinedChainDataClient,
+                DataColumnSidecarCustody.NOOP,
                 METRICS_SYSTEM,
                 attestationSubnetService,
                 syncCommitteeSubnetService,
@@ -240,7 +250,8 @@ public class Eth2P2PNetworkFactory {
                 50,
                 spec,
                 KZG.NOOP,
-                (pk) -> UInt256.ZERO);
+                (pk) -> UInt256.ZERO,
+                dasTotalCustodySubnetCount);
 
         List<RpcMethod<?, ?, ?>> rpcMethods =
             eth2PeerManager.getBeaconChainMethods().all().stream()
@@ -359,7 +370,7 @@ public class Eth2P2PNetworkFactory {
             gossipEncoding,
             GossipConfigurator.NOOP,
             processedAttestationSubscriptionProvider,
-            Optional.empty(),
+            0,
             config.isAllTopicsFilterEnabled());
       }
     }

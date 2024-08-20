@@ -223,6 +223,16 @@ public class P2POptions {
   private boolean subscribeAllSubnetsEnabled = P2PConfig.DEFAULT_SUBSCRIBE_ALL_SUBNETS_ENABLED;
 
   @Option(
+      names = {"--p2p-subscribe-all-custody-subnets-enabled"},
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description = "",
+      arity = "0..1",
+      fallbackValue = "true")
+  private boolean subscribeAllCustodySubnetsEnabled =
+      P2PConfig.DEFAULT_SUBSCRIBE_ALL_SUBNETS_ENABLED;
+
+  @Option(
       names = {"--Xp2p-gossip-scoring-enabled"},
       paramLabel = "<BOOLEAN>",
       showDefaultValue = Visibility.ALWAYS,
@@ -316,6 +326,25 @@ public class P2POptions {
       fallbackValue = "true")
   private boolean yamuxEnabled = NetworkConfig.DEFAULT_YAMUX_ENABLED;
 
+  @Option(
+      names = {"--Xdas-extra-custody-subnet-count"},
+      paramLabel = "<NUMBER>",
+      description = "Number of extra custody subnets",
+      arity = "1",
+      hidden = true)
+  private int dasExtraCustodySubnetCount = P2PConfig.DEFAULT_DAS_EXTRA_CUSTODY_SUBNET_COUNT;
+
+  @Option(
+      names = {"--Xdas-lossy-sampler-enabled"},
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description =
+          "Enables Lossy DAS Sampler, which increases number of required samples while allows non-zero column failures",
+      arity = "0..1",
+      hidden = true,
+      fallbackValue = "true")
+  private boolean dasLossySamplerEnabled = P2PConfig.DEFAULT_DAS_LOSSY_SAMPLER_ENABLED;
+
   private int getP2pLowerBound() {
     if (p2pLowerBound > p2pUpperBound) {
       STATUS_LOG.adjustingP2pLowerBoundToUpperBound(p2pUpperBound);
@@ -342,6 +371,7 @@ public class P2POptions {
         .p2p(
             b ->
                 b.subscribeAllSubnetsEnabled(subscribeAllSubnetsEnabled)
+                    .subscribeAllCustodySubnetsEnabled(subscribeAllCustodySubnetsEnabled)
                     .batchVerifyMaxThreads(batchVerifyMaxThreads)
                     .batchVerifyQueueCapacity(batchVerifyQueueCapacity)
                     .batchVerifyMaxBatchSize(batchVerifyMaxBatchSize)
@@ -350,7 +380,9 @@ public class P2POptions {
                     .isGossipScoringEnabled(gossipScoringEnabled)
                     .peerRateLimit(peerRateLimit)
                     .allTopicsFilterEnabled(allTopicsFilterEnabled)
-                    .peerRequestLimit(peerRequestLimit))
+                    .peerRequestLimit(peerRequestLimit)
+                    .dasExtraCustodySubnetCount(dasExtraCustodySubnetCount)
+                    .dasLossySamplerEnabled(dasLossySamplerEnabled))
         .discovery(
             d -> {
               if (p2pDiscoveryBootnodes != null) {

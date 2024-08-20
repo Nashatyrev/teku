@@ -32,6 +32,7 @@ import tech.pegasys.teku.infrastructure.events.EventChannels;
 import tech.pegasys.teku.infrastructure.metrics.SettableLabelledGauge;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
 import tech.pegasys.teku.networking.eth2.gossip.forks.GossipForkManager;
@@ -74,6 +75,7 @@ import tech.pegasys.teku.networking.p2p.reputation.DefaultReputationManager;
 import tech.pegasys.teku.networking.p2p.reputation.ReputationManager;
 import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.Constants;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
@@ -88,6 +90,7 @@ import tech.pegasys.teku.spec.datastructures.operations.versions.altair.Validata
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustody;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.store.KeyValueStore;
 
@@ -104,6 +107,7 @@ public class Eth2P2PNetworkBuilder {
   protected P2PConfig config;
   protected EventChannels eventChannels;
   protected CombinedChainDataClient combinedChainDataClient;
+  protected DataColumnSidecarCustody dataColumnSidecarCustody;
   protected OperationProcessor<SignedBeaconBlock> gossipedBlockProcessor;
   protected OperationProcessor<BlobSidecar> gossipedBlobSidecarProcessor;
   protected OperationProcessor<ValidatableAttestation> gossipedAttestationConsumer;
@@ -165,10 +169,19 @@ public class Eth2P2PNetworkBuilder {
     if (statusMessageFactory == null) {
       statusMessageFactory = new StatusMessageFactory(combinedChainDataClient.getRecentChainData());
     }
+
+    final Optional<UInt64> dasTotalCustodySubnetCount =
+        spec.isMilestoneSupported(SpecMilestone.EIP7594)
+            ? Optional.of(
+                UInt64.valueOf(
+                    config.getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.EIP7594))))
+            : Optional.empty();
+
     final Eth2PeerManager eth2PeerManager =
         Eth2PeerManager.create(
             asyncRunner,
             combinedChainDataClient,
+            dataColumnSidecarCustody,
             metricsSystem,
             attestationSubnetService,
             syncCommitteeSubnetService,
@@ -183,7 +196,8 @@ public class Eth2P2PNetworkBuilder {
             config.getPeerRequestLimit(),
             spec,
             kzg,
-            discoveryNodeIdExtractor);
+            discoveryNodeIdExtractor,
+            dasTotalCustodySubnetCount);
     final Collection<RpcMethod<?, ?, ?>> eth2RpcMethods =
         eth2PeerManager.getBeaconChainMethods().all();
     rpcMethods.addAll(eth2RpcMethods);
@@ -195,11 +209,6 @@ public class Eth2P2PNetworkBuilder {
         buildNetwork(gossipEncoding, syncCommitteeSubnetService, dataColumnSidecarSubnetService);
 
     final GossipForkManager gossipForkManager = buildGossipForkManager(gossipEncoding, network);
-
-    final Optional<Integer> dasExtraCustodySubnetCount =
-        config.getDasExtraCustodySubnetCount() == 0
-            ? Optional.empty()
-            : Optional.of(config.getDasExtraCustodySubnetCount());
 
     return new ActiveEth2P2PNetwork(
         config.getSpec(),
@@ -215,7 +224,7 @@ public class Eth2P2PNetworkBuilder {
         gossipEncoding,
         config.getGossipConfigurator(),
         processedAttestationSubscriptionProvider,
-        dasExtraCustodySubnetCount,
+        dasTotalCustodySubnetCount.orElse(UInt64.ZERO).intValue(),
         config.isAllTopicsFilterEnabled());
   }
 
@@ -447,6 +456,7 @@ public class Eth2P2PNetworkBuilder {
     assertNotNull("eventChannels", eventChannels);
     assertNotNull("metricsSystem", metricsSystem);
     assertNotNull("combinedChainDataClient", combinedChainDataClient);
+    assertNotNull("dataColumnSidecarCustody", dataColumnSidecarCustody);
     assertNotNull("keyValueStore", keyValueStore);
     assertNotNull("timeProvider", timeProvider);
     assertNotNull("gossipedBlockProcessor", gossipedBlockProcessor);
@@ -483,6 +493,13 @@ public class Eth2P2PNetworkBuilder {
       final CombinedChainDataClient combinedChainDataClient) {
     checkNotNull(combinedChainDataClient);
     this.combinedChainDataClient = combinedChainDataClient;
+    return this;
+  }
+
+  public Eth2P2PNetworkBuilder dataColumnSidecarCustody(
+      DataColumnSidecarCustody dataColumnSidecarCustody) {
+    checkNotNull(dataColumnSidecarCustody);
+    this.dataColumnSidecarCustody = dataColumnSidecarCustody;
     return this;
   }
 
