@@ -35,7 +35,7 @@ class RunBootNode {
             val dasTeku = DasTeku()
             dasTeku.createGenesisIfRequired()
             dasTeku.resetWithNewGenesis()
-            dasTeku.createAndStartBootNode(0, 0 until 32)
+            dasTeku.createAndStartBootNode(0, 0 until 48)
         }
     }
 }
@@ -45,7 +45,7 @@ class RunOtherNode {
         @JvmStatic
         fun main(vararg args: String) {
             val dasTeku = DasTeku()
-            dasTeku.createAndStartNode(1, 32 until 64)
+            dasTeku.createAndStartNode(1, 48 until 64)
         }
     }
 }
@@ -126,6 +126,8 @@ class DasTeku(
         val validatorKeysPath = "$dataPath/keys"
         val nodePrivKey = generatePrivateKeyFromSeed(port.toLong())
 
+        val metricsPort = 8008 + number
+
         writeValidatorKeys(validators, validatorKeysPath)
 
         val tekuConfigBuilder =
@@ -135,6 +137,7 @@ class DasTeku(
                         .applyNetworkDefaults(Eth2Network.MINIMAL)
                         .customGenesisState(genesisFile)
                         .totalTerminalDifficultyOverride(UInt256.ZERO)
+                        .ignoreWeakSubjectivityPeriodEnabled(true)
                         .spec(spec)
                     if (bootnodeEnr != null) {
                         it.discoveryBootnodes(bootnodeEnr)
@@ -173,6 +176,11 @@ class DasTeku(
                 .executionLayer {
                     it
                         .engineEndpoint("unsafe-test-stub")
+                }
+                .metrics {
+                    it
+                        .metricsEnabled(true)
+                        .metricsPort(metricsPort)
                 }
 
         if (validators.isNotEmpty()) {
