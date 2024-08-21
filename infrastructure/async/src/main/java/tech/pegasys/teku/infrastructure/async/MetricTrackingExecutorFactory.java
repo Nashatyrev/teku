@@ -113,6 +113,7 @@ public class MetricTrackingExecutorFactory {
   private void onRejectedExecution(final String name) {
     labelledGaugeRejectedExecutions.labels(name).inc();
     rejectedExecutionCounter.increment();
-    throw new RejectedExecutionException("Rejected execution on task queue - " + name);
+    System.err.println("Rejected execution on task queue - " + name);
+//    throw new RejectedExecutionException("Rejected execution on task queue - " + name);
   }
 }
