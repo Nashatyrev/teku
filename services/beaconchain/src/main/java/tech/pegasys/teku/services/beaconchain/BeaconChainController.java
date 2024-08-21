@@ -723,42 +723,44 @@ public class BeaconChainController extends Service implements BeaconChainControl
     dasCustodySync = new DasCustodySync(dataColumnSidecarCustodyImpl, recoveringSidecarRetriever);
     eventChannels.subscribe(SlotEventsChannel.class, dasCustodySync);
 
-    final int myDataColumnSampleCount =
-        Math.min(configEip7594.getSamplesPerSlot(), configEip7594.getNumberOfColumns());
-    if (myDataColumnSampleCount != 0) {
-      final DasSamplerCombinedImpl dasSampler;
-      if (beaconConfig.p2pConfig().isDasLossySamplerEnabled()) {
-        // We don't need recovering for Lossy Sampler
-        // the only issue - we will not gossip failed columns in case we reach half of columns
-        // failures,
-        // but it's not straightforward to sync lossy logic with recovering, so it's postponed
-        dasSampler =
-            new DasSamplerCombinedImpl(
-                spec, sidecarDB, recentChainData, sidecarRetriever, beaconAsyncRunner, true);
-        LOG.info(
-            "DAS Sampler initialized in a lossy mode with {} columns to sample",
-            myDataColumnSampleCount);
-      } else {
-        dasSampler =
-            new DasSamplerCombinedImpl(
-                spec,
-                sidecarDB,
-                recentChainData,
-                recoveringSidecarRetriever,
-                beaconAsyncRunner,
-                false);
-        LOG.info("DAS Sampler initialized with {} columns to sample", myDataColumnSampleCount);
-      }
-      eventChannels.subscribe(SlotEventsChannel.class, dasSampler);
-      eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
-      dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
-          dasSampler::onNewValidatedDataColumnSidecar);
-      this.dataAvailabilitySampler = dasSampler;
-    } else {
-      this.dataAvailabilitySampler = DataAvailabilitySampler.NOOP;
-      LOG.info("DAS Sampler is not initialized, no columns to sample");
-    }
-    dasSamplerManager.setSampler(dataAvailabilitySampler);
+    //    final int myDataColumnSampleCount =
+    //        Math.min(configEip7594.getSamplesPerSlot(), configEip7594.getNumberOfColumns());
+    //    if (myDataColumnSampleCount != 0) {
+    //      final DasSamplerCombinedImpl dasSampler;
+    //      if (beaconConfig.p2pConfig().isDasLossySamplerEnabled()) {
+    //        // We don't need recovering for Lossy Sampler
+    //        // the only issue - we will not gossip failed columns in case we reach half of columns
+    //        // failures,
+    //        // but it's not straightforward to sync lossy logic with recovering, so it's postponed
+    //        dasSampler =
+    //            new DasSamplerCombinedImpl(
+    //                spec, sidecarDB, recentChainData, sidecarRetriever, beaconAsyncRunner, true);
+    //        LOG.info(
+    //            "DAS Sampler initialized in a lossy mode with {} columns to sample",
+    //            myDataColumnSampleCount);
+    //      } else {
+    //        dasSampler =
+    //            new DasSamplerCombinedImpl(
+    //                spec,
+    //                sidecarDB,
+    //                recentChainData,
+    //                recoveringSidecarRetriever,
+    //                beaconAsyncRunner,
+    //                false);
+    //        LOG.info("DAS Sampler initialized with {} columns to sample",
+    // myDataColumnSampleCount);
+    //      }
+    //      eventChannels.subscribe(SlotEventsChannel.class, dasSampler);
+    //      eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
+    //      dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
+    //          dasSampler::onNewValidatedDataColumnSidecar);
+    //      this.dataAvailabilitySampler = dasSampler;
+    //    } else {
+    //      this.dataAvailabilitySampler = DataAvailabilitySampler.NOOP;
+    //      LOG.info("DAS Sampler is not initialized, no columns to sample");
+    //    }
+    //    dasSamplerManager.setSampler(dataAvailabilitySampler);
+    dasSamplerManager.setSampler(DataAvailabilitySampler.NOOP);
   }
 
   protected void initMergeMonitors() {
