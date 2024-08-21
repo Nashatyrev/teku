@@ -147,10 +147,12 @@ import tech.pegasys.teku.statetransition.datacolumns.DasSamplerCombinedImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
+import tech.pegasys.teku.statetransition.datacolumns.MetricsDataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerSearcher;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
@@ -645,9 +647,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       return;
     }
-    DataColumnSidecarDBImpl sidecarDB =
-        new DataColumnSidecarDBImpl(
-            combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
+    DataColumnSidecarDB sidecarDB =
+        new MetricsDataColumnSidecarDB(
+            new DataColumnSidecarDBImpl(
+                combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class)),
+            metricsSystem);
     CanonicalBlockResolver canonicalBlockResolver =
         slot ->
             combinedChainDataClient
