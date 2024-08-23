@@ -18,13 +18,13 @@ import static tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetwork.DAS_CU
 import static tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetwork.ETH2_ENR_FIELD;
 import static tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetwork.SYNC_COMMITTEE_SUBNET_ENR_FIELD;
 
-import java.math.BigInteger;
 import java.net.InetSocketAddress;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.units.bigints.UInt32;
 import org.apache.tuweni.units.bigints.UInt64;
 import org.ethereum.beacon.discovery.schema.EnrField;
 import org.ethereum.beacon.discovery.schema.IdentitySchema;
@@ -79,7 +79,7 @@ public class NodeRecordConverter {
         parseField(
             nodeRecord,
             DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD,
-            bytes -> new BigInteger(bytes.toArray()).intValue());
+            bytes -> UInt32.fromBytes(bytes).intValue());
 
     return new DiscoveryPeer(
         ((Bytes) nodeRecord.get(EnrField.PKEY_SECP256K1)),

@@ -21,6 +21,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
+import org.apache.tuweni.units.bigints.UInt32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.logging.StatusLogger;
@@ -139,8 +140,9 @@ public class DiscoveryNetwork<P extends Peer> extends DelegatingP2PNetwork<P> {
   }
 
   public void setDASTotalCustodySubnetCount(int count) {
+    // It's always under 1-byte, but we don't have Uint8
     discoveryService.updateCustomENRField(
-        DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, Bytes.wrap(BigInteger.valueOf(count).toByteArray()));
+        DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, UInt32.valueOf(count).toBytes().slice(3));
   }
 
   public void setPreGenesisForkInfo() {
