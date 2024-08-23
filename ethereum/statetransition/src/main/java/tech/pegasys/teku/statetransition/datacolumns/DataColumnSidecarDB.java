@@ -13,8 +13,8 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -30,7 +30,7 @@ public interface DataColumnSidecarDB {
 
   SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier);
 
-  SafeFuture<Stream<DataColumnIdentifier>> streamColumnIdentifiers(UInt64 slot);
+  SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot);
 
   // update
 

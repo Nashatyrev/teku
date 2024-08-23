@@ -16,6 +16,7 @@ package tech.pegasys.teku.statetransition.datacolumns;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -67,8 +68,8 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   }
 
   @Override
-  public SafeFuture<Stream<DataColumnIdentifier>> streamColumnIdentifiers(UInt64 slot) {
-    return SafeFuture.completedFuture(slotIds.getOrDefault(slot, Collections.emptySet()).stream());
+  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
+    return SafeFuture.completedFuture(slotIds.getOrDefault(slot, Collections.emptySet()).stream().toList());
   }
 
   @Override

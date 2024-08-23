@@ -143,11 +143,11 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
         recoveryEntry.block.getSlot(),
         recoveryEntry.block.getRoot());
     sidecarDB
-        .streamColumnIdentifiers(block.getSlot())
+        .getColumnIdentifiers(block.getSlot())
         .thenCompose(
             dataColumnIdentifiers ->
                 SafeFuture.collectAll(
-                    dataColumnIdentifiers.limit(recoverColumnCount).map(sidecarDB::getSidecar)))
+                    dataColumnIdentifiers.stream().limit(recoverColumnCount).map(sidecarDB::getSidecar)))
         .thenPeek(
             maybeDataColumnSidecars -> {
               maybeDataColumnSidecars.forEach(
