@@ -24,7 +24,6 @@ import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
-import org.apache.tuweni.units.bigints.UInt32;
 import org.apache.tuweni.units.bigints.UInt64;
 import org.ethereum.beacon.discovery.schema.EnrField;
 import org.ethereum.beacon.discovery.schema.IdentitySchema;
@@ -86,7 +85,7 @@ public class NodeRecordConverter {
                         "Expected exactly one byte for %s field",
                         DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD));
               }
-              return UInt32.fromBytes(bytes).intValue();
+              return bytes.get(0) & 0xFF;
             });
 
     return new DiscoveryPeer(
