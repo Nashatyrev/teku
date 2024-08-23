@@ -139,7 +139,6 @@ public class DiscoveryNetwork<P extends Peer> extends DelegatingP2PNetwork<P> {
   }
 
   public void setDASTotalCustodySubnetCount(int count) {
-    // It's always under 1-byte, but we don't have Uint8
     discoveryService.updateCustomENRField(DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, Bytes.of(count));
   }
 
