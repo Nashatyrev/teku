@@ -79,7 +79,15 @@ public class NodeRecordConverter {
         parseField(
             nodeRecord,
             DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD,
-            bytes -> UInt32.fromBytes(bytes).intValue());
+            bytes -> {
+              if (bytes.size() != 1) {
+                throw new IllegalArgumentException(
+                    String.format(
+                        "Expected exactly one byte for %s field",
+                        DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD));
+              }
+              return UInt32.fromBytes(bytes).intValue();
+            });
 
     return new DiscoveryPeer(
         ((Bytes) nodeRecord.get(EnrField.PKEY_SECP256K1)),
