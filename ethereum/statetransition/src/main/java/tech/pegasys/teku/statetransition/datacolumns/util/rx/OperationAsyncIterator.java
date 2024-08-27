@@ -1,6 +1,6 @@
 package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
-public abstract class OperationAsyncIterator<S, T> implements AsyncIterator<T> {
+abstract class OperationAsyncIterator<S, T> implements AsyncIterator<T> {
   private final AsyncIterator<S> delegateIterator;
 
   public OperationAsyncIterator(AsyncIterator<S> delegateIterator) {

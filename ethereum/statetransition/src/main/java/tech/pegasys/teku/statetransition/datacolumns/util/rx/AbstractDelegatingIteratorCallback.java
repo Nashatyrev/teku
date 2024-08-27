@@ -1,6 +1,6 @@
 package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
-public abstract class AbstractDelegatingIteratorCallback<S, T> implements AsyncIteratorCallback<T> {
+abstract class AbstractDelegatingIteratorCallback<S, T> implements AsyncIteratorCallback<T> {
 
   protected final AsyncIteratorCallback<S> delegate;
 

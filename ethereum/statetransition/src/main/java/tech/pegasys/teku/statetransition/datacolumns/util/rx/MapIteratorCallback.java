@@ -2,7 +2,7 @@ package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
 import java.util.function.Function;
 
-public class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallback<T, S> {
+class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallback<T, S> {
 
   private final Function<S, T> mapper;
 

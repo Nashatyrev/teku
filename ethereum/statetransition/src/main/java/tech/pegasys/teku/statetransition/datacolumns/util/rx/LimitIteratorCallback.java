@@ -2,7 +2,7 @@ package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class LimitIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
+class LimitIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
 
   private final AtomicLong limit;
 

@@ -4,7 +4,7 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 import java.util.Collection;
 
-public class AsyncIteratorCollector<T> {
+class AsyncIteratorCollector<T> {
 
   private final AsyncIterator<T> iterator;
 

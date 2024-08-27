@@ -2,7 +2,7 @@ package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
 import java.util.function.Predicate;
 
-public class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
+class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
 
   private final Predicate<T> filter;
 
