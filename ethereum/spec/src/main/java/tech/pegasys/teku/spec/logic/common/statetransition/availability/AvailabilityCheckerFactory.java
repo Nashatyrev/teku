@@ -11,18 +11,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns;
+package tech.pegasys.teku.spec.logic.common.statetransition.availability;
 
-import java.util.List;
-import org.apache.tuweni.bytes.Bytes32;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 
-public interface DataAvailabilitySampler {
-  DataAvailabilitySampler NOOP =
-      (slot, blockRoot, parentRoot) -> SafeFuture.completedFuture(List.of());
-
-  SafeFuture<List<DataColumnSidecar>> checkDataAvailability(
-      UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot);
+@FunctionalInterface
+public interface AvailabilityCheckerFactory<T> {
+  AvailabilityChecker<T> createAvailabilityChecker(SignedBeaconBlock block);
 }
