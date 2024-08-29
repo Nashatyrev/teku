@@ -13,13 +13,12 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import java.util.List;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.statetransition.datacolumns.util.rx.AsyncIterator;
 
 public interface UpdatableDataColumnSidecarCustody extends DataColumnSidecarCustody {
 
   void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar);
 
-  SafeFuture<List<ColumnSlotAndIdentifier>> retrieveMissingColumns();
+  AsyncIterator<ColumnSlotAndIdentifier> iterateMissingColumns();
 }

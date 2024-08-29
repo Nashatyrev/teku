@@ -1,15 +1,13 @@
 package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 public class AsyncIteratorTest {
 

@@ -19,6 +19,10 @@ public interface AsyncIterator<T> {
     return new OneShotAsyncIteratorImpl<>(iterator);
   }
 
+  static <T> AsyncIterator<T> empty() {
+    return AsyncIteratorCallback::onComplete;
+  }
+
   void iterate(AsyncIteratorCallback<T> callback);
 
   default AsyncIterator<T> filter(Predicate<T> filter) {

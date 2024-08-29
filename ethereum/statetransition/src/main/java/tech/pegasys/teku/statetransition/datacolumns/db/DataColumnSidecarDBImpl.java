@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns;
+package tech.pegasys.teku.statetransition.datacolumns.db;
 
 import it.unimi.dsi.fastutil.Pair;
 
@@ -30,7 +30,7 @@ import tech.pegasys.teku.storage.api.SidecarUpdateChannel;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 // FIXME: remove stinky joins
-public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
+class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
   private final CombinedChainDataClient combinedChainDataClient;

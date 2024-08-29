@@ -29,6 +29,7 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+import tech.pegasys.teku.statetransition.datacolumns.util.rx.AsyncIterator;
 
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
 
@@ -85,8 +86,8 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   }
 
   @Override
-  public SafeFuture<List<ColumnSlotAndIdentifier>> retrieveMissingColumns() {
-    return delegate.retrieveMissingColumns();
+  public AsyncIterator<ColumnSlotAndIdentifier> iterateMissingColumns() {
+    return delegate.iterateMissingColumns();
   }
 
   private void addPendingRequest(

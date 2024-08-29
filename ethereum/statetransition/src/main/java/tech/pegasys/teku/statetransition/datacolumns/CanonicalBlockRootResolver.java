@@ -13,32 +13,15 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import java.util.List;
 import java.util.Optional;
+
+import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 
-public interface DataColumnSidecarDB {
+public interface CanonicalBlockRootResolver {
 
-  // read
-
-  SafeFuture<Optional<UInt64>> getFirstCustodyIncompleteSlot();
-
-  SafeFuture<Optional<UInt64>> getFirstSamplerIncompleteSlot();
-
-  SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier);
-
-  SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot);
-
-  // update
-
-  SafeFuture<Void> setFirstCustodyIncompleteSlot(UInt64 slot);
-
-  SafeFuture<Void> setFirstSamplerIncompleteSlot(UInt64 slot);
-
-  void addSidecar(DataColumnSidecar sidecar);
-
-  void pruneAllSidecars(UInt64 tillSlot);
+  /** Should return the canonical block at slot */
+  SafeFuture<Optional<Bytes32>> getBlockRootAtSlot(UInt64 slot);
 }
