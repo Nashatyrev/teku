@@ -21,5 +21,5 @@ public interface UpdatableDataColumnSidecarCustody extends DataColumnSidecarCust
 
   void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar);
 
-  SafeFuture<List<ColumnSlotAndIdentifier>> retrieveMissingColumns();
+  SafeFuture<List<DataColumnSlotAndIdentifier>> retrieveMissingColumns();
 }
