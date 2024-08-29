@@ -20,28 +20,44 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 
 class ColumnIdCachingDasDbImpl extends AbstractDelegatingDasDb
     implements ColumnIdCachingDasDb {
+
   private final int numberOfColumns;
 
-  private final NavigableMap<UInt64, Map<Bytes32, BlockColumnCache>> slotCaches = new TreeMap<>();
+  private final NavigableMap<UInt64, SlotCache> slotCaches = new TreeMap<>();
 
   public ColumnIdCachingDasDbImpl(DataColumnSidecarDB delegateDb, int numberOfColumns) {
     super(delegateDb);
     this.numberOfColumns = numberOfColumns;
   }
 
-  private synchronized Map<Bytes32, BlockColumnCache> getSlotCaches(UInt64 slot) {
-    return slotCaches.computeIfAbsent(slot, __ -> new HashMap<>());
+  private synchronized SlotCache getOrCreateSlotCache(UInt64 slot) {
+    return slotCaches.computeIfAbsent(slot, __ -> new SlotCache(() -> delegateDb.getColumnIdentifiers(slot)));
   }
 
   @Override
-  public synchronized BlockCache getBlockCache(SlotAndBlockRoot blockId) {
-    return getBlockCacheImpl(blockId);
+  public BlockCache getBlockCache(SlotAndBlockRoot blockId) {
+    return getOrCreateBlockCache(blockId);
   }
 
-  private BlockColumnCache getBlockCacheImpl(SlotAndBlockRoot blockId) {
-    return getSlotCaches(blockId.getSlot())
-        .computeIfAbsent(
-            blockId.getBlockRoot(), __ -> new BlockColumnCache(() -> fetchBlockColumnIds(blockId)));
+  private BlockCacheImpl getOrCreateBlockCache(SlotAndBlockRoot blockId) {
+    return getOrCreateSlotCache(blockId.getSlot()).getOrCreateBlockCache(blockId.getBlockRoot());
+  }
+
+  @Override
+  public Optional<BlockCache> getCached(SlotAndBlockRoot blockId) {
+    return Optional.ofNullable(slotCaches.get(blockId.getSlot())).flatMap(slotCache -> slotCache.getCached(blockId.getBlockRoot()));
+  }
+
+  @Override
+  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
+    return getOrCreateSlotCache(slot).getAllColumnIdentifiers();
+  }
+
+  @Override
+  public void addSidecar(DataColumnSidecar sidecar) {
+    super.addSidecar(sidecar);
+    getOrCreateBlockCache(new SlotAndBlockRoot(sidecar.getSlot(), sidecar.getBlockRoot()))
+        .onColumn(sidecar.getIndex());
   }
 
   @Override
@@ -50,71 +66,66 @@ class ColumnIdCachingDasDbImpl extends AbstractDelegatingDasDb
   }
 
   @Override
-  public Optional<BlockCache> getCached(SlotAndBlockRoot blockId) {
-    Map<Bytes32, BlockColumnCache> slotIds = slotCaches.get(blockId.getSlot());
-    if (slotIds == null) {
-      return Optional.empty();
-    } else {
-      return Optional.ofNullable(slotIds.get(blockId.getBlockRoot()));
-    }
-  }
-
-  private SafeFuture<Stream<DataColumnIdentifier>> fetchBlockColumnIds(SlotAndBlockRoot blockId) {
-    return delegateDb
-        .getColumnIdentifiers(blockId.getSlot())
-        .thenApply(
-            ids -> ids.stream().filter(id -> blockId.getBlockRoot().equals(id.getBlockRoot())));
-  }
-
-  @Override
-  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
-    return SafeFuture.collectAll(
-            getSlotCaches(slot).entrySet().stream()
-                .map(entry -> entry.getValue().generateColumnIds(entry.getKey())))
-        .thenApply(listOfIds -> listOfIds.stream().flatMap(Collection::stream).toList());
-  }
-
-  @Override
-  public void addSidecar(DataColumnSidecar sidecar) {
-    super.addSidecar(sidecar);
-    getBlockCacheImpl(new SlotAndBlockRoot(sidecar.getSlot(), sidecar.getBlockRoot()))
-        .onColumn(sidecar.getIndex());
-  }
-
-  @Override
   public void pruneAllSidecars(UInt64 tillSlot) {
     super.pruneAllSidecars(tillSlot);
     pruneCaches(tillSlot);
   }
 
-  private class BlockColumnCache implements BlockCache {
+  private class SlotCache {
+    private final Map<Bytes32, BlockCacheImpl> blocksCache = new HashMap<>();
+    private final Supplier<SafeFuture<Void>> lazyDbMergeTask;
+
+    public synchronized BlockCacheImpl getOrCreateBlockCache(Bytes32 blockRoot) {
+      return blocksCache.computeIfAbsent(blockRoot, __ -> new BlockCacheImpl(lazyDbMergeTask));
+    }
+
+    private SlotCache(Supplier<SafeFuture<List<DataColumnIdentifier>>> lazyDBFetcher) {
+      lazyDbMergeTask = Suppliers.memoize(() -> merge(lazyDBFetcher.get()));
+    }
+
+    private SafeFuture<Void> merge(SafeFuture<List<DataColumnIdentifier>> blockColumnsPromise) {
+      return blockColumnsPromise.thenAccept(this::merge);
+    }
+
+    private void merge(List<DataColumnIdentifier> identifiers) {
+      identifiers.forEach(this::onColumn);
+    }
+
+    public void onColumn(DataColumnIdentifier columnId) {
+      BlockCacheImpl blockCache = getOrCreateBlockCache(columnId.getBlockRoot());
+      blockCache.onColumn(columnId.getIndex());
+    }
+
+    public Optional<BlockCacheImpl> getCached(Bytes32 blockRoot) {
+      return Optional.ofNullable(blocksCache.get(blockRoot));
+    }
+
+    SafeFuture<List<DataColumnIdentifier>> getAllColumnIdentifiers() {
+      return lazyDbMergeTask
+          .get()
+          .thenApply(
+              __ ->
+                  blocksCache.entrySet().stream()
+                      .flatMap(entry -> entry.getValue().streamColumnIds(entry.getKey()))
+                      .toList());
+    }
+  }
+
+  private class BlockCacheImpl implements BlockCache {
     private final BitSet possessedColumns = new BitSet(numberOfColumns);
     private final Supplier<SafeFuture<Void>> lazyDbMergeTask;
 
-    private BlockColumnCache(Supplier<SafeFuture<Stream<DataColumnIdentifier>>> lazyDBFetcher) {
-      lazyDbMergeTask = Suppliers.memoize(() -> merge(lazyDBFetcher.get()));
+    public BlockCacheImpl(Supplier<SafeFuture<Void>> lazyDbMergeTask) {
+      this.lazyDbMergeTask = lazyDbMergeTask;
     }
 
     public synchronized void onColumn(UInt64 columnIndex) {
       possessedColumns.set(columnIndex.intValue());
     }
 
-    public SafeFuture<List<DataColumnIdentifier>> generateColumnIds(Bytes32 blockRoot) {
-      return lazyDbMergeTask.get().thenApply(__ -> generateIds(blockRoot));
-    }
-
-    private SafeFuture<Void> merge(SafeFuture<Stream<DataColumnIdentifier>> blockColumnsPromise) {
-      return blockColumnsPromise.thenAccept(this::merge);
-    }
-
-    private synchronized void merge(Stream<DataColumnIdentifier> identifiers) {
-      identifiers.forEach(id -> onColumn(id.getIndex()));
-    }
-
-    private synchronized List<DataColumnIdentifier> generateIds(Bytes32 blockRoot) {
+    public synchronized Stream<DataColumnIdentifier> streamColumnIds(Bytes32 blockRoot) {
       return possessedColumns.stream()
-          .mapToObj(colIdx -> new DataColumnIdentifier(blockRoot, UInt64.valueOf(colIdx)))
-          .toList();
+          .mapToObj(colIdx -> new DataColumnIdentifier(blockRoot, UInt64.valueOf(colIdx)));
     }
 
     @Override
