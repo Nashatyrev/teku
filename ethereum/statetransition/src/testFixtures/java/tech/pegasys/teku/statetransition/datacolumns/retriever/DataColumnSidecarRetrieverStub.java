@@ -26,6 +26,10 @@ public class DataColumnSidecarRetrieverStub implements DataColumnSidecarRetrieve
 
   public List<RetrieveRequest> requests = new ArrayList<>();
 
+  public void addReadyColumnSidecar(DataColumnSidecar sidecar) {
+
+  }
+
   @Override
   public SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId) {
     RetrieveRequest request = new RetrieveRequest(columnId, new SafeFuture<>());
