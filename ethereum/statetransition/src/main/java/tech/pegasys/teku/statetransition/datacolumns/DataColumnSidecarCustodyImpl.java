@@ -116,7 +116,8 @@ public class DataColumnSidecarCustodyImpl implements UpdatableDataColumnSidecarC
         db.getOrCalculateFirstCustodyIncompleteSlot()
             .thenApply(
                 firstIncompleteSlot -> {
-                  UInt64 toSlotIncluded = currentSlotSupplier.getCurrentSlot().minusMinZero(gossipWaitSlots);
+                  UInt64 toSlotIncluded =
+                      currentSlotSupplier.getCurrentSlot().minusMinZero(gossipWaitSlots);
                   return iterateMissingColumns(firstIncompleteSlot, toSlotIncluded);
                 });
     return AsyncIterator.awaitIterator(asyncIteratorPromise);

@@ -765,7 +765,12 @@ public class BeaconChainController extends Service implements BeaconChainControl
         // but it's not straightforward to sync lossy logic with recovering, so it's postponed
         dasSampler =
             new DasSamplerCombinedImpl(
-                spec, dasColumnDbAccessor, recentChainData, sidecarRetriever, beaconAsyncRunner, true);
+                spec,
+                dasColumnDbAccessor,
+                recentChainData,
+                sidecarRetriever,
+                beaconAsyncRunner,
+                true);
         LOG.info(
             "DAS Sampler initialized in a lossy mode with {} columns to sample",
             myDataColumnSampleCount);

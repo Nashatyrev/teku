@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -70,7 +69,8 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
 
   @Override
   public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
-    return SafeFuture.completedFuture(slotIds.getOrDefault(slot, Collections.emptySet()).stream().toList());
+    return SafeFuture.completedFuture(
+        slotIds.getOrDefault(slot, Collections.emptySet()).stream().toList());
   }
 
   @Override

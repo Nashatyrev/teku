@@ -40,7 +40,6 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.db.DasColumnDbAccessor;
-import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 
 public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
@@ -148,7 +147,9 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
         .thenCompose(
             dataColumnIdentifiers ->
                 SafeFuture.collectAll(
-                    dataColumnIdentifiers.stream().limit(recoverColumnCount).map(sidecarDB::getSidecar)))
+                    dataColumnIdentifiers.stream()
+                        .limit(recoverColumnCount)
+                        .map(sidecarDB::getSidecar)))
         .thenPeek(
             maybeDataColumnSidecars -> {
               maybeDataColumnSidecars.forEach(

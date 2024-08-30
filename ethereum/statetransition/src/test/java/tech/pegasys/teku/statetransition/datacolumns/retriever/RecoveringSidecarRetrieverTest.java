@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.apache.tuweni.units.bigints.UInt256;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
@@ -42,12 +41,10 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
 import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
-import tech.pegasys.teku.statetransition.datacolumns.CurrentSlotListener;
-import tech.pegasys.teku.statetransition.datacolumns.CurrentSlotSubscriberStub;
 import tech.pegasys.teku.statetransition.datacolumns.DasColumnDbAccessorStub;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBStub;
 import tech.pegasys.teku.statetransition.datacolumns.db.DasColumnDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBStub;
 
 public class RecoveringSidecarRetrieverTest {
 

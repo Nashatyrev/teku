@@ -52,7 +52,6 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DasColumnDbAccessor;
-import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -540,9 +539,8 @@ public class DasSamplerCombinedImpl
             .sorted()
             .toList());
     final SortedMap<SlotAndBlockRoot, Set<DataColumnIdentifier>> collectedSampleSlotsToPrune =
-        collectedSamples
-            .subMap(
-                SlotAndBlockRoot.createLow(UInt64.ZERO), SlotAndBlockRoot.createLow(slotExclusive));
+        collectedSamples.subMap(
+            SlotAndBlockRoot.createLow(UInt64.ZERO), SlotAndBlockRoot.createLow(slotExclusive));
     collectedSampleSlotsToPrune.clear();
     final Set<SlotAndBlockRoot> assignedSamplesSlotsToPrune =
         assignedSamplings
