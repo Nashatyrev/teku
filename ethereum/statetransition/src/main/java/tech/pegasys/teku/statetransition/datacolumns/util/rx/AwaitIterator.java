@@ -11,21 +11,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns;
+package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
-import java.util.Optional;
-import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 
-public interface CanonicalBlockResolver extends CanonicalBlockRootResolver {
+class AwaitIterator<T> implements AsyncIterator<T> {
+  private final SafeFuture<AsyncIterator<T>> iteratorPromise;
 
-  /** Should return the canonical block at slot */
-  SafeFuture<Optional<BeaconBlock>> getBlockAtSlot(UInt64 slot);
+  public AwaitIterator(SafeFuture<AsyncIterator<T>> iteratorPromise) {
+    this.iteratorPromise = iteratorPromise;
+  }
 
   @Override
-  default SafeFuture<Optional<Bytes32>> getBlockRootAtSlot(UInt64 slot) {
-    return getBlockAtSlot(slot).thenApply(maybeBlock -> maybeBlock.map(BeaconBlock::getRoot));
+  public void iterate(AsyncIteratorCallback<T> callback) {
+    iteratorPromise.finish(iterator -> iterator.iterate(callback), callback::onError);
   }
 }

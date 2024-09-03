@@ -11,14 +11,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns;
+package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.statetransition.datacolumns.util.rx.AsyncIterator;
+class FlattenIteratorCallback<TCol extends Iterable<T>, T>
+    extends AbstractDelegatingIteratorCallback<T, TCol> {
 
-public interface UpdatableDataColumnSidecarCustody extends DataColumnSidecarCustody {
+  protected FlattenIteratorCallback(AsyncIteratorCallback<T> delegate) {
+    super(delegate);
+  }
 
-  void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar);
-
-  AsyncIterator<ColumnSlotAndIdentifier> iterateMissingColumns();
+  @Override
+  public boolean onNext(TCol t) {
+    for (T elem : t) {
+      if (!delegate.onNext(elem)) {
+        return false;
+      }
+      ;
+    }
+    return true;
+  }
 }

@@ -30,18 +30,32 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
+import tech.pegasys.teku.statetransition.datacolumns.db.DasColumnDbAccessor;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 
 public class DataColumnSidecarCustodyImplTest {
 
   final Spec spec = TestSpecFactory.createMinimalEip7594();
-  final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
+
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
   final UInt256 myNodeId = UInt256.ONE;
+  final CurrentSlotSubscriberStub currentSlotSubscriberStub =
+      new CurrentSlotSubscriberStub(UInt64.ZERO);
+  CurrentSlotListener.Supplier currentSlotSupplier =
+      CurrentSlotListener.Supplier.createFromSubscriber(currentSlotSubscriberStub);
+
+  final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
+  final DasColumnDbAccessor dbAccessor =
+      DasColumnDbAccessorStub.builder(db)
+          .spec(spec)
+          .nodeId(myNodeId)
+          .currentSlot(currentSlotSubscriberStub.getCurrentSlot())
+          .canonicalBlockResolver(blockResolver)
+          .build();
 
   final SpecConfigEip7594 config =
       SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
-  final int custodyCount = config.getCustodyRequirement();
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
 
@@ -57,7 +71,8 @@ public class DataColumnSidecarCustodyImplTest {
   @SuppressWarnings("JavaCase")
   void sanityTest() throws Throwable {
     DataColumnSidecarCustodyImpl custody =
-        new DataColumnSidecarCustodyImpl(spec, blockResolver, db, myNodeId, subnetCount);
+        new DataColumnSidecarCustodyImpl(
+            spec, blockResolver, dbAccessor, currentSlotSupplier, myNodeId, subnetCount);
     BeaconBlock block = blockResolver.addBlock(10, true);
     DataColumnSidecar sidecar0 = createSidecar(block, 0);
     DataColumnSidecar sidecar1 = createSidecar(block, 1);

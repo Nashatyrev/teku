@@ -15,86 +15,45 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.Collection;
-import java.util.List;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
-import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
-import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
+import tech.pegasys.teku.statetransition.datacolumns.db.DasColumnDbAccessor;
+import tech.pegasys.teku.statetransition.datacolumns.util.rx.AsyncIterator;
 
-public class DataColumnSidecarCustodyImpl
-    implements UpdatableDataColumnSidecarCustody, SlotEventsChannel, FinalizedCheckpointChannel {
-
-  private record SlotCustody(
-      UInt64 slot,
-      Optional<Bytes32> canonicalBlockRoot,
-      Collection<UInt64> requiredColumnIndices,
-      Collection<DataColumnIdentifier> custodiedColumnIndices) {
-    public Collection<DataColumnIdentifier> getIncompleteColumns() {
-      return canonicalBlockRoot
-          .map(
-              blockRoot -> {
-                Set<UInt64> collectedIndices =
-                    custodiedColumnIndices.stream()
-                        .filter(identifier -> identifier.getBlockRoot().equals(blockRoot))
-                        .map(DataColumnIdentifier::getIndex)
-                        .collect(Collectors.toSet());
-                return requiredColumnIndices.stream()
-                    .filter(requiredColIdx -> !collectedIndices.contains(requiredColIdx))
-                    .map(missedColIdx -> new DataColumnIdentifier(blockRoot, missedColIdx));
-              })
-          .orElse(Stream.empty())
-          .toList();
-    }
-
-    @SuppressWarnings("UnusedMethod")
-    public boolean isComplete() {
-      return canonicalBlockRoot().isPresent() && !isIncomplete();
-    }
-
-    public boolean isIncomplete() {
-      return !getIncompleteColumns().isEmpty();
-    }
-  }
-
-  private static final int MAX_SCAN_SLOTS = 200;
+public class DataColumnSidecarCustodyImpl implements UpdatableDataColumnSidecarCustody {
 
   // for how long the custody will wait for a missing column to be gossiped
   private final int gossipWaitSlots = 2;
 
   private final Spec spec;
-  private final DataColumnSidecarDB db;
-  private final CanonicalBlockResolver blockResolver;
+  private final DasColumnDbAccessor db;
+  private final CanonicalBlockRootResolver blockResolver;
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
-
-  private final UInt64 eip7594StartEpoch;
-
-  private volatile UInt64 currentSlot = null;
+  private final CurrentSlotListener.Supplier currentSlotSupplier;
 
   public DataColumnSidecarCustodyImpl(
       Spec spec,
-      CanonicalBlockResolver blockResolver,
-      DataColumnSidecarDB db,
+      CanonicalBlockRootResolver blockResolver,
+      DasColumnDbAccessor db,
+      CurrentSlotListener.Supplier currentSlotSupplier,
       UInt256 nodeId,
       int totalCustodySubnetCount) {
 
     checkNotNull(spec);
     checkNotNull(blockResolver);
     checkNotNull(db);
+    checkNotNull(currentSlotSupplier);
     checkNotNull(nodeId);
 
     this.spec = spec;
@@ -102,30 +61,7 @@ public class DataColumnSidecarCustodyImpl
     this.blockResolver = blockResolver;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
-    this.eip7594StartEpoch = spec.getForkSchedule().getFork(SpecMilestone.EIP7594).getEpoch();
-  }
-
-  private UInt64 getEarliestCustodySlot(UInt64 currentSlot) {
-    UInt64 epoch = getEarliestCustodyEpoch(spec.computeEpochAtSlot(currentSlot));
-    return spec.computeStartSlotAtEpoch(epoch);
-  }
-
-  private UInt64 getEarliestCustodyEpoch(UInt64 currentEpoch) {
-    int custodyPeriod =
-        spec.getSpecConfig(currentEpoch)
-            .toVersionEip7594()
-            .orElseThrow()
-            .getMinEpochsForDataColumnSidecarsRequests();
-    return currentEpoch.minusMinZero(custodyPeriod).max(eip7594StartEpoch);
-  }
-
-  private List<UInt64> getCustodyColumnsForSlot(UInt64 slot) {
-    return getCustodyColumnsForEpoch(spec.computeEpochAtSlot(slot));
-  }
-
-  private List<UInt64> getCustodyColumnsForEpoch(UInt64 epoch) {
-    return MiscHelpersEip7594.required(spec.atEpoch(epoch).miscHelpers())
-        .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount);
+    this.currentSlotSupplier = currentSlotSupplier;
   }
 
   @Override
@@ -154,117 +90,36 @@ public class DataColumnSidecarCustodyImpl
     return db.getSidecar(columnId);
   }
 
-  private void onEpoch(UInt64 epoch) {
-    UInt64 pruneSlot = spec.computeStartSlotAtEpoch(getEarliestCustodyEpoch(epoch));
-    db.pruneAllSidecars(pruneSlot);
-  }
-
-  @Override
-  public void onSlot(UInt64 slot) {
-    currentSlot = slot;
-    UInt64 epoch = spec.computeEpochAtSlot(slot);
-    if (slot.equals(spec.computeStartSlotAtEpoch(epoch))) {
-      onEpoch(epoch);
-    }
-  }
-
-  @Override
-  public void onNewFinalizedCheckpoint(Checkpoint checkpoint, boolean fromOptimisticBlock) {
-    advanceFirstIncompleteSlot(checkpoint.getEpoch()).ifExceptionGetsHereRaiseABug();
-  }
-
-  private SafeFuture<Void> advanceFirstIncompleteSlot(UInt64 finalizedEpoch) {
-    UInt64 firstNonFinalizedSlot = spec.computeStartSlotAtEpoch(finalizedEpoch.increment());
-
-    return retrievePotentiallyIncompleteSlotCustodies(firstNonFinalizedSlot, MAX_SCAN_SLOTS)
-        .thenAccept(
-            slotCustodies ->
-                slotCustodies.stream()
-                    .filter(SlotCustody::isIncomplete)
-                    .findFirst()
-                    .ifPresentOrElse(
-                        custody ->
-                            db.setFirstCustodyIncompleteSlot(custody.slot())
-                                .ifExceptionGetsHereRaiseABug(),
-                        () -> {
-                          if (slotCustodies.isEmpty()) {
-                            return;
-                          }
-                          db.setFirstCustodyIncompleteSlot(slotCustodies.getLast().slot())
-                              .ifExceptionGetsHereRaiseABug();
-                        }));
-  }
-
-  private SafeFuture<List<SlotCustody>> retrievePotentiallyIncompleteSlotCustodies(
-      final UInt64 toSlotIncluded, final int limit) {
-    return db.getFirstCustodyIncompleteSlot()
-        .thenCompose(
-            maybeFirstIncompleteSlot -> {
-              final UInt64 firstIncompleteSlot =
-                  maybeFirstIncompleteSlot.orElseGet(() -> getEarliestCustodySlot(currentSlot));
-              final UInt64 toSlot;
-              if (firstIncompleteSlot.plus(limit).isLessThan(toSlotIncluded)) {
-                toSlot = firstIncompleteSlot.plus(limit);
-              } else {
-                toSlot = toSlotIncluded;
-              }
-              Stream<SafeFuture<SlotCustody>> slotCustodiesStream =
-                  Stream.iterate(
-                          firstIncompleteSlot,
-                          slot -> slot.isLessThanOrEqualTo(toSlot),
-                          UInt64::increment)
-                      .map(this::retrieveSlotCustody);
-              return SafeFuture.collectAll(slotCustodiesStream);
-            });
-  }
-
-  private SafeFuture<SlotCustody> retrieveSlotCustody(final UInt64 slot) {
-    final SafeFuture<Optional<Bytes32>> maybeCanonicalBlockRoot = getBlockRootIfHaveBlobs(slot);
-    final List<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
-    final SafeFuture<Stream<DataColumnIdentifier>> existingColumns =
-        db.streamColumnIdentifiers(slot);
-    return SafeFuture.allOf(maybeCanonicalBlockRoot, existingColumns)
-        .thenApply(
-            __ ->
-                new SlotCustody(
-                    slot,
-                    maybeCanonicalBlockRoot.getImmediately(),
-                    requiredColumns,
-                    existingColumns.getImmediately().toList()));
-  }
-
-  private SafeFuture<Optional<Bytes32>> getBlockRootIfHaveBlobs(UInt64 slot) {
+  private SafeFuture<Set<ColumnSlotAndIdentifier>> retrieveMissingColumnsForSlot(UInt64 slot) {
     return blockResolver
-        .getBlockAtSlot(slot)
-        .thenApply(
-            maybeBlock ->
-                maybeBlock
-                    .filter(
-                        block ->
-                            block
-                                    .getBeaconBlock()
-                                    .flatMap(b -> b.getBody().toVersionEip7594())
-                                    .map(b -> b.getBlobKzgCommitments().size())
-                                    .orElse(0)
-                                > 0)
-                    .map(BeaconBlock::getRoot));
+        .getBlockRootAtSlot(slot)
+        .thenCompose(
+            maybeBlockRoot ->
+                maybeBlockRoot
+                    .map(blockRoot -> db.getMissingColumnIds(new SlotAndBlockRoot(slot, blockRoot)))
+                    .orElse(SafeFuture.completedFuture(Collections.emptySet())));
+  }
+
+  private AsyncIterator<ColumnSlotAndIdentifier> iterateMissingColumns(
+      UInt64 fromSlot, UInt64 toSlotIncluded) {
+    Iterator<SafeFuture<Set<ColumnSlotAndIdentifier>>> missingColumnFutureIterator =
+        Stream.iterate(
+                fromSlot, slot -> slot.isLessThanOrEqualTo(toSlotIncluded), UInt64::increment)
+            .map(this::retrieveMissingColumnsForSlot)
+            .iterator();
+    return AsyncIterator.createOneShot(missingColumnFutureIterator).flatten(set -> set);
   }
 
   @Override
-  public SafeFuture<List<ColumnSlotAndIdentifier>> retrieveMissingColumns() {
-    // waiting a column for [gossipWaitSlots] to be delivered by gossip
-    // and not considering it missing yet
-    return retrievePotentiallyIncompleteSlotCustodies(
-            currentSlot.minusMinZero(gossipWaitSlots), MAX_SCAN_SLOTS)
-        .thenApply(
-            slotCustodies ->
-                slotCustodies.stream()
-                    .flatMap(
-                        slotCustody ->
-                            slotCustody.getIncompleteColumns().stream()
-                                .map(
-                                    colId ->
-                                        new ColumnSlotAndIdentifier(slotCustody.slot(), colId)))
-                    .toList());
+  public AsyncIterator<ColumnSlotAndIdentifier> iterateMissingColumns() {
+    SafeFuture<AsyncIterator<ColumnSlotAndIdentifier>> asyncIteratorPromise =
+        db.getOrCalculateFirstCustodyIncompleteSlot()
+            .thenApply(
+                firstIncompleteSlot -> {
+                  UInt64 toSlotIncluded =
+                      currentSlotSupplier.getCurrentSlot().minusMinZero(gossipWaitSlots);
+                  return iterateMissingColumns(firstIncompleteSlot, toSlotIncluded);
+                });
+    return AsyncIterator.awaitIterator(asyncIteratorPromise);
   }
 }

@@ -51,6 +51,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.eip7594.B
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.statetransition.datacolumns.db.DasColumnDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -70,7 +71,7 @@ public class DasSamplerCombinedImpl
   private static final Duration SAMPLING_EXTENSION_INTERVAL = Duration.ofSeconds(6);
 
   private final Spec spec;
-  private final DataColumnSidecarDB db;
+  private final DasColumnDbAccessor db;
   private final RecentChainData recentChainData;
   private final boolean isLossy;
 
@@ -86,7 +87,7 @@ public class DasSamplerCombinedImpl
 
   public DasSamplerCombinedImpl(
       final Spec spec,
-      final DataColumnSidecarDB db,
+      final DasColumnDbAccessor db,
       final RecentChainData recentChainData,
       final DataColumnSidecarRetriever retriever,
       final AsyncRunner asyncRunner,
@@ -111,7 +112,7 @@ public class DasSamplerCombinedImpl
 
   public DasSamplerCombinedImpl(
       final Spec spec,
-      final DataColumnSidecarDB db,
+      final DasColumnDbAccessor db,
       final RecentChainData recentChainData,
       final DataColumnSidecarRetriever retriever,
       final AsyncRunner asyncRunner,

@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
@@ -94,15 +95,13 @@ public class DasCustodySync implements SlotEventsChannel {
   private void fillUp() {
     fillingUp = true;
     int newRequestCount = maxPendingColumnRequests - pendingRequests.size();
+
     final SafeFuture<Set<ColumnSlotAndIdentifier>> missingColumnsToRequestFuture =
         custody
-            .retrieveMissingColumns()
-            .thenApply(
-                columnIdentifiers ->
-                    columnIdentifiers.stream()
-                        .filter(columnSlotId -> !pendingRequests.containsKey(columnSlotId))
-                        .limit(newRequestCount)
-                        .collect(Collectors.toSet()));
+            .iterateMissingColumns()
+            .filter(columnSlotId -> !pendingRequests.containsKey(columnSlotId))
+            .limit(newRequestCount)
+            .collect(new HashSet<>());
 
     // TODO cancel those which are not missing anymore for whatever reason
 

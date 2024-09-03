@@ -13,19 +13,26 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import java.util.Optional;
-import org.apache.tuweni.bytes.Bytes32;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
+import tech.pegasys.teku.spec.Spec;
 
-public interface CanonicalBlockResolver extends CanonicalBlockRootResolver {
+public interface CustodyFunction {
 
-  /** Should return the canonical block at slot */
-  SafeFuture<Optional<BeaconBlock>> getBlockAtSlot(UInt64 slot);
-
-  @Override
-  default SafeFuture<Optional<Bytes32>> getBlockRootAtSlot(UInt64 slot) {
-    return getBlockAtSlot(slot).thenApply(maybeBlock -> maybeBlock.map(BeaconBlock::getRoot));
+  static CustodyFunction create(Spec spec, UInt256 nodeId, int totalCustodySubnetCount) {
+    return slot ->
+        new HashSet<>(
+            spec.atEpoch(spec.computeEpochAtSlot(slot))
+                .miscHelpers()
+                .toVersionEip7594()
+                .map(
+                    miscHelpers ->
+                        miscHelpers.computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount))
+                .orElse(Collections.emptyList()));
   }
+
+  Set<UInt64> getCustodyColumns(UInt64 slot);
 }

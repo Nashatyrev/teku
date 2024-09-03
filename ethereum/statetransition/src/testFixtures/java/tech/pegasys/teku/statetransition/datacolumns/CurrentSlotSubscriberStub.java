@@ -13,19 +13,30 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import java.util.Optional;
-import org.apache.tuweni.bytes.Bytes32;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 
-public interface CanonicalBlockResolver extends CanonicalBlockRootResolver {
+public class CurrentSlotSubscriberStub implements CurrentSlotListener.Subscriber {
+  private volatile UInt64 currentSlot;
+  private final List<CurrentSlotListener> listeners = new CopyOnWriteArrayList<>();
 
-  /** Should return the canonical block at slot */
-  SafeFuture<Optional<BeaconBlock>> getBlockAtSlot(UInt64 slot);
+  public CurrentSlotSubscriberStub(UInt64 currentSlot) {
+    this.currentSlot = currentSlot;
+  }
+
+  public void setCurrentSlot(UInt64 currentSlot) {
+    this.currentSlot = currentSlot;
+    listeners.forEach(l -> l.onCurrentSlot(currentSlot));
+  }
+
+  public UInt64 getCurrentSlot() {
+    return currentSlot;
+  }
 
   @Override
-  default SafeFuture<Optional<Bytes32>> getBlockRootAtSlot(UInt64 slot) {
-    return getBlockAtSlot(slot).thenApply(maybeBlock -> maybeBlock.map(BeaconBlock::getRoot));
+  public UInt64 subscribeCurrentSlotUpdates(CurrentSlotListener listener) {
+    listeners.add(listener);
+    return currentSlot;
   }
 }

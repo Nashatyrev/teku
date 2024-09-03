@@ -11,14 +11,25 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns;
+package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.statetransition.datacolumns.util.rx.AsyncIterator;
+import java.util.concurrent.atomic.AtomicLong;
 
-public interface UpdatableDataColumnSidecarCustody extends DataColumnSidecarCustody {
+class LimitIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
 
-  void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar);
+  private final AtomicLong limit;
 
-  AsyncIterator<ColumnSlotAndIdentifier> iterateMissingColumns();
+  protected LimitIteratorCallback(AsyncIteratorCallback<T> delegate, long limit) {
+    super(delegate);
+    this.limit = new AtomicLong(limit);
+  }
+
+  @Override
+  public boolean onNext(T t) {
+    if (limit.getAndDecrement() > 0) {
+      return delegate.onNext(t);
+    } else {
+      return false;
+    }
+  }
 }

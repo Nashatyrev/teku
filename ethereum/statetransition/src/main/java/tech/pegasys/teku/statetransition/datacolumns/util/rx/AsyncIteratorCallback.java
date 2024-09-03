@@ -11,14 +11,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns;
+package tech.pegasys.teku.statetransition.datacolumns.util.rx;
 
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.statetransition.datacolumns.util.rx.AsyncIterator;
+public interface AsyncIteratorCallback<T> {
 
-public interface UpdatableDataColumnSidecarCustody extends DataColumnSidecarCustody {
+  boolean onNext(T t);
 
-  void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar);
+  void onComplete();
 
-  AsyncIterator<ColumnSlotAndIdentifier> iterateMissingColumns();
+  void onError(Throwable t);
 }

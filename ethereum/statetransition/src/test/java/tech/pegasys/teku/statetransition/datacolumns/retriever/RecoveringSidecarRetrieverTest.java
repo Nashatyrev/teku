@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.tuweni.units.bigints.UInt256;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
@@ -40,15 +41,25 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
 import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDB;
+import tech.pegasys.teku.statetransition.datacolumns.DasColumnDbAccessorStub;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBStub;
+import tech.pegasys.teku.statetransition.datacolumns.db.DasColumnDbAccessor;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 
 public class RecoveringSidecarRetrieverTest {
 
   final StubAsyncRunner stubAsyncRunner = new StubAsyncRunner();
   final Spec spec = TestSpecFactory.createMinimalEip7594();
-  final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
+  final UInt256 myNodeId = UInt256.ONE;
+
+  final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
+  final DasColumnDbAccessor dbAccessor =
+      DasColumnDbAccessorStub.builder(db)
+          .spec(spec)
+          .nodeId(myNodeId)
+          .canonicalBlockResolver(blockResolver)
+          .build();
 
   final SpecConfigEip7594 config =
       SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
@@ -88,7 +99,7 @@ public class RecoveringSidecarRetrieverTest {
             miscHelpers,
             schemaDefinitions,
             blockResolver,
-            db,
+            dbAccessor,
             stubAsyncRunner,
             Duration.ofSeconds(1),
             128);
