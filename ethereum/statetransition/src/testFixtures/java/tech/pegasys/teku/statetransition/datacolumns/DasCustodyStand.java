@@ -17,6 +17,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
+import tech.pegasys.teku.bls.BLSPublicKey;
+import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -30,6 +32,8 @@ import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -54,24 +58,28 @@ public class DasCustodyStand {
 
   private final List<SlotEventsChannel> slotListeners = new CopyOnWriteArrayList<>();
   private final List<FinalizedCheckpointChannel> finalizedListeners = new CopyOnWriteArrayList<>();
+  private final int totalCustodySubnetCount;
+
+  private UInt64 currentSlot = UInt64.ZERO;
 
   public DasCustodyStand(
-      Spec spec, UInt64 currentSlot, UInt256 myNodeId, Integer totalCustodySubnetCount) {
+      Spec spec, UInt64 currentSlot, UInt256 myNodeId, int totalCustodySubnetCount) {
     this.spec = spec;
     this.myNodeId = myNodeId;
     this.blockResolver = new CanonicalBlockResolverStub(spec);
     this.config = SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
     this.custody =
         new DataColumnSidecarCustodyImpl(
-            spec,
-            blockResolver,
-            db,
-            myNodeId,
-            totalCustodySubnetCount);
+            spec, blockResolver, db, myNodeId, totalCustodySubnetCount);
     subscribeToSlotEvents(this.custody);
     subscribeToFinalizedEvents(this.custody);
 
-    this.dataStructureUtil = new DataStructureUtil(0, spec);
+    DataStructureUtil util = new DataStructureUtil(0, spec);
+    BLSSignature singleSignature = util.randomSignature();
+    BLSPublicKey singlePubKey = util.randomPublicKey();
+    this.dataStructureUtil =
+        util.withSignatureGenerator(__ -> singleSignature).withPubKeyGenerator(() -> singlePubKey);
+    this.totalCustodySubnetCount = totalCustodySubnetCount;
   }
 
   public SignedBeaconBlock createBlockWithBlobs(int slot) {
@@ -94,12 +102,64 @@ public class DasCustodyStand {
     return dataStructureUtil.randomDataColumnSidecar(block.asHeader(), UInt64.valueOf(column));
   }
 
+  public boolean hasBlobs(BeaconBlock block) {
+    return block
+        .getBody()
+        .toVersionEip7594()
+        .map(b -> !b.getBlobKzgCommitments().isEmpty())
+        .orElse(false);
+  }
+
+  public Collection<UInt64> getCustodyColumnIndexes(UInt64 slot) {
+    UInt64 epoch = spec.computeEpochAtSlot(slot);
+    return spec.atEpoch(epoch)
+        .miscHelpers()
+        .toVersionEip7594()
+        .map(
+            miscHelpersEip7594 ->
+                miscHelpersEip7594.computeCustodyColumnIndexes(myNodeId, totalCustodySubnetCount))
+        .orElse(Collections.emptyList());
+  }
+
+  public int getCustodyPeriodSlots() {
+    int custodyPeriodEpochs = config.getCustodyRequirement();
+    int epochSlots = spec.slotsPerEpoch(UInt64.ZERO);
+    return custodyPeriodEpochs * epochSlots;
+  }
+
+  public UInt64 getMinCustodySlot() {
+    return currentSlot.minusMinZero(getCustodyPeriodSlots());
+  }
+
+  public List<DataColumnSidecar> createCustodyColumnSidecars(SignedBeaconBlock block) {
+    if (hasBlobs(block.getBeaconBlock().orElseThrow())) {
+      Collection<UInt64> custodyColumnIndexes = getCustodyColumnIndexes(block.getSlot());
+      return custodyColumnIndexes.stream()
+          .map(colIndex -> createSidecar(block, colIndex.intValue()))
+          .toList();
+    } else {
+      return Collections.emptyList();
+    }
+  }
+
   public void subscribeToSlotEvents(SlotEventsChannel subscriber) {
     slotListeners.add(subscriber);
   }
 
-  public void setSlot(int slot) {
+  public void incCurrentSlot(int delta) {
+    setCurrentSlot(getCurrentSlot().intValue() + delta);
+  }
+
+  public void setCurrentSlot(int slot) {
+    if (currentSlot.isGreaterThan(slot)) {
+      throw new IllegalArgumentException("New slot " + slot + " < " + currentSlot);
+    }
+    currentSlot = UInt64.valueOf(slot);
     slotListeners.forEach(l -> l.onSlot(UInt64.valueOf(slot)));
+  }
+
+  public UInt64 getCurrentSlot() {
+    return currentSlot;
   }
 
   public void subscribeToFinalizedEvents(FinalizedCheckpointChannel subscriber) {

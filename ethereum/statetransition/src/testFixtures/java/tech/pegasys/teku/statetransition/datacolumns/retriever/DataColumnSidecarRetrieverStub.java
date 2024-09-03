@@ -14,7 +14,10 @@
 package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
@@ -25,15 +28,24 @@ public class DataColumnSidecarRetrieverStub implements DataColumnSidecarRetrieve
       ColumnSlotAndIdentifier columnId, SafeFuture<DataColumnSidecar> promise) {}
 
   public List<RetrieveRequest> requests = new ArrayList<>();
+  private final Map<ColumnSlotAndIdentifier, DataColumnSidecar> readySidecars = new HashMap<>();
 
   public void addReadyColumnSidecar(DataColumnSidecar sidecar) {
-
+    ColumnSlotAndIdentifier colId = ColumnSlotAndIdentifier.createFromSidecar(sidecar);
+    readySidecars.put(colId, sidecar);
+    requests.stream()
+        .filter(req -> req.columnId.equals(colId))
+        .forEach(req -> req.promise.complete(sidecar));
   }
 
   @Override
   public SafeFuture<DataColumnSidecar> retrieve(ColumnSlotAndIdentifier columnId) {
     RetrieveRequest request = new RetrieveRequest(columnId, new SafeFuture<>());
     requests.add(request);
+    DataColumnSidecar maybeSidecar = readySidecars.get(columnId);
+    if (maybeSidecar != null) {
+      request.promise.complete(maybeSidecar);
+    }
     return request.promise;
   }
 }
