@@ -144,8 +144,7 @@ public class DiscoveryNetwork<P extends Peer> extends DelegatingP2PNetwork<P> {
           String.format("Custody subnet count should be a positive number, but was %s", count));
     }
     discoveryService.updateCustomENRField(
-        DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD,
-        count == 0 ? Bytes.fromHexString("0x00") : Bytes.ofUnsignedInt(count).trimLeadingZeros());
+        DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, Bytes.ofUnsignedInt(count).trimLeadingZeros());
   }
 
   public void setPreGenesisForkInfo() {

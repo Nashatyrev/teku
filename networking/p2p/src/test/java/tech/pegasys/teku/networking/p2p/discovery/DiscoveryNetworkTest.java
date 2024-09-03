@@ -324,7 +324,7 @@ class DiscoveryNetworkTest {
 
   private static Stream<Arguments> getCscFixtures() {
     return Stream.of(
-        Arguments.of("0x00", 0),
+        Arguments.of("0x", 0),
         Arguments.of("0x80", 128),
         Arguments.of("0x8c", 140),
         Arguments.of("0x0190", 400));
