@@ -220,7 +220,8 @@ public final class DataStructureUtil {
     return this;
   }
 
-  public DataStructureUtil withSignatureGenerator(Function<Integer, BLSSignature> signatureGenerator) {
+  public DataStructureUtil withSignatureGenerator(
+      Function<Integer, BLSSignature> signatureGenerator) {
     this.signatureGenerator = signatureGenerator;
     return this;
   }

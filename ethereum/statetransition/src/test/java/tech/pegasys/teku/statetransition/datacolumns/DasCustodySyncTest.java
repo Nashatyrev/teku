@@ -15,6 +15,9 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -25,10 +28,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetrieverStub;
-
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
 
 @SuppressWarnings("JavaCase")
 public class DasCustodySyncTest {
@@ -84,7 +83,7 @@ public class DasCustodySyncTest {
   @Test
   void syncFromScratchShouldComplete() {
     int startSlot = 1000;
-    for(int slot = 0; slot <= startSlot; slot++) {
+    for (int slot = 0; slot <= startSlot; slot++) {
       addBlockAndSidecars(slot);
     }
 
@@ -97,7 +96,7 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    for(int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
+    for (int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
       System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
@@ -118,7 +117,8 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns = custodyStand.custody.retrieveMissingColumns().join();
+    List<ColumnSlotAndIdentifier> missingColumns =
+        custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
@@ -127,7 +127,7 @@ public class DasCustodySyncTest {
   void emptyBlockSeriesShouldNotPreventSyncing() {
     int startSlot = 1000;
 
-    for(int slot = 0; slot <= startSlot; slot++) {
+    for (int slot = 0; slot <= startSlot; slot++) {
       SignedBeaconBlock block = custodyStand.createBlockWithoutBlobs(slot);
       custodyStand.blockResolver.addBlock(block.getMessage());
     }
@@ -138,7 +138,7 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    for(int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
+    for (int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
       System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
@@ -159,7 +159,8 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns = custodyStand.custody.retrieveMissingColumns().join();
+    List<ColumnSlotAndIdentifier> missingColumns =
+        custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
@@ -174,7 +175,7 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    for(int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
+    for (int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
       System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
@@ -195,7 +196,8 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns = custodyStand.custody.retrieveMissingColumns().join();
+    List<ColumnSlotAndIdentifier> missingColumns =
+        custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
@@ -209,7 +211,7 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    for(int slot = 1; slot <= 1000; slot++) {
+    for (int slot = 1; slot <= 1000; slot++) {
       System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
@@ -226,7 +228,8 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns = custodyStand.custody.retrieveMissingColumns().join();
+    List<ColumnSlotAndIdentifier> missingColumns =
+        custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
@@ -244,7 +247,7 @@ public class DasCustodySyncTest {
   }
 
   private void assertCustodyColumnsPresent(int fromSlot, int tillSlot) {
-    for(int slot = fromSlot; slot < tillSlot; slot++) {
+    for (int slot = fromSlot; slot < tillSlot; slot++) {
       UInt64 uSlot = UInt64.valueOf(slot);
       Optional<BeaconBlock> maybeBlock = custodyStand.blockResolver.getBlockAtSlot(uSlot).join();
       maybeBlock.ifPresent(

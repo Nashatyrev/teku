@@ -82,8 +82,7 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   @Override
   public SafeFuture<Stream<DataColumnIdentifier>> streamColumnIdentifiers(UInt64 slot) {
     dbReadCounter.incrementAndGet();
-    return SafeFuture.completedFuture(
-        slotIds.getOrDefault(slot, Collections.emptySet()).stream());
+    return SafeFuture.completedFuture(slotIds.getOrDefault(slot, Collections.emptySet()).stream());
   }
 
   @Override
