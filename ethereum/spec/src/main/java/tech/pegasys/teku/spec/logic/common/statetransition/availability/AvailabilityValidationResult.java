@@ -11,9 +11,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.logic.versions.deneb.blobs;
+package tech.pegasys.teku.spec.logic.common.statetransition.availability;
 
-public enum BlobSidecarsValidationResult {
+public enum AvailabilityValidationResult {
   NOT_REQUIRED,
   NOT_AVAILABLE,
   INVALID,
