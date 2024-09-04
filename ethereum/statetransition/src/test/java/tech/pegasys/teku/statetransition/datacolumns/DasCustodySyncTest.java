@@ -199,7 +199,8 @@ public class DasCustodySyncTest {
     assertAllCustodyColumnsPresent();
   }
 
-  @Disabled
+
+  @Disabled("There are 2 issues at the moment: almost no sync and too many DB queries")
   @Test
   void nonFinalizationShouldNotPreventSyncingAndOverloadDB() {
     custodyStand.setCurrentSlot(0);
