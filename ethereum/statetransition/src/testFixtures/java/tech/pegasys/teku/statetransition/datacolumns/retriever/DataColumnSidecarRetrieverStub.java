@@ -27,10 +27,10 @@ public class DataColumnSidecarRetrieverStub implements DataColumnSidecarRetrieve
       DataColumnSlotAndIdentifier columnId, SafeFuture<DataColumnSidecar> promise) {}
 
   public List<RetrieveRequest> requests = new ArrayList<>();
-  private final Map<ColumnSlotAndIdentifier, DataColumnSidecar> readySidecars = new HashMap<>();
+  private final Map<DataColumnSlotAndIdentifier, DataColumnSidecar> readySidecars = new HashMap<>();
 
   public void addReadyColumnSidecar(DataColumnSidecar sidecar) {
-    ColumnSlotAndIdentifier colId = ColumnSlotAndIdentifier.createFromSidecar(sidecar);
+    DataColumnSlotAndIdentifier colId = DataColumnSlotAndIdentifier.createFromSidecar(sidecar);
     readySidecars.put(colId, sidecar);
     requests.stream()
         .filter(req -> req.columnId.equals(colId))

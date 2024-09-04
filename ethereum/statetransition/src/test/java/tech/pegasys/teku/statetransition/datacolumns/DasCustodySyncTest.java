@@ -116,7 +116,7 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns =
+    List<DataColumnSlotAndIdentifier> missingColumns =
         custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
@@ -157,7 +157,7 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns =
+    List<DataColumnSlotAndIdentifier> missingColumns =
         custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
@@ -193,12 +193,11 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns =
+    List<DataColumnSlotAndIdentifier> missingColumns =
         custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
-
 
   @Disabled("There are 2 issues at the moment: almost no sync and too many DB queries")
   @Test
@@ -225,7 +224,7 @@ public class DasCustodySyncTest {
 
     printAndResetStats();
 
-    List<ColumnSlotAndIdentifier> missingColumns =
+    List<DataColumnSlotAndIdentifier> missingColumns =
         custodyStand.custody.retrieveMissingColumns().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
