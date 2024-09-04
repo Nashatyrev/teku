@@ -6,10 +6,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 /**
  * Similar to {@link java.util.stream.Stream} but may perform async operations
@@ -21,6 +23,10 @@ public interface AsyncStream<T> {
   @SafeVarargs
   static <T> AsyncStream<T> of(T ... elements) {
     return create(List.of(elements).iterator());
+  }
+
+  static <T> AsyncStream<T> create(Stream<T> stream) {
+    return create(stream.iterator());
   }
 
   static <T> AsyncStream<T> create(Iterator<T> iterator) {
@@ -39,9 +45,17 @@ public interface AsyncStream<T> {
 
   <R> AsyncStream<R> map(Function<T, R> mapper);
 
+  AsyncStream<T> peek(Consumer<T> visitor);
+
+  default <R> AsyncStream<R> mapAsync(Function<T, SafeFuture<R>> mapper) {
+    return flatMap(e -> create(mapper.apply(e)));
+  }
+
   <R> AsyncStream<R> flatMap(Function<T, AsyncStream<R>> toStreamMapper);
 
   // terminal operators
+
+  SafeFuture<Optional<T>> findFirst();
 
   SafeFuture<Void> forEach(Consumer<T> consumer);
 

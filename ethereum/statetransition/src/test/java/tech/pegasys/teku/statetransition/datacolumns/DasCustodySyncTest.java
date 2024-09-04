@@ -117,7 +117,7 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     List<DataColumnSlotAndIdentifier> missingColumns =
-        custodyStand.custody.retrieveMissingColumns().join();
+        custodyStand.custody.retrieveMissingColumns().toList().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
@@ -158,7 +158,7 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     List<DataColumnSlotAndIdentifier> missingColumns =
-        custodyStand.custody.retrieveMissingColumns().join();
+        custodyStand.custody.retrieveMissingColumns().toList().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
@@ -194,7 +194,7 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     List<DataColumnSlotAndIdentifier> missingColumns =
-        custodyStand.custody.retrieveMissingColumns().join();
+        custodyStand.custody.retrieveMissingColumns().toList().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }
@@ -225,7 +225,7 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     List<DataColumnSlotAndIdentifier> missingColumns =
-        custodyStand.custody.retrieveMissingColumns().join();
+        custodyStand.custody.retrieveMissingColumns().toList().join();
     assertThat(missingColumns).isEmpty();
     assertAllCustodyColumnsPresent();
   }

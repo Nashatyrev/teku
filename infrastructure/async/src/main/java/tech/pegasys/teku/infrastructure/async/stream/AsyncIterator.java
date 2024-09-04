@@ -1,6 +1,7 @@
 package tech.pegasys.teku.infrastructure.async.stream;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -21,6 +22,18 @@ abstract class AsyncIterator<T> implements AsyncStream<T> {
   public AsyncIterator<T> limit(long limit) {
     return OperationAsyncIterator.create(
         this, sourceCallback -> new LimitIteratorCallback<>(sourceCallback, limit));
+  }
+
+  @Override
+  public AsyncStream<T> peek(Consumer<T> visitor) {
+    return OperationAsyncIterator.create(
+        this, sourceCallback -> new AbstractDelegatingIteratorCallback<>(sourceCallback) {
+          @Override
+          public SafeFuture<Boolean> onNext(T t) {
+            visitor.accept(t);
+            return delegate.onNext(t);
+          }
+        });
   }
 
   @Override
@@ -61,6 +74,31 @@ abstract class AsyncIterator<T> implements AsyncStream<T> {
             ret.completeExceptionally(t);
           }
         });
+    return ret;
+  }
+
+  @Override
+  public SafeFuture<Optional<T>> findFirst() {
+    SafeFuture<Optional<T>> ret = new SafeFuture<>();
+    iterate(
+        new AsyncIteratorCallback<T>() {
+          @Override
+          public SafeFuture<Boolean> onNext(T t) {
+            ret.complete(Optional.ofNullable(t));
+            return FALSE_FUTURE;
+          }
+
+          @Override
+          public void onComplete() {
+            ret.complete(Optional.empty());
+          }
+
+          @Override
+          public void onError(Throwable t) {
+            ret.completeExceptionally(t);
+          }
+        });
+    return ret;
   }
 
   @Override
