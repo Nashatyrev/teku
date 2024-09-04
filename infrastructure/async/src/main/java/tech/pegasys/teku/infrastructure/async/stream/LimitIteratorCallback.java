@@ -1,11 +1,12 @@
-package tech.pegasys.teku.statetransition.datacolumns.util.rx;
+package tech.pegasys.teku.infrastructure.async.stream;
+
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class LimitIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
+class LimitIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
 
   private final AtomicLong limit;
-
 
   protected LimitIteratorCallback(AsyncIteratorCallback<T> delegate, long limit) {
     super(delegate);
@@ -13,11 +14,11 @@ public class LimitIteratorCallback<T> extends AbstractDelegatingIteratorCallback
   }
 
   @Override
-  public boolean onNext(T t) {
+  public SafeFuture<Boolean> onNext(T t) {
     if (limit.getAndDecrement() > 0) {
       return delegate.onNext(t);
     } else {
-      return false;
+      return FALSE_FUTURE;
     }
   }
 }

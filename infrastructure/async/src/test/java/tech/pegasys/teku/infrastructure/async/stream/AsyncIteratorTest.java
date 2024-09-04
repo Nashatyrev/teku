@@ -1,6 +1,5 @@
-package tech.pegasys.teku.statetransition.datacolumns.util.rx;
+package tech.pegasys.teku.infrastructure.async.stream;
 
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
@@ -21,8 +20,10 @@ public class AsyncIteratorTest {
     ArrayList<Integer> collector = new ArrayList<>();
 
     SafeFuture<List<Integer>> listPromise =
-        AsyncIterator.createOneShot(futures.iterator())
-            .flatten(i -> IntStream.range(i * 10, i * 10 + 5).boxed().toList())
+        AsyncStream.create(futures.iterator())
+            .flatMap(AsyncStream::create)
+            .flatMap(
+                i -> AsyncStream.create(IntStream.range(i * 10, i * 10 + 5).boxed().iterator()))
             .filter(i -> i % 2 == 0)
             .map(i -> i * 10)
             .limit(10)
@@ -51,6 +52,28 @@ public class AsyncIteratorTest {
     futures.get(3).complete(3);
 
     assertThat(collector).containsExactly(0, 20, 40, 100, 120, 140, 200, 220, 240, 300);
-    assertThat(listPromise).isCompletedWithValue(List.of(0, 20, 40, 100, 120, 140, 200, 220, 240, 300));
+    assertThat(listPromise)
+        .isCompletedWithValue(List.of(0, 20, 40, 100, 120, 140, 200, 220, 240, 300));
+  }
+
+  @Test
+  void longStreamOfCompletedFuturesShouldNotCauseStackOverflow() {
+    List<Integer> ints = AsyncStream.create(IntStream.range(0, 10000).boxed().iterator())
+        .map(SafeFuture::completedFuture)
+        .flatMap(AsyncStream::create)
+        .toList()
+        .join();
+
+    assertThat(ints).hasSize(10000);
+  }
+
+  @Test
+  void longStreamOfFlatMapShouldNotCauseStackOverflow() {
+    List<Integer> ints = AsyncStream.create(IntStream.range(0, 10000).boxed().iterator())
+        .flatMap(AsyncStream::of)
+        .toList()
+        .join();
+
+    assertThat(ints).hasSize(10000);
   }
 }

@@ -1,8 +1,10 @@
-package tech.pegasys.teku.statetransition.datacolumns.util.rx;
+package tech.pegasys.teku.infrastructure.async.stream;
+
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 import java.util.function.Function;
 
-public class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallback<T, S> {
+class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallback<T, S> {
 
   private final Function<S, T> mapper;
 
@@ -12,12 +14,12 @@ public class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallbac
   }
 
   @Override
-  public boolean onNext(S s) {
+  public SafeFuture<Boolean> onNext(S s) {
     try {
       return delegate.onNext(mapper.apply(s));
     } catch (Exception e) {
       delegate.onError(e);
-      return false;
+      return FALSE_FUTURE;
     }
   }
 }

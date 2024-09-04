@@ -1,10 +1,10 @@
-package tech.pegasys.teku.statetransition.datacolumns.util.rx;
+package tech.pegasys.teku.infrastructure.async.stream;
 
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 import java.util.Collection;
 
-public class AsyncIteratorCollector<T> {
+class AsyncIteratorCollector<T> {
 
   private final AsyncIterator<T> iterator;
 
@@ -17,11 +17,11 @@ public class AsyncIteratorCollector<T> {
     iterator.iterate(
         new AsyncIteratorCallback<T>() {
           @Override
-          public boolean onNext(T t) {
+          public SafeFuture<Boolean> onNext(T t) {
             synchronized (collection) {
               collection.add(t);
             }
-            return true;
+            return TRUE_FUTURE;
           }
 
           @Override

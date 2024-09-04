@@ -1,8 +1,10 @@
-package tech.pegasys.teku.statetransition.datacolumns.util.rx;
+package tech.pegasys.teku.infrastructure.async.stream;
+
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 import java.util.function.Predicate;
 
-public class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
+class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
 
   private final Predicate<T> filter;
 
@@ -12,11 +14,11 @@ public class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCall
   }
 
   @Override
-  public boolean onNext(T t) {
+  public SafeFuture<Boolean> onNext(T t) {
     if (filter.test(t)) {
       return delegate.onNext(t);
     } else {
-      return true;
+      return TRUE_FUTURE;
     }
   }
 }
