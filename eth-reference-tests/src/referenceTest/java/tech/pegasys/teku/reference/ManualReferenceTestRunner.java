@@ -17,7 +17,6 @@ import com.google.errorprone.annotations.MustBeClosed;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -31,7 +30,6 @@ import tech.pegasys.teku.ethtests.finder.TestDefinition;
  * <p>The test case is disabled as the tests run via the generated classes in CI, but it still runs
  * without removing the @Disabled in IntelliJ.
  */
-@Disabled
 public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
 
   /**
@@ -42,7 +40,7 @@ public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
    *
    * <p>May be overridden by the ENV_TEST_TYPE environment variable.
    */
-  private static final String TEST_TYPE = "fork_choice";
+  private static final String TEST_TYPE = "";
 
   /**
    * Filter test to run to those from the specified spec. One of general, minimal or mainnet
@@ -56,14 +54,14 @@ public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
    *
    * <p>May be overridden by the ENV_MILESTONE environment variable.
    */
-  private static final String MILESTONE = "";
+  private static final String MILESTONE = "eip7594";
 
   /**
    * Filter tests to run only those where the display name contains this string.
    *
    * <p>May be overridden by the ENV_DISPLAY_NAME environment variable.
    */
-  private static final String DISPLAY_NAME = "";
+  private static final String DISPLAY_NAME = "get_custody_columns";
 
   @ParameterizedTest(name = "{0}")
   @MethodSource("loadReferenceTests")
