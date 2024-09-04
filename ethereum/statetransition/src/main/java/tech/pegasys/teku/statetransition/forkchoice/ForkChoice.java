@@ -551,18 +551,18 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
           payloadResult.getFailureCause().orElseThrow());
     }
 
-    switch (dataAndValidationResult.getValidationResult()) {
+    switch (dataAndValidationResult.validationResult()) {
       case VALID, NOT_REQUIRED -> LOG.debug(
           "sidecars validation result: {}", dataAndValidationResult::toLogString);
       case NOT_AVAILABLE -> {
         LOG.debug("sidecars validation result: {}", dataAndValidationResult::toLogString);
         return BlockImportResult.failedDataAvailabilityCheckNotAvailable(
-            dataAndValidationResult.getCause());
+            dataAndValidationResult.cause());
       }
       case INVALID -> {
         LOG.error("blobSidecars validation result: {}", dataAndValidationResult::toLogString);
         return BlockImportResult.failedDataAvailabilityCheckInvalid(
-            dataAndValidationResult.getCause());
+            dataAndValidationResult.cause());
       }
     }
 
@@ -652,7 +652,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       // Outside availability window or pre-Deneb
       blobSidecars = Optional.empty();
     } else if (dataAndValidationResult.isValid()) {
-      final List<?> sidecars = dataAndValidationResult.getData();
+      final List<?> sidecars = dataAndValidationResult.dataList();
       if (!sidecars.isEmpty() && sidecars.getFirst() instanceof BlobSidecar) {
         blobSidecars = Optional.of((List<BlobSidecar>) sidecars);
       } else {
@@ -662,7 +662,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       throw new IllegalStateException(
           String.format(
               "Unexpected attempt to store invalid sidecars (%s) for block: %s",
-              dataAndValidationResult.getData().size(), block.toLogString()));
+              dataAndValidationResult.dataList().size(), block.toLogString()));
     }
 
     return blobSidecars;

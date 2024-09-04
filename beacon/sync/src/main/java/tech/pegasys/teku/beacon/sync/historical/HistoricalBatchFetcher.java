@@ -409,13 +409,13 @@ public class HistoricalBatchFetcher {
     if (validationResult.isFailure()) {
       final String causeMessage =
           validationResult
-              .getCause()
+              .cause()
               .map(cause -> " (" + ExceptionUtil.getRootCauseMessage(cause) + ")")
               .orElse("");
       throw new IllegalArgumentException(
           String.format(
               "Blob sidecars validation for block %s failed: %s%s",
-              block.getRoot(), validationResult.getValidationResult(), causeMessage));
+              block.getRoot(), validationResult.validationResult(), causeMessage));
     }
   }
 

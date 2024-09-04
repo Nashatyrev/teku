@@ -322,7 +322,7 @@ public class BlobSidecarsAvailabilityChecker implements AvailabilityChecker<Blob
     // put all additional validated blobSidecar in validatedBlobSidecars which now should
     // be complete
     additionalBlobSidecarsAndValidationResult
-        .getData()
+        .dataList()
         .forEach(blobSidecar -> validatedBlobSidecars.put(blobSidecar.getIndex(), blobSidecar));
 
     final List<BlobSidecar> completeValidatedBlobSidecars =
@@ -345,11 +345,11 @@ public class BlobSidecarsAvailabilityChecker implements AvailabilityChecker<Blob
       spec.atSlot(blockBlobSidecarsTracker.getSlotAndBlockRoot().getSlot())
           .miscHelpers()
           .verifyBlobSidecarCompleteness(
-              blobSidecarsAndValidationResult.getData(), kzgCommitmentsFromBlockSupplier.get());
+              blobSidecarsAndValidationResult.dataList(), kzgCommitmentsFromBlockSupplier.get());
     } catch (final IllegalArgumentException ex) {
       if (!isBlockOutsideDataAvailabilityWindow()) {
         return DataAndValidationResult.invalidResult(
-            blobSidecarsAndValidationResult.getData(),
+            blobSidecarsAndValidationResult.dataList(),
             new IllegalArgumentException(
                 "Validated blobs are less than commitments present in block.", ex));
       }

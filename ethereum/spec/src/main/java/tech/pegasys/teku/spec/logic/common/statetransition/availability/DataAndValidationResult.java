@@ -16,15 +16,11 @@ package tech.pegasys.teku.spec.logic.common.statetransition.availability;
 import com.google.common.base.MoreObjects;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-public class DataAndValidationResult<Data> {
-
-  private final AvailabilityValidationResult validationResult;
-  private final List<Data> dataList;
-  private final Optional<Throwable> cause;
+public record DataAndValidationResult<Data>(
+    AvailabilityValidationResult validationResult, List<Data> dataList, Optional<Throwable> cause) {
 
   public static <Data> DataAndValidationResult<Data> notAvailable() {
     return new DataAndValidationResult<>(
@@ -61,27 +57,6 @@ public class DataAndValidationResult<Data> {
         AvailabilityValidationResult.NOT_AVAILABLE, Collections.emptyList(), Optional.of(cause));
   }
 
-  DataAndValidationResult(
-      final AvailabilityValidationResult validationResult,
-      final List<Data> dataList,
-      final Optional<Throwable> cause) {
-    this.validationResult = validationResult;
-    this.dataList = dataList;
-    this.cause = cause;
-  }
-
-  public AvailabilityValidationResult getValidationResult() {
-    return validationResult;
-  }
-
-  public List<Data> getData() {
-    return dataList;
-  }
-
-  public Optional<Throwable> getCause() {
-    return cause;
-  }
-
   public boolean isValid() {
     return validationResult.equals(AvailabilityValidationResult.VALID);
   }
@@ -104,25 +79,6 @@ public class DataAndValidationResult<Data> {
 
   public boolean isSuccess() {
     return isValid() || isNotRequired();
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final DataAndValidationResult<?> that = (DataAndValidationResult<?>) o;
-    return Objects.equals(validationResult, that.validationResult)
-        && Objects.equals(dataList, that.dataList)
-        && Objects.equals(cause, that.cause);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(validationResult, dataList, cause);
   }
 
   public String toLogString() {
