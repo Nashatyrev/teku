@@ -97,7 +97,6 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     for (int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
-      System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
       if (slot % epochLength == 0) {
@@ -139,7 +138,6 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     for (int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
-      System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
       if (slot % epochLength == 0) {
@@ -176,7 +174,6 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     for (int slot = startSlot + 1; slot <= startSlot + 1000; slot++) {
-      System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
       if (slot % epochLength == 0) {
@@ -212,7 +209,6 @@ public class DasCustodySyncTest {
     printAndResetStats();
 
     for (int slot = 1; slot <= 1000; slot++) {
-      System.out.println("Processing slot #" + slot);
       addBlockAndSidecars(slot);
       custodyStand.incCurrentSlot(1);
     }
