@@ -403,7 +403,7 @@ public class BlobSidecarsAvailabilityCheckerTest {
         .isCompletedWithValueMatching(result -> !result.isValid(), "is not valid")
         .isCompletedWithValueMatching(DataAndValidationResult::isNotRequired, "is not required")
         .isCompletedWithValueMatching(
-            result -> result.dataList().isEmpty(), "doesn't have blob sidecars");
+            result -> result.data().isEmpty(), "doesn't have blob sidecars");
   }
 
   private void assertInvalid(
@@ -416,7 +416,7 @@ public class BlobSidecarsAvailabilityCheckerTest {
             result -> result.validationResult() == AvailabilityValidationResult.INVALID,
             "is not available")
         .isCompletedWithValueMatching(
-            result -> result.dataList().equals(invalidBlobs), "doesn't have blob sidecars")
+            result -> result.data().equals(invalidBlobs), "doesn't have blob sidecars")
         .isCompletedWithValueMatching(
             result -> {
               if (cause.isEmpty() != result.cause().isEmpty()) {
@@ -451,7 +451,7 @@ public class BlobSidecarsAvailabilityCheckerTest {
             result -> result.validationResult() == AvailabilityValidationResult.NOT_AVAILABLE,
             "is not available")
         .isCompletedWithValueMatching(
-            result -> result.dataList().isEmpty(), "doesn't have blob sidecars");
+            result -> result.data().isEmpty(), "doesn't have blob sidecars");
   }
 
   private void assertAvailable(
@@ -462,7 +462,7 @@ public class BlobSidecarsAvailabilityCheckerTest {
         .isCompletedWithValueMatching(
             result -> result.validationResult() == AvailabilityValidationResult.VALID, "is valid")
         .isCompletedWithValueMatching(
-            result -> result.dataList().equals(blobSidecarsComplete), "has blob sidecars");
+            result -> result.data().equals(blobSidecarsComplete), "has blob sidecars");
   }
 
   private void prepareInitialAvailabilityWithEmptyCommitmentsBlock() {

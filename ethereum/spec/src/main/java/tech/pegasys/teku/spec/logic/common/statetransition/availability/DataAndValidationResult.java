@@ -20,7 +20,7 @@ import java.util.Optional;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 public record DataAndValidationResult<Data>(
-    AvailabilityValidationResult validationResult, List<Data> dataList, Optional<Throwable> cause) {
+    AvailabilityValidationResult validationResult, List<Data> data, Optional<Throwable> cause) {
 
   public static <Data> DataAndValidationResult<Data> notAvailable() {
     return new DataAndValidationResult<>(
@@ -84,7 +84,7 @@ public record DataAndValidationResult<Data>(
   public String toLogString() {
     return MoreObjects.toStringHelper(this)
         .add("validationResult", validationResult)
-        .add("dataListSize", dataList.size())
+        .add("dataSize", data.size())
         .add("cause", cause)
         .toString();
   }

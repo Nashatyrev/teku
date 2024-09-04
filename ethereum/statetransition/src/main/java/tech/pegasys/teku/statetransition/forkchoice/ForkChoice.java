@@ -652,7 +652,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       // Outside availability window or pre-Deneb
       blobSidecars = Optional.empty();
     } else if (dataAndValidationResult.isValid()) {
-      final List<?> sidecars = dataAndValidationResult.dataList();
+      final List<?> sidecars = dataAndValidationResult.data();
       if (!sidecars.isEmpty() && sidecars.getFirst() instanceof BlobSidecar) {
         blobSidecars = Optional.of((List<BlobSidecar>) sidecars);
       } else {
@@ -662,7 +662,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       throw new IllegalStateException(
           String.format(
               "Unexpected attempt to store invalid sidecars (%s) for block: %s",
-              dataAndValidationResult.dataList().size(), block.toLogString()));
+              dataAndValidationResult.data().size(), block.toLogString()));
     }
 
     return blobSidecars;
