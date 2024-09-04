@@ -127,7 +127,10 @@ public class DasCustodyStand {
   }
 
   public UInt64 getMinCustodySlot() {
-    return currentSlot.minusMinZero(getCustodyPeriodSlots());
+    UInt64 currentEpoch = spec.computeEpochAtSlot(currentSlot);
+    UInt64 minCustodyEpoch =
+        currentEpoch.minusMinZero(config.getMinEpochsForDataColumnSidecarsRequests());
+    return spec.computeStartSlotAtEpoch(minCustodyEpoch);
   }
 
   public List<DataColumnSidecar> createCustodyColumnSidecars(SignedBeaconBlock block) {
