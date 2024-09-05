@@ -13,9 +13,7 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.Collection;
 import java.util.stream.Collector;
-
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 class AsyncIteratorCollector<T> {

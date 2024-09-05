@@ -109,12 +109,13 @@ public class AsyncIteratorTest {
     List<SafeFuture<Integer>> futures =
         Stream.generate(() -> new SafeFuture<Integer>()).limit(10).toList();
 
-    SafeFuture<List<Integer>> resFuture = AsyncStream.create(futures.iterator())
-        .mapAsync(fut -> fut)
-        .takeUntil(i -> i == 4, true)
-        .collectLast(2);
+    SafeFuture<List<Integer>> resFuture =
+        AsyncStream.create(futures.iterator())
+            .mapAsync(fut -> fut)
+            .takeUntil(i -> i == 4, true)
+            .collectLast(2);
 
-    for(int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
       futures.get(i).complete(i);
     }
 
@@ -128,13 +129,16 @@ public class AsyncIteratorTest {
   @Test
   void checkUntilEmpty() {
     assertThat(AsyncStream.of(0, 1, 2).takeUntil(i -> i == 0, false).findFirst().join()).isEmpty();
-    assertThat(AsyncStream.of(0, 1, 2).takeUntil(i -> i == 100, false).collectLast(1).join()).containsExactly(2);
-    assertThat(AsyncStream.of(0, 1, 2).takeUntil(i -> i == 100, true).collectLast(1).join()).containsExactly(2);
+    assertThat(AsyncStream.of(0, 1, 2).takeUntil(i -> i == 100, false).collectLast(1).join())
+        .containsExactly(2);
+    assertThat(AsyncStream.of(0, 1, 2).takeUntil(i -> i == 100, true).collectLast(1).join())
+        .containsExactly(2);
   }
 
   @Test
   void checkUntilFirst() {
-    assertThat(AsyncStream.of(0, 1, 2).takeUntil(i -> i == 0, true).toList().join()).containsExactly(0);
+    assertThat(AsyncStream.of(0, 1, 2).takeUntil(i -> i == 0, true).toList().join())
+        .containsExactly(0);
   }
 
   @Test
@@ -142,4 +146,3 @@ public class AsyncIteratorTest {
     assertThat(AsyncStream.of(0, 1).collectLast(3).join()).containsExactly(0, 1);
   }
 }
-

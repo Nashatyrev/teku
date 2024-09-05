@@ -13,14 +13,14 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.concurrent.atomic.AtomicLong;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 class SliceIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
 
   private final BaseAsyncStreamTransform.BaseSlicer<T> slicer;
 
-  protected SliceIteratorCallback(AsyncIteratorCallback<T> delegate, BaseAsyncStreamTransform.BaseSlicer<T> slicer) {
+  protected SliceIteratorCallback(
+      AsyncIteratorCallback<T> delegate, BaseAsyncStreamTransform.BaseSlicer<T> slicer) {
     super(delegate);
     this.slicer = slicer;
   }
