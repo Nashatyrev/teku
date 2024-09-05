@@ -90,4 +90,17 @@ public class AsyncIteratorTest {
 
     assertThat(ints).hasSize(10000);
   }
+
+  @Test
+  void checkTheOrderIsPreserved() {
+    SafeFuture<Integer> fut0 = new SafeFuture<>();
+    SafeFuture<Integer> fut1 = new SafeFuture<>();
+
+    SafeFuture<List<Integer>> listFut = AsyncStream.of(fut0, fut1).mapAsync(f -> f).toList();
+
+    fut1.complete(1);
+    fut0.complete(0);
+
+    assertThat(listFut).isCompletedWithValue(List.of(0, 1));
+  }
 }
