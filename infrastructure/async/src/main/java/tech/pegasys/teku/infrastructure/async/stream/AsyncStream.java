@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 /** Similar to {@link java.util.stream.Stream} but may perform async operations */
-public interface AsyncStream<T> {
+public interface AsyncStream<T> extends AsyncStreamTransform<T> {
 
   // builders
 
@@ -46,22 +46,6 @@ public interface AsyncStream<T> {
   static <T> AsyncStream<T> create(CompletionStage<T> future) {
     return new FutureAsyncIteratorImpl<>(future);
   }
-
-  // transformations
-
-  AsyncStream<T> filter(Predicate<T> filter);
-
-  AsyncStream<T> limit(long limit);
-
-  <R> AsyncStream<R> map(Function<T, R> mapper);
-
-  AsyncStream<T> peek(Consumer<T> visitor);
-
-  default <R> AsyncStream<R> mapAsync(Function<T, SafeFuture<R>> mapper) {
-    return flatMap(e -> create(mapper.apply(e)));
-  }
-
-  <R> AsyncStream<R> flatMap(Function<T, AsyncStream<R>> toStreamMapper);
 
   // terminal operators
 

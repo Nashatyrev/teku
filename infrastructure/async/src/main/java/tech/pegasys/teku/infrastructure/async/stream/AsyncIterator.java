@@ -25,32 +25,6 @@ abstract class AsyncIterator<T> implements AsyncStream<T> {
   abstract void iterate(AsyncIteratorCallback<T> callback);
 
   @Override
-  public AsyncIterator<T> filter(Predicate<T> filter) {
-    return OperationAsyncIterator.create(
-        this, sourceCallback -> new FilteringIteratorCallback<>(sourceCallback, filter));
-  }
-
-  @Override
-  public AsyncIterator<T> limit(long limit) {
-    return OperationAsyncIterator.create(
-        this, sourceCallback -> new LimitIteratorCallback<>(sourceCallback, limit));
-  }
-
-  @Override
-  public AsyncStream<T> peek(Consumer<T> visitor) {
-    return OperationAsyncIterator.create(
-        this,
-        sourceCallback ->
-            new AbstractDelegatingIteratorCallback<>(sourceCallback) {
-              @Override
-              public SafeFuture<Boolean> onNext(T t) {
-                visitor.accept(t);
-                return delegate.onNext(t);
-              }
-            });
-  }
-
-  @Override
   public <R> AsyncIterator<R> map(Function<T, R> mapper) {
     return OperationAsyncIterator.create(
         this, sourceCallback -> new MapIteratorCallback<>(sourceCallback, mapper));
