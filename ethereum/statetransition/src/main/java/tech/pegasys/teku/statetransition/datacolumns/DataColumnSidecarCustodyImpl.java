@@ -196,22 +196,16 @@ public class DataColumnSidecarCustodyImpl
 
   private SafeFuture<Void> advanceFirstIncompleteSlot(UInt64 finalizedEpoch) {
     UInt64 firstNonFinalizedSlot = spec.computeStartSlotAtEpoch(finalizedEpoch.increment());
-    AtomicReference<UInt64> lastSlot = new AtomicReference<>();
     return retrievePotentiallyIncompleteSlotCustodies(firstNonFinalizedSlot)
-        .peek(slotCustody -> lastSlot.set(slotCustody.slot()))
-        .filter(SlotCustody::isIncomplete)
-        .findFirst()
+        .takeUntil(SlotCustody::isIncomplete, true)
+        .findLast()
         .thenCompose(
-            maybeFirstIncompleteCusttody ->
-                maybeFirstIncompleteCusttody
-                    .map(custody -> db.setFirstCustodyIncompleteSlot(custody.slot()))
-                    .orElseGet(
-                        () -> {
-                          if (lastSlot.get() == null) {
-                            return SafeFuture.COMPLETE;
-                          }
-                          return db.setFirstCustodyIncompleteSlot(lastSlot.get());
-                        }));
+            maybeFirstIncompleteOrLastComplete ->
+                maybeFirstIncompleteOrLastComplete
+                    .map(
+                        firstIncompleteOrLastComplete ->
+                            db.setFirstCustodyIncompleteSlot(firstIncompleteOrLastComplete.slot()))
+                    .orElse(SafeFuture.COMPLETE));
   }
 
   private AsyncStream<SlotCustody> retrievePotentiallyIncompleteSlotCustodies(
