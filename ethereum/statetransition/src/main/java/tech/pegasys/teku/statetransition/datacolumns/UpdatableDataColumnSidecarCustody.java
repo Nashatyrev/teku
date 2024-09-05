@@ -13,8 +13,6 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import java.util.List;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 

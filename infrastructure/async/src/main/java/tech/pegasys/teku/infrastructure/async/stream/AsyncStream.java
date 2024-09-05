@@ -1,6 +1,17 @@
-package tech.pegasys.teku.infrastructure.async.stream;
+/*
+ * Copyright Consensys Software Inc., 2024
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
+package tech.pegasys.teku.infrastructure.async.stream;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -12,16 +23,15 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-/**
- * Similar to {@link java.util.stream.Stream} but may perform async operations
- */
+/** Similar to {@link java.util.stream.Stream} but may perform async operations */
 public interface AsyncStream<T> {
 
   // builders
 
   @SafeVarargs
-  static <T> AsyncStream<T> of(T ... elements) {
+  static <T> AsyncStream<T> of(T... elements) {
     return create(List.of(elements).iterator());
   }
 
