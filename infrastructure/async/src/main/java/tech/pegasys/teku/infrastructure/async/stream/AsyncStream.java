@@ -13,22 +13,17 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 /** Similar to {@link java.util.stream.Stream} but may perform async operations */
-public interface AsyncStream<T> extends AsyncStreamTransform<T> {
+public interface AsyncStream<T> extends AsyncStreamTransform<T>, AsyncStreamReduce<T> {
 
-  // builders
+  static <T> AsyncStream<T> empty() {
+    return of();
+  }
 
   @SafeVarargs
   static <T> AsyncStream<T> of(T... elements) {
@@ -45,17 +40,5 @@ public interface AsyncStream<T> extends AsyncStreamTransform<T> {
 
   static <T> AsyncStream<T> create(CompletionStage<T> future) {
     return new FutureAsyncIteratorImpl<>(future);
-  }
-
-  // terminal operators
-
-  SafeFuture<Optional<T>> findFirst();
-
-  SafeFuture<Void> forEach(Consumer<T> consumer);
-
-  <C extends Collection<T>> SafeFuture<C> collect(C targetCollection);
-
-  default SafeFuture<List<T>> toList() {
-    return collect(new ArrayList<>());
   }
 }
