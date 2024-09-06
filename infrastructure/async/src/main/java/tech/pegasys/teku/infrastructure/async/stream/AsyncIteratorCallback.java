@@ -15,14 +15,26 @@ package tech.pegasys.teku.infrastructure.async.stream;
 
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
+/**
+ * Internal {@link AsyncStream} implementation interface which is analogous to {@link
+ * java.util.concurrent.Flow.Subscriber} in RX world
+ */
 interface AsyncIteratorCallback<T> {
 
   SafeFuture<Boolean> TRUE_FUTURE = SafeFuture.completedFuture(true);
   SafeFuture<Boolean> FALSE_FUTURE = SafeFuture.completedFuture(false);
 
+  /**
+   * Called when next element is available
+   *
+   * @return The promise to the upstream handler if the further elements are expected. When the
+   *     future is completed with false the only next call expected is {@link #onComplete()}
+   */
   SafeFuture<Boolean> onNext(T t);
 
+  /** Called when the stream is complete. No other calls are expected after this call */
   void onComplete();
 
+  /** Called when upstream error happened Basically no other calls are expected after this */
   void onError(Throwable t);
 }
