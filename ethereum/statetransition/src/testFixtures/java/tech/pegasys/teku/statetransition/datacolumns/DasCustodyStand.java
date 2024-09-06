@@ -120,12 +120,6 @@ public class DasCustodyStand {
         .orElse(Collections.emptyList());
   }
 
-  public int getCustodyPeriodSlots() {
-    int custodyPeriodEpochs = config.getCustodyRequirement();
-    int epochSlots = spec.slotsPerEpoch(UInt64.ZERO);
-    return custodyPeriodEpochs * epochSlots;
-  }
-
   public UInt64 getMinCustodySlot() {
     UInt64 currentEpoch = spec.computeEpochAtSlot(currentSlot);
     UInt64 minCustodyEpoch =
