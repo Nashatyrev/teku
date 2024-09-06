@@ -15,6 +15,10 @@ package tech.pegasys.teku.infrastructure.async.stream;
 
 import java.util.function.Function;
 
+/**
+ * Contains fundamental transformation stream methods
+ * All other transformations are expressed my means of those methods
+ */
 public interface BaseAsyncStreamTransform<T> {
 
   enum SliceResult {

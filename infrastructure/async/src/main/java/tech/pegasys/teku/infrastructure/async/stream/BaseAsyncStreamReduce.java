@@ -16,6 +16,10 @@ package tech.pegasys.teku.infrastructure.async.stream;
 import java.util.stream.Collector;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
+/**
+ * Contains fundamental terminal (reduce or collect) stream methods
+ * All other terminal methods are expressed my means of those methods
+ */
 public interface BaseAsyncStreamReduce<T> {
 
   <A, R> SafeFuture<R> collect(Collector<T, A, R> collector);
