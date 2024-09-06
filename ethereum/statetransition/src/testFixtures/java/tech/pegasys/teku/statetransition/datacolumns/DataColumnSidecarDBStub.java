@@ -13,10 +13,12 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -24,7 +26,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
+
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -87,9 +89,10 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   }
 
   @Override
-  public SafeFuture<Stream<DataColumnIdentifier>> streamColumnIdentifiers(UInt64 slot) {
+  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
     dbReadCounter.incrementAndGet();
-    return SafeFuture.completedFuture(slotIds.getOrDefault(slot, Collections.emptySet()).stream());
+    return SafeFuture.completedFuture(
+        new ArrayList<>(slotIds.getOrDefault(slot, Collections.emptySet())));
   }
 
   @Override

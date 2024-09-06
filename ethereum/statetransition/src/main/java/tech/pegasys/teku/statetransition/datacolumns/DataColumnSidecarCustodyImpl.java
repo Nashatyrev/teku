@@ -227,8 +227,8 @@ public class DataColumnSidecarCustodyImpl
   private SafeFuture<SlotCustody> retrieveSlotCustody(final UInt64 slot) {
     final SafeFuture<Optional<Bytes32>> maybeCanonicalBlockRoot = getBlockRootIfHaveBlobs(slot);
     final List<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
-    final SafeFuture<Stream<DataColumnIdentifier>> existingColumns =
-        db.streamColumnIdentifiers(slot);
+    final SafeFuture<List<DataColumnIdentifier>> existingColumns =
+        db.getColumnIdentifiers(slot);
     return SafeFuture.allOf(maybeCanonicalBlockRoot, existingColumns)
         .thenApply(
             __ ->
@@ -236,7 +236,7 @@ public class DataColumnSidecarCustodyImpl
                     slot,
                     maybeCanonicalBlockRoot.getImmediately(),
                     requiredColumns,
-                    existingColumns.getImmediately().toList()));
+                    existingColumns.getImmediately()));
   }
 
   private SafeFuture<Optional<Bytes32>> getBlockRootIfHaveBlobs(UInt64 slot) {
