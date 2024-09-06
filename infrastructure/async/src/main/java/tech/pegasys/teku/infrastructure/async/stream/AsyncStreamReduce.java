@@ -32,7 +32,7 @@ public interface AsyncStreamReduce<T> extends BaseAsyncStreamReduce<T>, AsyncStr
   }
 
   default SafeFuture<Void> forEach(Consumer<T> consumer) {
-    return collect(Collector.of(() -> null, (a, t) -> consumer.accept(t), noBinaryOperator()));
+    return collect(Collector.of(() -> null, (a, t) -> consumer.accept(t), noCallBinaryOperator()));
   }
 
   default <C extends Collection<T>> SafeFuture<C> collect(C targetCollection) {
@@ -69,13 +69,13 @@ public interface AsyncStreamReduce<T> extends BaseAsyncStreamReduce<T>, AsyncStr
         Collector.of(
             () -> new CircularBuf<T>(count),
             CircularBuf::add,
-            noBinaryOperator(),
+            noCallBinaryOperator(),
             buf -> buf.buf.stream().toList()));
   }
 
-  private static <C> BinaryOperator<C> noBinaryOperator() {
+  private static <C> BinaryOperator<C> noCallBinaryOperator() {
     return (c, c2) -> {
-      throw new UnsupportedOperationException();
+      throw new UnsupportedOperationException("Shouldn't be called");
     };
   }
 }
