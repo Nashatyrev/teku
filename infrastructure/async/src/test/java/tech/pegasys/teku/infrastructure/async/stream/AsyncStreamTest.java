@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-public class AsyncIteratorTest {
+public class AsyncStreamTest {
 
   @Test
   void sanityTest() {
@@ -52,6 +52,8 @@ public class AsyncIteratorTest {
     assertThat(collector).containsExactly(0, 20, 40, 100, 120, 140);
     assertThat(listPromise).isNotDone();
 
+    // even if future is completed exceptionally it never reaches downstream thus shouldn't affect
+    // the final result
     futures.get(4).completeExceptionally(new RuntimeException("test"));
 
     assertThat(listPromise).isNotDone();
@@ -63,6 +65,7 @@ public class AsyncIteratorTest {
 
     futures.get(3).complete(3);
 
+    // limit(10) kicks in
     assertThat(collector).containsExactly(0, 20, 40, 100, 120, 140, 200, 220, 240, 300);
     assertThat(listPromise)
         .isCompletedWithValue(List.of(0, 20, 40, 100, 120, 140, 200, 220, 240, 300));
@@ -72,8 +75,7 @@ public class AsyncIteratorTest {
   void longStreamOfCompletedFuturesShouldNotCauseStackOverflow() {
     List<Integer> ints =
         AsyncStream.create(IntStream.range(0, 10000).boxed().iterator())
-            .map(SafeFuture::completedFuture)
-            .flatMap(AsyncStream::create)
+            .mapAsync(SafeFuture::completedFuture)
             .toList()
             .join();
 
