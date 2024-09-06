@@ -66,7 +66,7 @@ public class DataColumnSidecarCustodyImpl
           .toList();
     }
 
-    public AsyncStream<DataColumnIdentifier> steamIncompleteColumns() {
+    public AsyncStream<DataColumnIdentifier> streamIncompleteColumns() {
       return AsyncStream.create(getIncompleteColumns().iterator());
     }
 
@@ -270,7 +270,7 @@ public class DataColumnSidecarCustodyImpl
         .flatMap(
             slotCustody ->
                 slotCustody
-                    .steamIncompleteColumns()
+                    .streamIncompleteColumns()
                     .map(colId -> new DataColumnSlotAndIdentifier(slotCustody.slot(), colId)));
   }
 }
