@@ -659,8 +659,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       return;
     }
+    SpecConfigEip7594 configEip7594 =
+        SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
     final DataColumnSidecarDbAccessor dbAccessor;
     {
+      int slotsPerEpoch = configEip7594.getSlotsPerEpoch();
       DataColumnSidecarDB sidecarDB =
           DataColumnSidecarDB.create(
               combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
@@ -668,7 +671,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
           DataColumnSidecarDbAccessor.builder(sidecarDB)
               .spec(spec)
               .withAutoPrune(
-                  pruneBuilder -> pruneBuilder.pruneMarginSlots(spec.slotsPerEpoch(ZERO)))
+                  pruneBuilder ->
+                      pruneBuilder.pruneMarginSlots(slotsPerEpoch).prunePeriodSlots(slotsPerEpoch))
               .build();
     }
     CanonicalBlockResolver canonicalBlockResolver =
@@ -677,8 +681,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
                 .getBlockAtSlotExact(slot)
                 .thenApply(sbb -> sbb.flatMap(SignedBeaconBlock::getBeaconBlock));
 
-    SpecConfigEip7594 configEip7594 =
-        SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
     int minCustodyRequirement = configEip7594.getCustodyRequirement();
     int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
     int totalMyCustodySubnets =

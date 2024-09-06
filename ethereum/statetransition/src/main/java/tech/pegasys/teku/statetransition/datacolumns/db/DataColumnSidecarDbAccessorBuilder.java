@@ -48,6 +48,7 @@ public class DataColumnSidecarDbAccessorBuilder {
 
   public class AutoPruneDbBuilder {
     private int pruneMarginSlots = 0;
+    private int prunePeriodInSlots = 1;
 
     /**
      * Additional period in slots to retain data column sidecars in DB before pruning
@@ -57,8 +58,16 @@ public class DataColumnSidecarDbAccessorBuilder {
       return this;
     }
 
+    /**
+     * Specifies how often (in slots) the db prune will be performed
+     * 1 means that the prune is to be called every slot
+     */
+    public void prunePeriodSlots(int prunePeriodInSlots) {
+      this.prunePeriodInSlots = prunePeriodInSlots;
+    }
+
     AutoPruningDasDb build() {
-      return new AutoPruningDasDb(db, getMinCustodyPeriodSlotCalculator(), pruneMarginSlots);
+      return new AutoPruningDasDb(db, getMinCustodyPeriodSlotCalculator(), pruneMarginSlots, prunePeriodInSlots);
     }
   }
 }

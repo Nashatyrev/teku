@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.db;
 
-import com.google.common.base.Preconditions;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -21,23 +20,29 @@ import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalcula
 
 import java.util.Optional;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 class AutoPruningDasDb extends AbstractDelegatingDasDb implements DataColumnSidecarDbAccessor {
 
   private final MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator;
-  private volatile UInt64 maxSidecarSlot = UInt64.ZERO;
   private final DataColumnSidecarDB delegate;
   private final int marginPruneSlots;
+  private final int prunePeriod;
+
+  private volatile UInt64 nextPruneSlot = UInt64.ZERO;
 
   public AutoPruningDasDb(
       DataColumnSidecarDB delegate,
       MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator,
-      int marginPruneSlots) {
+      int marginPruneSlots,
+      int prunePeriod) {
     super(delegate);
     this.delegate = checkNotNull(delegate);
     this.minCustodyPeriodSlotCalculator = checkNotNull(minCustodyPeriodSlotCalculator);
     this.marginPruneSlots = marginPruneSlots;
+    checkArgument(prunePeriod >= 1, "prunePeriod should be >= 1");
+    this.prunePeriod = prunePeriod;
   }
 
   private UInt64 calculatePruneSlot(UInt64 currentSlot) {
@@ -49,9 +54,9 @@ class AutoPruningDasDb extends AbstractDelegatingDasDb implements DataColumnSide
   @Override
   public void addSidecar(DataColumnSidecar sidecar) {
     super.addSidecar(sidecar);
-    if (sidecar.getSlot().isGreaterThan(maxSidecarSlot)) {
-      maxSidecarSlot = sidecar.getSlot();
-      UInt64 minCustodySlot = calculatePruneSlot(maxSidecarSlot);
+    if (sidecar.getSlot().isGreaterThanOrEqualTo(nextPruneSlot)) {
+      nextPruneSlot = sidecar.getSlot().plus(prunePeriod);
+      UInt64 minCustodySlot = calculatePruneSlot(sidecar.getSlot());
       delegate.pruneAllSidecars(minCustodySlot);
     }
   }
