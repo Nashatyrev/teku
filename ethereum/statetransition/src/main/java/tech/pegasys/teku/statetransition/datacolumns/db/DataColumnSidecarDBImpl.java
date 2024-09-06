@@ -14,11 +14,9 @@
 package tech.pegasys.teku.statetransition.datacolumns.db;
 
 import it.unimi.dsi.fastutil.Pair;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
@@ -69,7 +67,8 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
   public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(final UInt64 slot) {
     return combinedChainDataClient
         .getDataColumnIdentifiers(slot)
-        .thenApply(identifiers -> identifiers.stream().map(ColumnSlotAndIdentifier::identifier).toList());
+        .thenApply(
+            identifiers -> identifiers.stream().map(ColumnSlotAndIdentifier::identifier).toList());
   }
 
   @Override

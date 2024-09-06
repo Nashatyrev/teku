@@ -13,18 +13,12 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.db;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
 
 /** Higher level {@link DataColumnSidecarDB} accessor */
-public interface DataColumnSidecarDbAccessor extends DataColumnSidecarCoreDB{
+public interface DataColumnSidecarDbAccessor extends DataColumnSidecarCoreDB {
 
   static DataColumnSidecarDbAccessorBuilder builder(DataColumnSidecarDB db) {
     return new DataColumnSidecarDbAccessorBuilder(db);

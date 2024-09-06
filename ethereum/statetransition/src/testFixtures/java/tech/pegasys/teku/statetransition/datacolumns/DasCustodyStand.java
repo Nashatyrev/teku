@@ -62,7 +62,6 @@ public class DasCustodyStand {
   private final List<FinalizedCheckpointChannel> finalizedListeners = new CopyOnWriteArrayList<>();
   private final int totalCustodySubnetCount;
 
-
   private UInt64 currentSlot = UInt64.ZERO;
 
   public DasCustodyStand(

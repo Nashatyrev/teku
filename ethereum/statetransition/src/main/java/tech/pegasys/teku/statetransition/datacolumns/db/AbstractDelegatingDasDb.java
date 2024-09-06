@@ -15,7 +15,6 @@ package tech.pegasys.teku.statetransition.datacolumns.db;
 
 import java.util.List;
 import java.util.Optional;
-
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;

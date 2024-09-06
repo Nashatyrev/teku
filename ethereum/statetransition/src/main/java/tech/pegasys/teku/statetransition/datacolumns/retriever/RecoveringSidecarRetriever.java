@@ -38,7 +38,6 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
-import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 
@@ -148,7 +147,9 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
         .thenCompose(
             dataColumnIdentifiers ->
                 SafeFuture.collectAll(
-                    dataColumnIdentifiers.stream().limit(recoverColumnCount).map(sidecarDB::getSidecar)))
+                    dataColumnIdentifiers.stream()
+                        .limit(recoverColumnCount)
+                        .map(sidecarDB::getSidecar)))
         .thenPeek(
             maybeDataColumnSidecars -> {
               maybeDataColumnSidecars.forEach(
