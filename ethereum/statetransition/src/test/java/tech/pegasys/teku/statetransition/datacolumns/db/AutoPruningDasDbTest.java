@@ -1,0 +1,93 @@
+package tech.pegasys.teku.statetransition.datacolumns.db;
+
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.TestSpecFactory;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+import tech.pegasys.teku.statetransition.datacolumns.DasCustodyStand;
+import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalculator;
+
+import java.util.List;
+import java.util.stream.IntStream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+public class AutoPruningDasDbTest {
+  final Spec spec = TestSpecFactory.createMinimalEip7594();
+  final DasCustodyStand das = DasCustodyStand.builder(spec).build();
+  final int custodyPeriodSlots = 10;
+  final int custodyPeriodMarginSlots = 2;
+  final int prunePeriodSlots = 5;
+  final MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator =
+      slot -> slot.minusMinZero(custodyPeriodSlots);
+  AutoPruningDasDb autoPruningDb =
+      new AutoPruningDasDb(
+          das.db, minCustodyPeriodSlotCalculator, custodyPeriodMarginSlots, prunePeriodSlots);
+
+  private DataColumnSidecar createSidecar(int slot, int index) {
+    SignedBeaconBlock block = das.createBlockWithBlobs(slot);
+    return das.createSidecar(block, index);
+  }
+
+  @Test
+  void checkOldDataIsAlsoPruned() {
+    DataColumnSidecar s0 = createSidecar(0, 0);
+    das.db.addSidecar(s0);
+    DataColumnSidecar s900 = createSidecar(900, 0);
+    das.db.addSidecar(s900);
+
+    DataColumnSidecar s1000 = createSidecar(1000, 0);
+    autoPruningDb.addSidecar(s1000);
+
+    assertThat(das.db.getSidecar(DataColumnIdentifier.createFromSidecar(s0)).join()).isEmpty();
+    assertThat(das.db.getSidecar(DataColumnIdentifier.createFromSidecar(s900)).join()).isEmpty();
+    assertThat(das.db.getSidecar(DataColumnIdentifier.createFromSidecar(s1000)).join())
+        .isNotEmpty();
+  }
+
+  @Test
+  void checkPruneIsCalledOncePerPrunePeriod() {
+    autoPruningDb.addSidecar(createSidecar(1010, 0));
+    long writesCount = das.db.getDbWriteCounter().get();
+    autoPruningDb.addSidecar(createSidecar(1010, 1));
+    autoPruningDb.addSidecar(createSidecar(990, 0));
+    DataColumnSidecar sidecar1000 = createSidecar(1000, 0);
+    autoPruningDb.addSidecar(sidecar1000);
+    autoPruningDb.addSidecar(createSidecar(1010, 2));
+    autoPruningDb.addSidecar(createSidecar(1010 + prunePeriodSlots - 1, 0));
+    // check that no additional prune was called
+    assertThat(das.db.getDbWriteCounter().get()).isEqualTo(writesCount + 5);
+    assertThat(das.db.getSidecar(DataColumnIdentifier.createFromSidecar(sidecar1000)).join())
+        .isNotEmpty();
+
+    autoPruningDb.addSidecar(createSidecar(1010 + prunePeriodSlots + 1, 0));
+    assertThat(das.db.getSidecar(DataColumnIdentifier.createFromSidecar(sidecar1000)).join())
+        .isEmpty();
+  }
+
+  @Test
+  void checkPeriodsAreRespected() {
+    final int totalPeriod = custodyPeriodSlots + custodyPeriodMarginSlots;
+    List<DataColumnSidecar> sidecars =
+        IntStream.range(0, 30).mapToObj(slot -> createSidecar(slot, 0)).toList();
+    List<DataColumnIdentifier> sidecarIds =
+        sidecars.stream().map(DataColumnIdentifier::createFromSidecar).toList();
+    sidecars.forEach(
+        sidecar -> {
+          autoPruningDb.addSidecar(sidecar);
+          int noDataTill =
+              sidecar.getSlot().minusMinZero(totalPeriod + prunePeriodSlots).intValue();
+          for (int slot = 0; slot < noDataTill; slot++) {
+            assertThat(das.db.getSidecar(sidecarIds.get(slot)).join()).isEmpty();
+          }
+          int existDataFrom =
+              sidecar.getSlot().minusMinZero(totalPeriod).intValue();
+          for (int slot = existDataFrom; slot <= sidecar.getSlot().intValue(); slot++) {
+            assertThat(das.db.getSidecar(sidecarIds.get(slot)).join()).isNotEmpty();
+          }
+        });
+  }
+}

@@ -97,6 +97,7 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
 
   @Override
   public void pruneAllSidecars(UInt64 tillSlot) {
+    dbWriteCounter.incrementAndGet();
     SortedMap<UInt64, Set<DataColumnIdentifier>> slotsToPrune = slotIds.headMap(tillSlot);
     slotsToPrune.values().stream().flatMap(Collection::stream).forEach(db::remove);
     slotsToPrune.clear();
