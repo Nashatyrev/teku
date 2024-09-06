@@ -31,6 +31,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
 public class DasSamplerBasic
@@ -42,11 +43,11 @@ public class DasSamplerBasic
   private final DataColumnSidecarCustody custody;
 
   private final Spec spec;
-  private final DataColumnSidecarDB db;
+  private final DataColumnSidecarDbAccessor db;
 
   public DasSamplerBasic(
       final Spec spec,
-      final DataColumnSidecarDB db,
+      final DataColumnSidecarDbAccessor db,
       final DataColumnSidecarCustody custody,
       final UInt256 nodeId,
       final int totalCustodySubnetCount) {

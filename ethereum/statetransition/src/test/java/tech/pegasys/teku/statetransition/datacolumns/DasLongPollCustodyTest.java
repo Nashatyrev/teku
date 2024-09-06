@@ -34,6 +34,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 
 @SuppressWarnings("JavaCase")
 public class DasLongPollCustodyTest {
@@ -42,6 +43,8 @@ public class DasLongPollCustodyTest {
 
   final Spec spec = TestSpecFactory.createMinimalEip7594();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
+  final DataColumnSidecarDbAccessor dbAccessor =
+      DataColumnSidecarDbAccessor.builder(db).spec(spec).build();
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
   final UInt256 myNodeId = UInt256.ONE;
 
@@ -50,7 +53,7 @@ public class DasLongPollCustodyTest {
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
 
   final DataColumnSidecarCustodyImpl custodyImpl =
-      new DataColumnSidecarCustodyImpl(spec, blockResolver, db, myNodeId, subnetCount);
+      new DataColumnSidecarCustodyImpl(spec, blockResolver, dbAccessor, myNodeId, subnetCount);
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
 

@@ -29,8 +29,7 @@ import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
 import tech.pegasys.teku.storage.api.SidecarUpdateChannel;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
-// FIXME: remove stinky joins
-public class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
+class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
   private final CombinedChainDataClient combinedChainDataClient;

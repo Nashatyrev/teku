@@ -149,10 +149,11 @@ import tech.pegasys.teku.statetransition.datacolumns.DasSamplerBasic;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
-import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDBImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerSearcher;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
@@ -658,9 +659,18 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       return;
     }
-    DataColumnSidecarDBImpl sidecarDB =
-        new DataColumnSidecarDBImpl(
-            combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
+    final DataColumnSidecarDbAccessor dbAccessor;
+    {
+      DataColumnSidecarDB sidecarDB =
+          DataColumnSidecarDB.create(
+              combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
+      dbAccessor =
+          DataColumnSidecarDbAccessor.builder(sidecarDB)
+              .spec(spec)
+              .withAutoPrune(
+                  pruneBuilder -> pruneBuilder.pruneMarginSlots(spec.slotsPerEpoch(ZERO)))
+              .build();
+    }
     CanonicalBlockResolver canonicalBlockResolver =
         slot ->
             combinedChainDataClient
@@ -678,7 +688,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
         new DataColumnSidecarCustodyImpl(
-            spec, canonicalBlockResolver, sidecarDB, nodeId, totalMyCustodySubnets);
+            spec, canonicalBlockResolver, dbAccessor, nodeId, totalMyCustodySubnets);
     eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarCustodyImpl);
 
@@ -724,7 +734,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             miscHelpersEip7594,
             schemaDefinitionsEip7594,
             canonicalBlockResolver,
-            sidecarDB,
+            dbAccessor,
             operationPoolAsyncRunner,
             Duration.ofMinutes(5),
             configEip7594.getNumberOfColumns());
@@ -736,7 +746,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
       LOG.info("Lossy Sampler is not supported, starting basic sampler");
     }
     final DasSamplerBasic dasSampler =
-        new DasSamplerBasic(spec, sidecarDB, custody, nodeId, totalMyCustodySubnets);
+        new DasSamplerBasic(spec, dbAccessor, custody, nodeId, totalMyCustodySubnets);
     LOG.info("DAS Basic Sampler initialized with {} subnets to sample", totalMyCustodySubnets);
     eventChannels.subscribe(SlotEventsChannel.class, dasSampler);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);

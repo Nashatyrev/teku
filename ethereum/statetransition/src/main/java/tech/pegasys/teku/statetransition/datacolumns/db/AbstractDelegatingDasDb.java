@@ -21,40 +21,31 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
-import tech.pegasys.teku.storage.api.SidecarUpdateChannel;
-import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
-public interface DataColumnSidecarDB extends DataColumnSidecarCoreDB {
+abstract class AbstractDelegatingDasDb implements DataColumnSidecarCoreDB {
+  private final DataColumnSidecarCoreDB delegateDb;
 
-  static DataColumnSidecarDB create(
-      final CombinedChainDataClient combinedChainDataClient,
-      final SidecarUpdateChannel sidecarUpdateChannel) {
-    return new DataColumnSidecarDBImpl(combinedChainDataClient, sidecarUpdateChannel);
+  public AbstractDelegatingDasDb(DataColumnSidecarDB delegateDb) {
+    this.delegateDb = delegateDb;
   }
 
-  // read
-
-  SafeFuture<Optional<UInt64>> getFirstCustodyIncompleteSlot();
-
-  SafeFuture<Optional<UInt64>> getFirstSamplerIncompleteSlot();
+  @Override
+  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier) {
+    return delegateDb.getSidecar(identifier);
+  }
 
   @Override
-  SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier);
+  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(ColumnSlotAndIdentifier identifier) {
+    return delegateDb.getSidecar(identifier);
+  }
 
   @Override
-  SafeFuture<Optional<DataColumnSidecar>> getSidecar(ColumnSlotAndIdentifier identifier);
+  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
+    return delegateDb.getColumnIdentifiers(slot);
+  }
 
   @Override
-  SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot);
-
-  // update
-
-  SafeFuture<Void> setFirstCustodyIncompleteSlot(UInt64 slot);
-
-  SafeFuture<Void> setFirstSamplerIncompleteSlot(UInt64 slot);
-
-  @Override
-  void addSidecar(DataColumnSidecar sidecar);
-
-  void pruneAllSidecars(UInt64 tillSlot);
+  public void addSidecar(DataColumnSidecar sidecar) {
+    delegateDb.addSidecar(sidecar);
+  }
 }
