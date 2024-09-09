@@ -152,6 +152,7 @@ import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImp
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
+import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalculator;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
@@ -661,6 +662,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
     }
     SpecConfigEip7594 configEip7594 =
         SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
+    MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator =
+        MinCustodyPeriodSlotCalculator.createFromSpec(spec);
+
     final DataColumnSidecarDbAccessor dbAccessor;
     {
       int slotsPerEpoch = configEip7594.getSlotsPerEpoch();
@@ -670,6 +674,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
       dbAccessor =
           DataColumnSidecarDbAccessor.builder(sidecarDB)
               .spec(spec)
+              .minCustodyPeriodSlotCalculator(minCustodyPeriodSlotCalculator)
               .withAutoPrune(
                   pruneBuilder ->
                       pruneBuilder.pruneMarginSlots(slotsPerEpoch).prunePeriodSlots(slotsPerEpoch))
@@ -690,7 +695,12 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
         new DataColumnSidecarCustodyImpl(
-            spec, canonicalBlockResolver, dbAccessor, nodeId, totalMyCustodySubnets);
+            spec,
+            canonicalBlockResolver,
+            dbAccessor,
+            minCustodyPeriodSlotCalculator,
+            nodeId,
+            totalMyCustodySubnets);
     eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarCustodyImpl);
 

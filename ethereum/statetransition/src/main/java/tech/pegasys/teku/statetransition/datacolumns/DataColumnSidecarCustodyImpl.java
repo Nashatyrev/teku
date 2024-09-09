@@ -97,20 +97,21 @@ public class DataColumnSidecarCustodyImpl
       Spec spec,
       CanonicalBlockResolver blockResolver,
       DataColumnSidecarDbAccessor db,
+      MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator,
       UInt256 nodeId,
       int totalCustodySubnetCount) {
-
     checkNotNull(spec);
     checkNotNull(blockResolver);
+    checkNotNull(minCustodyPeriodSlotCalculator);
     checkNotNull(db);
     checkNotNull(nodeId);
 
     this.spec = spec;
     this.db = db;
     this.blockResolver = blockResolver;
+    this.minCustodyPeriodSlotCalculator = minCustodyPeriodSlotCalculator;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
-    this.minCustodyPeriodSlotCalculator = MinCustodyPeriodSlotCalculator.createFromSpec(spec);
     this.knownSavedIdentifiers =
         LimitedMap.createSynchronizedNatural(
             VALID_BLOCK_SET_SIZE * spec.getNumberOfDataColumns().orElseThrow());
