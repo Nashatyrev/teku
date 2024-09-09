@@ -16,8 +16,10 @@ package tech.pegasys.teku.statetransition.datacolumns.retriever;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -81,6 +83,8 @@ public class RecoveringSidecarRetrieverTest {
     int columnsInDbCount = 3;
 
     DataColumnSidecarRetrieverStub delegateRetriever = new DataColumnSidecarRetrieverStub();
+    final List<DataColumnSidecar> stubPublisherStorage = new ArrayList<>();
+    final Consumer<DataColumnSidecar> stubPublisher = sidecar -> stubPublisherStorage.add(sidecar);
     RecoveringSidecarRetriever recoverRetrievr =
         new RecoveringSidecarRetriever(
             delegateRetriever,
@@ -89,6 +93,7 @@ public class RecoveringSidecarRetrieverTest {
             schemaDefinitions,
             blockResolver,
             db,
+            stubPublisher,
             stubAsyncRunner,
             Duration.ofSeconds(1),
             128);
@@ -128,5 +133,6 @@ public class RecoveringSidecarRetrieverTest {
     assertThat(res0.get(1, TimeUnit.SECONDS)).isEqualTo(sidecars.get(0));
     assertThat(res1.get(1, TimeUnit.SECONDS)).isEqualTo(sidecars.get(1));
     assertThat(delegateRetriever.requests).allMatch(r -> r.promise().isDone());
+    assertThat(stubPublisherStorage).containsExactlyInAnyOrder(sidecars.get(0), sidecars.get(1));
   }
 }

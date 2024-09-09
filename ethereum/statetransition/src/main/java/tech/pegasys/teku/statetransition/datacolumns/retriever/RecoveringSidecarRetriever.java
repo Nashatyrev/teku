@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -52,6 +53,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   private final DataColumnSidecarDB sidecarDB;
   private final AsyncRunner asyncRunner;
   private final Duration recoverInitiationTimeout;
+  private final Consumer<DataColumnSidecar> dataColumnSidecarPublisher;
   private final int columnCount;
   private final int recoverColumnCount;
 
@@ -64,6 +66,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       SchemaDefinitionsEip7594 schemaDefinitionsEip7594,
       CanonicalBlockResolver blockResolver,
       DataColumnSidecarDB sidecarDB,
+      Consumer<DataColumnSidecar> dataColumnSidecarPublisher,
       AsyncRunner asyncRunner,
       Duration recoverInitiationTimeout,
       int columnCount) {
@@ -73,6 +76,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     this.schemaDefinitions = schemaDefinitionsEip7594;
     this.blockResolver = blockResolver;
     this.sidecarDB = sidecarDB;
+    this.dataColumnSidecarPublisher = dataColumnSidecarPublisher;
     this.asyncRunner = asyncRunner;
     this.recoverInitiationTimeout = recoverInitiationTimeout;
     this.columnCount = columnCount;
@@ -211,6 +215,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       promisesByColIdx.forEach(
           (key, value) -> {
             DataColumnSidecar columnSidecar = existingSidecarsByColIdx.get(key);
+            dataColumnSidecarPublisher.accept(columnSidecar);
             value.forEach(promise -> promise.completeAsync(columnSidecar, asyncRunner));
           });
       promisesByColIdx.clear();
