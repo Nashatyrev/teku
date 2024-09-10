@@ -13,8 +13,6 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import static tech.pegasys.teku.spec.config.Constants.VALID_BLOCK_SET_SIZE;
-
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -23,17 +21,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
-import tech.pegasys.teku.infrastructure.collections.LimitedSet;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -49,7 +42,6 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   public DasLongPollCustody(
       UpdatableDataColumnSidecarCustody delegate,
       AsyncRunner asyncRunner,
-      Spec spec,
       Duration longPollRequestTimeout) {
     this.delegate = delegate;
     this.asyncRunner = asyncRunner;
@@ -69,7 +61,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnIdentifier columnId) {
-    SafeFuture<DataColumnSidecar> pendingPromise = addPendingRequest(columnId);
+    SafeFuture<DataColumnSidecar> pendingPromise = pendingRequests.addNew(columnId);
     delegate
         .getCustodyDataColumnSidecar(columnId)
         .finish(
@@ -86,12 +78,6 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     return delegate.retrieveMissingColumns();
   }
 
-  private SafeFuture<DataColumnSidecar> addPendingRequest(final DataColumnIdentifier columnId) {
-    final SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
-    pendingRequests.add(columnId, promise);
-    return promise;
-  }
-
   private static <T> Optional<T> emptyOnTimeoutElseThrow(Throwable err) {
     if (ExceptionUtil.hasCause(err, TimeoutException.class)) {
       return Optional.empty();
@@ -104,10 +90,12 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   static class PendingRequests {
     final Map<DataColumnIdentifier, List<SafeFuture<DataColumnSidecar>>> requests = new HashMap<>();
 
-    synchronized void add(
-        final DataColumnIdentifier columnId, final SafeFuture<DataColumnSidecar> promise) {
-      clearCancelledPendingRequests();
+    synchronized SafeFuture<DataColumnSidecar> addNew(
+        final DataColumnIdentifier columnId) {
+      final SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
+      clearDonePendingRequests();
       requests.computeIfAbsent(columnId, __ -> new ArrayList<>()).add(promise);
+      return promise;
     }
 
     synchronized List<SafeFuture<DataColumnSidecar>> remove(final DataColumnIdentifier columnId) {
@@ -115,7 +103,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
       return ret == null ? Collections.emptyList() : ret;
     }
 
-    private void clearCancelledPendingRequests() {
+    private void clearDonePendingRequests() {
       requests.values().forEach(promises -> promises.removeIf(CompletableFuture::isDone));
       requests.entrySet().removeIf(e -> e.getValue().isEmpty());
     }
