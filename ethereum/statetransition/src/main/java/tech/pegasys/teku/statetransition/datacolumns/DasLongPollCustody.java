@@ -40,13 +40,9 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
-  private static final Logger LOG = LogManager.getLogger("das-nyota");
-  //  private static final Duration KNOWN_IDENTIFIERS_RETRY = Duration.ofMillis(100);
-
   private final UpdatableDataColumnSidecarCustody delegate;
   private final AsyncRunner asyncRunner;
   private final Duration longPollRequestTimeout;
-  private final Set<DataColumnIdentifier> knownSavedIdentifiers;
 
   @VisibleForTesting final PendingRequests pendingRequests = new PendingRequests();
 
@@ -58,14 +54,10 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     this.delegate = delegate;
     this.asyncRunner = asyncRunner;
     this.longPollRequestTimeout = longPollRequestTimeout;
-    this.knownSavedIdentifiers =
-        LimitedSet.createSynchronized(
-            VALID_BLOCK_SET_SIZE * spec.getNumberOfDataColumns().orElseThrow());
   }
 
   @Override
   public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
-    knownSavedIdentifiers.add(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
     delegate.onNewValidatedDataColumnSidecar(dataColumnSidecar);
     final List<SafeFuture<DataColumnSidecar>> pendingRequests =
         this.pendingRequests.remove(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
@@ -86,16 +78,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     return pendingPromise
         .orTimeout(asyncRunner, longPollRequestTimeout)
         .thenApply(Optional::of)
-        .exceptionally(
-            err -> {
-              if (knownSavedIdentifiers.contains(columnId)) {
-                LOG.warn("[nyota] FIXED: async error in DAS poll");
-                //                  return asyncRunner.runAfterDelay(
-                //                      () -> getCustodyDataColumnSidecar(columnId),
-                // KNOWN_IDENTIFIERS_RETRY);
-              }
-              return emptyOnTimeoutElseThrow(err);
-            });
+        .exceptionally(DasLongPollCustody::emptyOnTimeoutElseThrow);
   }
 
   @Override
