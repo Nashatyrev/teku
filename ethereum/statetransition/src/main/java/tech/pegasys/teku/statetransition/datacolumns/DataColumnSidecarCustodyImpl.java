@@ -87,7 +87,6 @@ public class DataColumnSidecarCustodyImpl
   private final CanonicalBlockResolver blockResolver;
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
-  private final Map<DataColumnIdentifier, ColumnSlotAndIdentifier> knownSavedIdentifiers;
 
   private final MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator;
 
@@ -112,9 +111,6 @@ public class DataColumnSidecarCustodyImpl
     this.minCustodyPeriodSlotCalculator = minCustodyPeriodSlotCalculator;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
-    this.knownSavedIdentifiers =
-        LimitedMap.createSynchronizedNatural(
-            VALID_BLOCK_SET_SIZE * spec.getNumberOfDataColumns().orElseThrow());
   }
 
   private List<UInt64> getCustodyColumnsForSlot(UInt64 slot) {
@@ -129,11 +125,6 @@ public class DataColumnSidecarCustodyImpl
   @Override
   public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     if (isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex())) {
-      final DataColumnIdentifier dataColumnIdentifier =
-          DataColumnIdentifier.createFromSidecar(dataColumnSidecar);
-      knownSavedIdentifiers.put(
-          dataColumnIdentifier,
-          new ColumnSlotAndIdentifier(dataColumnSidecar.getSlot(), dataColumnIdentifier));
       db.addSidecar(dataColumnSidecar);
     }
   }
@@ -154,11 +145,7 @@ public class DataColumnSidecarCustodyImpl
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnIdentifier columnId) {
-    final Optional<ColumnSlotAndIdentifier> maybeColumnSlotAndIdentifier =
-        Optional.ofNullable(knownSavedIdentifiers.get(columnId));
-    return maybeColumnSlotAndIdentifier
-        .map(db::getSidecar)
-        .orElseGet(() -> db.getSidecar(columnId));
+    return db.getSidecar(columnId);
   }
 
   @Override
