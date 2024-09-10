@@ -706,7 +706,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     DasLongPollCustody custody =
         new DasLongPollCustody(
-            dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, spec, Duration.ofSeconds(5));
+            dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, Duration.ofSeconds(5));
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         custody::onNewValidatedDataColumnSidecar);
     // TODO fix this dirty hack
