@@ -27,6 +27,9 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
@@ -37,7 +40,8 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
-  private static final Duration KNOWN_IDENTIFIERS_RETRY = Duration.ofMillis(100);
+  private static final Logger LOG = LogManager.getLogger("das-nyota");
+  //  private static final Duration KNOWN_IDENTIFIERS_RETRY = Duration.ofMillis(100);
 
   private final UpdatableDataColumnSidecarCustody delegate;
   private final AsyncRunner asyncRunner;
@@ -73,31 +77,24 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnIdentifier columnId) {
-    return delegate
+    SafeFuture<DataColumnSidecar> pendingPromise = addPendingRequest(columnId);
+    delegate
         .getCustodyDataColumnSidecar(columnId)
-        .thenCompose(
-            existingColumn -> {
-              if (existingColumn.isPresent()) {
-                return SafeFuture.completedFuture(existingColumn);
-              } else {
-                if (knownSavedIdentifiers.contains(columnId)) {
-                  return asyncRunner.runAfterDelay(
-                      () -> getCustodyDataColumnSidecar(columnId), KNOWN_IDENTIFIERS_RETRY);
-                }
-                SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
-                addPendingRequest(columnId, promise);
-                return promise
-                    .orTimeout(asyncRunner, longPollRequestTimeout)
-                    .thenApply(Optional::of)
-                    .exceptionally(
-                        err -> {
-                          if (ExceptionUtil.hasCause(err, TimeoutException.class)) {
-                            return Optional.empty();
-                          } else {
-                            throw new CompletionException(err);
-                          }
-                        });
+        .finish(
+            maybeExistingColumn -> maybeExistingColumn.ifPresent(pendingPromise::complete),
+            pendingPromise::completeExceptionally);
+    return pendingPromise
+        .orTimeout(asyncRunner, longPollRequestTimeout)
+        .thenApply(Optional::of)
+        .exceptionally(
+            err -> {
+              if (knownSavedIdentifiers.contains(columnId)) {
+                LOG.warn("[nyota] FIXED: async error in DAS poll");
+                //                  return asyncRunner.runAfterDelay(
+                //                      () -> getCustodyDataColumnSidecar(columnId),
+                // KNOWN_IDENTIFIERS_RETRY);
               }
+              return emptyOnTimeoutElseThrow(err);
             });
   }
 
@@ -106,9 +103,18 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     return delegate.retrieveMissingColumns();
   }
 
-  private void addPendingRequest(
-      final DataColumnIdentifier columnId, final SafeFuture<DataColumnSidecar> promise) {
+  private SafeFuture<DataColumnSidecar> addPendingRequest(final DataColumnIdentifier columnId) {
+    final SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
     pendingRequests.add(columnId, promise);
+    return promise;
+  }
+
+  private static <T> Optional<T> emptyOnTimeoutElseThrow(Throwable err) {
+    if (ExceptionUtil.hasCause(err, TimeoutException.class)) {
+      return Optional.empty();
+    } else {
+      throw new CompletionException(err);
+    }
   }
 
   @VisibleForTesting
