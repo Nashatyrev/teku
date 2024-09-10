@@ -21,21 +21,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
+import tech.pegasys.teku.infrastructure.collections.LimitedSet;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
+import static tech.pegasys.teku.spec.config.Constants.VALID_BLOCK_SET_SIZE;
+
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
+  private static final Logger LOG = LogManager.getLogger("das-nyota");
+  //  private static final Duration KNOWN_IDENTIFIERS_RETRY = Duration.ofMillis(100);
+
   private final UpdatableDataColumnSidecarCustody delegate;
   private final AsyncRunner asyncRunner;
   private final Duration longPollRequestTimeout;
+  private final Set<DataColumnIdentifier> knownSavedIdentifiers;
 
   @VisibleForTesting final PendingRequests pendingRequests = new PendingRequests();
 
@@ -46,10 +57,13 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     this.delegate = delegate;
     this.asyncRunner = asyncRunner;
     this.longPollRequestTimeout = longPollRequestTimeout;
+    this.knownSavedIdentifiers =
+        LimitedSet.createSynchronized(10000);
   }
 
   @Override
   public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
+    knownSavedIdentifiers.add(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
     delegate.onNewValidatedDataColumnSidecar(dataColumnSidecar);
     final List<SafeFuture<DataColumnSidecar>> pendingRequests =
         this.pendingRequests.remove(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
@@ -70,7 +84,16 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     return pendingPromise
         .orTimeout(asyncRunner, longPollRequestTimeout)
         .thenApply(Optional::of)
-        .exceptionally(DasLongPollCustody::emptyOnTimeoutElseThrow);
+        .exceptionally(
+            err -> {
+              if (knownSavedIdentifiers.contains(columnId)) {
+                LOG.warn("[nyota] FIXED: async error in DAS poll");
+                //                  return asyncRunner.runAfterDelay(
+                //                      () -> getCustodyDataColumnSidecar(columnId),
+                // KNOWN_IDENTIFIERS_RETRY);
+              }
+              return emptyOnTimeoutElseThrow(err);
+            });
   }
 
   @Override
