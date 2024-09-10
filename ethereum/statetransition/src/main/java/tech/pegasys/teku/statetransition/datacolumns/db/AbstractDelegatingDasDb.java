@@ -24,17 +24,12 @@ import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
 abstract class AbstractDelegatingDasDb implements DataColumnSidecarCoreDB {
   private final DataColumnSidecarCoreDB delegateDb;
 
-  public AbstractDelegatingDasDb(DataColumnSidecarDB delegateDb) {
+  public AbstractDelegatingDasDb(DataColumnSidecarCoreDB delegateDb) {
     this.delegateDb = delegateDb;
   }
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier) {
-    return delegateDb.getSidecar(identifier);
-  }
-
-  @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(ColumnSlotAndIdentifier identifier) {
     return delegateDb.getSidecar(identifier);
   }
 

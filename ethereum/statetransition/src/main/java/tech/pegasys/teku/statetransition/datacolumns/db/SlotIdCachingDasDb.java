@@ -45,9 +45,9 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
       maybeCachedSlotId = cachedIdentifiers.get(dataColumnIdentifier);
     }
     if (maybeCachedSlotId == null) {
-      return super.getSidecar(dataColumnIdentifier);
+      return delegate.getSidecar(dataColumnIdentifier);
     } else {
-      return super.getSidecar(maybeCachedSlotId);
+      return delegate.getSidecar(maybeCachedSlotId);
     }
   }
 
@@ -78,6 +78,12 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
   }
 
   // just delegate methods
+
+  @Deprecated
+  @Override
+  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(ColumnSlotAndIdentifier identifier) {
+    return delegate.getSidecar(identifier);
+  }
 
   @Override
   public SafeFuture<Optional<UInt64>> getFirstCustodyIncompleteSlot() {
