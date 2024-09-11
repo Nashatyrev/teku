@@ -72,10 +72,11 @@ public class DasLongPollCustodyTest {
 
   private final BeaconBlock block10 = blockResolver.addBlock(10, true);
   private final DataColumnSidecar sidecar10_0 = createSidecar(block10, 0);
-  private final DataColumnIdentifier columnId10_0 = DataColumnIdentifier.createFromSidecar(sidecar10_0);
+  private final DataColumnIdentifier columnId10_0 =
+      DataColumnIdentifier.createFromSidecar(sidecar10_0);
   private final DataColumnSidecar sidecar10_1 = createSidecar(block10, 1);
-  private final DataColumnIdentifier columnId10_1 = DataColumnIdentifier.createFromSidecar(sidecar10_1);
-
+  private final DataColumnIdentifier columnId10_1 =
+      DataColumnIdentifier.createFromSidecar(sidecar10_1);
 
   private DataColumnSidecar createSidecar(BeaconBlock block, int column) {
     return dataStructureUtil.randomDataColumnSidecar(createSigned(block), UInt64.valueOf(column));
@@ -94,10 +95,12 @@ public class DasLongPollCustodyTest {
 
   @Test
   void testLongPollingColumnRequest() throws Exception {
-    SafeFuture<Optional<DataColumnSidecar>> fRet0 = custody.getCustodyDataColumnSidecar(columnId10_0);
+    SafeFuture<Optional<DataColumnSidecar>> fRet0 =
+        custody.getCustodyDataColumnSidecar(columnId10_0);
     SafeFuture<Optional<DataColumnSidecar>> fRet0_1 =
         custody.getCustodyDataColumnSidecar(columnId10_0);
-    SafeFuture<Optional<DataColumnSidecar>> fRet1 = custody.getCustodyDataColumnSidecar(columnId10_1);
+    SafeFuture<Optional<DataColumnSidecar>> fRet1 =
+        custody.getCustodyDataColumnSidecar(columnId10_1);
 
     advanceTimeGradually(longPollTimeout.minus(dbDelay).minus(ofMillis(1)));
 
@@ -154,7 +157,8 @@ public class DasLongPollCustodyTest {
 
   @Test
   void testOptionalEmptyIsReturnedOnTimeout() {
-    SafeFuture<Optional<DataColumnSidecar>> fRet0 = custody.getCustodyDataColumnSidecar(columnId10_0);
+    SafeFuture<Optional<DataColumnSidecar>> fRet0 =
+        custody.getCustodyDataColumnSidecar(columnId10_0);
 
     advanceTimeGradually(longPollTimeout.multipliedBy(2));
 

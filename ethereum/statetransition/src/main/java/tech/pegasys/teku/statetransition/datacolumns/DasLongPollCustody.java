@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
