@@ -78,6 +78,35 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
         .thenCompose(__ -> sidecarUpdateChannel.onFirstCustodyIncompleteSlot(slot));
   }
 
+  private SafeFuture<Void> logNewFirstCustodyIncompleteSlot(
+      Optional<UInt64> maybeCurrentSlot, final UInt64 newSlot) {
+    if (maybeCurrentSlot.isEmpty() || !maybeCurrentSlot.get().equals(newSlot)) {
+      return getColumnIdentifiers(newSlot)
+          .thenCompose(
+              newSlotColumnIdentifiers -> {
+                final long newSlotCount = newSlotColumnIdentifiers.size();
+                if (maybeCurrentSlot.isEmpty()) {
+                  return SafeFuture.completedFuture(Pair.of(0L, newSlotCount));
+                } else {
+                  return getColumnIdentifiers(maybeCurrentSlot.get())
+                      .thenApply(
+                          dataColumnIdentifierStream ->
+                              Pair.of(dataColumnIdentifierStream.size(), newSlotCount));
+                }
+              })
+          .thenAccept(
+              oldCountNewCount ->
+                  LOG.info(
+                      "[nyota] DataColumnSidecarDB: setFirstCustodyIncompleteSlot {} ({} cols) ~> {} ({} cols)",
+                      maybeCurrentSlot.map(UInt64::toString).orElse("NA"),
+                      oldCountNewCount.left(),
+                      newSlot,
+                      oldCountNewCount.right()));
+    } else {
+      return SafeFuture.COMPLETE;
+    }
+  }
+
   @Override
   public SafeFuture<Void> setFirstSamplerIncompleteSlot(final UInt64 slot) {
     return getFirstSamplerIncompleteSlot()
@@ -124,35 +153,6 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
   @Override
   public SafeFuture<Void> pruneAllSidecars(final UInt64 tillSlotExclusive) {
     return sidecarUpdateChannel.onSidecarsAvailabilitySlot(tillSlotExclusive);
-  }
-
-  private SafeFuture<Void> logNewFirstCustodyIncompleteSlot(
-      Optional<UInt64> maybeCurrentSlot, final UInt64 newSlot) {
-    if (maybeCurrentSlot.isEmpty() || !maybeCurrentSlot.get().equals(newSlot)) {
-      return getColumnIdentifiers(newSlot)
-          .thenCompose(
-              newSlotColumnIdentifiers -> {
-                final long newSlotCount = newSlotColumnIdentifiers.size();
-                if (maybeCurrentSlot.isEmpty()) {
-                  return SafeFuture.completedFuture(Pair.of(0L, newSlotCount));
-                } else {
-                  return getColumnIdentifiers(maybeCurrentSlot.get())
-                      .thenApply(
-                          dataColumnIdentifierStream ->
-                              Pair.of(dataColumnIdentifierStream.size(), newSlotCount));
-                }
-              })
-          .thenAccept(
-              oldCountNewCount ->
-                  LOG.info(
-                      "[nyota] DataColumnSidecarDB: setFirstCustodyIncompleteSlot {} ({} cols) ~> {} ({} cols)",
-                      maybeCurrentSlot.map(UInt64::toString).orElse("NA"),
-                      oldCountNewCount.left(),
-                      newSlot,
-                      oldCountNewCount.right()));
-    } else {
-      return SafeFuture.COMPLETE;
-    }
   }
 
   private SafeFuture<Void> logNewFirstSamplerIncompleteSlot(
