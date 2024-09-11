@@ -68,7 +68,7 @@ public class DasLongPollCustodyTest {
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
   private final Duration longPollTimeout = ofMillis(200);
   private final DasLongPollCustody custody =
-      new DasLongPollCustody(custodyImpl, stubAsyncRunner, spec, longPollTimeout);
+      new DasLongPollCustody(custodyImpl, stubAsyncRunner, longPollTimeout);
 
   private final BeaconBlock block10 = blockResolver.addBlock(10, true);
   private final DataColumnSidecar sidecar10_0 = createSidecar(block10, 0);
