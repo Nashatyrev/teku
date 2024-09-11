@@ -98,7 +98,7 @@ public class DasLongPollCustodyTest {
         custody.getCustodyDataColumnSidecar(columnId10_0);
     SafeFuture<Optional<DataColumnSidecar>> fRet1 = custody.getCustodyDataColumnSidecar(columnId10_1);
 
-    advanceTimeGradually(longPollTimeout.plus(dbDelay).minus(Duration.ofMillis(1)));
+    advanceTimeGradually(longPollTimeout.minus(dbDelay).minus(Duration.ofMillis(1)));
 
     assertThat(fRet0).isNotDone();
     assertThat(fRet0_1).isNotDone();
@@ -106,11 +106,13 @@ public class DasLongPollCustodyTest {
 
     custody.onNewValidatedDataColumnSidecar(sidecar10_0);
 
+    advanceTimeGradually(dbDelay);
+
     assertThat(fRet0.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
     assertThat(fRet0_1.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
     assertThat(fRet1).isNotDone();
 
-    advanceTimeGradually(Duration.ofMillis(2));
+    advanceTimeGradually(longPollTimeout);
 
     assertThat(fRet0.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
     assertThat(fRet0_1.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
