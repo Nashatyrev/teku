@@ -27,10 +27,7 @@ import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
  */
 class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSidecarDB {
   private final DataColumnSidecarDB delegate;
-  private final Map<DataColumnIdentifier, ColumnSlotAndIdentifier> cachedIdentifiers =
-      new HashMap<>();
-  private final NavigableMap<ColumnSlotAndIdentifier, DataColumnIdentifier> slotIdToIdentifiers =
-      new TreeMap<>();
+  private final ColumnSlotCache columnSlotCache = new ColumnSlotCache();
 
   public SlotIdCachingDasDb(DataColumnSidecarDB delegate) {
     super(delegate);
@@ -40,40 +37,21 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getSidecar(
       DataColumnIdentifier dataColumnIdentifier) {
-    final ColumnSlotAndIdentifier maybeCachedSlotId;
-    synchronized (this) {
-      maybeCachedSlotId = cachedIdentifiers.get(dataColumnIdentifier);
-    }
-    if (maybeCachedSlotId == null) {
-      return delegate.getSidecar(dataColumnIdentifier);
-    } else {
-      return delegate.getSidecar(maybeCachedSlotId);
-    }
+    return columnSlotCache
+        .get(dataColumnIdentifier)
+        .map(delegate::getSidecar)
+        .orElseGet(() -> delegate.getSidecar(dataColumnIdentifier));
   }
 
   @Override
-  public void addSidecar(DataColumnSidecar sidecar) {
-    final DataColumnIdentifier dataColumnIdentifier =
-        DataColumnIdentifier.createFromSidecar(sidecar);
-    synchronized (this) {
-      ColumnSlotAndIdentifier columnSlotAndIdentifier =
-          new ColumnSlotAndIdentifier(sidecar.getSlot(), dataColumnIdentifier);
-      cachedIdentifiers.put(dataColumnIdentifier, columnSlotAndIdentifier);
-      slotIdToIdentifiers.put(columnSlotAndIdentifier, dataColumnIdentifier);
-    }
-    super.addSidecar(sidecar);
-  }
-
-  private synchronized void pruneCaches(UInt64 tillSlot) {
-    SortedMap<ColumnSlotAndIdentifier, DataColumnIdentifier> toPrune =
-        slotIdToIdentifiers.headMap(ColumnSlotAndIdentifier.minimalForSlot(tillSlot));
-    toPrune.values().forEach(cachedIdentifiers::remove);
-    toPrune.clear();
+  public SafeFuture<Void> addSidecar(DataColumnSidecar sidecar) {
+    columnSlotCache.addColumnSlotIdFromSidecar(sidecar);
+    return delegate.addSidecar(sidecar);
   }
 
   @Override
   public SafeFuture<Void> setFirstCustodyIncompleteSlot(UInt64 slot) {
-    pruneCaches(slot);
+    columnSlotCache.pruneCaches(slot);
     return delegate.setFirstCustodyIncompleteSlot(slot);
   }
 
@@ -101,7 +79,35 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
   }
 
   @Override
-  public void pruneAllSidecars(UInt64 tillSlot) {
-    delegate.pruneAllSidecars(tillSlot);
+  public SafeFuture<Void> pruneAllSidecars(UInt64 tillSlot) {
+    return delegate.pruneAllSidecars(tillSlot);
+  }
+
+  private static class ColumnSlotCache {
+    private final Map<DataColumnIdentifier, ColumnSlotAndIdentifier> cachedIdentifiers =
+        new HashMap<>();
+    private final NavigableMap<ColumnSlotAndIdentifier, DataColumnIdentifier> slotIdToIdentifiers =
+        new TreeMap<>();
+
+    public synchronized Optional<ColumnSlotAndIdentifier> get(
+        DataColumnIdentifier dataColumnIdentifier) {
+      return Optional.ofNullable(cachedIdentifiers.get(dataColumnIdentifier));
+    }
+
+    public synchronized void addColumnSlotIdFromSidecar(DataColumnSidecar sidecar) {
+      final DataColumnIdentifier dataColumnIdentifier =
+          DataColumnIdentifier.createFromSidecar(sidecar);
+      final ColumnSlotAndIdentifier columnSlotAndIdentifier =
+          new ColumnSlotAndIdentifier(sidecar.getSlot(), dataColumnIdentifier);
+      cachedIdentifiers.put(dataColumnIdentifier, columnSlotAndIdentifier);
+      slotIdToIdentifiers.put(columnSlotAndIdentifier, dataColumnIdentifier);
+    }
+
+    public synchronized void pruneCaches(UInt64 tillSlot) {
+      SortedMap<ColumnSlotAndIdentifier, DataColumnIdentifier> toPrune =
+          slotIdToIdentifiers.headMap(ColumnSlotAndIdentifier.minimalForSlot(tillSlot));
+      toPrune.values().forEach(cachedIdentifiers::remove);
+      toPrune.clear();
+    }
   }
 }
