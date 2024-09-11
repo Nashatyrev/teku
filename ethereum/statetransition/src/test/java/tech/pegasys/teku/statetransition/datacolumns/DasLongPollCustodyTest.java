@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import static java.time.Duration.ofMillis;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
@@ -44,8 +45,8 @@ public class DasLongPollCustodyTest {
 
   final Spec spec = TestSpecFactory.createMinimalEip7594();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
-  final Duration dbDelay = Duration.ofMillis(5);
-  final DataColumnSidecarDB delayedDb = new DelayedDasDb(db, stubAsyncRunner, dbDelay);
+  final Duration dbDelay = ofMillis(5);
+  final DelayedDasDb delayedDb = new DelayedDasDb(db, stubAsyncRunner, dbDelay);
   final DataColumnSidecarDbAccessor dbAccessor =
       DataColumnSidecarDbAccessor.builder(delayedDb).spec(spec).build();
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
@@ -65,7 +66,7 @@ public class DasLongPollCustodyTest {
           subnetCount);
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
-  private final Duration longPollTimeout = Duration.ofMillis(200);
+  private final Duration longPollTimeout = ofMillis(200);
   private final DasLongPollCustody custody =
       new DasLongPollCustody(custodyImpl, stubAsyncRunner, spec, longPollTimeout);
 
@@ -86,7 +87,7 @@ public class DasLongPollCustodyTest {
 
   private void advanceTimeGradually(Duration delta) {
     for (int i = 0; i < delta.toMillis(); i++) {
-      stubTimeProvider.advanceTimeBy(Duration.ofMillis(1));
+      stubTimeProvider.advanceTimeBy(ofMillis(1));
       stubAsyncRunner.executeDueActionsRepeatedly();
     }
   }
@@ -98,7 +99,7 @@ public class DasLongPollCustodyTest {
         custody.getCustodyDataColumnSidecar(columnId10_0);
     SafeFuture<Optional<DataColumnSidecar>> fRet1 = custody.getCustodyDataColumnSidecar(columnId10_1);
 
-    advanceTimeGradually(longPollTimeout.minus(dbDelay).minus(Duration.ofMillis(1)));
+    advanceTimeGradually(longPollTimeout.minus(dbDelay).minus(ofMillis(1)));
 
     assertThat(fRet0).isNotDone();
     assertThat(fRet0_1).isNotDone();
@@ -120,13 +121,34 @@ public class DasLongPollCustodyTest {
   }
 
   @Test
-  void testPendingRequestIsExecutedOnAsyncDb() throws Exception {
-    SafeFuture<Optional<DataColumnSidecar>> fRet0 = custody.getCustodyDataColumnSidecar(columnId10_0);
-    advanceTimeGradually(Duration.ofMillis(1));
-    // db query is not yet complete when the data is added
+  void testPendingRequestIsExecutedWhenLongReadQuickWrite() throws Exception {
+    // long DB read
+    delayedDb.setDelay(ofMillis(10));
+    SafeFuture<Optional<DataColumnSidecar>> fRet0 =
+        custody.getCustodyDataColumnSidecar(columnId10_0);
+    advanceTimeGradually(ofMillis(1));
+
+    // quicker DB write
+    delayedDb.setDelay(ofMillis(5));
     custody.onNewValidatedDataColumnSidecar(sidecar10_0);
 
-    advanceTimeGradually(dbDelay);
+    advanceTimeGradually(ofMillis(10));
+    assertThat(fRet0).isCompletedWithValue(Optional.ofNullable(sidecar10_0));
+  }
+
+  @Test
+  void testPendingRequestIsExecutedWhenLongWriteQuickRead() throws Exception {
+    // long DB write
+    delayedDb.setDelay(ofMillis(10));
+    custody.onNewValidatedDataColumnSidecar(sidecar10_0);
+
+    advanceTimeGradually(ofMillis(1));
+    // quicker DB read
+    delayedDb.setDelay(ofMillis(5));
+    SafeFuture<Optional<DataColumnSidecar>> fRet0 =
+        custody.getCustodyDataColumnSidecar(columnId10_0);
+
+    advanceTimeGradually(ofMillis(50));
     assertThat(fRet0).isCompletedWithValue(Optional.ofNullable(sidecar10_0));
   }
 
