@@ -134,7 +134,7 @@ public class DataColumnSidecarCustodyImpl
       knownSavedIdentifiers.put(
           dataColumnIdentifier,
           new ColumnSlotAndIdentifier(dataColumnSidecar.getSlot(), dataColumnIdentifier));
-      return db.addSidecar(dataColumnSidecar).ifExceptionGetsHereRaiseABug();
+      return db.addSidecar(dataColumnSidecar);
     } else {
       return SafeFuture.COMPLETE;
     }
