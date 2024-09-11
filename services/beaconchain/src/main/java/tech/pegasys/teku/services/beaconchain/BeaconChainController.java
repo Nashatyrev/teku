@@ -670,7 +670,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
       int slotsPerEpoch = configEip7594.getSlotsPerEpoch();
       DataColumnSidecarDB sidecarDB =
           DataColumnSidecarDB.create(
-              combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class, beaconAsyncRunner));
+              combinedChainDataClient,
+              eventChannels.getPublisher(SidecarUpdateChannel.class, beaconAsyncRunner));
       dbAccessor =
           DataColumnSidecarDbAccessor.builder(sidecarDB)
               .spec(spec)
@@ -708,7 +709,10 @@ public class BeaconChainController extends Service implements BeaconChainControl
         new DasLongPollCustody(
             dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, Duration.ofSeconds(5));
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
-        custody::onNewValidatedDataColumnSidecar);
+        dataColumnSidecar ->
+            custody
+                .onNewValidatedDataColumnSidecar(dataColumnSidecar)
+                .ifExceptionGetsHereRaiseABug());
     // TODO fix this dirty hack
     // This is to resolve the initialization loop Network <--> DAS Custody
     this.dataColumnSidecarCustody.init(custody);

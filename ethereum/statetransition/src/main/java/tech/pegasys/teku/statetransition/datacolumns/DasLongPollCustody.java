@@ -57,19 +57,23 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     this.delegate = delegate;
     this.asyncRunner = asyncRunner;
     this.longPollRequestTimeout = longPollRequestTimeout;
-    this.knownSavedIdentifiers =
-        LimitedSet.createSynchronized(10000);
+    this.knownSavedIdentifiers = LimitedSet.createSynchronized(10000);
   }
 
   @Override
-  public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
+  public SafeFuture<Void> onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     knownSavedIdentifiers.add(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
-    delegate.onNewValidatedDataColumnSidecar(dataColumnSidecar);
-    final List<SafeFuture<DataColumnSidecar>> pendingRequests =
-        this.pendingRequests.remove(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
-    for (SafeFuture<DataColumnSidecar> pendingRequest : pendingRequests) {
-      pendingRequest.complete(dataColumnSidecar);
-    }
+    return delegate
+        .onNewValidatedDataColumnSidecar(dataColumnSidecar)
+        .thenRun(
+            () -> {
+              final List<SafeFuture<DataColumnSidecar>> pendingRequests =
+                  this.pendingRequests.remove(
+                      DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
+              for (SafeFuture<DataColumnSidecar> pendingRequest : pendingRequests) {
+                pendingRequest.complete(dataColumnSidecar);
+              }
+            });
   }
 
   @Override
@@ -113,8 +117,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   static class PendingRequests {
     final Map<DataColumnIdentifier, List<SafeFuture<DataColumnSidecar>>> requests = new HashMap<>();
 
-    synchronized SafeFuture<DataColumnSidecar> addNew(
-        final DataColumnIdentifier columnId) {
+    synchronized SafeFuture<DataColumnSidecar> addNew(final DataColumnIdentifier columnId) {
       final SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
       clearDonePendingRequests();
       requests.computeIfAbsent(columnId, __ -> new ArrayList<>()).add(promise);
