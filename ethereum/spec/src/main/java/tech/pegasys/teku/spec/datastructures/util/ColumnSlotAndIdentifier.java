@@ -34,13 +34,6 @@ public record ColumnSlotAndIdentifier(UInt64 slot, DataColumnIdentifier identifi
         dataColumnSidecar.getIndex());
   }
 
-  public static ColumnSlotAndIdentifier minimalForSlot(final UInt64 slot) {
-    return new ColumnSlotAndIdentifier(slot, MINIMAL_IDENTIFIER);
-  }
-
-  private static final DataColumnIdentifier MINIMAL_IDENTIFIER =
-      new DataColumnIdentifier(Bytes32.ZERO, UInt64.ZERO);
-
   @Override
   public int compareTo(@NotNull final ColumnSlotAndIdentifier o) {
     return Comparator.comparing(ColumnSlotAndIdentifier::slot)

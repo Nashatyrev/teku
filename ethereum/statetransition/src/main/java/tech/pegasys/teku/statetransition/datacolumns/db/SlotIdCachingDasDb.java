@@ -6,6 +6,8 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+
+import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -84,29 +86,25 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
   }
 
   private static class ColumnSlotCache {
-    private final Map<DataColumnIdentifier, ColumnSlotAndIdentifier> cachedIdentifiers =
-        new HashMap<>();
-    private final NavigableMap<ColumnSlotAndIdentifier, DataColumnIdentifier> slotIdToIdentifiers =
-        new TreeMap<>();
+    private final Map<Bytes32, UInt64> blockRootToSlot = new HashMap<>();
+    private final NavigableMap<UInt64, Bytes32> slotToBlockRoot = new TreeMap<>();
 
     public synchronized Optional<ColumnSlotAndIdentifier> get(
         DataColumnIdentifier dataColumnIdentifier) {
-      return Optional.ofNullable(cachedIdentifiers.get(dataColumnIdentifier));
+      return Optional.ofNullable(blockRootToSlot.get(dataColumnIdentifier.getBlockRoot()))
+          .map(slot -> new ColumnSlotAndIdentifier(slot, dataColumnIdentifier));
     }
 
     public synchronized void addColumnSlotIdFromSidecar(DataColumnSidecar sidecar) {
-      final DataColumnIdentifier dataColumnIdentifier =
-          DataColumnIdentifier.createFromSidecar(sidecar);
-      final ColumnSlotAndIdentifier columnSlotAndIdentifier =
-          new ColumnSlotAndIdentifier(sidecar.getSlot(), dataColumnIdentifier);
-      cachedIdentifiers.put(dataColumnIdentifier, columnSlotAndIdentifier);
-      slotIdToIdentifiers.put(columnSlotAndIdentifier, dataColumnIdentifier);
+      Bytes32 blockRoot = sidecar.getBlockRoot();
+      UInt64 slot = sidecar.getSlot();
+      blockRootToSlot.put(blockRoot, slot);
+      slotToBlockRoot.put(slot, blockRoot);
     }
 
     public synchronized void pruneCaches(UInt64 tillSlot) {
-      SortedMap<ColumnSlotAndIdentifier, DataColumnIdentifier> toPrune =
-          slotIdToIdentifiers.headMap(ColumnSlotAndIdentifier.minimalForSlot(tillSlot));
-      toPrune.values().forEach(cachedIdentifiers::remove);
+      SortedMap<UInt64, Bytes32> toPrune = slotToBlockRoot.headMap(tillSlot);
+      toPrune.values().forEach(blockRootToSlot::remove);
       toPrune.clear();
     }
   }
