@@ -52,7 +52,7 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
   }
 
   @Override
-  public void addSidecar(DataColumnSidecar sidecar) {
+  public SafeFuture<Void> addSidecar(DataColumnSidecar sidecar) {
     final DataColumnIdentifier dataColumnIdentifier =
         DataColumnIdentifier.createFromSidecar(sidecar);
     synchronized (this) {
@@ -61,7 +61,7 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
       cachedIdentifiers.put(dataColumnIdentifier, columnSlotAndIdentifier);
       slotIdToIdentifiers.put(columnSlotAndIdentifier, dataColumnIdentifier);
     }
-    super.addSidecar(sidecar);
+    return super.addSidecar(sidecar);
   }
 
   private synchronized void pruneCaches(UInt64 tillSlot) {
@@ -101,7 +101,7 @@ class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSi
   }
 
   @Override
-  public void pruneAllSidecars(UInt64 tillSlot) {
-    delegate.pruneAllSidecars(tillSlot);
+  public SafeFuture<Void> pruneAllSidecars(UInt64 tillSlot) {
+    return delegate.pruneAllSidecars(tillSlot);
   }
 }

@@ -125,7 +125,7 @@ public class DataColumnSidecarCustodyImpl
   @Override
   public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     if (isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex())) {
-      db.addSidecar(dataColumnSidecar);
+      db.addSidecar(dataColumnSidecar).ifExceptionGetsHereRaiseABug();
     }
   }
 

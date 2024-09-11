@@ -74,12 +74,12 @@ public class DelayedDasDb implements DataColumnSidecarDB {
   }
 
   @Override
-  public void addSidecar(DataColumnSidecar sidecar) {
-    delegate.addSidecar(sidecar);
+  public SafeFuture<Void> addSidecar(DataColumnSidecar sidecar) {
+    return delay(delegate.addSidecar(sidecar));
   }
 
   @Override
-  public void pruneAllSidecars(UInt64 tillSlot) {
-    delegate.pruneAllSidecars(tillSlot);
+  public SafeFuture<Void> pruneAllSidecars(UInt64 tillSlot) {
+    return delay(delegate.pruneAllSidecars(tillSlot));
   }
 }

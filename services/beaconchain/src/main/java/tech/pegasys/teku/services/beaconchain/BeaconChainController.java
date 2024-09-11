@@ -466,7 +466,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
                     storageQueryChannel,
                     storageUpdateChannel,
                     voteUpdateChannel,
-                    eventChannels.getPublisher(SidecarUpdateChannel.class),
+                    eventChannels.getPublisher(SidecarUpdateChannel.class, beaconAsyncRunner),
                     eventChannels.getPublisher(FinalizedCheckpointChannel.class, beaconAsyncRunner),
                     coalescingChainHeadChannel,
                     validatorIsConnectedProvider,
@@ -670,7 +670,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
       int slotsPerEpoch = configEip7594.getSlotsPerEpoch();
       DataColumnSidecarDB sidecarDB =
           DataColumnSidecarDB.create(
-              combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class));
+              combinedChainDataClient, eventChannels.getPublisher(SidecarUpdateChannel.class, beaconAsyncRunner));
       dbAccessor =
           DataColumnSidecarDbAccessor.builder(sidecarDB)
               .spec(spec)
