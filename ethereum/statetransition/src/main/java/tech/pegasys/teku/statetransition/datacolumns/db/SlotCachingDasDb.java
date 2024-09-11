@@ -27,11 +27,11 @@ import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
  *       DataColumnIdentifier} would fail without this cache
  * </ul>
  */
-class SlotIdCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSidecarDB {
+class SlotCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSidecarDB {
   private final DataColumnSidecarDB delegate;
   private final ColumnSlotCache columnSlotCache = new ColumnSlotCache();
 
-  public SlotIdCachingDasDb(DataColumnSidecarDB delegate) {
+  public SlotCachingDasDb(DataColumnSidecarDB delegate) {
     super(delegate);
     this.delegate = delegate;
   }

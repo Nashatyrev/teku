@@ -48,7 +48,7 @@ public class DataColumnSidecarDbAccessorBuilder {
   }
 
   public DataColumnSidecarDbAccessor build() {
-    SlotIdCachingDasDb slotIdCachingDb = new SlotIdCachingDasDb(db);
+    SlotCachingDasDb slotIdCachingDb = new SlotCachingDasDb(db);
     return autoPruneDbBuilder.build(slotIdCachingDb);
   }
 
