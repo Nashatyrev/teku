@@ -127,7 +127,7 @@ public class DataColumnSidecarCustodyImpl
   }
 
   @Override
-  public SafeFuture<Void>  onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
+  public SafeFuture<Void> onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     if (isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex())) {
       final DataColumnIdentifier dataColumnIdentifier =
           DataColumnIdentifier.createFromSidecar(dataColumnSidecar);
