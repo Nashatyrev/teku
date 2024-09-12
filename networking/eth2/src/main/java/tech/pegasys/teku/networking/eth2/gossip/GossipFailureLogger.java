@@ -20,7 +20,10 @@ import io.libp2p.pubsub.NoPeersForOutboundMessageException;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+
+import java.time.Duration;
 
 public class GossipFailureLogger {
   private static final Logger LOG = LogManager.getLogger();
