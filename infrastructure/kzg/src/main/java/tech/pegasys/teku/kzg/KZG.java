@@ -77,15 +77,9 @@ public interface KZG {
         }
 
         @Override
-        public boolean verifyCellProof(
-            KZGCommitment commitment, KZGCellWithColumnId cellWithID, KZGProof proof) {
-          return false;
-        }
-
-        @Override
         public boolean verifyCellProofBatch(
             List<KZGCommitment> commitments,
-            List<KZGCellWithIds> cellWithIDs,
+            List<KZGCellWithColumnId> cellWithIDs,
             List<KZGProof> proofs) {
           return false;
         }
@@ -115,10 +109,10 @@ public interface KZG {
 
   List<KZGCellAndProof> computeCellsAndProofs(Bytes blob);
 
-  boolean verifyCellProof(KZGCommitment commitment, KZGCellWithColumnId cellWithID, KZGProof proof);
-
   boolean verifyCellProofBatch(
-      List<KZGCommitment> commitments, List<KZGCellWithIds> cellWithIDs, List<KZGProof> proofs);
+      List<KZGCommitment> commitments,
+      List<KZGCellWithColumnId> cellWithIDs,
+      List<KZGProof> proofs);
 
   List<KZGCellAndProof> recoverCellsAndProofs(List<KZGCellWithColumnId> cells);
 }

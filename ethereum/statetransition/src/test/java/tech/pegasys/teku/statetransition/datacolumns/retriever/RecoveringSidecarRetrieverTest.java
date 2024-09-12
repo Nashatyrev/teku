@@ -39,15 +39,19 @@ import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
-import tech.pegasys.teku.statetransition.datacolumns.ColumnSlotAndIdentifier;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBStub;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSlotAndIdentifier;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
+import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 
+@SuppressWarnings("FutureReturnValueIgnored")
 public class RecoveringSidecarRetrieverTest {
 
   final StubAsyncRunner stubAsyncRunner = new StubAsyncRunner();
   final Spec spec = TestSpecFactory.createMinimalEip7594();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
+  final DataColumnSidecarDbAccessor dbAccessor =
+      DataColumnSidecarDbAccessor.builder(db).spec(spec).build();
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
 
   final SpecConfigEip7594 config =
@@ -70,8 +74,8 @@ public class RecoveringSidecarRetrieverTest {
     return dataStructureUtil.signedBlock(block);
   }
 
-  private ColumnSlotAndIdentifier createId(BeaconBlock block, int colIdx) {
-    return new ColumnSlotAndIdentifier(
+  private DataColumnSlotAndIdentifier createId(BeaconBlock block, int colIdx) {
+    return new DataColumnSlotAndIdentifier(
         block.getSlot(), new DataColumnIdentifier(block.getRoot(), UInt64.valueOf(colIdx)));
   }
 
@@ -88,7 +92,7 @@ public class RecoveringSidecarRetrieverTest {
             miscHelpers,
             schemaDefinitions,
             blockResolver,
-            db,
+            dbAccessor,
             stubAsyncRunner,
             Duration.ofSeconds(1),
             128);
@@ -101,8 +105,8 @@ public class RecoveringSidecarRetrieverTest {
         IntStream.range(10, Integer.MAX_VALUE).limit(columnsInDbCount).boxed().toList();
     dbColumnIndexes.forEach(idx -> db.addSidecar(sidecars.get(idx)));
 
-    ColumnSlotAndIdentifier id0 = createId(block, 0);
-    ColumnSlotAndIdentifier id1 = createId(block, 1);
+    DataColumnSlotAndIdentifier id0 = createId(block, 0);
+    DataColumnSlotAndIdentifier id1 = createId(block, 1);
     SafeFuture<DataColumnSidecar> res0 = recoverRetrievr.retrieve(id0);
     SafeFuture<DataColumnSidecar> res1 = recoverRetrievr.retrieve(id1);
 

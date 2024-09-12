@@ -26,6 +26,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
@@ -48,50 +49,52 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   }
 
   @Override
-  public void onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
-    delegate.onNewValidatedDataColumnSidecar(dataColumnSidecar);
-    final List<SafeFuture<DataColumnSidecar>> pendingRequests =
-        this.pendingRequests.remove(DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
-    for (SafeFuture<DataColumnSidecar> pendingRequest : pendingRequests) {
-      pendingRequest.complete(dataColumnSidecar);
-    }
-  }
-
-  @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
-      DataColumnIdentifier columnId) {
+  public SafeFuture<Void> onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     return delegate
-        .getCustodyDataColumnSidecar(columnId)
-        .thenCompose(
-            existingColumn -> {
-              if (existingColumn.isPresent()) {
-                return SafeFuture.completedFuture(existingColumn);
-              } else {
-                SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
-                addPendingRequest(columnId, promise);
-                return promise
-                    .orTimeout(asyncRunner, longPollRequestTimeout)
-                    .thenApply(Optional::of)
-                    .exceptionally(
-                        err -> {
-                          if (ExceptionUtil.hasCause(err, TimeoutException.class)) {
-                            return Optional.empty();
-                          } else {
-                            throw new CompletionException(err);
-                          }
-                        });
+        .onNewValidatedDataColumnSidecar(dataColumnSidecar)
+        .thenRun(
+            () -> {
+              final List<SafeFuture<DataColumnSidecar>> pendingRequests =
+                  this.pendingRequests.remove(
+                      DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
+              for (SafeFuture<DataColumnSidecar> pendingRequest : pendingRequests) {
+                pendingRequest.complete(dataColumnSidecar);
               }
             });
   }
 
   @Override
-  public SafeFuture<List<ColumnSlotAndIdentifier>> retrieveMissingColumns() {
+  public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
+      DataColumnIdentifier columnId) {
+    SafeFuture<DataColumnSidecar> pendingPromise = addPendingRequest(columnId);
+    delegate
+        .getCustodyDataColumnSidecar(columnId)
+        .finish(
+            maybeExistingColumn -> maybeExistingColumn.ifPresent(pendingPromise::complete),
+            pendingPromise::completeExceptionally);
+    return pendingPromise
+        .orTimeout(asyncRunner, longPollRequestTimeout)
+        .thenApply(Optional::of)
+        .exceptionally(DasLongPollCustody::emptyOnTimeoutElseThrow);
+  }
+
+  @Override
+  public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return delegate.retrieveMissingColumns();
   }
 
-  private void addPendingRequest(
-      final DataColumnIdentifier columnId, final SafeFuture<DataColumnSidecar> promise) {
+  private SafeFuture<DataColumnSidecar> addPendingRequest(final DataColumnIdentifier columnId) {
+    final SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
     pendingRequests.add(columnId, promise);
+    return promise;
+  }
+
+  private static <T> Optional<T> emptyOnTimeoutElseThrow(Throwable err) {
+    if (ExceptionUtil.hasCause(err, TimeoutException.class)) {
+      return Optional.empty();
+    } else {
+      throw new CompletionException(err);
+    }
   }
 
   @VisibleForTesting

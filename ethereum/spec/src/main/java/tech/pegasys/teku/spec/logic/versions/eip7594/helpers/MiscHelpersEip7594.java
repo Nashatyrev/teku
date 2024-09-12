@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
@@ -100,7 +101,7 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
       throw new IllegalArgumentException(
           String.format(
               "Subnet count %s couldn't exceed number of subnet columns %s",
-              subnetCount, specConfigEip7594.getNumberOfColumns()));
+              subnetCount, specConfigEip7594.getDataColumnSidecarSubnetCount()));
     }
 
     return Stream.iterate(nodeId, this::incrementByModule)
@@ -156,18 +157,21 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
       return false;
     }
 
-    return IntStream.range(0, dataColumnSidecar.getSszKZGProofs().size())
-        .mapToObj(
-            index ->
-                kzg.verifyCellProof(
-                    dataColumnSidecar.getSszKZGCommitments().get(index).getKZGCommitment(),
+    final List<KZGCellWithColumnId> cellWithIds =
+        IntStream.range(0, dataColumnSidecar.getDataColumn().size())
+            .mapToObj(
+                rowIndex ->
                     KZGCellWithColumnId.fromCellAndColumn(
-                        new KZGCell(dataColumnSidecar.getDataColumn().get(index).getBytes()),
-                        dataColumnSidecar.getIndex().intValue()),
-                    dataColumnSidecar.getSszKZGProofs().get(index).getKZGProof()))
-        .filter(verificationResult -> !verificationResult)
-        .findFirst()
-        .orElse(true);
+                        new KZGCell(dataColumnSidecar.getDataColumn().get(rowIndex).getBytes()),
+                        dataColumnSidecar.getIndex().intValue()))
+            .collect(Collectors.toList());
+
+    return kzg.verifyCellProofBatch(
+        dataColumnSidecar.getSszKZGCommitments().stream()
+            .map(SszKZGCommitment::getKZGCommitment)
+            .toList(),
+        cellWithIds,
+        dataColumnSidecar.getSszKZGProofs().stream().map(SszKZGProof::getKZGProof).toList());
   }
 
   @Override
@@ -385,6 +389,13 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
   @Override
   public boolean isAvailabilityOfBlobSidecarsRequiredAtEpoch(UInt64 currentEpoch, UInt64 epoch) {
     return false;
+  }
+
+  public boolean isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
+      final UInt64 currentEpoch, final UInt64 epoch) {
+    return currentEpoch
+        .minusMinZero(epoch)
+        .isLessThanOrEqualTo(specConfigEip7594.getMinEpochsForDataColumnSidecarsRequests());
   }
 
   @Override

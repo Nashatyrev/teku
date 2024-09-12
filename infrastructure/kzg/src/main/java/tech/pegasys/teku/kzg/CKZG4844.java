@@ -14,6 +14,7 @@
 package tech.pegasys.teku.kzg;
 
 import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
+import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_COMMITMENT;
 
 import ethereum.ckzg4844.CKZG4844JNI;
 import ethereum.ckzg4844.CellsAndProofs;
@@ -78,9 +79,7 @@ final class CKZG4844 implements KZG {
       CKZG4844JNI.loadTrustedSetup(
           CKZG4844Utils.flattenG1Points(g1PointsMonomial),
           CKZG4844Utils.flattenG1Points(g1PointsLagrange),
-          g1PointsLagrange.size(),
           CKZG4844Utils.flattenG2Points(g2PointsMonomial),
-          g2PointsMonomial.size(),
           PRECOMPUTE_DEFAULT);
       LOG.debug("Loaded trusted setup from {}", trustedSetupFile);
       loadedTrustedSetupFile = Optional.of(trustedSetupFile);
@@ -168,31 +167,25 @@ final class CKZG4844 implements KZG {
   }
 
   @Override
-  public boolean verifyCellProof(
-      KZGCommitment commitment, KZGCellWithColumnId cellWithColumnId, KZGProof proof) {
-    return CKZG4844JNI.verifyCellKzgProof(
-        commitment.toArrayUnsafe(),
-        cellWithColumnId.columnId().id().longValue(),
-        cellWithColumnId.cell().bytes().toArrayUnsafe(),
-        proof.toArrayUnsafe());
-  }
-
-  @Override
   public boolean verifyCellProofBatch(
       List<KZGCommitment> commitments,
-      List<KZGCellWithIds> cellWithIdsList,
+      List<KZGCellWithColumnId> cellWithIdList,
       List<KZGProof> proofs) {
+    if (commitments.size() != cellWithIdList.size() || cellWithIdList.size() != proofs.size()) {
+      throw new KZGException("Cells, proofs and commitments sizes should match");
+    }
     return CKZG4844JNI.verifyCellKzgProofBatch(
-        CKZG4844Utils.flattenCommitments(commitments),
-        cellWithIdsList.stream()
-            .mapToLong(cellWithIds -> cellWithIds.rowId().id().longValue())
-            .toArray(),
-        cellWithIdsList.stream()
+        CKZG4844Utils.flattenBytes(
+            commitments.stream()
+                .map(kzgCommitment -> (Bytes) kzgCommitment.getBytesCompressed())
+                .toList(),
+            commitments.size() * BYTES_PER_COMMITMENT),
+        cellWithIdList.stream()
             .mapToLong(cellWithIds -> cellWithIds.columnId().id().longValue())
             .toArray(),
         CKZG4844Utils.flattenBytes(
-            cellWithIdsList.stream().map(cellWithIds -> cellWithIds.cell().bytes()).toList(),
-            cellWithIdsList.size() * BYTES_PER_CELL),
+            cellWithIdList.stream().map(cellWithIds -> cellWithIds.cell().bytes()).toList(),
+            cellWithIdList.size() * BYTES_PER_CELL),
         CKZG4844Utils.flattenProofs(proofs));
   }
 

@@ -14,6 +14,7 @@
 package tech.pegasys.teku.api.schema;
 
 import static tech.pegasys.teku.api.schema.SchemaConstants.PATTERN_UINT64;
+import static tech.pegasys.teku.api.schema.SchemaConstants.PATTERN_UINT8;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -59,8 +60,8 @@ public class Metadata {
   @JsonProperty("custody_subnet_count")
   @Schema(
       type = "string",
-      pattern = PATTERN_UINT64,
-      description = "Uint64 value representing the node's custody subnet count")
+      pattern = PATTERN_UINT8,
+      description = "Uint8 value representing the node's custody subnet count")
   public final String custodySubnetCount;
 
   @JsonCreator
