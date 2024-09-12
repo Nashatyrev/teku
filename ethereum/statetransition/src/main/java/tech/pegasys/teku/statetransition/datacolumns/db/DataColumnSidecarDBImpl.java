@@ -110,7 +110,7 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
   @Override
   public SafeFuture<Void> setFirstSamplerIncompleteSlot(final UInt64 slot) {
     return getFirstSamplerIncompleteSlot()
-        .thenCompose(maybeCurrentSlot -> logNewFirstSamplerIncompleteSlot(maybeCurrentSlot, slot))
+        .thenAccept(maybeCurrentSlot -> logNewFirstSamplerIncompleteSlot(maybeCurrentSlot, slot))
         .thenCompose(__ -> sidecarUpdateChannel.onFirstSamplerIncompleteSlot(slot));
   }
 
@@ -155,7 +155,7 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
     return sidecarUpdateChannel.onSidecarsAvailabilitySlot(tillSlotExclusive);
   }
 
-  private SafeFuture<Void> logNewFirstSamplerIncompleteSlot(
+  private void logNewFirstSamplerIncompleteSlot(
       Optional<UInt64> maybeCurrentSlot, final UInt64 newSlot) {
     if (maybeCurrentSlot.isEmpty() || !maybeCurrentSlot.get().equals(newSlot)) {
       LOG.info(
@@ -163,6 +163,5 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
           maybeCurrentSlot.map(UInt64::toString).orElse("NA"),
           newSlot);
     }
-    return SafeFuture.COMPLETE;
   }
 }
