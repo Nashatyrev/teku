@@ -24,7 +24,6 @@ import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
-import org.assertj.core.api.Assertions;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
@@ -143,8 +142,7 @@ public class DasCustodyStand {
         "There are still scheduled tasks after maxAdvancePeriod: " + maxAdvancePeriod);
   }
 
-
-    public SignedBeaconBlock createBlockWithBlobs(int slot) {
+  public SignedBeaconBlock createBlockWithBlobs(int slot) {
     return createBlock(slot, 3);
   }
 
