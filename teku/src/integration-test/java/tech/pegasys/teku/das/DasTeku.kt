@@ -32,10 +32,10 @@ class RunBootNode {
     companion object {
         @JvmStatic
         fun main(vararg args: String) {
-            val dasTeku = DasTeku()
+            val dasTeku = DasTeku(extraDasCustodySubnetCount = 128)
             dasTeku.createGenesisIfRequired()
             dasTeku.resetWithNewGenesis()
-            dasTeku.createAndStartBootNode(0, 0 until 48)
+            dasTeku.createAndStartBootNode(0, 0 until 32)
         }
     }
 }
@@ -44,8 +44,8 @@ class RunOtherNode {
     companion object {
         @JvmStatic
         fun main(vararg args: String) {
-            val dasTeku = DasTeku()
-            dasTeku.createAndStartNode(1, 48 until 64)
+            val dasTeku = DasTeku(extraDasCustodySubnetCount = 0)
+            dasTeku.createAndStartNode(1, 32 until 64)
         }
     }
 }
@@ -60,7 +60,7 @@ class DasTeku(
         it.denebBuilder { it.denebForkEpoch(UInt64.valueOf(0)) }
         it.eip7594Builder {
             it.eip7594ForkEpoch(UInt64.valueOf(0))
-            it.custodyRequirement(2)
+            it.custodyRequirement(4)
         }
         it.secondsPerSlot(8)
         it.slotsPerEpoch(8)
