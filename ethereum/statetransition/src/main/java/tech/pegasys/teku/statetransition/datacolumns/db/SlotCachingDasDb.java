@@ -95,6 +95,7 @@ class SlotCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSide
 
   @Override
   public SafeFuture<Void> pruneAllSidecars(UInt64 tillSlot) {
+    columnSlotCache.pruneCaches(tillSlot);
     return delegate.pruneAllSidecars(tillSlot);
   }
 
