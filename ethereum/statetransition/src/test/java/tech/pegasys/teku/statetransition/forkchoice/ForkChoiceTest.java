@@ -35,7 +35,6 @@ import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ZERO;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 import static tech.pegasys.teku.statetransition.forkchoice.ForkChoice.BLOCK_CREATION_TOLERANCE_MS;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -67,7 +66,6 @@ import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.Eth1Data;
 import tech.pegasys.teku.spec.datastructures.blocks.MinimalBeaconBlockSummary;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
@@ -248,47 +246,6 @@ class ForkChoiceTest {
     verify(blobSidecarManager).createAvailabilityChecker(blockAndState.getBlock());
     verify(blobSidecarsAvailabilityChecker).initiateDataAvailabilityCheck();
     verify(blobSidecarsAvailabilityChecker).getAvailabilityCheckResult();
-  }
-
-  @Test
-  void onBlock_aaa() {
-    setupWithSpec(TestSpecFactory.createMinimalDeneb());
-    final SignedBlockAndState blockAndState1 = chainBuilder.generateBlockAtSlot(ONE);
-    storageSystem.chainUpdater().advanceCurrentSlotToAtLeast(blockAndState1.getSlot());
-
-    SafeFuture<DataAndValidationResult<BlobSidecar>> dasResult1 = new SafeFuture<>();
-    when(blobSidecarsAvailabilityChecker.getAvailabilityCheckResult()).thenReturn(dasResult1);
-
-    final SafeFuture<BlockImportResult> result1 =
-        forkChoice.onBlock(
-            blockAndState1.getBlock(), Optional.empty(), blockBroadcastValidator, executionLayer);
-
-    final SignedBlockAndState blockAndState2 = chainBuilder.generateBlockAtSlot(UInt64.valueOf(2));
-    storageSystem.chainUpdater().advanceCurrentSlotToAtLeast(blockAndState2.getSlot());
-
-    SafeFuture<DataAndValidationResult<BlobSidecar>> dasResult2 = new SafeFuture<>();
-    when(blobSidecarsAvailabilityChecker.getAvailabilityCheckResult()).thenReturn(dasResult2);
-
-    final SafeFuture<BlockImportResult> result2 =
-        forkChoice.onBlock(
-            blockAndState2.getBlock(), Optional.empty(), blockBroadcastValidator, executionLayer);
-
-    assertThat(result1).isNotDone();
-    assertThat(result2).isNotDone();
-
-    dasResult2.complete(DataAndValidationResult.validResult(Collections.emptyList()));
-
-    assertThat(result1).isNotDone();
-    assertThat(result2).isNotDone();
-
-    dasResult1.complete(DataAndValidationResult.validResult(Collections.emptyList()));
-
-    System.out.println(result1);
-    System.out.println(result2);
-
-    //    verify(blobSidecarManager).createAvailabilityChecker(blockAndState.getBlock());
-    //    verify(blobSidecarsAvailabilityChecker).initiateDataAvailabilityCheck();
-    //    verify(blobSidecarsAvailabilityChecker).getAvailabilityCheckResult();
   }
 
   @Test
