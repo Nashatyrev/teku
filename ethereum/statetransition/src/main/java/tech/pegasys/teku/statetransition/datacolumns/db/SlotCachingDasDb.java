@@ -21,6 +21,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.collections.cache.Cache;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
@@ -114,8 +115,8 @@ class SlotCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSide
       slotToBlockRoot.put(slot, blockRoot);
     }
 
-    public synchronized void pruneCaches(UInt64 tillSlot) {
-      SortedMap<UInt64, Bytes32> toPrune = slotToBlockRoot.headMap(tillSlot);
+    public synchronized void pruneCaches(UInt64 tillSlotExclusive) {
+      SortedMap<UInt64, Bytes32> toPrune = slotToBlockRoot.headMap(tillSlotExclusive);
       toPrune.values().forEach(blockRootToSlot::remove);
       toPrune.clear();
     }

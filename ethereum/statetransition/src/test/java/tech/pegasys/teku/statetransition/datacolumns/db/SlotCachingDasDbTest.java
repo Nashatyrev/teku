@@ -55,7 +55,7 @@ public class SlotCachingDasDbTest {
 
     slotCachingDasDb.getSidecar(DataColumnIdentifier.createFromSidecar(sidecar10_0));
 
-    verify(db, times(1)).getSidecar(any(ColumnSlotAndIdentifier.class));
+    verify(db).getSidecar(any(ColumnSlotAndIdentifier.class));
     verify(db, never()).getSidecar(any(DataColumnIdentifier.class));
 
     slotCachingDasDb.getSidecar(DataColumnIdentifier.createFromSidecar(sidecar10_1));
@@ -68,7 +68,7 @@ public class SlotCachingDasDbTest {
 
     // should fall back to query by DataColumnIdentifier when slot is not cached
     verify(db, times(2)).getSidecar(any(ColumnSlotAndIdentifier.class));
-    verify(db, times(1)).getSidecar(any(DataColumnIdentifier.class));
+    verify(db).getSidecar(any(DataColumnIdentifier.class));
   }
 
   @Test
@@ -92,12 +92,12 @@ public class SlotCachingDasDbTest {
 
     // slot 10 cache should be evicted
     verify(db, never()).getSidecar(any(ColumnSlotAndIdentifier.class));
-    verify(db, times(1)).getSidecar(any(DataColumnIdentifier.class));
+    verify(db).getSidecar(any(DataColumnIdentifier.class));
 
     slotCachingDasDb.getSidecar(DataColumnIdentifier.createFromSidecar(sidecar11_0));
 
     // slot 11 cache should not be evicted
-    verify(db, times(1)).getSidecar(any(ColumnSlotAndIdentifier.class));
-    verify(db, times(1)).getSidecar(any(DataColumnIdentifier.class));
+    verify(db).getSidecar(any(ColumnSlotAndIdentifier.class));
+    verify(db).getSidecar(any(DataColumnIdentifier.class));
   }
 }
