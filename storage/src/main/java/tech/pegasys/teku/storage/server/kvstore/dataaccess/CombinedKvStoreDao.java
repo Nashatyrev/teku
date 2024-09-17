@@ -543,7 +543,8 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
   }
 
   @Override
-  public List<DataColumnSlotAndIdentifier> getDataColumnIdentifiers(SlotAndBlockRoot slotAndBlockRoot) {
+  public List<DataColumnSlotAndIdentifier> getDataColumnIdentifiers(
+      SlotAndBlockRoot slotAndBlockRoot) {
     try (final Stream<DataColumnSlotAndIdentifier> columnSlotAndIdentifierStream =
         db.streamKeys(
             schema.getColumnSidecarByColumnSlotAndIdentifier(),

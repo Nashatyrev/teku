@@ -316,7 +316,8 @@ public class DataColumnSidecarsByRangeMessageHandler
     private SafeFuture<Optional<DataColumnSidecar>> getNextDataColumnSidecar(
         final Iterator<DataColumnSlotAndIdentifier> dataColumnSidecarIdentifiers) {
       if (dataColumnSidecarIdentifiers.hasNext()) {
-        final DataColumnSlotAndIdentifier columnSlotAndIdentifier = dataColumnSidecarIdentifiers.next();
+        final DataColumnSlotAndIdentifier columnSlotAndIdentifier =
+            dataColumnSidecarIdentifiers.next();
 
         // Column that was not requested. TODO: get identifiers only for requested columns from DB
         if (!columns.contains(columnSlotAndIdentifier.identifier().getIndex())) {

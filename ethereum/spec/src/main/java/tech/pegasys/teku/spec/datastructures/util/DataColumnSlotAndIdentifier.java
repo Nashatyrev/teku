@@ -27,7 +27,8 @@ public record DataColumnSlotAndIdentifier(UInt64 slot, DataColumnIdentifier iden
     this(slot, new DataColumnIdentifier(blockRoot, columnIndex));
   }
 
-  public static DataColumnSlotAndIdentifier fromDataColumn(final DataColumnSidecar dataColumnSidecar) {
+  public static DataColumnSlotAndIdentifier fromDataColumn(
+      final DataColumnSidecar dataColumnSidecar) {
     return new DataColumnSlotAndIdentifier(
         dataColumnSidecar.getSlot(),
         dataColumnSidecar.getBlockRoot(),

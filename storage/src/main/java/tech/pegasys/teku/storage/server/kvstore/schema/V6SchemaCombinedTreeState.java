@@ -156,7 +156,8 @@ public class V6SchemaCombinedTreeState extends V6SchemaCombined implements Schem
   }
 
   @Override
-  public KvStoreColumn<DataColumnSlotAndIdentifier, Bytes> getColumnSidecarByColumnSlotAndIdentifier() {
+  public KvStoreColumn<DataColumnSlotAndIdentifier, Bytes>
+      getColumnSidecarByColumnSlotAndIdentifier() {
     return sidecarByColumnSlotAndIdentifier;
   }
 

@@ -27,9 +27,9 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 /**
- * The underlying DB primary key for a sidecar is {@link DataColumnSlotAndIdentifier}. When a sidecar is
- * requested by {@link DataColumnIdentifier} the slot for the block root needs to be queried This
- * class serves two purposes:
+ * The underlying DB primary key for a sidecar is {@link DataColumnSlotAndIdentifier}. When a
+ * sidecar is requested by {@link DataColumnIdentifier} the slot for the block root needs to be
+ * queried This class serves two purposes:
  *
  * <ul>
  *   <li>Optimizes extra call to the block DB when the slot is known from recent {@link
@@ -73,7 +73,8 @@ class SlotCachingDasDb extends AbstractDelegatingDasDb implements DataColumnSide
 
   @Deprecated
   @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnSlotAndIdentifier identifier) {
+  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(
+      DataColumnSlotAndIdentifier identifier) {
     return delegate.getSidecar(identifier);
   }
 

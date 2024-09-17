@@ -75,7 +75,8 @@ public class BlobSidecarReconstructionProvider {
           if (dataColumnIdentifiers.isEmpty()) {
             return SafeFuture.completedFuture(emptyList());
           }
-          final Set<DataColumnSlotAndIdentifier> dbIdentifiers = new HashSet<>(dataColumnIdentifiers);
+          final Set<DataColumnSlotAndIdentifier> dbIdentifiers =
+              new HashSet<>(dataColumnIdentifiers);
           final List<DataColumnSlotAndIdentifier> requiredIdentifiers =
               Stream.iterate(
                       UInt64.ZERO,

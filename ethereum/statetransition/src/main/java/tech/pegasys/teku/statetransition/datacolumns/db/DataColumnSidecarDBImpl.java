@@ -67,7 +67,8 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
     return combinedChainDataClient
         .getDataColumnIdentifiers(slot)
         .thenApply(
-            identifiers -> identifiers.stream().map(DataColumnSlotAndIdentifier::identifier).toList());
+            identifiers ->
+                identifiers.stream().map(DataColumnSlotAndIdentifier::identifier).toList());
   }
 
   @Override

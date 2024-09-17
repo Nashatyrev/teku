@@ -50,7 +50,8 @@ public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnaps
     return delegate.getColumnNonCanonicalBlobSidecarBySlotRootBlobIndex();
   }
 
-  public KvStoreColumn<DataColumnSlotAndIdentifier, Bytes> getColumnSidecarByColumnSlotAndIdentifier() {
+  public KvStoreColumn<DataColumnSlotAndIdentifier, Bytes>
+      getColumnSidecarByColumnSlotAndIdentifier() {
     return delegate.getColumnSidecarByColumnSlotAndIdentifier();
   }
 

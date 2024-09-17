@@ -78,7 +78,8 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   }
 
   @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnSlotAndIdentifier identifier) {
+  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(
+      DataColumnSlotAndIdentifier identifier) {
     return SafeFuture.completedFuture(Optional.ofNullable(db.get(identifier.identifier())));
   }
 
