@@ -31,6 +31,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
+import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
 public class DasSamplerBasic
@@ -40,6 +41,7 @@ public class DasSamplerBasic
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
   private final DataColumnSidecarCustody custody;
+  private final DataColumnSidecarRetriever retriever;
 
   private final Spec spec;
   private final DataColumnSidecarDbAccessor db;
@@ -48,13 +50,17 @@ public class DasSamplerBasic
       final Spec spec,
       final DataColumnSidecarDbAccessor db,
       final DataColumnSidecarCustody custody,
+      final DataColumnSidecarRetriever retriever,
       final UInt256 nodeId,
       final int totalCustodySubnetCount) {
     checkNotNull(spec);
     checkNotNull(db);
+    checkNotNull(custody);
+    checkNotNull(retriever);
     this.spec = spec;
     this.db = db;
     this.custody = custody;
+    this.retriever = retriever;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
   }
@@ -76,23 +82,27 @@ public class DasSamplerBasic
     return SafeFuture.collectAll(
             columnIndexes.get().stream()
                 .map(
-                    index ->
-                        custody.getCustodyDataColumnSidecar(
-                            new DataColumnIdentifier(blockRoot, index))))
-        .thenApply(
-            listOfOptionals -> {
-              // TODO: remove or move to debug logging
-              LOG.info(
-                  "Collected {} DataColumnSidecars in checkDataAvailability for {}({})",
-                  listOfOptionals.stream()
-                      .map(
-                          maybeSidecar ->
-                              maybeSidecar.map(DataColumnSidecar::toLogString).orElse("[empty]"))
-                      .collect(Collectors.joining(",")),
-                  blockRoot,
-                  slot);
-              return listOfOptionals.stream().map(Optional::orElseThrow).toList();
-            });
+                    index -> getLocallyOrRetrieve(new DataColumnSlotAndIdentifier(slot, new DataColumnIdentifier(blockRoot, index)))))
+        .thenPeek(
+            // TODO: remove or move to debug logging
+            sidecars -> LOG.info(
+                "Collected {} DataColumnSidecars in checkDataAvailability for {}({})",
+                sidecars.stream()
+                    .map(
+                        DataColumnSidecar::toLogString)
+                    .collect(Collectors.joining(",")),
+                blockRoot,
+                slot));
+  }
+
+  private SafeFuture<DataColumnSidecar> getLocallyOrRetrieve(DataColumnSlotAndIdentifier identifier) {
+    return custody
+        .getCustodyDataColumnSidecar(identifier.identifier())
+        .thenCompose(
+            maybeSidecar ->
+                maybeSidecar
+                    .map(SafeFuture::completedFuture)
+                    .orElseGet(() -> retriever.retrieve(identifier)));
   }
 
   @Override
