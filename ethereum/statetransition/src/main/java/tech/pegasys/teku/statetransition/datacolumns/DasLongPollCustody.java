@@ -24,14 +24,18 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
+
+import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.ExceptionThrowingRunnable;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
-public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
+public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
 
   private final UpdatableDataColumnSidecarCustody delegate;
   private final AsyncRunner asyncRunner;
@@ -81,6 +85,17 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   @Override
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return delegate.retrieveMissingColumns();
+  }
+
+  public void noWaitForSlotAndEarlier(UInt64 slot) {
+
+  }
+
+  @Override
+  public void onSlot(UInt64 slot) {
+    asyncRunner
+        .runAfterDelay(() -> noWaitForSlotAndEarlier(slot), longPollRequestTimeout)
+        .ifExceptionGetsHereRaiseABug();
   }
 
   private SafeFuture<DataColumnSidecar> addPendingRequest(final DataColumnIdentifier columnId) {
