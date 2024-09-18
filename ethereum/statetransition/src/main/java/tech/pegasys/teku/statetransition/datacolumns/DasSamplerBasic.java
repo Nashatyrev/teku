@@ -15,14 +15,15 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
-import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -34,8 +35,7 @@ import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAcces
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
-public class DasSamplerBasic
-    implements DataAvailabilitySampler, FinalizedCheckpointChannel, SlotEventsChannel {
+public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckpointChannel {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
   private final UInt256 nodeId;
@@ -68,45 +68,78 @@ public class DasSamplerBasic
   @Override
   public SafeFuture<List<DataColumnSidecar>> checkDataAvailability(
       UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot) {
-    LOG.info("Requested checkDataAvailability for {}({})", blockRoot, slot);
     final Optional<MiscHelpersEip7594> maybeMiscHelpers =
         spec.atSlot(slot).miscHelpers().toVersionEip7594();
-    final Optional<List<UInt64>> columnIndexes =
-        maybeMiscHelpers.map(
-            miscHelpersEip7594 ->
-                miscHelpersEip7594.computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount));
-    if (columnIndexes.isEmpty()) {
-      return SafeFuture.completedFuture(List.of());
-    }
+    final List<DataColumnSlotAndIdentifier> columnIdentifiers =
+        maybeMiscHelpers
+            .map(
+                miscHelpersEip7594 ->
+                    miscHelpersEip7594.computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount))
+            .orElse(Collections.emptyList())
+            .stream()
+            .map(
+                columnIndex ->
+                    new DataColumnSlotAndIdentifier(
+                        slot, new DataColumnIdentifier(blockRoot, columnIndex)))
+            .toList();
 
-    return SafeFuture.collectAll(
-            columnIndexes.get().stream()
+    LOG.debug(
+        "checkDataAvailability(): requesting {} columns for block {} ({})",
+        columnIdentifiers.size(),
+        slot,
+        blockRoot);
+
+    record ColumnIdAndMaybeSidecar(
+        DataColumnSlotAndIdentifier id, Optional<DataColumnSidecar> maybeSidecar) {}
+
+    SafeFuture<List<ColumnIdAndMaybeSidecar>> columnsInCustodyFuture =
+        SafeFuture.collectAll(
+            columnIdentifiers.stream()
                 .map(
-                    index -> getLocallyOrRetrieve(new DataColumnSlotAndIdentifier(slot, new DataColumnIdentifier(blockRoot, index)))))
-        .thenPeek(
-            // TODO: remove or move to debug logging
-            sidecars -> LOG.info(
-                "Collected {} DataColumnSidecars in checkDataAvailability for {}({})",
-                sidecars.stream()
-                    .map(
-                        DataColumnSidecar::toLogString)
-                    .collect(Collectors.joining(",")),
-                blockRoot,
-                slot));
-  }
+                    id ->
+                        custody
+                            .getCustodyDataColumnSidecar(id.identifier())
+                            .thenApply(
+                                maybeSidecar -> new ColumnIdAndMaybeSidecar(id, maybeSidecar))));
 
-  private SafeFuture<DataColumnSidecar> getLocallyOrRetrieve(DataColumnSlotAndIdentifier identifier) {
-    return custody
-        .getCustodyDataColumnSidecar(identifier.identifier())
-        .thenCompose(
-            maybeSidecar ->
-                maybeSidecar
-                    .map(SafeFuture::completedFuture)
-                    .orElseGet(() -> retriever.retrieve(identifier)));
-  }
+    return columnsInCustodyFuture.thenCompose(
+        columnsInCustodyResults -> {
+          List<DataColumnSlotAndIdentifier> missingColumnIds =
+              columnsInCustodyResults.stream()
+                  .filter(res -> res.maybeSidecar().isEmpty())
+                  .map(ColumnIdAndMaybeSidecar::id)
+                  .toList();
 
-  @Override
-  public void onSlot(UInt64 slot) {}
+          LOG.debug(
+              "checkDataAvailability(): got {} (of {}) columns from custody (or received by Gossip) for block {} ({})",
+              columnIdentifiers.size() - missingColumnIds.size(),
+              columnIdentifiers.size(),
+              slot,
+              blockRoot);
+
+          SafeFuture<List<DataColumnSidecar>> columnsRetrievedFuture =
+              SafeFuture.collectAll(missingColumnIds.stream().map(retriever::retrieve))
+                  .thenPeek(
+                      retrievedColumns -> {
+                        if (!retrievedColumns.isEmpty()) {
+                          LOG.debug(
+                              "checkDataAvailability(): retrieved {} (of {}) columns via Req/Resp for block {} ({})",
+                              columnIdentifiers.size() - missingColumnIds.size(),
+                              columnIdentifiers.size(),
+                              slot,
+                              blockRoot);
+                        }
+                      });
+
+          return columnsRetrievedFuture.thenApply(
+              columnsRetrieved ->
+                  Stream.concat(
+                          columnsInCustodyResults.stream().flatMap(r -> r.maybeSidecar().stream()),
+                          columnsRetrieved.stream())
+                      .sorted(Comparator.comparing(DataColumnSidecar::getIndex))
+                      .toList());
+        });
+  }
 
   @Override
   public void onNewFinalizedCheckpoint(Checkpoint checkpoint, boolean fromOptimisticBlock) {
