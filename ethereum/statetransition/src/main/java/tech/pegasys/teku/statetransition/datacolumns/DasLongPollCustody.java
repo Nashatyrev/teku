@@ -29,7 +29,6 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
@@ -57,7 +56,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
             () -> {
               final List<SafeFuture<DataColumnSidecar>> pendingRequests =
                   this.pendingRequests.remove(
-                      DataColumnIdentifier.createFromSidecar(dataColumnSidecar));
+                      DataColumnSlotAndIdentifier.fromDataColumn(dataColumnSidecar));
               for (SafeFuture<DataColumnSidecar> pendingRequest : pendingRequests) {
                 pendingRequest.complete(dataColumnSidecar);
               }
@@ -66,7 +65,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
-      DataColumnIdentifier columnId) {
+      DataColumnSlotAndIdentifier columnId) {
     SafeFuture<DataColumnSidecar> pendingPromise = addPendingRequest(columnId);
     delegate
         .getCustodyDataColumnSidecar(columnId)
@@ -84,7 +83,8 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     return delegate.retrieveMissingColumns();
   }
 
-  private SafeFuture<DataColumnSidecar> addPendingRequest(final DataColumnIdentifier columnId) {
+  private SafeFuture<DataColumnSidecar> addPendingRequest(
+      final DataColumnSlotAndIdentifier columnId) {
     final SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
     pendingRequests.add(columnId, promise);
     return promise;
@@ -100,15 +100,17 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
 
   @VisibleForTesting
   static class PendingRequests {
-    final Map<DataColumnIdentifier, List<SafeFuture<DataColumnSidecar>>> requests = new HashMap<>();
+    final Map<DataColumnSlotAndIdentifier, List<SafeFuture<DataColumnSidecar>>> requests =
+        new HashMap<>();
 
     synchronized void add(
-        final DataColumnIdentifier columnId, final SafeFuture<DataColumnSidecar> promise) {
+        final DataColumnSlotAndIdentifier columnId, final SafeFuture<DataColumnSidecar> promise) {
       clearCancelledPendingRequests();
       requests.computeIfAbsent(columnId, __ -> new ArrayList<>()).add(promise);
     }
 
-    synchronized List<SafeFuture<DataColumnSidecar>> remove(final DataColumnIdentifier columnId) {
+    synchronized List<SafeFuture<DataColumnSidecar>> remove(
+        final DataColumnSlotAndIdentifier columnId) {
       List<SafeFuture<DataColumnSidecar>> ret = requests.remove(columnId);
       return ret == null ? Collections.emptyList() : ret;
     }

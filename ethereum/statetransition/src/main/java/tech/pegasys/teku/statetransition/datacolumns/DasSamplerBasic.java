@@ -27,8 +27,8 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
@@ -78,7 +78,7 @@ public class DasSamplerBasic
                 .map(
                     index ->
                         custody.getCustodyDataColumnSidecar(
-                            new DataColumnIdentifier(blockRoot, index))))
+                            new DataColumnSlotAndIdentifier(slot, blockRoot, index))))
         .thenApply(
             listOfOptionals -> {
               // TODO: remove or move to debug logging

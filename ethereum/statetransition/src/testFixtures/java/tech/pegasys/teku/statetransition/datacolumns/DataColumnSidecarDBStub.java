@@ -37,7 +37,7 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
 
   private Optional<UInt64> firstCustodyIncompleteSlot = Optional.empty();
   private Optional<UInt64> firstSamplerIncompleteSlot = Optional.empty();
-  private final Map<DataColumnIdentifier, DataColumnSidecar> db = new HashMap<>();
+  private final Map<DataColumnSlotAndIdentifier, DataColumnSidecar> db = new HashMap<>();
   private final NavigableMap<UInt64, Set<DataColumnIdentifier>> slotIds = new TreeMap<>();
   private final AtomicLong dbReadCounter = new AtomicLong();
   private final AtomicLong dbWriteCounter = new AtomicLong();
@@ -71,20 +71,15 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   @Override
   public SafeFuture<Void> addSidecar(DataColumnSidecar sidecar) {
     dbWriteCounter.incrementAndGet();
-    DataColumnIdentifier identifier = DataColumnIdentifier.createFromSidecar(sidecar);
+    DataColumnSlotAndIdentifier identifier = DataColumnSlotAndIdentifier.fromDataColumn(sidecar);
     db.put(identifier, sidecar);
-    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier);
+    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier.identifier());
     return SafeFuture.COMPLETE;
   }
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getSidecar(
       DataColumnSlotAndIdentifier identifier) {
-    return SafeFuture.completedFuture(Optional.ofNullable(db.get(identifier.identifier())));
-  }
-
-  @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier) {
     dbReadCounter.incrementAndGet();
     return SafeFuture.completedFuture(Optional.ofNullable(db.get(identifier)));
   }
