@@ -50,6 +50,7 @@ public class DataColumnSidecarByRootCustodyImpl
     this.maxCacheSizeInSlots = maxCacheSizeInSlots;
   }
 
+  @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecarByRoot(
       DataColumnIdentifier columnId) {
 

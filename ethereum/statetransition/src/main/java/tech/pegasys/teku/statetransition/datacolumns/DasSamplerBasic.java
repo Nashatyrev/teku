@@ -83,9 +83,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                     miscHelpersEip7594.computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount))
             .orElse(Collections.emptyList())
             .stream()
-            .map(
-                columnIndex ->
-                    new DataColumnSlotAndIdentifier(slot, blockRoot, columnIndex))
+            .map(columnIndex -> new DataColumnSlotAndIdentifier(slot, blockRoot, columnIndex))
             .toList();
 
     LOG.debug(

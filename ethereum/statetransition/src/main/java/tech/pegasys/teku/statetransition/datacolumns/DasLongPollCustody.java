@@ -24,13 +24,10 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeoutException;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
-import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
@@ -90,7 +87,9 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
 
   @Override
   public void onSlot(UInt64 slot) {
-    asyncRunner.runAfterDelay(() -> pendingRequests.setNoWaitSlot(slot), waitPeriodForCurrentSlot);
+    asyncRunner
+        .runAfterDelay(() -> pendingRequests.setNoWaitSlot(slot), waitPeriodForCurrentSlot)
+        .ifExceptionGetsHereRaiseABug();
   }
 
   private static <T> SafeFuture<Optional<T>> anyNonEmpty(SafeFuture<Optional<T>> future1, SafeFuture<Optional<T>> future2) {
