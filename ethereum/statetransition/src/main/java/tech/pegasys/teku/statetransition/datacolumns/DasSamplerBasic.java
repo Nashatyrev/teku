@@ -85,8 +85,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
             .stream()
             .map(
                 columnIndex ->
-                    new DataColumnSlotAndIdentifier(
-                        slot, new DataColumnIdentifier(blockRoot, columnIndex)))
+                    new DataColumnSlotAndIdentifier(slot, blockRoot, columnIndex))
             .toList();
 
     LOG.debug(
@@ -104,7 +103,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                 .map(
                     id ->
                         custody
-                            .getCustodyDataColumnSidecar(id.identifier())
+                            .getCustodyDataColumnSidecar(id)
                             .thenApply(
                                 maybeSidecar -> new ColumnIdAndMaybeSidecar(id, maybeSidecar))));
 

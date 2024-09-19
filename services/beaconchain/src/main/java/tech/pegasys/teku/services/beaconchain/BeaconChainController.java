@@ -729,7 +729,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         dataColumnSidecar ->
-            longPollCustody
+            custody
                 .onNewValidatedDataColumnSidecar(dataColumnSidecar)
                 .ifExceptionGetsHereRaiseABug());
 
