@@ -34,7 +34,6 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
@@ -124,8 +123,7 @@ public class RecoveringSidecarRetrieverTest {
         .limit(columnCount / 2 - columnsInDbCount)
         .forEach(
             req -> {
-              req.promise()
-                  .complete(sidecars.get(req.columnId().columnIndex().intValue()));
+              req.promise().complete(sidecars.get(req.columnId().columnIndex().intValue()));
             });
 
     stubAsyncRunner.executeQueuedActions();

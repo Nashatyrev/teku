@@ -164,7 +164,8 @@ public class SimpleSidecarRetriever
     List<RequestMatch> matches = matchRequestsAndPeers();
     for (RequestMatch match : matches) {
       SafeFuture<DataColumnSidecar> reqRespPromise =
-          reqResp.requestDataColumnSidecar(match.peer.nodeId, match.request.columnId.toDataColumnIdentifier());
+          reqResp.requestDataColumnSidecar(
+              match.peer.nodeId, match.request.columnId.toDataColumnIdentifier());
       match.request().onPeerRequest(match.peer().nodeId);
       match.request.activeRpcRequest =
           new ActiveRequest(
@@ -279,8 +280,7 @@ public class SimpleSidecarRetriever
     }
 
     public boolean isCustodyFor(DataColumnSlotAndIdentifier columnId) {
-      return getNodeCustodyIndexes(spec.atSlot(columnId.slot()))
-          .contains(columnId.columnIndex());
+      return getNodeCustodyIndexes(spec.atSlot(columnId.slot())).contains(columnId.columnIndex());
     }
   }
 

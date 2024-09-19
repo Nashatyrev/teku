@@ -42,8 +42,7 @@ public record DataColumnSlotAndIdentifier(UInt64 slot, Bytes32 blockRoot, UInt64
   @Override
   public int compareTo(@NotNull final DataColumnSlotAndIdentifier o) {
     return Comparator.comparing(DataColumnSlotAndIdentifier::slot)
-        .thenComparing(
-            DataColumnSlotAndIdentifier::blockRoot)
+        .thenComparing(DataColumnSlotAndIdentifier::blockRoot)
         .thenComparing(DataColumnSlotAndIdentifier::columnIndex)
         .compare(this, o);
   }

@@ -173,8 +173,7 @@ public class BlobSidecarReconstructionProviderTest {
               final DataColumnSlotAndIdentifier identifier = invocationOnMock.getArgument(0);
               return SafeFuture.completedFuture(
                   Optional.of(
-                      dataStructureUtil.randomDataColumnSidecar(
-                          header, identifier.columnIndex())));
+                      dataStructureUtil.randomDataColumnSidecar(header, identifier.columnIndex())));
             });
     when(client.getBlockByBlockRoot(any()))
         .thenReturn(SafeFuture.completedFuture(Optional.empty()));
@@ -219,8 +218,7 @@ public class BlobSidecarReconstructionProviderTest {
             invocationOnMock -> {
               final DataColumnSlotAndIdentifier identifier = invocationOnMock.getArgument(0);
               return SafeFuture.completedFuture(
-                  Optional.of(
-                      dataColumnSidecars.get(identifier.columnIndex().intValue())));
+                  Optional.of(dataColumnSidecars.get(identifier.columnIndex().intValue())));
             });
     when(client.getBlockByBlockRoot(any()))
         .thenReturn(SafeFuture.completedFuture(Optional.of(block)));
@@ -271,8 +269,7 @@ public class BlobSidecarReconstructionProviderTest {
             invocationOnMock -> {
               final DataColumnSlotAndIdentifier identifier = invocationOnMock.getArgument(0);
               return SafeFuture.completedFuture(
-                  Optional.of(
-                      dataColumnSidecars.get(identifier.columnIndex().intValue())));
+                  Optional.of(dataColumnSidecars.get(identifier.columnIndex().intValue())));
             });
     when(client.getBlockByBlockRoot(any()))
         .thenReturn(SafeFuture.completedFuture(Optional.of(block)));

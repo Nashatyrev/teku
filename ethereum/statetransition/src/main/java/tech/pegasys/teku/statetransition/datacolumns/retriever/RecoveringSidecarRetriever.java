@@ -34,7 +34,6 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntry;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
@@ -102,9 +101,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
         .getBlockAtSlot(columnId.slot())
         .thenPeek(
             maybeBlock -> {
-              if (!maybeBlock
-                  .map(b -> b.getRoot().equals(columnId.blockRoot()))
-                  .orElse(false)) {
+              if (!maybeBlock.map(b -> b.getRoot().equals(columnId.blockRoot())).orElse(false)) {
                 LOG.info("[nyota] Recovery: CAN'T initiate recovery for " + columnId);
                 promise.completeExceptionally(
                     new NotOnCanonicalChainException(columnId, maybeBlock));
