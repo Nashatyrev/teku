@@ -729,7 +729,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         dataColumnSidecar ->
-            custody
+            longPollCustody
                 .onNewValidatedDataColumnSidecar(dataColumnSidecar)
                 .ifExceptionGetsHereRaiseABug());
 
@@ -778,7 +778,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
       LOG.info("Lossy Sampler is not supported, starting basic sampler");
     }
     final DasSamplerBasic dasSampler =
-        new DasSamplerBasic(spec, dbAccessor, custody, nodeId, totalMyCustodySubnets);
+        new DasSamplerBasic(
+            spec, dbAccessor, custody, recoveringSidecarRetriever, nodeId, totalMyCustodySubnets);
     LOG.info("DAS Basic Sampler initialized with {} subnets to sample", totalMyCustodySubnets);
     eventChannels.subscribe(SlotEventsChannel.class, dasSampler);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
