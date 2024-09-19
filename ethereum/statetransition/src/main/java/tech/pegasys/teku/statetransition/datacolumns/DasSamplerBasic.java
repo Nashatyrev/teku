@@ -123,7 +123,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                   .map(UInt64::intValue)
                   .toList();
 
-          LOG.debug(
+          LOG.info(
               "checkDataAvailability(): got {} (of {}) columns from custody (or received by Gossip) for block {} ({}), columns: {}",
               columnIdentifiers.size() - missingColumnIds.size(),
               columnIdentifiers.size(),
@@ -136,7 +136,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                   .thenPeek(
                       retrievedColumns -> {
                         if (!retrievedColumns.isEmpty()) {
-                          LOG.debug(
+                          LOG.info(
                               "checkDataAvailability(): retrieved {} (of {}) columns via Req/Resp for block {} ({})",
                               columnIdentifiers.size() - missingColumnIds.size(),
                               columnIdentifiers.size(),
