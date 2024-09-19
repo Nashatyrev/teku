@@ -136,8 +136,8 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                       retrievedColumns -> {
                         if (!retrievedColumns.isEmpty()) {
                           LOG.info(
-                              "checkDataAvailability(): retrieved {} (of {}) columns via Req/Resp for block {} ({})",
-                              columnIdentifiers.size() - missingColumnIds.size(),
+                              "checkDataAvailability(): retrieved remaining {} (of {}) columns via Req/Resp for block {} ({})",
+                              retrievedColumns.size(),
                               columnIdentifiers.size(),
                               slot,
                               blockRoot);
