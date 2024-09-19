@@ -39,9 +39,7 @@ public class StringifyUtil {
       Set<Integer> exceptIndexes =
           IntStream.range(0, maxColumns).boxed().collect(Collectors.toSet());
       exceptIndexes.removeAll(indexes);
-      return lenStr + "[all except "
-          + sortAndJoin(exceptIndexes)
-          + "]";
+      return lenStr + "[all except " + sortAndJoin(exceptIndexes) + "]";
     } else {
       List<IntRange> ranges = reduceToIntRanges(indexes);
       if (ranges.size() <= 16) {
@@ -53,13 +51,15 @@ public class StringifyUtil {
         List<Integer> sortedIndexes = indexes.stream().sorted().toList();
         BitSet bitSet = new BitSet(maxColumns);
         indexes.forEach(bitSet::set);
-        return lenStr + "["
+        return lenStr
+            + "["
             + sortAndJoin(sortedIndexes.subList(0, 4))
             + ",...("
             + (indexes.size() - 8)
             + " more)..., "
             + sortAndJoin(sortedIndexes.subList(sortedIndexes.size() - 4, sortedIndexes.size()))
-            + "], bitset: " + Bytes.of(bitSet.toByteArray());
+            + "], bitset: "
+            + Bytes.of(bitSet.toByteArray());
       }
     }
   }
