@@ -24,13 +24,10 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.TimeoutException;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
-import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
@@ -93,17 +90,11 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
     return promise;
   }
 
-  private static <T> Optional<T> emptyOnTimeoutElseThrow(Throwable err) {
-    if (ExceptionUtil.hasCause(err, TimeoutException.class)) {
-      return Optional.empty();
-    } else {
-      throw new CompletionException(err);
-    }
-  }
-
   @Override
   public void onSlot(UInt64 slot) {
-    asyncRunner.runAfterDelay(() -> pendingRequests.setNoWaitSlot(slot), waitPeriodForCurrentSlot);
+    asyncRunner
+        .runAfterDelay(() -> pendingRequests.setNoWaitSlot(slot), waitPeriodForCurrentSlot)
+        .ifExceptionGetsHereRaiseABug();
   }
 
   @VisibleForTesting
