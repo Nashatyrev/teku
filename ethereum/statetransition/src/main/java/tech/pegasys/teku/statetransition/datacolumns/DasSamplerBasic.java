@@ -27,12 +27,14 @@ import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
+import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
 public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckpointChannel {
@@ -63,6 +65,10 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
     this.retriever = retriever;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
+  }
+
+  private int getColumnCount(UInt64 slot) {
+    return SpecConfigEip7594.required(spec.atSlot(slot).getConfig()).getNumberOfColumns();
   }
 
   @Override
@@ -110,12 +116,20 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                   .map(ColumnIdAndMaybeSidecar::id)
                   .toList();
 
+          List<Integer> custodyColumnIndexes =
+              columnsInCustodyResults.stream()
+                  .flatMap(res -> res.maybeSidecar().stream())
+                  .map(DataColumnSidecar::getIndex)
+                  .map(UInt64::intValue)
+                  .toList();
+
           LOG.debug(
-              "checkDataAvailability(): got {} (of {}) columns from custody (or received by Gossip) for block {} ({})",
+              "checkDataAvailability(): got {} (of {}) columns from custody (or received by Gossip) for block {} ({}), columns: {}",
               columnIdentifiers.size() - missingColumnIds.size(),
               columnIdentifiers.size(),
               slot,
-              blockRoot);
+              blockRoot,
+              StringifyUtil.columnIndexesToString(custodyColumnIndexes, getColumnCount(slot)));
 
           SafeFuture<List<DataColumnSidecar>> columnsRetrievedFuture =
               SafeFuture.collectAll(missingColumnIds.stream().map(retriever::retrieve))
