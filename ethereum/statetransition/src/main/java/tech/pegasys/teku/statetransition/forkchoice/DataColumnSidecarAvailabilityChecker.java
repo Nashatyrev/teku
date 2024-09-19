@@ -56,12 +56,12 @@ public class DataColumnSidecarAvailabilityChecker
 
   @Override
   public boolean initiateDataAvailabilityCheck() {
-    LOG.info("Starting data availability check for slot {}", block.getSlot());
+    LOG.info("Starting data availability check for {}", block.toLogString());
     if (!spec.atSlot(block.getSlot())
         .getMilestone()
         .isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
       validationResult.complete(DataAndValidationResult.notRequired());
-      LOG.info("Availability check for slot {} NOT_REQUIRED, EIP7594 not started", block.getSlot());
+      LOG.info("Availability check for {} NOT_REQUIRED, EIP7594 not started", block.toLogString());
       return true;
     }
 
@@ -74,7 +74,7 @@ public class DataColumnSidecarAvailabilityChecker
         .isEmpty()) {
       validationResult.complete(DataAndValidationResult.notRequired());
       LOG.info(
-          "Availability check for slot {} NOT_REQUIRED, kzg commitments empty", block.getSlot());
+          "Availability check for {} NOT_REQUIRED, kzg commitments empty", block.toLogString());
       return true;
     }
 
@@ -83,7 +83,7 @@ public class DataColumnSidecarAvailabilityChecker
     if (!miscHelpersEip7594.isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
         spec.getCurrentSlot(store), spec.computeEpochAtSlot(block.getSlot()))) {
       validationResult.complete(DataAndValidationResult.notRequired());
-      LOG.info("Availability check for slot {} NOT_REQUIRED, epoch too old ", block.getSlot());
+      LOG.info("Availability check for {} NOT_REQUIRED, epoch too old ", block.toLogString());
       return true;
     }
 

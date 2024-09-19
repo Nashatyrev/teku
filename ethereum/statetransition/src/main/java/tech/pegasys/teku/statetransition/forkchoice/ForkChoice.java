@@ -437,7 +437,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
     final AvailabilityChecker<?> availabilityChecker;
     if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
-      LOG.info("Created availabilityChecker for slot {}", block.getSlot());
+      LOG.info("Created availabilityChecker for {}", block.toLogString());
       availabilityChecker = dasSamplerManager.createAvailabilityChecker(block);
     } else {
       availabilityChecker = blobSidecarManager.createAvailabilityChecker(block);
