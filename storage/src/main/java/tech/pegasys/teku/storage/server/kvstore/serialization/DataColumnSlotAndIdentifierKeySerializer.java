@@ -27,7 +27,7 @@ import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
  * us the ability to quickly lookup most recent\oldest values by slot as well as perform pruning
  * based on slot
  */
-class ColumnSlotAndIdentifierKeySerializer
+class DataColumnSlotAndIdentifierKeySerializer
     implements KvStoreSerializer<DataColumnSlotAndIdentifier> {
   static final int SLOT_SIZE = Long.BYTES;
   static final int BLOCK_ROOT_SIZE = Bytes32.SIZE;

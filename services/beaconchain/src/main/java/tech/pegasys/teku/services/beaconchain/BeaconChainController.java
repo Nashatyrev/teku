@@ -764,7 +764,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
         new DasSamplerBasic(
             spec, dbAccessor, custody, recoveringSidecarRetriever, nodeId, totalMyCustodySubnets);
     LOG.info("DAS Basic Sampler initialized with {} subnets to sample", totalMyCustodySubnets);
-    eventChannels.subscribe(SlotEventsChannel.class, dasSampler);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
     this.dataAvailabilitySampler = dasSampler;
   }

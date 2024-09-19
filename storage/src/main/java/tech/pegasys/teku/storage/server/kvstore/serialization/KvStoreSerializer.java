@@ -58,7 +58,7 @@ public interface KvStoreSerializer<T> {
       SLOT_AND_BLOCK_ROOT_AND_BLOB_INDEX_KEY_SERIALIZER =
           new SlotAndBlockRootAndBlobIndexKeySerializer();
   KvStoreSerializer<DataColumnSlotAndIdentifier> COLUMN_SLOT_AND_IDENTIFIER_KEY_SERIALIZER =
-      new ColumnSlotAndIdentifierKeySerializer();
+      new DataColumnSlotAndIdentifierKeySerializer();
 
   static KvStoreSerializer<BeaconState> createStateSerializer(final Spec spec) {
     return new BeaconStateSerializer(spec);
