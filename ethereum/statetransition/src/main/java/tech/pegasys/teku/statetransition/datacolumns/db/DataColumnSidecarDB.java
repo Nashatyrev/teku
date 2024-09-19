@@ -41,7 +41,7 @@ public interface DataColumnSidecarDB extends DataColumnSidecarCoreDB {
   SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnSlotAndIdentifier identifier);
 
   @Override
-  SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot);
+  SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot);
 
   // update
 

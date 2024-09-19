@@ -76,7 +76,7 @@ public class RecoveringSidecarRetrieverTest {
 
   private DataColumnSlotAndIdentifier createId(BeaconBlock block, int colIdx) {
     return new DataColumnSlotAndIdentifier(
-        block.getSlot(), new DataColumnIdentifier(block.getRoot(), UInt64.valueOf(colIdx)));
+        block.getSlot(), block.getRoot(), UInt64.valueOf(colIdx));
   }
 
   @Test
@@ -125,7 +125,7 @@ public class RecoveringSidecarRetrieverTest {
         .forEach(
             req -> {
               req.promise()
-                  .complete(sidecars.get(req.columnId().identifier().getIndex().intValue()));
+                  .complete(sidecars.get(req.columnId().columnIndex().intValue()));
             });
 
     stubAsyncRunner.executeQueuedActions();

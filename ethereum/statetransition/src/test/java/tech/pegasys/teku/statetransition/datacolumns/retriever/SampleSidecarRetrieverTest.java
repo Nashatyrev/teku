@@ -91,7 +91,7 @@ public class SampleSidecarRetrieverTest {
 
   private DataColumnSlotAndIdentifier createId(BeaconBlock block, int colIdx) {
     return new DataColumnSlotAndIdentifier(
-        block.getSlot(), new DataColumnIdentifier(block.getRoot(), UInt64.valueOf(colIdx)));
+        block.getSlot(), block.getRoot(), UInt64.valueOf(colIdx));
   }
 
   List<UInt64> nodeCustodyColumns(UInt256 nodeId) {
@@ -182,8 +182,7 @@ public class SampleSidecarRetrieverTest {
     allPeers.forEach(testPeerManager::connectPeer);
 
     DataColumnSlotAndIdentifier id0 =
-        new DataColumnSlotAndIdentifier(
-            UInt64.ONE, new DataColumnIdentifier(Bytes32.ZERO, columnId));
+        new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, columnId);
     SafeFuture<DataColumnSidecar> resp0 = simpleSidecarRetriever.retrieve(id0);
 
     advanceTimeGradually(retrieverRound);

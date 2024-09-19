@@ -93,7 +93,10 @@ public class DataColumnSidecarByRootCustodyImpl
     public synchronized Optional<DataColumnSlotAndIdentifier> get(
         DataColumnIdentifier dataColumnIdentifier) {
       return Optional.ofNullable(blockRootToSlot.get(dataColumnIdentifier.getBlockRoot()))
-          .map(slot -> new DataColumnSlotAndIdentifier(slot, dataColumnIdentifier));
+          .map(
+              slot ->
+                  new DataColumnSlotAndIdentifier(
+                      slot, dataColumnIdentifier.getBlockRoot(), dataColumnIdentifier.getIndex()));
     }
 
     public SafeFuture<Optional<DataColumnSlotAndIdentifier>> getOrComputeAsync(
@@ -116,7 +119,9 @@ public class DataColumnSidecarByRootCustodyImpl
                               maybeSlot.map(
                                   slot ->
                                       new DataColumnSlotAndIdentifier(
-                                          slot, dataColumnIdentifier))));
+                                          slot,
+                                          dataColumnIdentifier.getBlockRoot(),
+                                          dataColumnIdentifier.getIndex()))));
     }
 
     public void addColumnSlotIdFromSidecar(DataColumnSidecar sidecar) {

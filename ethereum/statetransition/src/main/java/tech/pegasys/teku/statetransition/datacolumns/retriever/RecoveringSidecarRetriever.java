@@ -103,7 +103,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
         .thenPeek(
             maybeBlock -> {
               if (!maybeBlock
-                  .map(b -> b.getRoot().equals(columnId.identifier().getBlockRoot()))
+                  .map(b -> b.getRoot().equals(columnId.blockRoot()))
                   .orElse(false)) {
                 LOG.info("[nyota] Recovery: CAN'T initiate recovery for " + columnId);
                 promise.completeExceptionally(
@@ -112,7 +112,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                 final BeaconBlock block = maybeBlock.orElseThrow();
                 LOG.info("[nyota] Recovery: initiating recovery for " + columnId);
                 final RecoveryEntry recovery = addRecovery(columnId, block);
-                recovery.addRequest(columnId.identifier().getIndex(), promise);
+                recovery.addRequest(columnId.columnIndex(), promise);
               }
             })
         .ifExceptionGetsHereRaiseABug();
@@ -149,7 +149,6 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                 SafeFuture.collectAll(
                     dataColumnIdentifiers.stream()
                         .limit(recoverColumnCount)
-                        .map(id -> new DataColumnSlotAndIdentifier(block.getSlot(), id))
                         .map(sidecarDB::getSidecar)))
         .thenPeek(
             maybeDataColumnSidecars -> {
@@ -234,8 +233,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                     columnIdx ->
                         delegate.retrieve(
                             new DataColumnSlotAndIdentifier(
-                                block.getSlot(),
-                                new DataColumnIdentifier(block.getRoot(), columnIdx))))
+                                block.getSlot(), block.getRoot(), columnIdx)))
                 .peek(promise -> promise.thenPeek(this::addSidecar).ifExceptionGetsHereRaiseABug())
                 .toList();
       }

@@ -27,7 +27,7 @@ interface DataColumnSidecarCoreDB {
 
   SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnSlotAndIdentifier identifier);
 
-  SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot);
+  SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot);
 
   // update
   SafeFuture<Void> addSidecar(DataColumnSidecar sidecar);

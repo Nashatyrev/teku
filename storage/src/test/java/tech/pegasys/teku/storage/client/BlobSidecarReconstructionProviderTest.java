@@ -133,11 +133,11 @@ public class BlobSidecarReconstructionProviderTest {
         .thenAnswer(
             invocationOnMock -> {
               final DataColumnSlotAndIdentifier identifier = invocationOnMock.getArgument(0);
-              if (!identifier.identifier().getIndex().equals(UInt64.valueOf(10))) {
+              if (!identifier.columnIndex().equals(UInt64.valueOf(10))) {
                 return SafeFuture.completedFuture(
                     Optional.of(
                         dataStructureUtil.randomDataColumnSidecar(
-                            header, identifier.identifier().getIndex())));
+                            header, identifier.columnIndex())));
               } else {
                 return SafeFuture.completedFuture(Optional.empty());
               }
@@ -174,7 +174,7 @@ public class BlobSidecarReconstructionProviderTest {
               return SafeFuture.completedFuture(
                   Optional.of(
                       dataStructureUtil.randomDataColumnSidecar(
-                          header, identifier.identifier().getIndex())));
+                          header, identifier.columnIndex())));
             });
     when(client.getBlockByBlockRoot(any()))
         .thenReturn(SafeFuture.completedFuture(Optional.empty()));
@@ -220,7 +220,7 @@ public class BlobSidecarReconstructionProviderTest {
               final DataColumnSlotAndIdentifier identifier = invocationOnMock.getArgument(0);
               return SafeFuture.completedFuture(
                   Optional.of(
-                      dataColumnSidecars.get(identifier.identifier().getIndex().intValue())));
+                      dataColumnSidecars.get(identifier.columnIndex().intValue())));
             });
     when(client.getBlockByBlockRoot(any()))
         .thenReturn(SafeFuture.completedFuture(Optional.of(block)));
@@ -272,7 +272,7 @@ public class BlobSidecarReconstructionProviderTest {
               final DataColumnSlotAndIdentifier identifier = invocationOnMock.getArgument(0);
               return SafeFuture.completedFuture(
                   Optional.of(
-                      dataColumnSidecars.get(identifier.identifier().getIndex().intValue())));
+                      dataColumnSidecars.get(identifier.columnIndex().intValue())));
             });
     when(client.getBlockByBlockRoot(any()))
         .thenReturn(SafeFuture.completedFuture(Optional.of(block)));

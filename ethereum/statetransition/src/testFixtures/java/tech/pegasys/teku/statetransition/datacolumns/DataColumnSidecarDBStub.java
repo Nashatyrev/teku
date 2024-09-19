@@ -37,7 +37,7 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   private Optional<UInt64> firstCustodyIncompleteSlot = Optional.empty();
   private Optional<UInt64> firstSamplerIncompleteSlot = Optional.empty();
   private final Map<DataColumnSlotAndIdentifier, DataColumnSidecar> db = new HashMap<>();
-  private final NavigableMap<UInt64, Set<DataColumnIdentifier>> slotIds = new TreeMap<>();
+  private final NavigableMap<UInt64, Set<DataColumnSlotAndIdentifier>> slotIds = new TreeMap<>();
   private final AtomicLong dbReadCounter = new AtomicLong();
   private final AtomicLong dbWriteCounter = new AtomicLong();
 
@@ -72,7 +72,7 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
     dbWriteCounter.incrementAndGet();
     DataColumnSlotAndIdentifier identifier = DataColumnSlotAndIdentifier.fromDataColumn(sidecar);
     db.put(identifier, sidecar);
-    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier.identifier());
+    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier);
     return SafeFuture.COMPLETE;
   }
 
@@ -84,7 +84,7 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   }
 
   @Override
-  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot) {
     dbReadCounter.incrementAndGet();
     return SafeFuture.completedFuture(
         new ArrayList<>(slotIds.getOrDefault(slot, Collections.emptySet())));
@@ -93,14 +93,9 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   @Override
   public SafeFuture<Void> pruneAllSidecars(UInt64 tillSlot) {
     dbWriteCounter.incrementAndGet();
-    SortedMap<UInt64, Set<DataColumnIdentifier>> slotsToPrune = slotIds.headMap(tillSlot);
+    SortedMap<UInt64, Set<DataColumnSlotAndIdentifier>> slotsToPrune = slotIds.headMap(tillSlot);
     slotsToPrune.entrySet().stream()
-        .flatMap(
-            entry ->
-                entry.getValue().stream()
-                    .map(
-                        dataColumnIdentifier ->
-                            new DataColumnSlotAndIdentifier(entry.getKey(), dataColumnIdentifier)))
+        .flatMap(entry -> entry.getValue().stream())
         .forEach(db::remove);
     slotsToPrune.clear();
     return SafeFuture.COMPLETE;

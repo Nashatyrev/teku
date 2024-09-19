@@ -60,7 +60,7 @@ public class DelayedDasDb implements DataColumnSidecarDB {
   }
 
   @Override
-  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot) {
     return delay(() -> delegate.getColumnIdentifiers(slot));
   }
 
