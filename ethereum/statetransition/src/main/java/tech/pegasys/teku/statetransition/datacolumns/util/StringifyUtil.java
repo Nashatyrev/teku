@@ -30,42 +30,41 @@ import org.apache.tuweni.bytes.Bytes;
 public class StringifyUtil {
 
   public static String columnIndexesToString(Collection<Integer> indexes, int maxColumns) {
+    String lenStr = "(len: " + indexes.size() + ") ";
     if (indexes.isEmpty()) {
-      return "[]";
+      return lenStr + "[]";
     } else if (indexes.size() == maxColumns) {
-      return "[0.." + (maxColumns - 1) + "]";
-    } else if (indexes.size() <= 16) {
-      return "(len: " + indexes.size() + ") [" + sortAndJoin(indexes) + "]";
+      return lenStr + "[all]";
     } else if (maxColumns - indexes.size() <= 16) {
       Set<Integer> exceptIndexes =
           IntStream.range(0, maxColumns).boxed().collect(Collectors.toSet());
       exceptIndexes.removeAll(indexes);
-      return "(len: "
-          + indexes.size()
-          + ") [0.."
-          + (maxColumns - 1)
-          + " except "
+      return lenStr + "[all except "
           + sortAndJoin(exceptIndexes)
           + "]";
     } else {
       List<IntRange> ranges = reduceToIntRanges(indexes);
       if (ranges.size() <= 16) {
-        return "(len: "
-            + indexes.size()
-            + ") ["
-            + ranges.stream().map(Objects::toString).collect(Collectors.joining(", "))
+        return lenStr
+            + "["
+            + ranges.stream().map(Objects::toString).collect(Collectors.joining(","))
             + "]";
       } else {
+        List<Integer> sortedIndexes = indexes.stream().sorted().toList();
         BitSet bitSet = new BitSet(maxColumns);
         indexes.forEach(bitSet::set);
-        return "(len: " + indexes.size() + ") bitset: " + Bytes.of(bitSet.toByteArray());
+        return lenStr + "["
+            + sortAndJoin(sortedIndexes.subList(0, 4))
+            + ",...("
+            + (indexes.size() - 8)
+            + " more)..., "
+            + sortAndJoin(sortedIndexes.subList(sortedIndexes.size() - 4, sortedIndexes.size()))
+            + "], bitset: " + Bytes.of(bitSet.toByteArray());
       }
     }
   }
 
   private record IntRange(int first, int last) {
-
-    static final IntRange EMPTY = new IntRange(0, -1);
 
     static IntRange of(int i) {
       return new IntRange(i, i);
@@ -94,6 +93,10 @@ public class StringifyUtil {
       return first == last;
     }
 
+    int size() {
+      return Integer.max(0, last() - first() + 1);
+    }
+
     List<IntRange> union(IntRange other) {
       if (this.isEmpty()) {
         return List.of(other);
@@ -111,13 +114,12 @@ public class StringifyUtil {
 
     @Override
     public String toString() {
-      if (isEmpty()) {
-        return "<empty>";
-      } else if (isSingle()) {
-        return Integer.toString(first());
-      } else {
-        return first() + ".." + last();
-      }
+      return switch (size()) {
+        case 0 -> "<empty>";
+        case 1 -> Integer.toString(first());
+        case 2 -> first() + "," + last();
+        default -> first() + ".." + last();
+      };
     }
   }
 
