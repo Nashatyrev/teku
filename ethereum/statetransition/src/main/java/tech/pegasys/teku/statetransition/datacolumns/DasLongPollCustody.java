@@ -16,36 +16,40 @@ package tech.pegasys.teku.statetransition.datacolumns;
 import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeoutException;
+import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
-public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
+public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
 
   private final UpdatableDataColumnSidecarCustody delegate;
   private final AsyncRunner asyncRunner;
-  private final Duration longPollRequestTimeout;
+  private final Duration waitPeriodForCurrentSlot;
 
   @VisibleForTesting final PendingRequests pendingRequests = new PendingRequests();
 
   public DasLongPollCustody(
       UpdatableDataColumnSidecarCustody delegate,
       AsyncRunner asyncRunner,
-      Duration longPollRequestTimeout) {
+      Duration waitPeriodForCurrentSlot) {
     this.delegate = delegate;
     this.asyncRunner = asyncRunner;
-    this.longPollRequestTimeout = longPollRequestTimeout;
+    this.waitPeriodForCurrentSlot = waitPeriodForCurrentSlot;
   }
 
   @Override
@@ -54,11 +58,11 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
         .onNewValidatedDataColumnSidecar(dataColumnSidecar)
         .thenRun(
             () -> {
-              final List<SafeFuture<DataColumnSidecar>> pendingRequests =
+              final List<SafeFuture<Optional<DataColumnSidecar>>> pendingRequests =
                   this.pendingRequests.remove(
                       DataColumnSlotAndIdentifier.fromDataColumn(dataColumnSidecar));
-              for (SafeFuture<DataColumnSidecar> pendingRequest : pendingRequests) {
-                pendingRequest.complete(dataColumnSidecar);
+              for (SafeFuture<Optional<DataColumnSidecar>> pendingRequest : pendingRequests) {
+                pendingRequest.complete(Optional.of(dataColumnSidecar));
               }
             });
   }
@@ -66,16 +70,15 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnSlotAndIdentifier columnId) {
-    SafeFuture<DataColumnSidecar> pendingPromise = addPendingRequest(columnId);
+    SafeFuture<Optional<DataColumnSidecar>> pendingPromise = addPendingRequest(columnId);
     delegate
         .getCustodyDataColumnSidecar(columnId)
         .finish(
-            maybeExistingColumn -> maybeExistingColumn.ifPresent(pendingPromise::complete),
+            maybeExistingColumn ->
+                maybeExistingColumn.ifPresent(
+                    column -> pendingPromise.complete(Optional.of(column))),
             pendingPromise::completeExceptionally);
-    return pendingPromise
-        .orTimeout(asyncRunner, longPollRequestTimeout)
-        .thenApply(Optional::of)
-        .exceptionally(DasLongPollCustody::emptyOnTimeoutElseThrow);
+    return pendingPromise;
   }
 
   @Override
@@ -83,9 +86,9 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     return delegate.retrieveMissingColumns();
   }
 
-  private SafeFuture<DataColumnSidecar> addPendingRequest(
+  private SafeFuture<Optional<DataColumnSidecar>> addPendingRequest(
       final DataColumnSlotAndIdentifier columnId) {
-    final SafeFuture<DataColumnSidecar> promise = new SafeFuture<>();
+    final SafeFuture<Optional<DataColumnSidecar>> promise = new SafeFuture<>();
     pendingRequests.add(columnId, promise);
     return promise;
   }
@@ -98,21 +101,51 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody {
     }
   }
 
+  @Override
+  public void onSlot(UInt64 slot) {
+    asyncRunner.runAfterDelay(() -> pendingRequests.setNoWaitSlot(slot), waitPeriodForCurrentSlot);
+  }
+
   @VisibleForTesting
   static class PendingRequests {
-    final Map<DataColumnSlotAndIdentifier, List<SafeFuture<DataColumnSidecar>>> requests =
-        new HashMap<>();
+    final NavigableMap<DataColumnSlotAndIdentifier, List<SafeFuture<Optional<DataColumnSidecar>>>>
+        requests = new TreeMap<>();
+    private UInt64 noWaitSlot = UInt64.ZERO;
 
-    synchronized void add(
-        final DataColumnSlotAndIdentifier columnId, final SafeFuture<DataColumnSidecar> promise) {
-      clearCancelledPendingRequests();
-      requests.computeIfAbsent(columnId, __ -> new ArrayList<>()).add(promise);
+    void add(
+        final DataColumnSlotAndIdentifier columnId,
+        final SafeFuture<Optional<DataColumnSidecar>> promise) {
+      final boolean cancelImmediately;
+      synchronized (this) {
+        if (columnId.slot().isLessThanOrEqualTo(noWaitSlot)) {
+          cancelImmediately = true;
+        } else {
+          clearCancelledPendingRequests();
+          requests.computeIfAbsent(columnId, __ -> new ArrayList<>()).add(promise);
+          cancelImmediately = false;
+        }
+      }
+      if (cancelImmediately) {
+        promise.complete(Optional.empty());
+      }
     }
 
-    synchronized List<SafeFuture<DataColumnSidecar>> remove(
+    synchronized List<SafeFuture<Optional<DataColumnSidecar>>> remove(
         final DataColumnSlotAndIdentifier columnId) {
-      List<SafeFuture<DataColumnSidecar>> ret = requests.remove(columnId);
+      List<SafeFuture<Optional<DataColumnSidecar>>> ret = requests.remove(columnId);
       return ret == null ? Collections.emptyList() : ret;
+    }
+
+    void setNoWaitSlot(UInt64 slot) {
+      final List<SafeFuture<Optional<DataColumnSidecar>>> toCancel;
+      synchronized (this) {
+        this.noWaitSlot = slot;
+        SortedMap<DataColumnSlotAndIdentifier, List<SafeFuture<Optional<DataColumnSidecar>>>>
+            toRemove = requests.headMap(DataColumnSlotAndIdentifier.minimalComparableForSlot(slot));
+        toCancel = toRemove.values().stream().flatMap(Collection::stream).toList();
+        toRemove.clear();
+      }
+      toCancel.forEach(future -> future.complete(Optional.empty()));
     }
 
     private void clearCancelledPendingRequests() {

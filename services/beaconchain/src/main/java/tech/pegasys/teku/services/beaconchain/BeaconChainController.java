@@ -712,6 +712,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
       DasLongPollCustody dasLongPollCustody =
           new DasLongPollCustody(
               dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, Duration.ofSeconds(5));
+      eventChannels.subscribe(SlotEventsChannel.class, dasLongPollCustody);
 
       DataColumnSidecarByRootCustodyImpl dataColumnSidecarByRootCustody =
           new DataColumnSidecarByRootCustodyImpl(
