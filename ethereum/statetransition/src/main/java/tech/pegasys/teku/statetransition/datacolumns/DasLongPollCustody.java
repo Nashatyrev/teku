@@ -70,15 +70,10 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnSlotAndIdentifier columnId) {
-    SafeFuture<Optional<DataColumnSidecar>> pendingPromise = addPendingRequest(columnId);
-    delegate
-        .getCustodyDataColumnSidecar(columnId)
-        .finish(
-            maybeExistingColumn ->
-                maybeExistingColumn.ifPresent(
-                    column -> pendingPromise.complete(Optional.of(column))),
-            pendingPromise::completeExceptionally);
-    return pendingPromise;
+    SafeFuture<Optional<DataColumnSidecar>> pendingFuture = addPendingRequest(columnId);
+    SafeFuture<Optional<DataColumnSidecar>> existingFuture = delegate
+        .getCustodyDataColumnSidecar(columnId);
+    return anyNonEmpty(pendingFuture, existingFuture);
   }
 
   @Override
@@ -93,18 +88,33 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
     return promise;
   }
 
-  private static <T> Optional<T> emptyOnTimeoutElseThrow(Throwable err) {
-    if (ExceptionUtil.hasCause(err, TimeoutException.class)) {
-      return Optional.empty();
-    } else {
-      throw new CompletionException(err);
-    }
-  }
-
   @Override
   public void onSlot(UInt64 slot) {
     asyncRunner.runAfterDelay(() -> pendingRequests.setNoWaitSlot(slot), waitPeriodForCurrentSlot);
   }
+
+  private static <T> SafeFuture<Optional<T>> anyNonEmpty(SafeFuture<Optional<T>> future1, SafeFuture<Optional<T>> future2) {
+    return SafeFuture.anyOf(future1, future2)
+        .thenCompose(
+            __ -> {
+              if (future1.isCompletedNormally()) {
+                if (future1.getImmediately().isPresent()) {
+                  return future1;
+                } else {
+                  return future2;
+                }
+              } else if (future2.isCompletedNormally()) {
+                if (future2.getImmediately().isPresent()) {
+                  return future2;
+                } else {
+                  return future1;
+                }
+              } else {
+                throw new IllegalStateException("Unexpected: None of futures is complete");
+              }
+            });
+  }
+
 
   @VisibleForTesting
   static class PendingRequests {
