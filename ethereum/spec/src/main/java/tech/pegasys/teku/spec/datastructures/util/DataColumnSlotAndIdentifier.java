@@ -20,26 +20,34 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
-public record ColumnSlotAndIdentifier(UInt64 slot, DataColumnIdentifier identifier)
-    implements Comparable<ColumnSlotAndIdentifier> {
-  public ColumnSlotAndIdentifier(
-      final UInt64 slot, final Bytes32 blockRoot, final UInt64 columnIndex) {
-    this(slot, new DataColumnIdentifier(blockRoot, columnIndex));
+public record DataColumnSlotAndIdentifier(UInt64 slot, Bytes32 blockRoot, UInt64 columnIndex)
+    implements Comparable<DataColumnSlotAndIdentifier> {
+
+  public DataColumnSlotAndIdentifier(UInt64 slot, DataColumnIdentifier dataColumnIdentifier) {
+    this(slot, dataColumnIdentifier.getBlockRoot(), dataColumnIdentifier.getIndex());
   }
 
-  public static ColumnSlotAndIdentifier fromDataColumn(final DataColumnSidecar dataColumnSidecar) {
-    return new ColumnSlotAndIdentifier(
+  public static DataColumnSlotAndIdentifier fromDataColumn(
+      final DataColumnSidecar dataColumnSidecar) {
+    return new DataColumnSlotAndIdentifier(
         dataColumnSidecar.getSlot(),
         dataColumnSidecar.getBlockRoot(),
         dataColumnSidecar.getIndex());
   }
 
+  public static DataColumnSlotAndIdentifier minimalComparableForSlot(UInt64 slot) {
+    return new DataColumnSlotAndIdentifier(slot, Bytes32.ZERO, UInt64.ZERO);
+  }
+
+  public DataColumnIdentifier toDataColumnIdentifier() {
+    return new DataColumnIdentifier(blockRoot(), columnIndex());
+  }
+
   @Override
-  public int compareTo(@NotNull final ColumnSlotAndIdentifier o) {
-    return Comparator.comparing(ColumnSlotAndIdentifier::slot)
-        .thenComparing(
-            columnSlotAndIdentifier -> columnSlotAndIdentifier.identifier().getBlockRoot())
-        .thenComparing(columnSlotAndIdentifier -> columnSlotAndIdentifier.identifier().getIndex())
+  public int compareTo(@NotNull final DataColumnSlotAndIdentifier o) {
+    return Comparator.comparing(DataColumnSlotAndIdentifier::slot)
+        .thenComparing(DataColumnSlotAndIdentifier::blockRoot)
+        .thenComparing(DataColumnSlotAndIdentifier::columnIndex)
         .compare(this, o);
   }
 }

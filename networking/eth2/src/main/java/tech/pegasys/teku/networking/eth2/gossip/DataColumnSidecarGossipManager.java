@@ -38,7 +38,9 @@ public class DataColumnSidecarGossipManager implements GossipManager {
                 LOG.debug(
                     "Successfully published data column sidecar for slot {}",
                     dataColumnSidecar::toLogString),
-            error -> gossipFailureLogger.logWithSuppression(error, dataColumnSidecar.getSlot()));
+            error ->
+                gossipFailureLogger.logWithSuppression(
+                    error, dataColumnSidecar.getSlot(), dataColumnSidecar.toLogString()));
   }
 
   public void subscribeToSubnetId(final int subnetId) {

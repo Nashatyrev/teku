@@ -14,11 +14,9 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static tech.pegasys.teku.spec.config.Constants.VALID_BLOCK_SET_SIZE;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,14 +26,12 @@ import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
-import tech.pegasys.teku.infrastructure.collections.LimitedMap;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
-import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
@@ -47,25 +43,27 @@ public class DataColumnSidecarCustodyImpl
       UInt64 slot,
       Optional<Bytes32> canonicalBlockRoot,
       Collection<UInt64> requiredColumnIndices,
-      Collection<DataColumnIdentifier> custodiedColumnIndices) {
-    public Collection<DataColumnIdentifier> getIncompleteColumns() {
+      Collection<DataColumnSlotAndIdentifier> custodiedColumnIndices) {
+    public Collection<DataColumnSlotAndIdentifier> getIncompleteColumns() {
       return canonicalBlockRoot
           .map(
               blockRoot -> {
                 Set<UInt64> collectedIndices =
                     custodiedColumnIndices.stream()
-                        .filter(identifier -> identifier.getBlockRoot().equals(blockRoot))
-                        .map(DataColumnIdentifier::getIndex)
+                        .filter(identifier -> identifier.blockRoot().equals(blockRoot))
+                        .map(DataColumnSlotAndIdentifier::columnIndex)
                         .collect(Collectors.toSet());
                 return requiredColumnIndices.stream()
                     .filter(requiredColIdx -> !collectedIndices.contains(requiredColIdx))
-                    .map(missedColIdx -> new DataColumnIdentifier(blockRoot, missedColIdx));
+                    .map(
+                        missedColIdx ->
+                            new DataColumnSlotAndIdentifier(slot(), blockRoot, missedColIdx));
               })
           .orElse(Stream.empty())
           .toList();
     }
 
-    public AsyncStream<DataColumnIdentifier> streamIncompleteColumns() {
+    public AsyncStream<DataColumnSlotAndIdentifier> streamIncompleteColumns() {
       return AsyncStream.create(getIncompleteColumns().iterator());
     }
 
@@ -87,8 +85,6 @@ public class DataColumnSidecarCustodyImpl
   private final CanonicalBlockResolver blockResolver;
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
-  private final Map<DataColumnIdentifier, ColumnSlotAndIdentifier> knownSavedIdentifiers;
-
   private final MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator;
 
   private volatile UInt64 currentSlot = null;
@@ -112,9 +108,6 @@ public class DataColumnSidecarCustodyImpl
     this.minCustodyPeriodSlotCalculator = minCustodyPeriodSlotCalculator;
     this.nodeId = nodeId;
     this.totalCustodySubnetCount = totalCustodySubnetCount;
-    this.knownSavedIdentifiers =
-        LimitedMap.createSynchronizedNatural(
-            VALID_BLOCK_SET_SIZE * spec.getNumberOfDataColumns().orElseThrow());
   }
 
   private List<UInt64> getCustodyColumnsForSlot(UInt64 slot) {
@@ -129,11 +122,6 @@ public class DataColumnSidecarCustodyImpl
   @Override
   public SafeFuture<Void> onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
     if (isMyCustody(dataColumnSidecar.getSlot(), dataColumnSidecar.getIndex())) {
-      final DataColumnIdentifier dataColumnIdentifier =
-          DataColumnIdentifier.createFromSidecar(dataColumnSidecar);
-      knownSavedIdentifiers.put(
-          dataColumnIdentifier,
-          new ColumnSlotAndIdentifier(dataColumnSidecar.getSlot(), dataColumnIdentifier));
       return db.addSidecar(dataColumnSidecar);
     } else {
       return SafeFuture.COMPLETE;
@@ -155,12 +143,8 @@ public class DataColumnSidecarCustodyImpl
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
-      DataColumnIdentifier columnId) {
-    final Optional<ColumnSlotAndIdentifier> maybeColumnSlotAndIdentifier =
-        Optional.ofNullable(knownSavedIdentifiers.get(columnId));
-    return maybeColumnSlotAndIdentifier
-        .map(db::getSidecar)
-        .orElseGet(() -> db.getSidecar(columnId));
+      DataColumnSlotAndIdentifier columnId) {
+    return db.getSidecar(columnId);
   }
 
   @Override
@@ -207,7 +191,8 @@ public class DataColumnSidecarCustodyImpl
   private SafeFuture<SlotCustody> retrieveSlotCustody(final UInt64 slot) {
     final SafeFuture<Optional<Bytes32>> maybeCanonicalBlockRoot = getBlockRootIfHaveBlobs(slot);
     final List<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
-    final SafeFuture<List<DataColumnIdentifier>> existingColumns = db.getColumnIdentifiers(slot);
+    final SafeFuture<List<DataColumnSlotAndIdentifier>> existingColumns =
+        db.getColumnIdentifiers(slot);
     return SafeFuture.allOf(maybeCanonicalBlockRoot, existingColumns)
         .thenApply(
             __ ->
@@ -240,10 +225,6 @@ public class DataColumnSidecarCustodyImpl
     // waiting a column for [gossipWaitSlots] to be delivered by gossip
     // and not considering it missing yet
     return retrievePotentiallyIncompleteSlotCustodies(currentSlot.minusMinZero(gossipWaitSlots))
-        .flatMap(
-            slotCustody ->
-                slotCustody
-                    .streamIncompleteColumns()
-                    .map(colId -> new DataColumnSlotAndIdentifier(slotCustody.slot(), colId)));
+        .flatMap(SlotCustody::streamIncompleteColumns);
   }
 }
