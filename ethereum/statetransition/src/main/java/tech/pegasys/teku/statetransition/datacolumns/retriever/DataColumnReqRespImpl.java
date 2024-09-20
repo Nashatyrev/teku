@@ -42,11 +42,17 @@ public class DataColumnReqRespImpl implements DataColumnReqResp {
         .whenException(
             ex -> {
               if (ex instanceof DataColumnReqRespException) {
-                LOG.debug("Error requesting data column sidecar {} from {}: {}",
-                        columnIdentifier, nodeId, ex);
+                LOG.debug(
+                    "Error requesting data column sidecar {} from {}: {}",
+                    columnIdentifier,
+                    nodeId,
+                    ex);
               } else {
-                LOG.warn("Error requesting data column sidecar {} from {}: {}",
-                    columnIdentifier, nodeId, ex);
+                LOG.warn(
+                    "Error requesting data column sidecar {} from {}: {}",
+                    columnIdentifier,
+                    nodeId,
+                    ex);
                 // TODO: uncomment in production
                 // peerManager.banNode(nodeId);
               }

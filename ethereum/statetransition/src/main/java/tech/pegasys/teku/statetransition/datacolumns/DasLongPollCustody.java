@@ -68,8 +68,8 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnSlotAndIdentifier columnId) {
     SafeFuture<Optional<DataColumnSidecar>> pendingFuture = addPendingRequest(columnId);
-    SafeFuture<Optional<DataColumnSidecar>> existingFuture = delegate
-        .getCustodyDataColumnSidecar(columnId);
+    SafeFuture<Optional<DataColumnSidecar>> existingFuture =
+        delegate.getCustodyDataColumnSidecar(columnId);
     return anyNonEmpty(pendingFuture, existingFuture);
   }
 
@@ -92,7 +92,8 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
         .ifExceptionGetsHereRaiseABug();
   }
 
-  private static <T> SafeFuture<Optional<T>> anyNonEmpty(SafeFuture<Optional<T>> future1, SafeFuture<Optional<T>> future2) {
+  private static <T> SafeFuture<Optional<T>> anyNonEmpty(
+      SafeFuture<Optional<T>> future1, SafeFuture<Optional<T>> future2) {
     return SafeFuture.anyOf(future1, future2)
         .thenCompose(
             __ -> {
@@ -113,7 +114,6 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
               }
             });
   }
-
 
   @VisibleForTesting
   static class PendingRequests {
