@@ -71,7 +71,7 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
     dbWriteCounter.incrementAndGet();
     DataColumnSlotAndIdentifier identifier = DataColumnSlotAndIdentifier.fromDataColumn(sidecar);
     db.put(identifier, sidecar);
-    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier);
+    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier.identifier());
     return SafeFuture.COMPLETE;
   }
 
