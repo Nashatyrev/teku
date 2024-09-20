@@ -88,7 +88,8 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   @Override
   public void onSlot(UInt64 slot) {
     asyncRunner
-        .runAfterDelay(() -> pendingRequests.setNoWaitSlot(slot.increment()), waitPeriodForCurrentSlot)
+        .runAfterDelay(
+            () -> pendingRequests.setNoWaitSlot(slot.increment()), waitPeriodForCurrentSlot)
         .ifExceptionGetsHereRaiseABug();
   }
 
@@ -150,7 +151,9 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
       synchronized (this) {
         this.noWaitSlot = tillSlotExclusive;
         SortedMap<DataColumnSlotAndIdentifier, List<SafeFuture<Optional<DataColumnSidecar>>>>
-            toRemove = requests.headMap(DataColumnSlotAndIdentifier.minimalComparableForSlot(tillSlotExclusive));
+            toRemove =
+                requests.headMap(
+                    DataColumnSlotAndIdentifier.minimalComparableForSlot(tillSlotExclusive));
         toCancel = toRemove.values().stream().flatMap(Collection::stream).toList();
         toRemove.clear();
       }
