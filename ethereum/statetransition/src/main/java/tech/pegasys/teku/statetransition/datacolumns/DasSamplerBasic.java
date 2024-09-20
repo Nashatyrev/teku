@@ -42,7 +42,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
 
   private final UInt256 nodeId;
   private final int totalCustodySubnetCount;
-  private final DataColumnSidecarCustody custody;
+  private final UpdatableDataColumnSidecarCustody custody;
   private final DataColumnSidecarRetriever retriever;
 
   private final Spec spec;
@@ -51,7 +51,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   public DasSamplerBasic(
       final Spec spec,
       final DataColumnSidecarDbAccessor db,
-      final DataColumnSidecarCustody custody,
+      final UpdatableDataColumnSidecarCustody custody,
       final DataColumnSidecarRetriever retriever,
       final UInt256 nodeId,
       final int totalCustodySubnetCount) {
@@ -140,6 +140,9 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                               slot,
                               blockRoot);
                         }
+                        retrievedColumns.stream()
+                            .map(custody::onNewValidatedDataColumnSidecar)
+                            .forEach(updateFuture -> updateFuture.ifExceptionGetsHereRaiseABug());
                       });
 
           return columnsRetrievedFuture.thenApply(
