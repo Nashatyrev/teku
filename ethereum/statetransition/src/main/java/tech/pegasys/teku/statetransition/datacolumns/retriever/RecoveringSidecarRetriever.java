@@ -146,7 +146,6 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                 SafeFuture.collectAll(
                     dataColumnIdentifiers.stream()
                         .limit(recoverColumnCount)
-                        .map(id -> new DataColumnSlotAndIdentifier(block.getSlot(), id))
                         .map(sidecarDB::getSidecar)))
         .thenPeek(
             maybeDataColumnSidecars -> {

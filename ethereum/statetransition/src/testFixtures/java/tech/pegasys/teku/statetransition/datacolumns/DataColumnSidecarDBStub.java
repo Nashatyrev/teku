@@ -31,12 +31,13 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 
+import static tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier.minimalComparableForSlot;
+
 public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
 
   private Optional<UInt64> firstCustodyIncompleteSlot = Optional.empty();
   private Optional<UInt64> firstSamplerIncompleteSlot = Optional.empty();
-  private final Map<DataColumnSlotAndIdentifier, DataColumnSidecar> db = new HashMap<>();
-  private final NavigableMap<UInt64, Set<DataColumnSlotAndIdentifier>> slotIds = new TreeMap<>();
+  private final NavigableMap<DataColumnSlotAndIdentifier, DataColumnSidecar> db = new TreeMap<>();
   private final AtomicLong dbReadCounter = new AtomicLong();
   private final AtomicLong dbWriteCounter = new AtomicLong();
 
@@ -71,7 +72,6 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
     dbWriteCounter.incrementAndGet();
     DataColumnSlotAndIdentifier identifier = DataColumnSlotAndIdentifier.fromDataColumn(sidecar);
     db.put(identifier, sidecar);
-    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier.identifier());
     return SafeFuture.COMPLETE;
   }
 
@@ -86,17 +86,18 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot) {
     dbReadCounter.incrementAndGet();
     return SafeFuture.completedFuture(
-        new ArrayList<>(slotIds.getOrDefault(slot, Collections.emptySet())));
+        db
+            .subMap(minimalComparableForSlot(slot), minimalComparableForSlot(slot.increment()))
+            .keySet()
+            .stream()
+            .sorted()
+            .toList());
   }
 
   @Override
   public SafeFuture<Void> pruneAllSidecars(UInt64 tillSlot) {
     dbWriteCounter.incrementAndGet();
-    SortedMap<UInt64, Set<DataColumnSlotAndIdentifier>> slotsToPrune = slotIds.headMap(tillSlot);
-    slotsToPrune.entrySet().stream()
-        .flatMap(entry -> entry.getValue().stream())
-        .forEach(db::remove);
-    slotsToPrune.clear();
+    db.headMap(minimalComparableForSlot(tillSlot)).clear();
     return SafeFuture.COMPLETE;
   }
 
