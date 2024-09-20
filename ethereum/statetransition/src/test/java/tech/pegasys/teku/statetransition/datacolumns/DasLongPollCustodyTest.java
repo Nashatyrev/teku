@@ -14,6 +14,7 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
@@ -66,9 +67,9 @@ public class DasLongPollCustodyTest {
           subnetCount);
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
-  private final Duration longPollTimeout = ofMillis(200);
+  private final Duration currentSlotTimeout = ofSeconds(3);
   private final DasLongPollCustody custody =
-      new DasLongPollCustody(custodyImpl, stubAsyncRunner, longPollTimeout);
+      new DasLongPollCustody(custodyImpl, stubAsyncRunner, currentSlotTimeout);
 
   private final BeaconBlock block10 = blockResolver.addBlock(10, true);
   private final DataColumnSidecar sidecar10_0 = createSidecar(block10, 0);
@@ -102,7 +103,9 @@ public class DasLongPollCustodyTest {
     SafeFuture<Optional<DataColumnSidecar>> fRet1 =
         custody.getCustodyDataColumnSidecar(columnId10_1);
 
-    advanceTimeGradually(longPollTimeout.minus(dbDelay).minus(ofMillis(1)));
+    advanceTimeGradually(currentSlotTimeout.minus(dbDelay).minus(ofMillis(1)));
+
+    custody.onSlot(UInt64.valueOf(10));
 
     assertThat(fRet0).isNotDone();
     assertThat(fRet0_1).isNotDone();
@@ -112,15 +115,13 @@ public class DasLongPollCustodyTest {
 
     advanceTimeGradually(dbDelay);
 
-    assertThat(fRet0.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
-    assertThat(fRet0_1.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
+    assertThat(fRet0).isCompletedWithValue(Optional.of(sidecar10_0));
+    assertThat(fRet0_1).isCompletedWithValue(Optional.of(sidecar10_0));
     assertThat(fRet1).isNotDone();
 
-    advanceTimeGradually(longPollTimeout);
+    advanceTimeGradually(currentSlotTimeout);
 
-    assertThat(fRet0.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
-    assertThat(fRet0_1.get(1, TimeUnit.SECONDS)).contains(sidecar10_0);
-    assertThat(fRet1.get(1, TimeUnit.SECONDS)).isEmpty();
+    assertThat(fRet1).isCompletedWithValue(Optional.empty());
   }
 
   @Test
@@ -160,8 +161,28 @@ public class DasLongPollCustodyTest {
     SafeFuture<Optional<DataColumnSidecar>> fRet0 =
         custody.getCustodyDataColumnSidecar(columnId10_0);
 
-    advanceTimeGradually(longPollTimeout.multipliedBy(2));
+    custody.onSlot(UInt64.valueOf(9));
+    advanceTimeGradually(currentSlotTimeout.plusMillis(100));
 
+    assertThat(fRet0).isNotDone();
+
+    custody.onSlot(UInt64.valueOf(10));
+
+    advanceTimeGradually(currentSlotTimeout.minusMillis(10));
+    assertThat(fRet0).isNotDone();
+
+    advanceTimeGradually(Duration.ofMillis(110));
     assertThat(fRet0).isCompletedWithValue(Optional.empty());
+  }
+
+  @Test
+  void testOptionalEmptyIsReturnedImmediatelyForPastSlot() {
+    custody.onSlot(UInt64.valueOf(10));
+    advanceTimeGradually(currentSlotTimeout);
+
+    SafeFuture<Optional<DataColumnSidecar>> fRet =
+        custody.getCustodyDataColumnSidecar(columnId10_0);
+    advanceTimeGradually(Duration.ofMillis(20)); // more than db delay
+    assertThat(fRet).isCompletedWithValue(Optional.empty());
   }
 }
