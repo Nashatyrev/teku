@@ -23,6 +23,10 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 public record DataColumnSlotAndIdentifier(UInt64 slot, Bytes32 blockRoot, UInt64 columnIndex)
     implements Comparable<DataColumnSlotAndIdentifier> {
 
+  public DataColumnSlotAndIdentifier(UInt64 slot,DataColumnIdentifier dataColumnIdentifier) {
+    this(slot, dataColumnIdentifier.getBlockRoot(), dataColumnIdentifier.getIndex());
+  }
+
   public static DataColumnSlotAndIdentifier fromDataColumn(
       final DataColumnSidecar dataColumnSidecar) {
     return new DataColumnSlotAndIdentifier(
