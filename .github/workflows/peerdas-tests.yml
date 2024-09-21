@@ -4,12 +4,12 @@
 # More details please check the following link:
 # https://github.com/codespell-project/codespell
 
-name: Teku Assemble
+name: Teku PeerDAS related tests
 
 on: pull_request
 
 jobs:
-  build:
+  tests:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,4 +23,4 @@ jobs:
           distribution: 'temurin'
 
       - name: Gradle assemble
-        run: ./gradlew --no-daemon --parallel clean compileJava compileTestJava compileJmhJava compileIntegrationTestJava compileAcceptanceTestJava compilePropertyTestJava assemble
+        run: ./gradlew --no-daemon --parallel clean :beacon:sync:test :data:provider:test :ethereum:spec:test :ethereum:statetransition:test :infrastructure:async:test :infrastructure:kzg:test :infrastructure:metrics:test :networking:eth2:test :networking:p2p:test
