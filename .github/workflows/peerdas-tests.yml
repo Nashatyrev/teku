@@ -1,9 +1,3 @@
-# A Github action that uses codespell to check spell.
-# .codespell/.codespellrc is a config file.
-# .codespell/wordlist.txt is a list of words that will ignore word checks.
-# More details please check the following link:
-# https://github.com/codespell-project/codespell
-
 name: Teku PeerDAS related tests
 
 on: pull_request
