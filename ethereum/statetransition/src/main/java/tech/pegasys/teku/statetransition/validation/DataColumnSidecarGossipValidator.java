@@ -113,12 +113,12 @@ public class DataColumnSidecarGossipValidator {
     this.totalDataColumnSidecarsProcessingRequestsCounter =
             metricsSystem.createCounter(
                     TekuMetricCategory.BEACON,
-                    "beacon_data_column_sidecar_processing_requests_total",
+                    "data_column_sidecar_processing_requests_total",
                     "Total number of data column sidecars submitted for processing");
     this.totalDataColumnSidecarsProcessingSuccessesCounter =
             metricsSystem.createCounter(
                     TekuMetricCategory.BEACON,
-                    "beacon_data_column_sidecar_processing_successes_total",
+                    "data_column_sidecar_processing_successes_total",
                     "Total number of data column sidecars verified for gossip");
     this.validInclusionProofInfoSet = validInclusionProofInfoSet;
     this.validSignedBlockHeaders = validSignedBlockHeaders;
@@ -335,6 +335,8 @@ public class DataColumnSidecarGossipValidator {
               "DataColumnSidecar is not the first valid for its slot and index. It will be dropped."));
     }
 
+    totalDataColumnSidecarsProcessingSuccessesCounter.inc();
+    
     return SafeFuture.completedFuture(ACCEPT);
   }
 
