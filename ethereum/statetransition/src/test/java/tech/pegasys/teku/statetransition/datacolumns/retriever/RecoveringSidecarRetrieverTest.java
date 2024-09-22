@@ -34,13 +34,12 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBStub;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 
@@ -76,7 +75,7 @@ public class RecoveringSidecarRetrieverTest {
 
   private DataColumnSlotAndIdentifier createId(BeaconBlock block, int colIdx) {
     return new DataColumnSlotAndIdentifier(
-        block.getSlot(), new DataColumnIdentifier(block.getRoot(), UInt64.valueOf(colIdx)));
+        block.getSlot(), block.getRoot(), UInt64.valueOf(colIdx));
   }
 
   @Test
@@ -96,7 +95,8 @@ public class RecoveringSidecarRetrieverTest {
             stubAsyncRunner,
             Duration.ofSeconds(1),
             128);
-    List<Blob> blobs = Stream.generate(dataStructureUtil::randomBlob).limit(blobCount).toList();
+    List<Blob> blobs =
+        Stream.generate(dataStructureUtil::randomValidBlob).limit(blobCount).toList();
     BeaconBlock block = blockResolver.addBlock(10, blobCount);
     List<DataColumnSidecar> sidecars =
         miscHelpers.constructDataColumnSidecars(createSigned(block), blobs, kzg);
@@ -123,8 +123,7 @@ public class RecoveringSidecarRetrieverTest {
         .limit(columnCount / 2 - columnsInDbCount)
         .forEach(
             req -> {
-              req.promise()
-                  .complete(sidecars.get(req.columnId().identifier().getIndex().intValue()));
+              req.promise().complete(sidecars.get(req.columnId().columnIndex().intValue()));
             });
 
     stubAsyncRunner.executeQueuedActions();

@@ -27,6 +27,7 @@ import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 
 public class DasCustodySync implements SlotEventsChannel {
@@ -116,7 +117,7 @@ public class DasCustodySync implements SlotEventsChannel {
                 addPendingRequest(missingColumn);
               }
 
-              if (missingColumnsToRequest.isEmpty()) {
+              if (missingColumnsToRequest.size() < newRequestCount) {
                 coolDownTillNextSlot = true;
               }
 

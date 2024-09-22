@@ -13,32 +13,24 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import static tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier.minimalComparableForSlot;
+
 import java.util.List;
-import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
-import java.util.Set;
-import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 
 public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
 
   private Optional<UInt64> firstCustodyIncompleteSlot = Optional.empty();
   private Optional<UInt64> firstSamplerIncompleteSlot = Optional.empty();
-  private final Map<DataColumnIdentifier, DataColumnSidecar> db = new HashMap<>();
-  private final NavigableMap<UInt64, Set<DataColumnIdentifier>> slotIds = new TreeMap<>();
+  private final NavigableMap<DataColumnSlotAndIdentifier, DataColumnSidecar> db = new TreeMap<>();
   private final AtomicLong dbReadCounter = new AtomicLong();
   private final AtomicLong dbWriteCounter = new AtomicLong();
 
@@ -71,36 +63,34 @@ public class DataColumnSidecarDBStub implements DataColumnSidecarDB {
   @Override
   public SafeFuture<Void> addSidecar(DataColumnSidecar sidecar) {
     dbWriteCounter.incrementAndGet();
-    DataColumnIdentifier identifier = DataColumnIdentifier.createFromSidecar(sidecar);
+    DataColumnSlotAndIdentifier identifier = DataColumnSlotAndIdentifier.fromDataColumn(sidecar);
     db.put(identifier, sidecar);
-    slotIds.computeIfAbsent(sidecar.getSlot(), __ -> new HashSet<>()).add(identifier);
     return SafeFuture.COMPLETE;
   }
 
   @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(ColumnSlotAndIdentifier identifier) {
-    return SafeFuture.completedFuture(Optional.ofNullable(db.get(identifier.identifier())));
-  }
-
-  @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier) {
+  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(
+      DataColumnSlotAndIdentifier identifier) {
     dbReadCounter.incrementAndGet();
     return SafeFuture.completedFuture(Optional.ofNullable(db.get(identifier)));
   }
 
   @Override
-  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot) {
     dbReadCounter.incrementAndGet();
     return SafeFuture.completedFuture(
-        new ArrayList<>(slotIds.getOrDefault(slot, Collections.emptySet())));
+        db
+            .subMap(minimalComparableForSlot(slot), minimalComparableForSlot(slot.increment()))
+            .keySet()
+            .stream()
+            .sorted()
+            .toList());
   }
 
   @Override
   public SafeFuture<Void> pruneAllSidecars(UInt64 tillSlot) {
     dbWriteCounter.incrementAndGet();
-    SortedMap<UInt64, Set<DataColumnIdentifier>> slotsToPrune = slotIds.headMap(tillSlot);
-    slotsToPrune.values().stream().flatMap(Collection::stream).forEach(db::remove);
-    slotsToPrune.clear();
+    db.headMap(minimalComparableForSlot(tillSlot)).clear();
     return SafeFuture.COMPLETE;
   }
 

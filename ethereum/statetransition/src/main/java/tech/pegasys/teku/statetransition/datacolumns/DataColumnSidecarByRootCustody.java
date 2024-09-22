@@ -16,12 +16,26 @@ package tech.pegasys.teku.statetransition.datacolumns;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
-public interface DataColumnSidecarCustody {
+public interface DataColumnSidecarByRootCustody extends DataColumnSidecarCustody {
 
-  DataColumnSidecarCustody NOOP = (__) -> SafeFuture.completedFuture(Optional.empty());
+  public static final DataColumnSidecarByRootCustody NOOP =
+      new DataColumnSidecarByRootCustody() {
+        @Override
+        public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecarByRoot(
+            DataColumnIdentifier columnId) {
+          return SafeFuture.completedFuture(Optional.empty());
+        }
 
-  SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
-      DataColumnSlotAndIdentifier columnId);
+        @Override
+        public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
+            DataColumnSlotAndIdentifier columnId) {
+          return SafeFuture.completedFuture(Optional.empty());
+        }
+      };
+
+  SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecarByRoot(
+      DataColumnIdentifier columnId);
 }

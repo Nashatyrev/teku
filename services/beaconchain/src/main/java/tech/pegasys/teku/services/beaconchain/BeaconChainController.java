@@ -148,11 +148,13 @@ import tech.pegasys.teku.statetransition.datacolumns.DasLongPollCustody;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerBasic;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustodyImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalculator;
+import tech.pegasys.teku.statetransition.datacolumns.UpdatableDataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
@@ -665,10 +667,10 @@ public class BeaconChainController extends Service implements BeaconChainControl
         SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
     MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator =
         MinCustodyPeriodSlotCalculator.createFromSpec(spec);
+    int slotsPerEpoch = configEip7594.getSlotsPerEpoch();
 
     final DataColumnSidecarDbAccessor dbAccessor;
     {
-      int slotsPerEpoch = configEip7594.getSlotsPerEpoch();
       DataColumnSidecarDB sidecarDB =
           DataColumnSidecarDB.create(
               combinedChainDataClient,
@@ -695,28 +697,43 @@ public class BeaconChainController extends Service implements BeaconChainControl
             .p2pConfig()
             .getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.EIP7594));
 
-    DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
-        new DataColumnSidecarCustodyImpl(
-            spec,
-            canonicalBlockResolver,
-            dbAccessor,
-            minCustodyPeriodSlotCalculator,
-            nodeId,
-            totalMyCustodySubnets);
-    eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
-    eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarCustodyImpl);
+    final UpdatableDataColumnSidecarCustody custody;
+    {
+      DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
+          new DataColumnSidecarCustodyImpl(
+              spec,
+              canonicalBlockResolver,
+              dbAccessor,
+              minCustodyPeriodSlotCalculator,
+              nodeId,
+              totalMyCustodySubnets);
+      eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
+      eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarCustodyImpl);
 
-    DasLongPollCustody custody =
-        new DasLongPollCustody(
-            dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, Duration.ofSeconds(5));
+      DasLongPollCustody dasLongPollCustody =
+          new DasLongPollCustody(
+              dataColumnSidecarCustodyImpl, operationPoolAsyncRunner, Duration.ofSeconds(5));
+      eventChannels.subscribe(SlotEventsChannel.class, dasLongPollCustody);
+
+      DataColumnSidecarByRootCustodyImpl dataColumnSidecarByRootCustody =
+          new DataColumnSidecarByRootCustodyImpl(
+              dasLongPollCustody,
+              combinedChainDataClient,
+              UInt64.valueOf(slotsPerEpoch)
+                  .times(DataColumnSidecarByRootCustodyImpl.DEFAULT_MAX_CACHE_SIZE_EPOCHS));
+
+      // TODO fix this dirty hack
+      // This is to resolve the initialization loop Network <--> DAS Custody
+      this.dataColumnSidecarCustody.init(dataColumnSidecarByRootCustody);
+
+      custody = dataColumnSidecarByRootCustody;
+    }
+
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
         dataColumnSidecar ->
             custody
                 .onNewValidatedDataColumnSidecar(dataColumnSidecar)
                 .ifExceptionGetsHereRaiseABug());
-    // TODO fix this dirty hack
-    // This is to resolve the initialization loop Network <--> DAS Custody
-    this.dataColumnSidecarCustody.init(custody);
 
     DataColumnPeerManagerImpl dasPeerManager = new DataColumnPeerManagerImpl();
     p2pNetwork.subscribeConnect(dasPeerManager);
@@ -756,16 +773,16 @@ public class BeaconChainController extends Service implements BeaconChainControl
             Duration.ofMinutes(5),
             configEip7594.getNumberOfColumns());
 
-    dasCustodySync = new DasCustodySync(dataColumnSidecarCustodyImpl, recoveringSidecarRetriever);
+    dasCustodySync = new DasCustodySync(custody, recoveringSidecarRetriever);
     eventChannels.subscribe(SlotEventsChannel.class, dasCustodySync);
 
     if (beaconConfig.p2pConfig().isDasLossySamplerEnabled()) {
       LOG.info("Lossy Sampler is not supported, starting basic sampler");
     }
     final DasSamplerBasic dasSampler =
-        new DasSamplerBasic(spec, dbAccessor, custody, nodeId, totalMyCustodySubnets);
+        new DasSamplerBasic(
+            spec, dbAccessor, custody, recoveringSidecarRetriever, nodeId, totalMyCustodySubnets);
     LOG.info("DAS Basic Sampler initialized with {} subnets to sample", totalMyCustodySubnets);
-    eventChannels.subscribe(SlotEventsChannel.class, dasSampler);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
     this.dataAvailabilitySampler = dasSampler;
   }

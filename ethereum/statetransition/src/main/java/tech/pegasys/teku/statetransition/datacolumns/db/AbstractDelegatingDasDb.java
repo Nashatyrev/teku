@@ -18,28 +18,23 @@ import java.util.Optional;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.spec.datastructures.util.ColumnSlotAndIdentifier;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 abstract class AbstractDelegatingDasDb implements DataColumnSidecarCoreDB {
   private final DataColumnSidecarCoreDB delegateDb;
 
-  public AbstractDelegatingDasDb(DataColumnSidecarDB delegateDb) {
+  public AbstractDelegatingDasDb(DataColumnSidecarCoreDB delegateDb) {
     this.delegateDb = delegateDb;
   }
 
   @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(DataColumnIdentifier identifier) {
+  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(
+      DataColumnSlotAndIdentifier identifier) {
     return delegateDb.getSidecar(identifier);
   }
 
   @Override
-  public SafeFuture<Optional<DataColumnSidecar>> getSidecar(ColumnSlotAndIdentifier identifier) {
-    return delegateDb.getSidecar(identifier);
-  }
-
-  @Override
-  public SafeFuture<List<DataColumnIdentifier>> getColumnIdentifiers(UInt64 slot) {
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot) {
     return delegateDb.getColumnIdentifiers(slot);
   }
 
