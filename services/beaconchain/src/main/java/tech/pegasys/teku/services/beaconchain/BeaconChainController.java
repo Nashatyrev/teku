@@ -48,6 +48,7 @@ import tech.pegasys.teku.beacon.sync.DefaultSyncServiceFactory;
 import tech.pegasys.teku.beacon.sync.SyncService;
 import tech.pegasys.teku.beacon.sync.SyncServiceFactory;
 import tech.pegasys.teku.beacon.sync.events.CoalescingChainHeadChannel;
+import tech.pegasys.teku.beacon.sync.events.SyncPreImportBlockChannel;
 import tech.pegasys.teku.beacon.sync.gossip.blobs.RecentBlobSidecarsFetcher;
 import tech.pegasys.teku.beacon.sync.gossip.blocks.RecentBlocksFetcher;
 import tech.pegasys.teku.beaconrestapi.BeaconRestApi;
@@ -145,6 +146,7 @@ import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.DasCustodySync;
 import tech.pegasys.teku.statetransition.datacolumns.DasLongPollCustody;
+import tech.pegasys.teku.statetransition.datacolumns.DasPreSampler;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerBasic;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
@@ -320,6 +322,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   protected volatile KeyValueStore<String, Bytes> keyValueStore;
   protected volatile StorageQueryChannel storageQueryChannel;
   protected volatile StorageUpdateChannel storageUpdateChannel;
+  protected volatile SyncPreImportBlockChannel syncPreImportBlockChannel;
   protected volatile StableSubnetSubscriber stableSubnetSubscriber;
   protected volatile ExecutionLayerBlockProductionManager executionLayerBlockProductionManager;
   protected volatile RewardCalculator rewardCalculator;
@@ -555,6 +558,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     initSyncCommitteePools();
     initP2PNetwork();
     initDasCustody();
+    initDasSyncPreSampler();
     initSyncService();
     initSlotProcessor();
     initMetrics();
@@ -784,6 +788,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
     LOG.info("DAS Basic Sampler initialized with {} subnets to sample", totalMyCustodySubnets);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
     this.dataAvailabilitySampler = dasSampler;
+  }
+
+  protected void initDasSyncPreSampler() {
+    DasPreSampler dasPreSampler = new DasPreSampler(this.dataAvailabilitySampler);
+    eventChannels.subscribe(SyncPreImportBlockChannel.class, dasPreSampler::onNewPreImportBlocks);
   }
 
   protected void initMergeMonitors() {
@@ -1483,6 +1492,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected SyncServiceFactory createSyncServiceFactory() {
+    syncPreImportBlockChannel = eventChannels.getPublisher(SyncPreImportBlockChannel.class);
     return new DefaultSyncServiceFactory(
         beaconConfig.syncConfig(),
         beaconConfig.eth2NetworkConfig().getNetworkBoostrapConfig().getGenesisState(),
@@ -1493,6 +1503,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
         recentChainData,
         combinedChainDataClient,
         storageUpdateChannel,
+        syncPreImportBlockChannel,
         p2pNetwork,
         blockImporter,
         blobSidecarManager,
