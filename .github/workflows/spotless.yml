@@ -1,9 +1,9 @@
-name: Teku Assemble
+name: Spotless check
 
 on: pull_request
 
 jobs:
-  build:
+  spotless:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,5 +16,5 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Gradle assemble
-        run: ./gradlew --no-daemon --parallel clean compileJava compileTestJava compileJmhJava compileIntegrationTestJava compileAcceptanceTestJava compilePropertyTestJava assemble
+      - name: Gradle spotless
+        run: ./gradlew --no-daemon --parallel checkMavenCoordinateCollisions spotlessCheck checkModuleDependencies
