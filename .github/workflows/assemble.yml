@@ -17,4 +17,4 @@ jobs:
           distribution: 'temurin'
 
       - name: Gradle assemble
-        run: ./gradlew --no-daemon --parallel clean compileJava compileTestJava compileJmhJava compileIntegrationTestJava compileAcceptanceTestJava compilePropertyTestJava assemble
+        run: ./gradlew --no-daemon --parallel clean compileJava compileTestJava compileJmhJava compileIntegrationTestJava compileAcceptanceTestJava compilePropertyTestJava spotlessCheck assemble
