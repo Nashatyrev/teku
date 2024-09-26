@@ -171,7 +171,6 @@ public class DasLongPollCustodyTest {
     assertThat(fRet0).isCompletedWithValue(Optional.empty());
   }
 
-
   @Test
   void testOptionalEmptyIsReturnedOnTimeout() {
     SafeFuture<Optional<DataColumnSidecar>> fRet0 =
