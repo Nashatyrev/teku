@@ -144,6 +144,7 @@ import tech.pegasys.teku.statetransition.block.BlockManager;
 import tech.pegasys.teku.statetransition.block.FailedExecutionPool;
 import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
+import tech.pegasys.teku.statetransition.datacolumns.CurrentSlotProvider;
 import tech.pegasys.teku.statetransition.datacolumns.DasCustodySync;
 import tech.pegasys.teku.statetransition.datacolumns.DasLongPollCustody;
 import tech.pegasys.teku.statetransition.datacolumns.DasPreSampler;
@@ -635,9 +636,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   private void initDasSamplerManager() {
     if (spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       LOG.info("Activated DAS Sampler Manager for EIP7594");
-      this.dasSamplerManager =
-          new DasSamplerManager(
-              () -> dataAvailabilitySampler, kzg, spec, recentChainData.getStore());
+      this.dasSamplerManager = new DasSamplerManager(() -> dataAvailabilitySampler, kzg, spec);
     } else {
       LOG.info("Using NOOP DAS Sampler Manager");
       this.dasSamplerManager = DasSamplerManager.NOOP;
@@ -782,9 +781,17 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (beaconConfig.p2pConfig().isDasLossySamplerEnabled()) {
       LOG.info("Lossy Sampler is not supported, starting basic sampler");
     }
+    CurrentSlotProvider currentSlotProvider =
+        CurrentSlotProvider.create(spec, recentChainData.getStore());
     final DasSamplerBasic dasSampler =
         new DasSamplerBasic(
-            spec, dbAccessor, custody, recoveringSidecarRetriever, nodeId, totalMyCustodySubnets);
+            spec,
+            currentSlotProvider,
+            dbAccessor,
+            custody,
+            recoveringSidecarRetriever,
+            nodeId,
+            totalMyCustodySubnets);
     LOG.info("DAS Basic Sampler initialized with {} subnets to sample", totalMyCustodySubnets);
     eventChannels.subscribe(FinalizedCheckpointChannel.class, dasSampler);
     this.dataAvailabilitySampler = dasSampler;

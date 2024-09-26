@@ -14,10 +14,14 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.Collection;
+import java.util.List;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
+
+import static tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler.SamplingEligibilityStatus.NEED_SAMPLING;
 
 public class DasPreSampler {
 
@@ -29,14 +33,22 @@ public class DasPreSampler {
     this.sampler = sampler;
   }
 
-  public void onNewPreImportBlocks(Collection<SignedBeaconBlock> blocks) {
-    LOG.info(
-        "DasPreSampler: requesting pre-sample for blocks: {}",
-        () ->
-            StringifyUtil.toIntRangeString(
-                blocks.stream().map(block -> block.getSlot().intValue()).toList()));
+  private boolean isSamplingRequired(SignedBeaconBlock block) {
+    return sampler.checkSamplingEligibility(block.getMessage()) == NEED_SAMPLING;
+  }
 
-    blocks.forEach(this::onNewPreImportBlock);
+  public void onNewPreImportBlocks(Collection<SignedBeaconBlock> blocks) {
+    List<SignedBeaconBlock> blocksToSample =
+        blocks.stream().filter(this::isSamplingRequired).toList();
+
+    LOG.info(
+        "DasPreSampler: requesting pre-sample for {} (of {} received) blocks: {}",
+        blocksToSample.size(),
+        blocks.size(),
+        StringifyUtil.toIntRangeString(
+            blocks.stream().map(block -> block.getSlot().intValue()).toList()));
+
+    blocksToSample.forEach(this::onNewPreImportBlock);
   }
 
   private void onNewPreImportBlock(SignedBeaconBlock block) {

@@ -29,23 +29,20 @@ public class DasSamplerManager implements AvailabilityCheckerFactory<DataColumnS
   private final Supplier<DataAvailabilitySampler> dataAvailabilitySamplerSupplier;
   final KZG kzg;
   final Spec spec;
-  final ReadOnlyStore store;
 
   public DasSamplerManager(
       final Supplier<DataAvailabilitySampler> dataAvailabilitySamplerSupplier,
       final KZG kzg,
-      final Spec spec,
-      final ReadOnlyStore store) {
+      final Spec spec) {
     this.dataAvailabilitySamplerSupplier = dataAvailabilitySamplerSupplier;
     this.kzg = kzg;
     this.spec = spec;
-    this.store = store;
   }
 
   @Override
-  public AvailabilityChecker<DataColumnSidecar> createAvailabilityChecker(
+  public DataColumnSidecarAvailabilityChecker createAvailabilityChecker(
       final SignedBeaconBlock block) {
     return new DataColumnSidecarAvailabilityChecker(
-        dataAvailabilitySamplerSupplier.get(), store, kzg, spec, block);
+        dataAvailabilitySamplerSupplier.get(), kzg, spec, block);
   }
 }
