@@ -74,7 +74,7 @@ public class DataColumnSidecarAvailabilityCheckerBenchmarkTest extends KZGAbstra
       final long start = System.currentTimeMillis();
       final DataColumnSidecarAvailabilityChecker dataColumnSidecarAvailabilityChecker =
           new DataColumnSidecarAvailabilityChecker(
-              dataAvailabilitySampler, store, getKzg(), spec, signedBeaconBlock);
+              dataAvailabilitySampler, getKzg(), spec, signedBeaconBlock);
       final DataAndValidationResult<DataColumnSidecar> dataColumnSidecarDataAndValidationResult =
           dataColumnSidecarAvailabilityChecker.validateImmediately(dataColumnSidecars);
       assertThat(dataColumnSidecarDataAndValidationResult.isValid()).isTrue();

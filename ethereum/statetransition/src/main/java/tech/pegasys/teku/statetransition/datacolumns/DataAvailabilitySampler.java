@@ -18,11 +18,28 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 
 public interface DataAvailabilitySampler {
+
+  enum SamplingEligibilityStatus { TOO_OLD, NO_BLOBS, NO_EIP7594, NEED_SAMPLING }
+
   DataAvailabilitySampler NOOP =
-      (slot, blockRoot, parentRoot) -> SafeFuture.completedFuture(List.of());
+      new DataAvailabilitySampler() {
+        @Override
+        public SafeFuture<List<DataColumnSidecar>> checkDataAvailability(
+            UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot) {
+          return SafeFuture.completedFuture(List.of());
+        }
+
+        @Override
+        public SamplingEligibilityStatus checkSamplingEligibility(BeaconBlock block) {
+          return SamplingEligibilityStatus.TOO_OLD;
+        }
+      };
 
   SafeFuture<List<DataColumnSidecar>> checkDataAvailability(
       UInt64 slot, Bytes32 blockRoot, Bytes32 parentRoot);
+
+  SamplingEligibilityStatus checkSamplingEligibility(BeaconBlock block);
 }
