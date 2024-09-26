@@ -66,14 +66,13 @@ public class DataColumnSidecarAvailabilityChecker
         LOG.info(
             "Availability check for slot {} NOT_REQUIRED, kzg commitments empty", block.getSlot());
       }
-      default ->
-          dataAvailabilitySampler
-              .checkDataAvailability(block.getSlot(), block.getRoot(), block.getParentRoot())
-              .finish(
-                  dataColumnSidecars ->
-                      validationResult.complete(validateImmediately(dataColumnSidecars)),
-                  throwable ->
-                      validationResult.complete(DataAndValidationResult.notAvailable(throwable)));
+      default -> dataAvailabilitySampler
+          .checkDataAvailability(block.getSlot(), block.getRoot(), block.getParentRoot())
+          .finish(
+              dataColumnSidecars ->
+                  validationResult.complete(validateImmediately(dataColumnSidecars)),
+              throwable ->
+                  validationResult.complete(DataAndValidationResult.notAvailable(throwable)));
     }
     return true;
   }

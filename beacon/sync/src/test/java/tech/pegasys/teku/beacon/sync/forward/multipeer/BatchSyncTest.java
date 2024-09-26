@@ -71,7 +71,8 @@ class BatchSyncTest {
   private final StubAsyncRunner asyncRunner = new StubAsyncRunner(timeProvider);
 
   private final SyncSource syncSource = mock(SyncSource.class);
-  private final SyncPreImportBlockChannel syncPreImportBlockChannel = mock(SyncPreImportBlockChannel.class);
+  private final SyncPreImportBlockChannel syncPreImportBlockChannel =
+      mock(SyncPreImportBlockChannel.class);
   private final BatchImporter batchImporter = mock(BatchImporter.class);
   private final StubBatchFactory batches = new StubBatchFactory(eventThread, true);
 

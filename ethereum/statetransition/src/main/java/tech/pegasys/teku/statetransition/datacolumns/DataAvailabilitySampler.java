@@ -22,7 +22,12 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 
 public interface DataAvailabilitySampler {
 
-  enum SamplingEligibilityStatus { TOO_OLD, NO_BLOBS, NO_EIP7594, NEED_SAMPLING }
+  enum SamplingEligibilityStatus {
+    TOO_OLD,
+    NO_BLOBS,
+    NO_EIP7594,
+    NEED_SAMPLING
+  }
 
   DataAvailabilitySampler NOOP =
       new DataAvailabilitySampler() {

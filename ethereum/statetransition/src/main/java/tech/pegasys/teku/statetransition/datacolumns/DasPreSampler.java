@@ -13,15 +13,14 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import static tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler.SamplingEligibilityStatus.NEED_SAMPLING;
+
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
-
-import static tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler.SamplingEligibilityStatus.NEED_SAMPLING;
 
 public class DasPreSampler {
 

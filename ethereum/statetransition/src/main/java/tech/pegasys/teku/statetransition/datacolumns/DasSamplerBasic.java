@@ -176,11 +176,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   }
 
   private boolean hasBlobs(BeaconBlock block) {
-    return !block
-        .getBody()
-        .getOptionalBlobKzgCommitments()
-        .orElseThrow()
-        .isEmpty();
+    return !block.getBody().getOptionalBlobKzgCommitments().orElseThrow().isEmpty();
   }
 
   private boolean isInCustodyPeriod(BeaconBlock block) {
