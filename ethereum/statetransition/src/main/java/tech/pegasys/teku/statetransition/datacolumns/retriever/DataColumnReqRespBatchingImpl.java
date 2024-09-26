@@ -20,8 +20,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
@@ -102,8 +100,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
 
           @Override
           public void onError(Throwable err) {
-            nodeRequests.forEach(
-                e -> e.promise().completeExceptionally(err));
+            nodeRequests.forEach(e -> e.promise().completeExceptionally(err));
           }
         });
   }
