@@ -41,7 +41,6 @@ import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
 public class DataColumnSidecarAvailabilityCheckerBenchmarkTest extends KZGAbstractBenchmark {
   private final DataAvailabilitySampler dataAvailabilitySampler =
       mock(DataAvailabilitySampler.class);
-  private final ReadOnlyStore store = mock(ReadOnlyStore.class);
   private static final int ROUNDS = 10;
 
   private final Spec spec = TestSpecFactory.createMinimalEip7594();
