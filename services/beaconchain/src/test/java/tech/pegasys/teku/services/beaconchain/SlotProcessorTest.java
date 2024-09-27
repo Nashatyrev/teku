@@ -25,6 +25,8 @@ import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ONE;
 import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ZERO;
 
 import java.util.Optional;
+
+import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,6 +42,7 @@ import tech.pegasys.teku.networking.eth2.Eth2P2PNetwork;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.MinimalBeaconBlockSummary;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
@@ -278,11 +281,13 @@ public class SlotProcessorTest {
 
     final Checkpoint justifiedCheckpoint = recentChainData.getStore().getJustifiedCheckpoint();
     final Checkpoint finalizedCheckpoint = recentChainData.getStore().getFinalizedCheckpoint();
+    final MinimalBeaconBlockSummary headBlock = recentChainData.getHeadBlock().orElseThrow();
     verify(eventLogger)
         .slotEvent(
             ZERO,
             recentChainData.getHeadSlot(),
-            recentChainData.getBestBlockRoot().orElseThrow(),
+            headBlock.getRoot(),
+            headBlock.getParentRoot(),
             justifiedCheckpoint.getEpoch(),
             finalizedCheckpoint.getEpoch(),
             1);
