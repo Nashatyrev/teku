@@ -34,7 +34,7 @@ class RunBootNode {
         fun main(vararg args: String) {
             val dasTeku = DasTeku(extraDasCustodySubnetCount = 128)
             dasTeku.createGenesisIfRequired()
-//            dasTeku.resetWithNewGenesis()
+            dasTeku.resetWithNewGenesis()
             dasTeku.createAndStartBootNode(0, 0 until 32)
         }
     }
