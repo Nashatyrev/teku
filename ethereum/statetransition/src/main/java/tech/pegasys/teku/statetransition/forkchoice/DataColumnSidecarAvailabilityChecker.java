@@ -52,16 +52,16 @@ public class DataColumnSidecarAvailabilityChecker
   public boolean initiateDataAvailabilityCheck() {
     LOG.info("Starting data availability check for slot {}", block.getSlot());
     switch (dataAvailabilitySampler.checkSamplingEligibility(block.getMessage())) {
-      case NO_EIP7594 -> {
+      case NOT_REQUIRED_BEFORE_EIP7594 -> {
         validationResult.complete(DataAndValidationResult.notRequired());
         LOG.info(
             "Availability check for slot {} NOT_REQUIRED, EIP7594 not started", block.getSlot());
       }
-      case TOO_OLD -> {
+      case NOT_REQUIRED_OLD_EPOCH -> {
         validationResult.complete(DataAndValidationResult.notRequired());
         LOG.info("Availability check for slot {} NOT_REQUIRED, epoch too old ", block.getSlot());
       }
-      case NO_BLOBS -> {
+      case NOT_REQUIRED_NO_BLOBS -> {
         validationResult.complete(DataAndValidationResult.notRequired());
         LOG.info(
             "Availability check for slot {} NOT_REQUIRED, kzg commitments empty", block.getSlot());

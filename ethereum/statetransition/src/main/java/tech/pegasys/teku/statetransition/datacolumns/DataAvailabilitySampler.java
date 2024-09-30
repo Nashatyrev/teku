@@ -23,10 +23,10 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 public interface DataAvailabilitySampler {
 
   enum SamplingEligibilityStatus {
-    TOO_OLD,
-    NO_BLOBS,
-    NO_EIP7594,
-    NEED_SAMPLING
+      NOT_REQUIRED_OLD_EPOCH,
+      NOT_REQUIRED_NO_BLOBS,
+      NOT_REQUIRED_BEFORE_EIP7594,
+      REQUIRED
   }
 
   DataAvailabilitySampler NOOP =
@@ -39,7 +39,7 @@ public interface DataAvailabilitySampler {
 
         @Override
         public SamplingEligibilityStatus checkSamplingEligibility(BeaconBlock block) {
-          return SamplingEligibilityStatus.TOO_OLD;
+          return SamplingEligibilityStatus.NOT_REQUIRED_OLD_EPOCH;
         }
       };
 

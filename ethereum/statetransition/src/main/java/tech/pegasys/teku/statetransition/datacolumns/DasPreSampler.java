@@ -13,7 +13,7 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import static tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler.SamplingEligibilityStatus.NEED_SAMPLING;
+import static tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler.SamplingEligibilityStatus.REQUIRED;
 
 import java.util.Collection;
 import java.util.List;
@@ -33,7 +33,7 @@ public class DasPreSampler {
   }
 
   private boolean isSamplingRequired(SignedBeaconBlock block) {
-    return sampler.checkSamplingEligibility(block.getMessage()) == NEED_SAMPLING;
+    return sampler.checkSamplingEligibility(block.getMessage()) == REQUIRED;
   }
 
   public void onNewPreImportBlocks(Collection<SignedBeaconBlock> blocks) {
