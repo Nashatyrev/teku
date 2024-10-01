@@ -22,11 +22,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZGAbstractBenchmark;
 import tech.pegasys.teku.spec.Spec;
@@ -35,7 +38,9 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobKzgCommitmentsSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntry;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
@@ -125,6 +130,42 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
       runTimes.add((int) (end - start));
     }
     printStats(runTimes);
+  }
+
+  @Test
+  public void emptyInclusionProofValidation() {
+    final DataColumnSidecar dataColumnSidecar =
+        schemaDefinitionsEip7594
+            .getDataColumnSidecarSchema()
+            .create(
+                UInt64.ZERO,
+                schemaDefinitionsEip7594.getDataColumnSchema().create(List.of()),
+                List.of(),
+                List.of(),
+                new SignedBeaconBlockHeader(
+                    new BeaconBlockHeader(
+                        UInt64.valueOf(37),
+                        UInt64.valueOf(3426),
+                        Bytes32.fromHexString(
+                            "0x6d3091dae0e2a0251cc2c0d9fef846e1c6e685f18fc8a2c7734f25750c22da36"),
+                        Bytes32.fromHexString(
+                            "0x715f24108254c3fcbef60c739fe702aed3ee692cb223c884b3db6e041c56c2a6"),
+                        Bytes32.fromHexString(
+                            "0xbea87258cde49915c8c929b6b91fbbcde004aeaaa08a3ccdc3248dc62b0e682f")),
+                    BLSSignature.fromBytesCompressed(
+                        Bytes.fromHexString(
+                            "0xb4c313365edbc7cfa9319c54ecba0a8dc54c8537752c72a86c762eb0a81b3ad1eda43f0f3b19a9c9523a6a42450c1d070556e0a443d4733922765764ef5850b41d20b4f6af6cc93a70eb1023cc63473f111de772315a2726406be9dc6cb24e67"))),
+                List.of(
+                    Bytes32.fromHexString(
+                        "0x792930bbd5baac43bcc798ee49aa8185ef76bb3b44ba62b91d86ae569e4bb535"),
+                    Bytes32.fromHexString(
+                        "0xcd581849371d5f91b7d02a366b23402397007b50180069584f2bd4e14397540b"),
+                    Bytes32.fromHexString(
+                        "0xdb56114e00fdd4c1f85c892bf35ac9a89289aaecb1ebd0a96cde606a748b5d71"),
+                    Bytes32.fromHexString(
+                        "0x9535c3eb42aaf182b13b18aacbcbc1df6593ecafd0bf7d5e94fb727b2dc1f265")));
+    assertThat(miscHelpersEip7594.verifyDataColumnSidecarInclusionProof(dataColumnSidecar))
+        .isTrue();
   }
 
   static Stream<Arguments> getExtendedSampleCountFixtures() throws IOException {
