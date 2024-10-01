@@ -163,10 +163,10 @@ public class RecoveringSidecarRetrieverTest {
     DataColumnSlotAndIdentifier id0 = createId(block, 0);
     SafeFuture<DataColumnSidecar> res0 = recoverRetrievr.retrieve(id0);
 
-    assertThat(delegateRetriever.requests).hasSize(2);
+    assertThat(delegateRetriever.requests).hasSize(1);
 
     recoverRetrievr.maybeInitiateRecovery(id0, res0);
-    assertThat(delegateRetriever.requests).hasSize(2 + columnCount - columnsInDbCount);
+    assertThat(delegateRetriever.requests).hasSize(1 + columnCount - columnsInDbCount);
 
     res0.cancel(true);
 
