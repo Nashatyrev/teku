@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
+import com.google.common.base.Suppliers;
 import java.time.Duration;
 import java.util.function.Supplier;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
@@ -37,7 +38,16 @@ public class DelayedDataColumnSidecarRetriever implements DataColumnSidecarRetri
   }
 
   private <T> SafeFuture<T> delay(Supplier<SafeFuture<T>> futSupplier) {
-    return asyncRunner.getDelayedFuture(delay).thenCompose(__ -> futSupplier.get());
+    com.google.common.base.Supplier<SafeFuture<T>> memoized = Suppliers.memoize(futSupplier::get);
+    SafeFuture<T> ret = asyncRunner.getDelayedFuture(delay).thenCompose(__ -> memoized.get());
+    // propagate cancel() upstream
+    ret.whenComplete(
+        (__, ___) -> {
+          if (ret.isCancelled()) {
+            memoized.get().cancel(true);
+          }
+        });
+    return ret;
   }
 
   @Override
