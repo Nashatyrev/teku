@@ -165,7 +165,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
                     Bytes32.fromHexString(
                         "0x9535c3eb42aaf182b13b18aacbcbc1df6593ecafd0bf7d5e94fb727b2dc1f265")));
     assertThat(miscHelpersEip7594.verifyDataColumnSidecarInclusionProof(dataColumnSidecar))
-        .isTrue();
+        .isFalse();
   }
 
   static Stream<Arguments> getExtendedSampleCountFixtures() throws IOException {
