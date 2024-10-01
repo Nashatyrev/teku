@@ -186,6 +186,24 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
         promise.completeAsync(existingSidecarsByColIdx.get(columnIndex), asyncRunner);
       } else {
         promisesByColIdx.computeIfAbsent(columnIndex, __ -> new ArrayList<>()).add(promise);
+        handleRequestCancel(columnIndex, promise);
+      }
+    }
+
+    private void handleRequestCancel(UInt64 columnIndex, SafeFuture<DataColumnSidecar> request) {
+      request.whenComplete(
+          (__, ___) -> {
+            if (request.isCancelled()) {
+              onRequestCancel(columnIndex);
+            }
+          });
+    }
+
+    private synchronized void onRequestCancel(UInt64 columnIndex) {
+      List<SafeFuture<DataColumnSidecar>> promises = promisesByColIdx.remove(columnIndex);
+      promises.stream().filter(p -> !p.isDone()).forEach(promise -> promise.cancel(true));
+      if (promisesByColIdx.isEmpty()) {
+        cancel();
       }
     }
 
@@ -231,7 +249,12 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
                         delegate.retrieve(
                             new DataColumnSlotAndIdentifier(
                                 block.getSlot(), block.getRoot(), columnIdx)))
-                .peek(promise -> promise.thenPeek(this::addSidecar).ifExceptionGetsHereRaiseABug())
+                .peek(
+                    promise ->
+                        promise
+                            .thenPeek(this::addSidecar)
+                            .ignoreCancelException()
+                            .ifExceptionGetsHereRaiseABug())
                 .toList();
       }
     }
@@ -240,10 +263,10 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       cancelled = true;
       promisesByColIdx.values().stream()
           .flatMap(Collection::stream)
-          .forEach(
-              promise ->
-                  promise.completeExceptionallyAsync(
-                      new NotOnCanonicalChainException("Canonical block changed"), asyncRunner));
+          .forEach(promise -> asyncRunner.runAsync(() -> promise.cancel(true)));
+      if (recoveryRequests != null) {
+        recoveryRequests.forEach(rr -> rr.cancel(true));
+      }
     }
 
     private void recover() {
