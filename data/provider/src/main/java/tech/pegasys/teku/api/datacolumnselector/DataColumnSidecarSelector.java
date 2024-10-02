@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2024
+ * Copyright Consensys Software Inc., 2023
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -11,12 +11,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.networking.eth2.peers;
+package tech.pegasys.teku.api.datacolumnselector;
 
+import java.util.List;
 import java.util.Optional;
-import org.apache.tuweni.units.bigints.UInt256;
-import tech.pegasys.teku.networking.p2p.peer.Peer;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 
-public interface DiscoveryNodeIdExtractor {
-  Optional<UInt256> calculateDiscoveryNodeId(Peer peer);
+public interface DataColumnSidecarSelector {
+  SafeFuture<Optional<List<DataColumnSidecar>>> getDataColumnSidecars(List<UInt64> indices);
 }

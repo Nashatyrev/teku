@@ -176,11 +176,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   }
 
   private boolean hasBlobs(BeaconBlock block) {
-    return !block
-        .getBody()
-        .getOptionalBlobKzgCommitments()
-        .orElseThrow()
-        .isEmpty();
+    return !block.getBody().getOptionalBlobKzgCommitments().orElseThrow().isEmpty();
   }
 
   private boolean isInCustodyPeriod(BeaconBlock block) {
@@ -194,13 +190,13 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   @Override
   public SamplingEligibilityStatus checkSamplingEligibility(BeaconBlock block) {
     if (!isEIP7594(block)) {
-      return SamplingEligibilityStatus.NO_EIP7594;
+      return SamplingEligibilityStatus.NOT_REQUIRED_BEFORE_EIP7594;
     } else if (!isInCustodyPeriod(block)) {
-      return SamplingEligibilityStatus.TOO_OLD;
+      return SamplingEligibilityStatus.NOT_REQUIRED_OLD_EPOCH;
     } else if (!hasBlobs(block)) {
-      return SamplingEligibilityStatus.NO_BLOBS;
+      return SamplingEligibilityStatus.NOT_REQUIRED_NO_BLOBS;
     } else {
-      return SamplingEligibilityStatus.NEED_SAMPLING;
+      return SamplingEligibilityStatus.REQUIRED;
     }
   }
 

@@ -13,15 +13,14 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import static tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler.SamplingEligibilityStatus.REQUIRED;
+
 import java.util.Collection;
 import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
-
-import static tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler.SamplingEligibilityStatus.NEED_SAMPLING;
 
 public class DasPreSampler {
 
@@ -34,7 +33,7 @@ public class DasPreSampler {
   }
 
   private boolean isSamplingRequired(SignedBeaconBlock block) {
-    return sampler.checkSamplingEligibility(block.getMessage()) == NEED_SAMPLING;
+    return sampler.checkSamplingEligibility(block.getMessage()) == REQUIRED;
   }
 
   public void onNewPreImportBlocks(Collection<SignedBeaconBlock> blocks) {
