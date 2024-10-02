@@ -134,12 +134,21 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
 
   @Test
   public void emptyInclusionProofValidation() {
+    final Spec specMainnet = TestSpecFactory.createMainnetEip7594();
+    final Predicates predicatesMainnet = new Predicates(specMainnet.getGenesisSpecConfig());
+    final SchemaDefinitionsEip7594 schemaDefinitionsEip7594Mainnet =
+        SchemaDefinitionsEip7594.required(specMainnet.getGenesisSchemaDefinitions());
+    final MiscHelpersEip7594 miscHelpersEip7594Mainnet =
+        new MiscHelpersEip7594(
+            specMainnet.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
+            predicatesMainnet,
+            schemaDefinitionsEip7594Mainnet);
     final DataColumnSidecar dataColumnSidecar =
-        schemaDefinitionsEip7594
+        schemaDefinitionsEip7594Mainnet
             .getDataColumnSidecarSchema()
             .create(
                 UInt64.ZERO,
-                schemaDefinitionsEip7594.getDataColumnSchema().create(List.of()),
+                schemaDefinitionsEip7594Mainnet.getDataColumnSchema().create(List.of()),
                 List.of(),
                 List.of(),
                 new SignedBeaconBlockHeader(
@@ -164,7 +173,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
                         "0xdb56114e00fdd4c1f85c892bf35ac9a89289aaecb1ebd0a96cde606a748b5d71"),
                     Bytes32.fromHexString(
                         "0x9535c3eb42aaf182b13b18aacbcbc1df6593ecafd0bf7d5e94fb727b2dc1f265")));
-    assertThat(miscHelpersEip7594.verifyDataColumnSidecarInclusionProof(dataColumnSidecar))
+    assertThat(miscHelpersEip7594Mainnet.verifyDataColumnSidecarInclusionProof(dataColumnSidecar))
         .isFalse();
   }
 

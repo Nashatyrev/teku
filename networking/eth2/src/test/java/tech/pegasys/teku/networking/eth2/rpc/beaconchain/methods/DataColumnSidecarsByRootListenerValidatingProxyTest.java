@@ -43,7 +43,7 @@ import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 @SuppressWarnings("JavaCase")
 public class DataColumnSidecarsByRootListenerValidatingProxyTest {
-  private final Spec spec = TestSpecFactory.createMinimalEip7594();
+  private final Spec spec = TestSpecFactory.createMainnetEip7594();
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
   private DataColumnSidecarsByRootListenerValidatingProxy listenerWrapper;
   private final Eth2Peer peer = mock(Eth2Peer.class);
