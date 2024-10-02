@@ -112,6 +112,7 @@ public class DasCustodySync implements SlotEventsChannel {
         .thenAccept(
             missingColumns -> {
               if (missingColumns.size() < maxPendingColumnRequests) {
+                // we've got all missing columns no need to poll until the next slot
                 coolDownTillNextSlot = true;
               }
 

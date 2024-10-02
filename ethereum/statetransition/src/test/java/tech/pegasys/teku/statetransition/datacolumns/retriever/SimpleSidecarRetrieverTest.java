@@ -227,6 +227,7 @@ public class SimpleSidecarRetrieverTest {
     resp0_0.cancel(true);
 
     advanceTimeGradually(retrieverRound);
+    // after original request is cancelled the retriever should stop requesting peer
     assertThat(custodyPeer.getRequests()).hasSize(2);
     advanceTimeGradually(retrieverRound);
     assertThat(custodyPeer.getRequests()).hasSize(2);
