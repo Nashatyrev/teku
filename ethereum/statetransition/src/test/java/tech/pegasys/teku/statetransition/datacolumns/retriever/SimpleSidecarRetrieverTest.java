@@ -43,7 +43,7 @@ import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
 
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "JavaCase"})
 public class SimpleSidecarRetrieverTest {
   final StubTimeProvider stubTimeProvider = StubTimeProvider.withTimeInSeconds(0);
   final StubAsyncRunner stubAsyncRunner = new StubAsyncRunner(stubTimeProvider);
