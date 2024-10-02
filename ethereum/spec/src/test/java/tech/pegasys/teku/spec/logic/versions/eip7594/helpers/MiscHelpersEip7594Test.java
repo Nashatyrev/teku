@@ -16,6 +16,10 @@ package tech.pegasys.teku.spec.logic.versions.eip7594.helpers;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -133,7 +137,51 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
   }
 
   @Test
-  public void emptyInclusionProofValidation() {
+  public void emptyInclusionProof_shouldFailValidation() {
+    final Predicates predicatesMock = mock(Predicates.class);
+    when(predicatesMock.isValidMerkleBranch(any(), any(), anyInt(), anyInt(), any()))
+        .thenReturn(true);
+    final MiscHelpersEip7594 miscHelpersEip7594WithMockPredicates =
+        new MiscHelpersEip7594(
+            spec.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
+            predicatesMock,
+            schemaDefinitionsEip7594);
+    final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
+    final DataColumnSidecar dataColumnSidecar =
+        schemaDefinitionsEip7594
+            .getDataColumnSidecarSchema()
+            .create(
+                UInt64.ZERO,
+                schemaDefinitionsEip7594.getDataColumnSchema().create(List.of()),
+                List.of(),
+                List.of(),
+                dataStructureUtil.randomSignedBeaconBlockHeader(),
+                List.of(
+                    dataStructureUtil.randomBytes32(),
+                    dataStructureUtil.randomBytes32(),
+                    dataStructureUtil.randomBytes32(),
+                    dataStructureUtil.randomBytes32()));
+
+    assertThat(
+            predicatesMock.isValidMerkleBranch(
+                dataColumnSidecar.getSszKZGCommitments().hashTreeRoot(),
+                dataColumnSidecar.getKzgCommitmentsInclusionProof(),
+                spec.getGenesisSpecConfig()
+                    .toVersionEip7594()
+                    .orElseThrow()
+                    .getKzgCommitmentsInclusionProofDepth()
+                    .intValue(),
+                miscHelpersEip7594WithMockPredicates.getBlockBodyKzgCommitmentsGeneralizedIndex(),
+                dataColumnSidecar.getBlockBodyRoot()))
+        .isTrue();
+    assertThat(
+            miscHelpersEip7594WithMockPredicates.verifyDataColumnSidecarInclusionProof(
+                dataColumnSidecar))
+        .isFalse();
+  }
+
+  @Test
+  public void emptyInclusionProofFromRealNetwork_shouldFailValidation() {
     final Spec specMainnet = TestSpecFactory.createMainnetEip7594();
     final Predicates predicatesMainnet = new Predicates(specMainnet.getGenesisSpecConfig());
     final SchemaDefinitionsEip7594 schemaDefinitionsEip7594Mainnet =
