@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
-import com.google.common.base.Suppliers;
 import java.time.Duration;
 import java.util.function.Supplier;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
