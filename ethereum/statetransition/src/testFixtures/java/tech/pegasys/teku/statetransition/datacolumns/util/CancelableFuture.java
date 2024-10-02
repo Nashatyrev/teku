@@ -17,7 +17,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 /**
@@ -40,34 +39,12 @@ public class CancelableFuture<U> extends SafeFuture<U> {
   }
 
   private void propagateCancelToThis(SafeFuture<?> downstreamFuture) {
-    downstreamFuture.whenComplete(
-        (__, ___) -> {
+    downstreamFuture.finish(
+        __ -> {
           if (downstreamFuture.isCancelled()) {
             this.cancel(true);
           }
         });
-  }
-
-  private static <T> Supplier<CompletableFuture<T>> propagateCancelToSuppliedFuture(
-      SafeFuture<?> downstreamFuture, Supplier<CompletableFuture<T>> futureSupplier) {
-    AtomicReference<CompletableFuture<?>> suppliedFuture = new AtomicReference<>();
-    Supplier<CompletableFuture<T>> ret =
-        () -> {
-          CompletableFuture<T> composeFuture = futureSupplier.get();
-          suppliedFuture.set(composeFuture);
-          return composeFuture;
-        };
-
-    downstreamFuture.whenComplete(
-        (__, ___) -> {
-          if (downstreamFuture.isCancelled()) {
-            CompletableFuture<?> composeFuture = suppliedFuture.get();
-            if (composeFuture != null) {
-              composeFuture.cancel(true);
-            }
-          }
-        });
-    return ret;
   }
 
   public <R> CancelableFuture<R> thenComposeCancelable(
@@ -90,11 +67,12 @@ public class CancelableFuture<U> extends SafeFuture<U> {
     }
     CancelableFuture<R> ret = (CancelableFuture<R>) super.thenCompose(fn1);
 
-    if (propagateCancelToComposable && suppliedFuture.get() != null) {
-      ret.whenComplete(
-          (__, ___) -> {
-            if (ret.isCancelled()) {
-              this.cancel(true);
+    if (propagateCancelToComposable) {
+      ret.finish(
+          __ -> {
+            CompletableFuture<?> composeFuture = suppliedFuture.get();
+            if (ret.isCancelled() && composeFuture != null) {
+              composeFuture.cancel(true);
             }
           });
     }

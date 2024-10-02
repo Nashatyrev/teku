@@ -191,8 +191,8 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     }
 
     private void handleRequestCancel(UInt64 columnIndex, SafeFuture<DataColumnSidecar> request) {
-      request.whenComplete(
-          (__, ___) -> {
+      request.finish(
+          __ -> {
             if (request.isCancelled()) {
               onRequestCancel(columnIndex);
             }
@@ -263,7 +263,9 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       cancelled = true;
       promisesByColIdx.values().stream()
           .flatMap(Collection::stream)
-          .forEach(promise -> asyncRunner.runAsync(() -> promise.cancel(true)));
+          .forEach(
+              promise ->
+                  asyncRunner.runAsync(() -> promise.cancel(true)).ifExceptionGetsHereRaiseABug());
       if (recoveryRequests != null) {
         recoveryRequests.forEach(rr -> rr.cancel(true));
       }
