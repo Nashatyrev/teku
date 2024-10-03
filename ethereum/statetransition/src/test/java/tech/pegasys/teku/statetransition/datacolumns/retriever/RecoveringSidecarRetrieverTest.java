@@ -134,6 +134,59 @@ public class RecoveringSidecarRetrieverTest {
   }
 
   @Test
+  void testMoreThanOneBlockWithBlobsOnSameSlot() throws Exception {
+    int blobCount = 1;
+    int columnsInDbCount = 13;
+
+    DataColumnSidecarRetrieverStub delegateRetriever = new DataColumnSidecarRetrieverStub();
+    RecoveringSidecarRetriever recoverRetrievr =
+        new RecoveringSidecarRetriever(
+            delegateRetriever,
+            kzg,
+            miscHelpers,
+            schemaDefinitions,
+            blockResolver,
+            dbAccessor,
+            stubAsyncRunner,
+            Duration.ofSeconds(1),
+            128);
+    List<Blob> blobs_10_0 =
+        Stream.generate(dataStructureUtil::randomValidBlob).limit(blobCount).toList();
+    BeaconBlock block_10_0 = blockResolver.addBlock(10, blobCount);
+    List<DataColumnSidecar> sidecars_10_0 =
+        miscHelpers.constructDataColumnSidecars(createSigned(block_10_0), blobs_10_0, kzg);
+    sidecars_10_0.forEach(db::addSidecar);
+
+    List<Blob> blobs_10_1 =
+        Stream.generate(dataStructureUtil::randomValidBlob).limit(blobCount).toList();
+    BeaconBlock block_10_1 = blockResolver.addBlock(10, blobCount);
+    List<DataColumnSidecar> sidecars_10_1 =
+        miscHelpers.constructDataColumnSidecars(createSigned(block_10_1), blobs_10_1, kzg);
+    sidecars_10_1.stream().limit(columnsInDbCount).forEach(db::addSidecar);
+
+    DataColumnSlotAndIdentifier id0 = createId(block_10_1, 100);
+    SafeFuture<DataColumnSidecar> res0 = recoverRetrievr.retrieve(id0);
+
+    assertThat(delegateRetriever.requests).hasSize(1);
+
+    recoverRetrievr.maybeInitiateRecovery(id0, res0);
+    assertThat(delegateRetriever.requests).hasSize(1 + columnCount - columnsInDbCount);
+
+    delegateRetriever.requests.stream()
+        .skip(50)
+        .limit(columnCount / 2 - columnsInDbCount)
+        .forEach(
+            req -> {
+              req.promise().complete(sidecars_10_1.get(req.columnId().columnIndex().intValue()));
+            });
+
+    stubAsyncRunner.executeQueuedActions();
+
+    assertThat(res0).isCompletedWithValue(sidecars_10_1.get(100));
+    assertThat(delegateRetriever.requests).allMatch(r -> r.promise().isDone());
+  }
+
+  @Test
   void cancellingRequestShouldStopRecovery() throws Exception {
     int blobCount = 3;
     int columnsInDbCount = 3;
