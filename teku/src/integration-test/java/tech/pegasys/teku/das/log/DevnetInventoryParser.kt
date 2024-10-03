@@ -1,4 +1,4 @@
-package tech.pegasys.teku.das
+package tech.pegasys.teku.das.log
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -6,6 +6,7 @@ import kotlinx.serialization.json.Json
 import org.apache.tuweni.bytes.Bytes
 import org.apache.tuweni.bytes.Bytes32
 import org.ethereum.beacon.discovery.schema.NodeRecordFactory
+import tech.pegasys.teku.das.log.NodeIdentifier.Type.*
 import java.net.URI
 
 fun main() {
@@ -31,6 +32,8 @@ class DevnetInventoryParser(
         val nodeRecord = NodeRecordFactory.DEFAULT.fromEnr(enr)
         @Transient
         val nodeId = Bytes32.wrap(nodeRecord.nodeId)
+        @Transient
+        val ipAddress = nodeRecord.tcpAddress.or({nodeRecord.udpAddress}).orElseThrow().hostString
 
     }
 
@@ -58,6 +61,22 @@ class DevnetInventoryParser(
             ethereum_pairs.entries
                 .firstOrNull { it.value.consensus.nodeId.slice(32 - nodeIdSuffix.size()) == nodeIdSuffix }
                 ?.key
+        fun getNameByIpAddress(ipAddress: String) =
+            ethereum_pairs.entries
+                .firstOrNull { it.value.consensus.ipAddress == ipAddress }
+                ?.key
+        fun getNameByPeerIdBase58(peerId: String) =
+            ethereum_pairs.entries
+                .firstOrNull { it.value.consensus.peer_id == peerId }
+                ?.key
+
+        fun getNameByNodeIdentifier(nodeIdentifier: NodeIdentifier): String =
+            when (nodeIdentifier.stringType) {
+                NodeIdHex -> getNameByNodeId(Bytes32.fromHexStringLenient(nodeIdentifier.nodeIdStr))
+                NodeIdSuffixHex -> getNameByNodeIdLastBytes(Bytes.fromHexStringLenient(nodeIdentifier.nodeIdStr))
+                IpAddress -> getNameByIpAddress(nodeIdentifier.nodeIdStr)
+                PeerIdBase58 -> getNameByPeerIdBase58(nodeIdentifier.nodeIdStr)
+            } ?: "<${nodeIdentifier.nodeIdStr}>"
 
     }
 
