@@ -20,15 +20,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.p2p.peer.PeerConnectedSubscriber;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.statetransition.datacolumns.retriever.BatchDataColumnReqResp;
+import tech.pegasys.teku.statetransition.datacolumns.retriever.BatchDataColumnsByRangeReqResp;
+import tech.pegasys.teku.statetransition.datacolumns.retriever.BatchDataColumnsByRootReqResp;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerManager;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
 
 public class DataColumnPeerManagerImpl
-    implements DataColumnPeerManager, PeerConnectedSubscriber<Eth2Peer>, BatchDataColumnReqResp {
+    implements DataColumnPeerManager,
+        PeerConnectedSubscriber<Eth2Peer>,
+        BatchDataColumnsByRootReqResp,
+        BatchDataColumnsByRangeReqResp {
 
   private final Subscribers<PeerListener> listeners = Subscribers.create(true);
   private Map<UInt256, Eth2Peer> connectedPeers = new ConcurrentHashMap<>();
@@ -62,7 +67,7 @@ public class DataColumnPeerManagerImpl
   }
 
   @Override
-  public SafeFuture<List<DataColumnSidecar>> requestDataColumnSidecar(
+  public SafeFuture<List<DataColumnSidecar>> requestDataColumnSidecarsByRoot(
       UInt256 nodeId, List<DataColumnIdentifier> columnIdentifiers) {
     Eth2Peer eth2Peer = connectedPeers.get(nodeId);
     if (eth2Peer == null) {
@@ -72,6 +77,27 @@ public class DataColumnPeerManagerImpl
       return eth2Peer
           .requestDataColumnSidecarsByRoot(
               columnIdentifiers,
+              sidecar -> {
+                responseCollector.add(sidecar);
+                return SafeFuture.COMPLETE;
+              })
+          .thenApply(__ -> responseCollector);
+    }
+  }
+
+  @Override
+  public SafeFuture<List<DataColumnSidecar>> requestDataColumnSidecarsByRange(
+      UInt256 nodeId, UInt64 startSlot, int slotCount, List<UInt64> columnIndexes) {
+    Eth2Peer eth2Peer = connectedPeers.get(nodeId);
+    if (eth2Peer == null) {
+      return SafeFuture.failedFuture(new DataColumnReqResp.DasPeerDisconnectedException());
+    } else {
+      List<DataColumnSidecar> responseCollector = new ArrayList<>();
+      return eth2Peer
+          .requestDataColumnSidecarsByRange(
+              startSlot,
+              UInt64.valueOf(slotCount),
+              columnIndexes,
               sidecar -> {
                 responseCollector.add(sidecar);
                 return SafeFuture.COMPLETE;

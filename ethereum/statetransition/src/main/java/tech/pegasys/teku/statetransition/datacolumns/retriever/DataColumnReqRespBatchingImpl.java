@@ -28,9 +28,9 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
-  private final BatchDataColumnReqResp batchRpc;
+  private final BatchDataColumnsByRootReqResp batchRpc;
 
-  public DataColumnReqRespBatchingImpl(BatchDataColumnReqResp batchRpc) {
+  public DataColumnReqRespBatchingImpl(BatchDataColumnsByRootReqResp batchRpc) {
     this.batchRpc = batchRpc;
   }
 
@@ -71,7 +71,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
     SafeFuture<List<DataColumnSidecar>> response =
         SafeFuture.of(
             () ->
-                batchRpc.requestDataColumnSidecar(
+                batchRpc.requestDataColumnSidecarsByRoot(
                     nodeId, nodeRequests.stream().map(e -> e.columnIdentifier).toList()));
 
     response.finish(
