@@ -14,7 +14,10 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.Optional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.metrics.MetricsRuntimeHistogram;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -22,7 +25,7 @@ import tech.pegasys.teku.statetransition.validation.DataColumnSidecarGossipValid
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
 
 public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
-
+  private static final Logger LOG = LogManager.getLogger();
   private final DataColumnSidecarGossipValidator validator;
   private final Subscribers<ValidDataColumnSidecarsListener> validDataColumnSidecarsSubscribers =
       Subscribers.create(true);
@@ -34,15 +37,26 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
-    return validator
-        .validate(dataColumnSidecar)
-        .thenPeek(
-            res -> {
-              if (res.isAccept()) {
-                validDataColumnSidecarsSubscribers.forEach(
-                    listener -> listener.onNewValidSidecar(dataColumnSidecar));
-              }
-            });
+    MetricsRuntimeHistogram dataColumnSidecarGossipVerificationHistogram =
+        new MetricsRuntimeHistogram(
+            "beacon_data_column_sidecar_gossip_verification_seconds",
+            "Full runtime of data column sidecars gossip verification");
+      SafeFuture<InternalValidationResult> validation;
+    try (MetricsRuntimeHistogram.HistogramTimer histogramTimer =
+        dataColumnSidecarGossipVerificationHistogram.startTimer()) {
+      validation = validator.validate(dataColumnSidecar);
+    } catch (final Throwable t) {
+      LOG.error("Failed to start validation metric timer.", t);
+      return SafeFuture.completedFuture(InternalValidationResult.reject("error"));
+    }
+
+    return validation.thenPeek(
+        res -> {
+          if (res.isAccept()) {
+            validDataColumnSidecarsSubscribers.forEach(
+                listener -> listener.onNewValidSidecar(dataColumnSidecar));
+          }
+        });
   }
 
   @Override
