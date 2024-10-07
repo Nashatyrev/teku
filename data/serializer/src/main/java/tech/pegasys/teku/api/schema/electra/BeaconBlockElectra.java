@@ -31,7 +31,7 @@ public class BeaconBlockElectra extends BeaconBlockAltair {
         message.getProposerIndex(),
         message.getParentRoot(),
         message.getStateRoot(),
-        new BeaconBlockBodyElectra(message.getBody().toVersionElectra().orElseThrow()));
+        new BeaconBlockBodyEip7594(message.getBody().toVersionEip7594().orElseThrow()));
   }
 
   @Override
@@ -49,8 +49,8 @@ public class BeaconBlockElectra extends BeaconBlockAltair {
 
   @JsonProperty("body")
   @Override
-  public BeaconBlockBodyElectra getBody() {
-    return (BeaconBlockBodyElectra) body;
+  public BeaconBlockBodyEip7594 getBody() {
+    return (BeaconBlockBodyEip7594) body;
   }
 
   @JsonCreator
@@ -59,7 +59,7 @@ public class BeaconBlockElectra extends BeaconBlockAltair {
       @JsonProperty("proposer_index") final UInt64 proposerIndex,
       @JsonProperty("parent_root") final Bytes32 parentRoot,
       @JsonProperty("state_root") final Bytes32 stateRoot,
-      @JsonProperty("body") final BeaconBlockBodyElectra body) {
+      @JsonProperty("body") final BeaconBlockBodyEip7594 body) {
     super(slot, proposerIndex, parentRoot, stateRoot, body);
   }
 }

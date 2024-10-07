@@ -15,7 +15,6 @@ package tech.pegasys.teku.reference.common.operations;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockSummary;
@@ -34,7 +33,6 @@ import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedBlsToExecutionChange;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
-import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateMutators.ValidatorExitContext;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.BlockProcessingException;
 import tech.pegasys.teku.spec.logic.versions.bellatrix.block.OptimisticExecutionPayloadExecutor;
 

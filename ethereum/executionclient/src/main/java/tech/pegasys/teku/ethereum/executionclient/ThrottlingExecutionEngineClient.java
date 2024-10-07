@@ -26,7 +26,6 @@ import tech.pegasys.teku.ethereum.executionclient.schema.ForkChoiceStateV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.ForkChoiceUpdatedResult;
 import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV2Response;
 import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV3Response;
-import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV4Response;
 import tech.pegasys.teku.ethereum.executionclient.schema.PayloadAttributesV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.PayloadAttributesV2;
 import tech.pegasys.teku.ethereum.executionclient.schema.PayloadAttributesV3;
@@ -79,11 +78,6 @@ public class ThrottlingExecutionEngineClient implements ExecutionEngineClient {
   @Override
   public SafeFuture<Response<GetPayloadV3Response>> getPayloadV3(final Bytes8 payloadId) {
     return taskQueue.queueTask(() -> delegate.getPayloadV3(payloadId));
-  }
-
-  @Override
-  public SafeFuture<Response<GetPayloadV4Response>> getPayloadV4(final Bytes8 payloadId) {
-    return taskQueue.queueTask(() -> delegate.getPayloadV4(payloadId));
   }
 
   @Override

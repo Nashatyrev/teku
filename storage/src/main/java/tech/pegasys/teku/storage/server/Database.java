@@ -27,6 +27,7 @@ import tech.pegasys.teku.ethereum.pow.api.DepositsFromBlockEvent;
 import tech.pegasys.teku.ethereum.pow.api.MinGenesisTimeBlockEvent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
@@ -34,6 +35,7 @@ import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.SlotAndBlockRootAndBlobIndex;
 import tech.pegasys.teku.storage.api.OnDiskStoreData;
 import tech.pegasys.teku.storage.api.StorageUpdate;
@@ -243,4 +245,30 @@ public interface Database extends AutoCloseable {
 
   Optional<UInt64> pruneFinalizedStates(
       Optional<UInt64> lastPrunedSlot, UInt64 lastSlotToPruneStateFor, long pruneLimit);
+
+  // Sidecars
+  Optional<UInt64> getFirstCustodyIncompleteSlot();
+
+  Optional<UInt64> getFirstSamplerIncompleteSlot();
+
+  Optional<DataColumnSidecar> getSidecar(DataColumnSlotAndIdentifier identifier);
+
+  @MustBeClosed
+  Stream<DataColumnSlotAndIdentifier> streamDataColumnIdentifiers(
+      UInt64 firstSlot, UInt64 lastSlot);
+
+  @MustBeClosed
+  default Stream<DataColumnSlotAndIdentifier> streamDataColumnIdentifiers(final UInt64 slot) {
+    return streamDataColumnIdentifiers(slot, slot);
+  }
+
+  Optional<UInt64> getEarliestDataColumnSidecarSlot();
+
+  void setFirstCustodyIncompleteSlot(UInt64 slot);
+
+  void setFirstSamplerIncompleteSlot(UInt64 slot);
+
+  void addSidecar(DataColumnSidecar sidecar);
+
+  void pruneAllSidecars(UInt64 tillSlotInclusive);
 }

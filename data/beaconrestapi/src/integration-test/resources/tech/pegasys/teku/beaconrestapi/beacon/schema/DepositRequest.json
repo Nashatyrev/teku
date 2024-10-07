@@ -1,37 +1,38 @@
 {
+<<<<<<<< HEAD:data/beaconrestapi/src/integration-test/resources/tech/pegasys/teku/beaconrestapi/beacon/schema/DepositRequest.json
   "title" : "DepositRequest",
+========
+  "title" : "BeaconBlockEip7594",
+>>>>>>>> das:data/beaconrestapi/src/integration-test/resources/tech/pegasys/teku/beaconrestapi/beacon/schema/BeaconBlockEip7594.json
   "type" : "object",
-  "required" : [ "pubkey", "withdrawal_credentials", "amount", "signature", "index" ],
+  "required" : [ "slot", "proposer_index", "parent_root", "state_root", "body" ],
   "properties" : {
-    "pubkey" : {
+    "slot" : {
       "type" : "string",
-      "pattern" : "^0x[a-fA-F0-9]{2,}$",
-      "description" : "Bytes48 hexadecimal",
-      "format" : "bytes"
+      "description" : "unsigned 64 bit integer",
+      "example" : "1",
+      "format" : "uint64"
     },
-    "withdrawal_credentials" : {
+    "proposer_index" : {
+      "type" : "string",
+      "description" : "unsigned 64 bit integer",
+      "example" : "1",
+      "format" : "uint64"
+    },
+    "parent_root" : {
       "type" : "string",
       "description" : "Bytes32 hexadecimal",
       "example" : "0xcf8e0d4e9587369b2301d0790347320302cc0943d5a1884560367e8208d920f2",
       "format" : "byte"
     },
-    "amount" : {
+    "state_root" : {
       "type" : "string",
-      "description" : "unsigned 64 bit integer",
-      "example" : "1",
-      "format" : "uint64"
+      "description" : "Bytes32 hexadecimal",
+      "example" : "0xcf8e0d4e9587369b2301d0790347320302cc0943d5a1884560367e8208d920f2",
+      "format" : "byte"
     },
-    "signature" : {
-      "type" : "string",
-      "pattern" : "^0x[a-fA-F0-9]{2,}$",
-      "description" : "SSZ hexadecimal",
-      "format" : "bytes"
-    },
-    "index" : {
-      "type" : "string",
-      "description" : "unsigned 64 bit integer",
-      "example" : "1",
-      "format" : "uint64"
+    "body" : {
+      "$ref" : "#/components/schemas/BeaconBlockBodyEip7594"
     }
   }
 }

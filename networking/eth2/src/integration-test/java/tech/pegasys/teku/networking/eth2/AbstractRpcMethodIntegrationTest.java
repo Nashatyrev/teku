@@ -35,7 +35,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair.Be
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.bellatrix.BeaconBlockBodyBellatrix;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.capella.BeaconBlockBodyCapella;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.deneb.BeaconBlockBodyDeneb;
-import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodyElectra;
+import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodyEip7594;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.phase0.BeaconBlockBodyPhase0;
 import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
@@ -81,8 +81,8 @@ public abstract class AbstractRpcMethodIntegrationTest {
         nextSpec = Optional.of(TestSpecFactory.createMinimalWithDenebForkEpoch(nextSpecEpoch));
       }
       case DENEB -> {
-        checkState(nextSpecMilestone.equals(SpecMilestone.ELECTRA), "next spec should be electra");
-        nextSpec = Optional.of(TestSpecFactory.createMinimalWithElectraForkEpoch(nextSpecEpoch));
+        checkState(nextSpecMilestone.equals(SpecMilestone.ELECTRA), "next spec should be eip7594");
+        nextSpec = Optional.of(TestSpecFactory.createMinimalWithEip7594ForkEpoch(nextSpecEpoch));
       }
       case ELECTRA -> throw new RuntimeException("Base spec is already latest supported milestone");
     }
@@ -261,7 +261,7 @@ public abstract class AbstractRpcMethodIntegrationTest {
       case BELLATRIX -> BeaconBlockBodyBellatrix.class;
       case CAPELLA -> BeaconBlockBodyCapella.class;
       case DENEB -> BeaconBlockBodyDeneb.class;
-      case ELECTRA -> BeaconBlockBodyElectra.class;
+      case ELECTRA -> BeaconBlockBodyEip7594.class;
     };
   }
 }

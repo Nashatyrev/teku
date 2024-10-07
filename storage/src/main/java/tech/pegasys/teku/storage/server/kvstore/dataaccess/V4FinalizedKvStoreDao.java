@@ -30,9 +30,11 @@ import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.SlotAndBlockRootAndBlobIndex;
 import tech.pegasys.teku.storage.server.kvstore.ColumnEntry;
 import tech.pegasys.teku.storage.server.kvstore.KvStoreAccessor;
@@ -190,6 +192,46 @@ public class V4FinalizedKvStoreDao {
 
   public Optional<UInt64> getEarliestBlobSidecarSlot() {
     return db.get(schema.getVariableEarliestBlobSidecarSlot());
+  }
+
+  public Optional<UInt64> getFirstCustodyIncompleteSlot() {
+    return db.get(schema.getVariableFirstCustodyIncompleteSlot());
+  }
+
+  public Optional<UInt64> getFirstSamplerIncompleteSlot() {
+    return db.get(schema.getVariableFirstSamplerIncompleteSlot());
+  }
+
+  public Optional<Bytes> getSidecar(final DataColumnSlotAndIdentifier identifier) {
+    return db.get(schema.getColumnSidecarByColumnSlotAndIdentifier(), identifier);
+  }
+
+  @MustBeClosed
+  public Stream<DataColumnSlotAndIdentifier> streamDataColumnIdentifiers(
+      final UInt64 startSlot, final UInt64 endSlot) {
+    return db.streamKeys(
+        schema.getColumnSidecarByColumnSlotAndIdentifier(),
+        new DataColumnSlotAndIdentifier(startSlot, MIN_BLOCK_ROOT, UInt64.ZERO),
+        new DataColumnSlotAndIdentifier(endSlot, MAX_BLOCK_ROOT, UInt64.MAX_VALUE));
+  }
+
+  public List<DataColumnSlotAndIdentifier> getDataColumnIdentifiers(
+      final SlotAndBlockRoot slotAndBlockRoot) {
+    try (final Stream<DataColumnSlotAndIdentifier> identifierStream =
+        db.streamKeys(
+            schema.getColumnSidecarByColumnSlotAndIdentifier(),
+            new DataColumnSlotAndIdentifier(
+                slotAndBlockRoot.getSlot(), slotAndBlockRoot.getBlockRoot(), UInt64.ZERO),
+            new DataColumnSlotAndIdentifier(
+                slotAndBlockRoot.getSlot(), slotAndBlockRoot.getBlockRoot(), UInt64.MAX_VALUE))) {
+      return identifierStream.toList();
+    }
+  }
+
+  public Optional<UInt64> getEarliestAvailableDataColumnSlot() {
+    return db.getFirstEntry(schema.getColumnSidecarByColumnSlotAndIdentifier())
+        .map(ColumnEntry::getKey)
+        .map(DataColumnSlotAndIdentifier::slot);
   }
 
   public <T> Optional<Bytes> getRawVariable(final KvStoreVariable<T> var) {
@@ -410,6 +452,30 @@ public class V4FinalizedKvStoreDao {
     @Override
     public void setEarliestBlobSidecarSlot(final UInt64 slot) {
       transaction.put(schema.getVariableEarliestBlobSidecarSlot(), slot);
+    }
+
+    @Override
+    public void setFirstCustodyIncompleteSlot(final UInt64 slot) {
+      transaction.put(schema.getVariableFirstCustodyIncompleteSlot(), slot);
+    }
+
+    @Override
+    public void setFirstSamplerIncompleteSlot(final UInt64 slot) {
+      transaction.put(schema.getVariableFirstSamplerIncompleteSlot(), slot);
+    }
+
+    @Override
+    public void addSidecar(final DataColumnSidecar sidecar) {
+      transaction.put(
+          schema.getColumnSidecarByColumnSlotAndIdentifier(),
+          new DataColumnSlotAndIdentifier(
+              sidecar.getSlot(), sidecar.getBlockRoot(), sidecar.getIndex()),
+          sidecar.sszSerialize());
+    }
+
+    @Override
+    public void removeSidecar(final DataColumnSlotAndIdentifier identifier) {
+      transaction.delete(schema.getColumnSidecarByColumnSlotAndIdentifier(), identifier);
     }
 
     @Override

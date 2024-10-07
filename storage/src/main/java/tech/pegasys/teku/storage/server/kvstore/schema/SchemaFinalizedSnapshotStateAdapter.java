@@ -22,6 +22,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.SlotAndBlockRootAndBlobIndex;
 
 public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnapshotState {
@@ -49,6 +50,11 @@ public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnaps
     return delegate.getColumnNonCanonicalBlobSidecarBySlotRootBlobIndex();
   }
 
+  public KvStoreColumn<DataColumnSlotAndIdentifier, Bytes>
+      getColumnSidecarByColumnSlotAndIdentifier() {
+    return delegate.getColumnSidecarByColumnSlotAndIdentifier();
+  }
+
   public Map<String, KvStoreColumn<?, ?>> getColumnMap() {
     return ImmutableMap.<String, KvStoreColumn<?, ?>>builder()
         .put("SLOTS_BY_FINALIZED_ROOT", getColumnSlotsByFinalizedRoot())
@@ -63,6 +69,7 @@ public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnaps
         .put(
             "NON_CANONICAL_BLOB_SIDECAR_BY_SLOT_AND_BLOCK_ROOT_AND_BLOB_INDEX",
             getColumnNonCanonicalBlobSidecarBySlotRootBlobIndex())
+        .put("SIDECAR_BY_COLUMN_SLOT_AND_IDENTIFIER", getColumnSidecarByColumnSlotAndIdentifier())
         .build();
   }
 
@@ -106,11 +113,23 @@ public class SchemaFinalizedSnapshotStateAdapter implements SchemaFinalizedSnaps
     return delegate.getVariableEarliestBlobSidecarSlot();
   }
 
+  public KvStoreVariable<UInt64> getVariableFirstCustodyIncompleteSlot() {
+    return delegate.getVariableFirstCustodyIncompleteSlot();
+  }
+
+  public KvStoreVariable<UInt64> getVariableFirstSamplerIncompleteSlot() {
+    return delegate.getVariableFirstSamplerIncompleteSlot();
+  }
+
   public Map<String, KvStoreVariable<?>> getVariableMap() {
     return Map.of(
         "OPTIMISTIC_TRANSITION_BLOCK_SLOT",
         getOptimisticTransitionBlockSlot(),
         "EARLIEST_BLOB_SIDECAR_SLOT",
-        getVariableEarliestBlobSidecarSlot());
+        getVariableEarliestBlobSidecarSlot(),
+        "FIRST_CUSTODY_INCOMPLETE_SLOT",
+        getVariableFirstCustodyIncompleteSlot(),
+        "FIRST_SAMPLER_INCOMPLETE_SLOT",
+        getVariableFirstSamplerIncompleteSlot());
   }
 }

@@ -184,9 +184,6 @@ public class DepositProvider
         .get()
         .thenAccept(
             state -> {
-              if (spec.isFormerDepositMechanismDisabled(state)) {
-                return;
-              }
               // We want to verify our Beacon Node view of the eth1 deposits.
               // So we want to check if it has the necessary deposit data to propose a block
               final UInt64 eth1DepositCount = state.getEth1Data().getDepositCount();

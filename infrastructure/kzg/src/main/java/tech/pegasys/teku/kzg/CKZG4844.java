@@ -13,9 +13,14 @@
 
 package tech.pegasys.teku.kzg;
 
+import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
+import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_COMMITMENT;
+
 import ethereum.ckzg4844.CKZG4844JNI;
+import ethereum.ckzg4844.CellsAndProofs;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
@@ -147,5 +152,58 @@ final class CKZG4844 implements KZG {
       throw new KZGException(
           "Failed to compute KZG proof for blob with commitment " + kzgCommitment, ex);
     }
+  }
+
+  @Override
+  public List<KZGCellAndProof> computeCellsAndProofs(Bytes blob) {
+    CellsAndProofs cellsAndProofs = CKZG4844JNI.computeCellsAndKzgProofs(blob.toArrayUnsafe());
+    List<KZGCell> cells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
+    List<KZGProof> proofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
+    if (cells.size() != proofs.size()) {
+      throw new KZGException("Cells and proofs size differ");
+    }
+    return IntStream.range(0, cells.size())
+        .mapToObj(i -> new KZGCellAndProof(cells.get(i), proofs.get(i)))
+        .toList();
+  }
+
+  @Override
+  public boolean verifyCellProofBatch(
+      List<KZGCommitment> commitments,
+      List<KZGCellWithColumnId> cellWithIdList,
+      List<KZGProof> proofs) {
+    if (commitments.size() != cellWithIdList.size() || cellWithIdList.size() != proofs.size()) {
+      throw new KZGException("Cells, proofs and commitments sizes should match");
+    }
+    return CKZG4844JNI.verifyCellKzgProofBatch(
+        CKZG4844Utils.flattenBytes(
+            commitments.stream()
+                .map(kzgCommitment -> (Bytes) kzgCommitment.getBytesCompressed())
+                .toList(),
+            commitments.size() * BYTES_PER_COMMITMENT),
+        cellWithIdList.stream()
+            .mapToLong(cellWithIds -> cellWithIds.columnId().id().longValue())
+            .toArray(),
+        CKZG4844Utils.flattenBytes(
+            cellWithIdList.stream().map(cellWithIds -> cellWithIds.cell().bytes()).toList(),
+            cellWithIdList.size() * BYTES_PER_CELL),
+        CKZG4844Utils.flattenProofs(proofs));
+  }
+
+  @Override
+  public List<KZGCellAndProof> recoverCellsAndProofs(List<KZGCellWithColumnId> cells) {
+    long[] cellIds = cells.stream().mapToLong(c -> c.columnId().id().longValue()).toArray();
+    byte[] cellBytes =
+        CKZG4844Utils.flattenBytes(
+            cells.stream().map(c -> c.cell().bytes()).toList(), cells.size() * BYTES_PER_CELL);
+    CellsAndProofs cellsAndProofs = CKZG4844JNI.recoverCellsAndKzgProofs(cellIds, cellBytes);
+    List<KZGCell> fullCells = KZGCell.splitBytes(Bytes.wrap(cellsAndProofs.getCells()));
+    List<KZGProof> fullProofs = KZGProof.splitBytes(Bytes.wrap(cellsAndProofs.getProofs()));
+    if (fullCells.size() != fullProofs.size()) {
+      throw new KZGException("Cells and proofs size differ");
+    }
+    return IntStream.range(0, fullCells.size())
+        .mapToObj(i -> new KZGCellAndProof(fullCells.get(i), fullProofs.get(i)))
+        .toList();
   }
 }

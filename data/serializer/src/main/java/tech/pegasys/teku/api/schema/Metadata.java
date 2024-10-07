@@ -14,6 +14,7 @@
 package tech.pegasys.teku.api.schema;
 
 import static tech.pegasys.teku.api.schema.SchemaConstants.PATTERN_UINT64;
+import static tech.pegasys.teku.api.schema.SchemaConstants.PATTERN_UINT8;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -23,6 +24,7 @@ import java.util.Locale;
 import java.util.Objects;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.altair.MetadataMessageAltair;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageEip7594;
 
 @Schema(
     description =
@@ -55,29 +57,50 @@ public class Metadata {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public final String syncCommitteeSubscriptions;
 
+  @JsonProperty("custody_subnet_count")
+  @Schema(
+      type = "string",
+      pattern = PATTERN_UINT8,
+      description = "Uint8 value representing the node's custody subnet count")
+  public final String custodySubnetCount;
+
   @JsonCreator
   public Metadata(
       @JsonProperty("seq_number") final String sequenceNumber,
       @JsonProperty("attnets") final String attestationSubnetSubscriptions,
-      @JsonProperty("syncnets") final String syncCommitteeSubscriptions) {
+      @JsonProperty("syncnets") final String syncCommitteeSubscriptions,
+      @JsonProperty("custody_subnet_count") final String custodySubnetCount) {
     this.sequenceNumber = sequenceNumber;
     this.attestationSubnetSubscriptions = attestationSubnetSubscriptions;
     this.syncCommitteeSubscriptions = syncCommitteeSubscriptions;
+    this.custodySubnetCount = custodySubnetCount;
   }
 
   public Metadata(final MetadataMessage metadataMessage) {
     this.sequenceNumber = metadataMessage.getSeqNumber().toString();
     this.attestationSubnetSubscriptions =
         metadataMessage.getAttnets().sszSerialize().toHexString().toLowerCase(Locale.ROOT);
-    if (metadataMessage instanceof MetadataMessageAltair) {
+
+    if (metadataMessage instanceof MetadataMessageEip7594) {
+      this.syncCommitteeSubscriptions =
+          ((MetadataMessageEip7594) metadataMessage)
+              .getSyncnets()
+              .sszSerialize()
+              .toHexString()
+              .toLowerCase(Locale.ROOT);
+      this.custodySubnetCount =
+          ((MetadataMessageEip7594) metadataMessage).getCustodySubnetCount().toString();
+    } else if (metadataMessage instanceof MetadataMessageAltair) {
       this.syncCommitteeSubscriptions =
           ((MetadataMessageAltair) metadataMessage)
               .getSyncnets()
               .sszSerialize()
               .toHexString()
               .toLowerCase(Locale.ROOT);
+      this.custodySubnetCount = null;
     } else {
       this.syncCommitteeSubscriptions = null;
+      this.custodySubnetCount = null;
     }
   }
 
@@ -92,11 +115,16 @@ public class Metadata {
     final Metadata metadata = (Metadata) o;
     return Objects.equals(sequenceNumber, metadata.sequenceNumber)
         && Objects.equals(attestationSubnetSubscriptions, metadata.attestationSubnetSubscriptions)
-        && Objects.equals(syncCommitteeSubscriptions, metadata.syncCommitteeSubscriptions);
+        && Objects.equals(syncCommitteeSubscriptions, metadata.syncCommitteeSubscriptions)
+        && Objects.equals(custodySubnetCount, metadata.custodySubnetCount);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(sequenceNumber, attestationSubnetSubscriptions, syncCommitteeSubscriptions);
+    return Objects.hash(
+        sequenceNumber,
+        attestationSubnetSubscriptions,
+        syncCommitteeSubscriptions,
+        custodySubnetCount);
   }
 }

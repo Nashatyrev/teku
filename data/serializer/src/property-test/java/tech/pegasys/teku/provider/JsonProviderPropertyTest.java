@@ -58,7 +58,7 @@ import tech.pegasys.teku.api.schema.capella.BeaconStateCapella;
 import tech.pegasys.teku.api.schema.capella.SignedBeaconBlockCapella;
 import tech.pegasys.teku.api.schema.deneb.BeaconStateDeneb;
 import tech.pegasys.teku.api.schema.deneb.SignedBeaconBlockDeneb;
-import tech.pegasys.teku.api.schema.electra.BeaconStateElectra;
+import tech.pegasys.teku.api.schema.electra.BeaconStateEip7594;
 import tech.pegasys.teku.api.schema.electra.SignedBeaconBlockElectra;
 import tech.pegasys.teku.api.schema.phase0.BeaconStatePhase0;
 import tech.pegasys.teku.api.schema.phase0.SignedBeaconBlockPhase0;
@@ -107,7 +107,7 @@ public class JsonProviderPropertyTest {
           SpecMilestone.DENEB,
           BeaconStateDeneb.class,
           SpecMilestone.ELECTRA,
-          BeaconStateElectra.class);
+          BeaconStateEip7594.class);
 
   @Property
   void roundTripBytes32(@ForAll @Size(32) final byte[] value) throws JsonProcessingException {

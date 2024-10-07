@@ -45,6 +45,7 @@ import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.networking.p2p.peer.Peer;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
@@ -69,6 +70,7 @@ public class Eth2PeerManagerTest {
           spec,
           asyncRunner,
           combinedChainDataClient,
+          DataColumnSidecarByRootCustody.NOOP,
           recentChainData,
           new NoOpMetricsSystem(),
           eth2PeerFactory,
@@ -176,7 +178,7 @@ public class Eth2PeerManagerTest {
     asyncRunner.executeQueuedActions();
 
     // Didn't receive a status message in time, so disconnect.
-    verify(eth2Peer).disconnectCleanly(DisconnectReason.REMOTE_FAULT);
+    verify(eth2Peer).disconnectCleanly(DisconnectReason.NO_STATUS_RECEIVED);
   }
 
   @Test

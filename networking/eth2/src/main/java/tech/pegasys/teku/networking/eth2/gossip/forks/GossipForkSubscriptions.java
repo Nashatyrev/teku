@@ -17,6 +17,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
@@ -70,4 +71,16 @@ public interface GossipForkSubscriptions {
   }
 
   default void publishSignedBlsToExecutionChangeMessage(final SignedBlsToExecutionChange message) {}
+
+  default void publishDataColumnSidecar(DataColumnSidecar blobSidecar) {
+    // since EIP7594
+  }
+
+  default void subscribeToDataColumnSidecarSubnet(int subnetId) {
+    // since EIP7594
+  }
+
+  default void unsubscribeFromDataColumnSidecarSubnet(int subnetId) {
+    // since EIP7594
+  }
 }

@@ -29,6 +29,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.Eth1Data;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair.BeaconBlockBodySchemaAltair;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.BlobIdentifier;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
 import tech.pegasys.teku.spec.datastructures.operations.DepositData;
@@ -221,6 +222,20 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
                   schemas ->
                       SchemaDefinitionsElectra.required(schemas)
                           .getPendingPartialWithdrawalSchema()))
+
+              // EIP7594 types
+              .put(
+                      "ssz_static/DataColumnIdentifier",
+                      new SszTestExecutor<>(schemas -> DataColumnIdentifier.SSZ_SCHEMA))
+              .put(
+                      "ssz_static/DataColumnSidecar",
+                      new SszTestExecutor<>(
+                              schemas ->
+                                      SchemaDefinitionsElectra.required(schemas).getDataColumnSidecarSchema()))
+              .put(
+                      "ssz_static/MatrixEntry",
+                      new SszTestExecutor<>(
+                              schemas -> SchemaDefinitionsElectra.required(schemas).getMatrixEntrySchema()))
 
           // Legacy Schemas (Not yet migrated to SchemaDefinitions)
           .put(

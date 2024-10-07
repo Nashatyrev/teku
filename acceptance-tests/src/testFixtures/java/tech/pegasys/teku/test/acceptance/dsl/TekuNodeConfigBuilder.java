@@ -212,6 +212,20 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
+  public TekuNodeConfigBuilder withEip7594Epoch(final UInt64 eip7594Epoch) {
+
+    mustBe(NodeType.BEACON_NODE);
+    LOG.debug("Xnetwork-das-fork-epoch={}", eip7594Epoch);
+    configMap.put("Xnetwork-das-fork-epoch", eip7594Epoch.toString());
+    specConfigModifier =
+        specConfigModifier.andThen(
+            specConfigBuilder ->
+                specConfigBuilder.electraBuilder(
+                        // TODO: should not be a hard fork
+                        electraBuilder -> electraBuilder.eip7594Epoch(eip7594Epoch)));
+    return this;
+  }
+
   public TekuNodeConfigBuilder withTotalTerminalDifficulty(final long totalTerminalDifficulty) {
     return withTotalTerminalDifficulty(UInt256.valueOf(totalTerminalDifficulty));
   }

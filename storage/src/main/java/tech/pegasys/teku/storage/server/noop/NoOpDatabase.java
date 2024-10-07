@@ -30,6 +30,7 @@ import tech.pegasys.teku.ethereum.pow.api.DepositsFromBlockEvent;
 import tech.pegasys.teku.ethereum.pow.api.MinGenesisTimeBlockEvent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
@@ -37,6 +38,7 @@ import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.SlotAndBlockRootAndBlobIndex;
 import tech.pegasys.teku.storage.api.OnDiskStoreData;
 import tech.pegasys.teku.storage.api.StorageUpdate;
@@ -338,6 +340,45 @@ public class NoOpDatabase implements Database {
       final UInt64 lastSlotToPrune, final int pruneLimit) {
     return false;
   }
+
+  @Override
+  public Optional<UInt64> getFirstCustodyIncompleteSlot() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<UInt64> getFirstSamplerIncompleteSlot() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<DataColumnSidecar> getSidecar(final DataColumnSlotAndIdentifier identifier) {
+    return Optional.empty();
+  }
+
+  @Override
+  @MustBeClosed
+  public Stream<DataColumnSlotAndIdentifier> streamDataColumnIdentifiers(
+      final UInt64 firstSlot, final UInt64 lastSlot) {
+    return Stream.empty();
+  }
+
+  @Override
+  public Optional<UInt64> getEarliestDataColumnSidecarSlot() {
+    return Optional.empty();
+  }
+
+  @Override
+  public void setFirstCustodyIncompleteSlot(UInt64 slot) {}
+
+  @Override
+  public void setFirstSamplerIncompleteSlot(UInt64 slot) {}
+
+  @Override
+  public void addSidecar(DataColumnSidecar sidecar) {}
+
+  @Override
+  public void pruneAllSidecars(UInt64 tillSlotInclusive) {}
 
   @Override
   public void close() {}

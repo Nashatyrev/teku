@@ -24,11 +24,12 @@ import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.logic.versions.deneb.blobs.BlobSidecarsAndValidationResult;
-import tech.pegasys.teku.spec.logic.versions.deneb.blobs.BlobSidecarsAvailabilityChecker;
-import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceBlobSidecarsAvailabilityChecker;
+import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
+import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
+import tech.pegasys.teku.statetransition.forkchoice.BlobSidecarsAvailabilityChecker;
 import tech.pegasys.teku.statetransition.util.FutureItems;
 import tech.pegasys.teku.statetransition.validation.BlobSidecarGossipValidator;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
@@ -119,25 +120,30 @@ public class BlobSidecarManagerImpl implements BlobSidecarManager, SlotEventsCha
   }
 
   @Override
-  public BlobSidecarsAvailabilityChecker createAvailabilityChecker(final SignedBeaconBlock block) {
+  public AvailabilityChecker<BlobSidecar> createAvailabilityChecker(final SignedBeaconBlock block) {
     // Block is pre-Deneb, blobs are not supported yet
     if (block.getMessage().getBody().toVersionDeneb().isEmpty()) {
-      return BlobSidecarsAvailabilityChecker.NOT_REQUIRED;
+      return AvailabilityChecker.NOOP_BLOBSIDECAR;
     }
 
     final BlockBlobSidecarsTracker blockBlobSidecarsTracker =
         blockBlobSidecarsTrackersPool.getOrCreateBlockBlobSidecarsTracker(block);
 
-    return new ForkChoiceBlobSidecarsAvailabilityChecker(
+    return new BlobSidecarsAvailabilityChecker(
         spec, asyncRunner, recentChainData, blockBlobSidecarsTracker, kzg);
   }
 
   @Override
-  public BlobSidecarsAndValidationResult createAvailabilityCheckerAndValidateImmediately(
+  public DataAndValidationResult<BlobSidecar> createAvailabilityCheckerAndValidateImmediately(
       final SignedBeaconBlock block, final List<BlobSidecar> blobSidecars) {
     // Block is pre-Deneb, blobs are not supported yet
     if (block.getMessage().getBody().toVersionDeneb().isEmpty()) {
-      return BlobSidecarsAndValidationResult.NOT_REQUIRED;
+      return DataAndValidationResult.notRequired();
+    }
+
+    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
+      throw new RuntimeException(
+          String.format("PeerDAS block %s shouldn't be verified in BlobSidecarManager", block));
     }
 
     // we don't care to set maxBlobsPerBlock since it isn't used with this immediate validation flow
@@ -146,7 +152,7 @@ public class BlobSidecarManagerImpl implements BlobSidecarManager, SlotEventsCha
 
     blockBlobSidecarsTracker.setBlock(block);
 
-    return new ForkChoiceBlobSidecarsAvailabilityChecker(
+    return new BlobSidecarsAvailabilityChecker(
             spec, asyncRunner, recentChainData, blockBlobSidecarsTracker, kzg)
         .validateImmediately(blobSidecars);
   }

@@ -27,6 +27,7 @@ import tech.pegasys.teku.ethereum.pow.api.DepositsFromBlockEvent;
 import tech.pegasys.teku.ethereum.pow.api.MinGenesisTimeBlockEvent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockAndCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -34,6 +35,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.SlotAndBlockRootAndBlobIndex;
 
 public interface KvStoreCombinedDao extends AutoCloseable {
@@ -163,6 +165,19 @@ public interface KvStoreCombinedDao extends AutoCloseable {
 
   Optional<DepositTreeSnapshot> getFinalizedDepositSnapshot();
 
+  Optional<UInt64> getFirstCustodyIncompleteSlot();
+
+  Optional<UInt64> getFirstSamplerIncompleteSlot();
+
+  Optional<Bytes> getSidecar(DataColumnSlotAndIdentifier identifier);
+
+  @MustBeClosed
+  Stream<DataColumnSlotAndIdentifier> streamDataColumnIdentifiers(UInt64 startSlot, UInt64 endSlot);
+
+  List<DataColumnSlotAndIdentifier> getDataColumnIdentifiers(SlotAndBlockRoot slotAndBlockRoot);
+
+  Optional<UInt64> getEarliestDataSidecarColumnSlot();
+
   interface CombinedUpdater extends HotUpdater, FinalizedUpdater {}
 
   interface HotUpdater extends AutoCloseable {
@@ -259,6 +274,14 @@ public interface KvStoreCombinedDao extends AutoCloseable {
     void removeNonCanonicalBlobSidecar(SlotAndBlockRootAndBlobIndex key);
 
     void setEarliestBlobSidecarSlot(UInt64 slot);
+
+    void setFirstCustodyIncompleteSlot(UInt64 slot);
+
+    void setFirstSamplerIncompleteSlot(UInt64 slot);
+
+    void addSidecar(DataColumnSidecar sidecar);
+
+    void removeSidecar(DataColumnSlotAndIdentifier identifier);
 
     void commit();
 

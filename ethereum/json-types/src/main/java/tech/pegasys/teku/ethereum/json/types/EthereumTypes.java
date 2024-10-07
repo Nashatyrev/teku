@@ -95,7 +95,15 @@ public class EthereumTypes {
 
   public static final StringValueTypeDefinition<SpecMilestone> MILESTONE_TYPE =
       new EnumTypeDefinition<>(
-          SpecMilestone.class, milestone -> milestone.name().toLowerCase(Locale.ROOT), Set.of());
+          SpecMilestone.class,
+          milestone -> {
+            // FIXME: remove me, bad hack to make Kurtosis working
+            if (milestone.equals(SpecMilestone.ELECTRA)) {
+              return "deneb";
+            }
+            return milestone.name().toLowerCase(Locale.ROOT);
+          },
+          Set.of());
 
   public static final EnumHeaderTypeDefinition<SpecMilestone> ETH_CONSENSUS_HEADER_TYPE =
       new EnumHeaderTypeDefinition.EnumTypeHeaderDefinitionBuilder<>(

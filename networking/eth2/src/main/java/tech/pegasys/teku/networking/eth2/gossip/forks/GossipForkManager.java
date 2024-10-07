@@ -34,6 +34,7 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
@@ -61,6 +62,7 @@ public class GossipForkManager {
   private final Set<GossipForkSubscriptions> activeSubscriptions = new HashSet<>();
   private final IntSet currentAttestationSubnets = new IntOpenHashSet();
   private final IntSet currentSyncCommitteeSubnets = new IntOpenHashSet();
+  private final IntSet currentDataColumnSidecarSubnets = new IntOpenHashSet();
 
   private Optional<UInt64> currentEpoch = Optional.empty();
 
@@ -172,6 +174,14 @@ public class GossipForkManager {
         GossipForkSubscriptions::publishBlobSidecar);
   }
 
+  public synchronized void publishDataColumnSidecar(final DataColumnSidecar dataColumnSidecar) {
+    publishMessage(
+        dataColumnSidecar.getSlot(),
+        dataColumnSidecar,
+        "data column sidecar",
+        GossipForkSubscriptions::publishDataColumnSidecar);
+  }
+
   public synchronized void publishSyncCommitteeMessage(
       final ValidatableSyncCommitteeMessage message) {
     publishMessage(
@@ -227,6 +237,14 @@ public class GossipForkManager {
         GossipForkSubscriptions::publishSignedBlsToExecutionChangeMessage);
   }
 
+  public synchronized void publishDataColumnSidecarMessage(final DataColumnSidecar message) {
+    publishMessage(
+        message.getSlot(),
+        message,
+        "data column sidecar message",
+        GossipForkSubscriptions::publishDataColumnSidecar);
+  }
+
   private <T> void publishMessage(
       final UInt64 slot,
       final T message,
@@ -271,6 +289,20 @@ public class GossipForkManager {
     }
   }
 
+  public void subscribeToDataColumnSidecarSubnetId(final int subnetId) {
+    if (currentDataColumnSidecarSubnets.add(subnetId)) {
+      activeSubscriptions.forEach(
+          subscription -> subscription.subscribeToDataColumnSidecarSubnet(subnetId));
+    }
+  }
+
+  public void unsubscribeFromDataColumnSidecarSubnetId(final int subnetId) {
+    if (currentDataColumnSidecarSubnets.remove(subnetId)) {
+      activeSubscriptions.forEach(
+          subscription -> subscription.unsubscribeFromDataColumnSidecarSubnet(subnetId));
+    }
+  }
+
   private boolean isActive(final GossipForkSubscriptions subscriptions) {
     return activeSubscriptions.contains(subscriptions);
   }
@@ -282,6 +314,7 @@ public class GossipForkManager {
           recentChainData.isChainHeadOptimistic());
       currentAttestationSubnets.forEach(subscription::subscribeToAttestationSubnetId);
       currentSyncCommitteeSubnets.forEach(subscription::subscribeToSyncCommitteeSubnet);
+      currentDataColumnSidecarSubnets.forEach(subscription::subscribeToDataColumnSidecarSubnet);
     }
   }
 

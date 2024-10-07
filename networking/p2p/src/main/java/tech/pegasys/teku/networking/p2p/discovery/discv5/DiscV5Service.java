@@ -292,7 +292,8 @@ public class DiscV5Service extends Service implements DiscoveryService {
                           currentSchemaDefinitionsSupplier.getAttnetsENRFieldSchema().getDefault(),
                           currentSchemaDefinitionsSupplier
                               .getSyncnetsENRFieldSchema()
-                              .getDefault());
+                              .getDefault(),
+                              Optional.empty());
                   return MultiaddrUtil.fromDiscoveryPeerAsUdp(discoveryPeer).toString();
                 })
             .toList();
