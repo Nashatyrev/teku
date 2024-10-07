@@ -16,36 +16,35 @@ package tech.pegasys.teku.infrastructure.async.stream;
 import java.util.stream.Collector;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-class AsyncIteratorCollector<T> {
+class AsyncIteratorCollector<T, A, R> implements AsyncStreamHandler<T> {
+  private final A accumulator;
+  private final Collector<T, A, R> collector;
 
-  private final AsyncIterator<T> iterator;
+  private final SafeFuture<R> promise = new SafeFuture<>();
 
-  public AsyncIteratorCollector(AsyncIterator<T> iterator) {
-    this.iterator = iterator;
+  public AsyncIteratorCollector(Collector<T, A, R> collector) {
+    this.collector = collector;
+    this.accumulator = collector.supplier().get();
   }
 
-  public <R, A> SafeFuture<R> collect(Collector<T, A, R> collector) {
-    SafeFuture<R> promise = new SafeFuture<>();
-    A accumulator = collector.supplier().get();
-    iterator.iterate(
-        new AsyncIteratorCallback<T>() {
-          @Override
-          public SafeFuture<Boolean> onNext(T t) {
-            collector.accumulator().accept(accumulator, t);
-            return TRUE_FUTURE;
-          }
+  @Override
+  public SafeFuture<Boolean> onNext(T t) {
+    collector.accumulator().accept(accumulator, t);
+    return TRUE_FUTURE;
+  }
 
-          @Override
-          public void onComplete() {
-            R result = collector.finisher().apply(accumulator);
-            promise.complete(result);
-          }
+  @Override
+  public void onComplete() {
+    R result = collector.finisher().apply(accumulator);
+    promise.complete(result);
+  }
 
-          @Override
-          public void onError(Throwable t) {
-            promise.completeExceptionally(t);
-          }
-        });
+  @Override
+  public void onError(Throwable t) {
+    promise.completeExceptionally(t);
+  }
+
+  public SafeFuture<R> getPromise() {
     return promise;
   }
 }

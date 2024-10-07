@@ -13,25 +13,24 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
+import java.util.function.Predicate;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-class SliceIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
+class FilteringStreamHandler<T> extends AbstractDelegatingStreamHandler<T, T> {
 
-  private final BaseAsyncStreamTransform.BaseSlicer<T> slicer;
+  private final Predicate<T> filter;
 
-  protected SliceIteratorCallback(
-      AsyncIteratorCallback<T> delegate, BaseAsyncStreamTransform.BaseSlicer<T> slicer) {
+  protected FilteringStreamHandler(AsyncStreamHandler<T> delegate, Predicate<T> filter) {
     super(delegate);
-    this.slicer = slicer;
+    this.filter = filter;
   }
 
   @Override
   public SafeFuture<Boolean> onNext(T t) {
-    BaseAsyncStreamTransform.SliceResult sliceResult = slicer.slice(t);
-    return switch (sliceResult) {
-      case CONTINUE -> delegate.onNext(t);
-      case SKIP_AND_STOP -> FALSE_FUTURE;
-      case INCLUDE_AND_STOP -> delegate.onNext(t).thenApply(__ -> false);
-    };
+    if (filter.test(t)) {
+      return delegate.onNext(t);
+    } else {
+      return TRUE_FUTURE;
+    }
   }
 }

@@ -16,11 +16,11 @@ package tech.pegasys.teku.infrastructure.async.stream;
 import java.util.function.Function;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallback<T, S> {
+class MapStreamHandler<T, S> extends AbstractDelegatingStreamHandler<T, S> {
 
   private final Function<S, T> mapper;
 
-  protected MapIteratorCallback(AsyncIteratorCallback<T> delegate, Function<S, T> mapper) {
+  protected MapStreamHandler(AsyncStreamHandler<T> delegate, Function<S, T> mapper) {
     super(delegate);
     this.mapper = mapper;
   }
