@@ -82,7 +82,7 @@ class NodeRecordConverterTest {
             Optional.empty(),
             ATTNETS,
             SYNCNETS,
-                Optional.empty());
+            Optional.empty());
     assertThat(CONVERTER.convertToDiscoveryPeer(nodeRecord, false, SCHEMA_DEFINITIONS))
         .contains(expectedPeer);
   }
@@ -191,7 +191,7 @@ class NodeRecordConverterTest {
                 ENR_FORK_ID,
                 ATTNETS,
                 SYNCNETS,
-                    Optional.empty()));
+                Optional.empty()));
   }
 
   @Test
@@ -212,7 +212,7 @@ class NodeRecordConverterTest {
                 ENR_FORK_ID,
                 ATTNETS,
                 SYNCNETS,
-                    Optional.empty()));
+                Optional.empty()));
   }
 
   @Test
@@ -351,27 +351,27 @@ class NodeRecordConverterTest {
                 Optional.empty(),
                 ATTNETS,
                 SYNCNETS,
-                    Optional.empty()));
+                Optional.empty()));
   }
 
-    @ParameterizedTest
-    @MethodSource("getCscFixtures")
-    public void shouldDecodeCscCorrectly(final String hexString, final Integer csc) {
-        assertThat(
-                convertNodeRecordWithFields(
-                        new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[]{127, 0, 0, 1})),
-                        new EnrField(EnrField.TCP, 1234),
-                        new EnrField(DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, Bytes.fromHexString(hexString))))
-                .contains(
-                        new DiscoveryPeer(
-                                PUB_KEY,
-                                NODE_ID,
-                                new InetSocketAddress("129.24.31.22", 1234),
-                                Optional.empty(),
-                                ATTNETS,
-                                SYNCNETS,
-                                Optional.of(csc)));
-        }
+  @ParameterizedTest
+  @MethodSource("getCscFixtures")
+  public void shouldDecodeCscCorrectly(final String hexString, final Integer csc) {
+    assertThat(
+            convertNodeRecordWithFields(
+                new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {127, 0, 0, 1})),
+                new EnrField(EnrField.TCP, 1234),
+                new EnrField(DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, Bytes.fromHexString(hexString))))
+        .contains(
+            new DiscoveryPeer(
+                PUB_KEY,
+                NODE_ID,
+                new InetSocketAddress("129.24.31.22", 1234),
+                Optional.empty(),
+                ATTNETS,
+                SYNCNETS,
+                Optional.of(csc)));
+  }
 
   private Optional<DiscoveryPeer> convertNodeRecordWithFields(
       final boolean supportsIpv6, final EnrField... fields) {

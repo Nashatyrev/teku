@@ -86,8 +86,8 @@ import tech.pegasys.teku.spec.datastructures.operations.versions.altair.Validata
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
-import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.store.KeyValueStore;
 
@@ -345,7 +345,7 @@ public class Eth2P2PNetworkBuilder {
               gossipedSyncCommitteeMessageProcessor,
               gossipedSignedBlsToExecutionChangeProcessor,
               debugDataDumper,
-                  dataColumnSidecarOperationProcessor);
+              dataColumnSidecarOperationProcessor);
     };
   }
 

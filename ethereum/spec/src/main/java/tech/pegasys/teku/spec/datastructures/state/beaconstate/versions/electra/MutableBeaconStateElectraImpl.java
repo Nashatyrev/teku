@@ -26,14 +26,17 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.
 
 public class MutableBeaconStateElectraImpl
     extends AbstractMutableBeaconState<BeaconStateElectraImpl>
-    implements tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateElectra, BeaconStateCache, ValidatorStatsAltair {
+    implements tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
+            .MutableBeaconStateElectra,
+        BeaconStateCache,
+        ValidatorStatsAltair {
 
   MutableBeaconStateElectraImpl(final BeaconStateElectraImpl backingImmutableView) {
     super(backingImmutableView);
   }
 
   MutableBeaconStateElectraImpl(
-          final BeaconStateElectraImpl backingImmutableView, final boolean builder) {
+      final BeaconStateElectraImpl backingImmutableView, final boolean builder) {
     super(backingImmutableView, builder);
   }
 
@@ -58,7 +61,9 @@ public class MutableBeaconStateElectraImpl
   }
 
   @Override
-  public tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateElectra createWritableCopy() {
+  public tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
+          .MutableBeaconStateElectra
+      createWritableCopy() {
     return (MutableBeaconStateElectra) super.createWritableCopy();
   }
 }

@@ -13,19 +13,24 @@
 
 package tech.pegasys.teku.spec.config;
 
+import java.util.Optional;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.features.Eip7594;
 
-import java.util.Optional;
-
-public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb implements SpecConfigElectra {
+public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
+    implements SpecConfigElectra {
   private final SpecConfigElectra specConfigElectra;
   // FIXME: why are we setting it in Electra if it's any fork feature?
   //  maybe say because it should be at least electra to set? Is it viable?
   private final Optional<Eip7594> eip7594;
 
-  public DelegatingSpecConfigElectra(final SpecConfigElectra specConfig, final Optional<Eip7594> eip7594) {
+  public DelegatingSpecConfigElectra(final SpecConfigElectra specConfig) {
+    this(specConfig, Optional.empty());
+  }
+
+  public DelegatingSpecConfigElectra(
+      final SpecConfigElectra specConfig, final Optional<Eip7594> eip7594) {
     super(specConfig);
     this.specConfigElectra = SpecConfigElectra.required(specConfig);
     this.eip7594 = eip7594;

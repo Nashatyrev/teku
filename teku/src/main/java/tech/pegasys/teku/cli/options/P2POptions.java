@@ -389,26 +389,26 @@ public class P2POptions {
       fallbackValue = "true")
   private boolean floodPublishEnabled = GossipConfig.DEFAULT_FLOOD_PUBLISH_ENABLED;
 
-    @Option(
-            names = {"--Xdas-extra-custody-subnet-count"},
-            paramLabel = "<NUMBER>",
-            description = "Number of extra custody subnets",
-            arity = "1",
-            hidden = true)
-    private int dasExtraCustodySubnetCount = P2PConfig.DEFAULT_DAS_EXTRA_CUSTODY_SUBNET_COUNT;
+  @Option(
+      names = {"--Xdas-extra-custody-subnet-count"},
+      paramLabel = "<NUMBER>",
+      description = "Number of extra custody subnets",
+      arity = "1",
+      hidden = true)
+  private int dasExtraCustodySubnetCount = P2PConfig.DEFAULT_DAS_EXTRA_CUSTODY_SUBNET_COUNT;
 
-    @Option(
-            names = {"--Xdas-lossy-sampler-enabled"},
-            paramLabel = "<BOOLEAN>",
-            showDefaultValue = Visibility.ALWAYS,
-            description =
-                    "Enables Lossy DAS Sampler, which increases number of required samples while allows non-zero column failures",
-            arity = "0..1",
-            hidden = true,
-            fallbackValue = "true")
-    private boolean dasLossySamplerEnabled = P2PConfig.DEFAULT_DAS_LOSSY_SAMPLER_ENABLED;
+  @Option(
+      names = {"--Xdas-lossy-sampler-enabled"},
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description =
+          "Enables Lossy DAS Sampler, which increases number of required samples while allows non-zero column failures",
+      arity = "0..1",
+      hidden = true,
+      fallbackValue = "true")
+  private boolean dasLossySamplerEnabled = P2PConfig.DEFAULT_DAS_LOSSY_SAMPLER_ENABLED;
 
-    private OptionalInt getP2pLowerBound() {
+  private OptionalInt getP2pLowerBound() {
     if (p2pUpperBound.isPresent() && p2pLowerBound.isPresent()) {
       return p2pLowerBound.getAsInt() < p2pUpperBound.getAsInt() ? p2pLowerBound : p2pUpperBound;
     }
@@ -430,8 +430,8 @@ public class P2POptions {
         .p2p(
             b -> {
               b.subscribeAllSubnetsEnabled(subscribeAllSubnetsEnabled)
-                      .subscribeAllCustodySubnetsEnabled(subscribeAllCustodySubnetsEnabled)
-                      .batchVerifyMaxThreads(batchVerifyMaxThreads)
+                  .subscribeAllCustodySubnetsEnabled(subscribeAllCustodySubnetsEnabled)
+                  .batchVerifyMaxThreads(batchVerifyMaxThreads)
                   .batchVerifyMaxBatchSize(batchVerifyMaxBatchSize)
                   .batchVerifyStrictThreadLimitEnabled(batchVerifyStrictThreadLimitEnabled)
                   .targetSubnetSubscriberCount(p2pTargetSubnetSubscriberCount)
@@ -440,8 +440,8 @@ public class P2POptions {
                   .allTopicsFilterEnabled(allTopicsFilterEnabled)
                   .peerRequestLimit(peerRequestLimit)
                   .isFloodPublishEnabled(floodPublishEnabled)
-                      .dasExtraCustodySubnetCount(dasExtraCustodySubnetCount)
-                      .dasLossySamplerEnabled(dasLossySamplerEnabled));
+                  .dasExtraCustodySubnetCount(dasExtraCustodySubnetCount)
+                  .dasLossySamplerEnabled(dasLossySamplerEnabled);
               batchVerifyQueueCapacity.ifPresent(b::batchVerifyQueueCapacity);
             })
         .discovery(

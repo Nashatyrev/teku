@@ -78,7 +78,7 @@ public class SpecConfigEip7594Test {
       final SpecConfigDeneb denebConfig, final int seed) {
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(seed, spec);
 
-      return new SpecConfigElectraImpl(
+    return new SpecConfigElectraImpl(
         denebConfig,
         dataStructureUtil.randomBytes4(),
         dataStructureUtil.randomUInt64(999_999),

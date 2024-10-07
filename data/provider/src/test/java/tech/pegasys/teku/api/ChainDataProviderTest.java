@@ -597,7 +597,12 @@ public class ChainDataProviderTest extends AbstractChainDataProviderTest {
   @Test
   public void getLightClientBootstrap_shouldReturnEmptyBeforeAltair() {
     final ChainDataProvider provider =
-        new ChainDataProvider(spec, recentChainData, combinedChainDataClient, rewardCalculatorMock, mockBlobSidecarReconstructionProvider);
+        new ChainDataProvider(
+            spec,
+            recentChainData,
+            combinedChainDataClient,
+            rewardCalculatorMock,
+            mockBlobSidecarReconstructionProvider);
     final BeaconState internalState = data.randomBeaconState();
 
     BeaconBlockHeader expectedBlockHeader = BeaconBlockHeader.fromState(internalState);
@@ -613,7 +618,12 @@ public class ChainDataProviderTest extends AbstractChainDataProviderTest {
   @Test
   public void getValidatorBalancesFromState_shouldGetBalances() {
     final ChainDataProvider provider =
-        new ChainDataProvider(spec, recentChainData, combinedChainDataClient, rewardCalculatorMock, mockBlobSidecarReconstructionProvider);
+        new ChainDataProvider(
+            spec,
+            recentChainData,
+            combinedChainDataClient,
+            rewardCalculatorMock,
+            mockBlobSidecarReconstructionProvider);
     final BeaconState internalState = data.randomBeaconState(1024);
     assertThat(provider.getValidatorBalancesFromState(internalState, emptyList())).hasSize(1024);
 

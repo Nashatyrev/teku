@@ -32,9 +32,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockContainer;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockContainerSchema;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodyBuilder;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodySchema;
-import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodyBuilderEip7594;
-import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodySchemaEip7594Impl;
-import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BlindedBeaconBlockBodySchemaEip7594Impl;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodyBuilderElectra;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodySchemaElectraImpl;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BlindedBeaconBlockBodySchemaElectraImpl;
@@ -55,6 +52,7 @@ import tech.pegasys.teku.spec.datastructures.execution.versions.electra.Withdraw
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.WithdrawalRequestSchema;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessageSchema;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageSchemaEip7594;
 import tech.pegasys.teku.spec.datastructures.operations.AggregateAndProof.AggregateAndProofSchema;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
@@ -67,9 +65,6 @@ import tech.pegasys.teku.spec.datastructures.operations.SignedAggregateAndProof.
 import tech.pegasys.teku.spec.datastructures.operations.versions.electra.AttestationElectraSchema;
 import tech.pegasys.teku.spec.datastructures.operations.versions.electra.AttesterSlashingElectraSchema;
 import tech.pegasys.teku.spec.datastructures.operations.versions.electra.IndexedAttestationElectraSchema;
-import tech.pegasys.teku.spec.datastructures.execution.versions.eip7594.ExecutionPayloadHeaderSchemaEip7594;
-import tech.pegasys.teku.spec.datastructures.execution.versions.eip7594.ExecutionPayloadSchemaEip7594;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateElectra;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateSchemaElectra;
@@ -116,18 +111,18 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
       pendingPartialWithdrawalSchema;
   private final PendingConsolidation.PendingConsolidationSchema pendingConsolidationSchema;
 
-    private final CellSchema cellSchema;
-    private final DataColumnSchema dataColumnSchema;
-    private final DataColumnSidecarSchema dataColumnSidecarSchema;
-    private final MatrixEntrySchema matrixEntrySchema;
-    private final DataColumnSidecarsByRootRequestMessageSchema
-            dataColumnSidecarsByRootRequestMessageSchema;
-    private final DataColumnSidecarsByRangeRequestMessage
-            .DataColumnSidecarsByRangeRequestMessageSchema
-            dataColumnSidecarsByRangeRequestMessageSchema;
-    private final MetadataMessageSchemaEip7594 metadataMessageSchema;
+  private final CellSchema cellSchema;
+  private final DataColumnSchema dataColumnSchema;
+  private final DataColumnSidecarSchema dataColumnSidecarSchema;
+  private final MatrixEntrySchema matrixEntrySchema;
+  private final DataColumnSidecarsByRootRequestMessageSchema
+      dataColumnSidecarsByRootRequestMessageSchema;
+  private final DataColumnSidecarsByRangeRequestMessage
+          .DataColumnSidecarsByRangeRequestMessageSchema
+      dataColumnSidecarsByRangeRequestMessageSchema;
+  private final MetadataMessageSchemaEip7594 metadataMessageSchema;
 
-    public SchemaDefinitionsElectra(final SchemaRegistry schemaRegistry) {
+  public SchemaDefinitionsElectra(final SchemaRegistry schemaRegistry) {
     super(schemaRegistry);
     final SpecConfigElectra specConfig = SpecConfigElectra.required(schemaRegistry.getSpecConfig());
 
@@ -199,20 +194,20 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
         new PendingPartialWithdrawal.PendingPartialWithdrawalSchema();
     this.pendingConsolidationSchema = new PendingConsolidation.PendingConsolidationSchema();
 
-        this.cellSchema = new CellSchema(specConfig);
-        this.dataColumnSchema = new DataColumnSchema(specConfig);
-        this.dataColumnSidecarSchema =
-                DataColumnSidecarSchema.create(
-                        SignedBeaconBlockHeader.SSZ_SCHEMA, dataColumnSchema, specConfig);
-        this.matrixEntrySchema = MatrixEntrySchema.create(cellSchema);
-        this.dataColumnSidecarsByRootRequestMessageSchema =
-                new DataColumnSidecarsByRootRequestMessageSchema(specConfig);
-        this.dataColumnSidecarsByRangeRequestMessageSchema =
-                new DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema(
-                        specConfig);
+    this.cellSchema = new CellSchema(specConfig);
+    this.dataColumnSchema = new DataColumnSchema(specConfig);
+    this.dataColumnSidecarSchema =
+        DataColumnSidecarSchema.create(
+            SignedBeaconBlockHeader.SSZ_SCHEMA, dataColumnSchema, specConfig);
+    this.matrixEntrySchema = MatrixEntrySchema.create(cellSchema);
+    this.dataColumnSidecarsByRootRequestMessageSchema =
+        new DataColumnSidecarsByRootRequestMessageSchema(specConfig);
+    this.dataColumnSidecarsByRangeRequestMessageSchema =
+        new DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema(
+            specConfig);
 
-        this.metadataMessageSchema = new MetadataMessageSchemaEip7594(specConfig);
-    }
+    this.metadataMessageSchema = new MetadataMessageSchemaEip7594(specConfig);
+  }
 
   public static SchemaDefinitionsElectra required(final SchemaDefinitions schemaDefinitions) {
     checkArgument(

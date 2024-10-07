@@ -25,20 +25,19 @@ public class SszByte extends AbstractSszPrimitive<Byte> {
     return new SszByte((byte) value);
   }
 
-    public static SszByte asUInt8(final int value) {
-        return new SszByte((byte) value, SszPrimitiveSchemas.UINT8_SCHEMA);
-    }
+  public static SszByte asUInt8(final int value) {
+    return new SszByte((byte) value, SszPrimitiveSchemas.UINT8_SCHEMA);
+  }
 
-
-    public static SszByte of(final byte value) {
-        return new SszByte(value);
+  public static SszByte of(final byte value) {
+    return new SszByte(value);
   }
 
   private SszByte(final Byte value) {
     this(value, SszPrimitiveSchemas.BYTE_SCHEMA);
   }
 
-    private SszByte(Byte value, AbstractSszPrimitiveSchema<Byte, SszByte> schema) {
-        super(value, schema);
-    }
+  private SszByte(Byte value, AbstractSszPrimitiveSchema<Byte, SszByte> schema) {
+    super(value, schema);
+  }
 }

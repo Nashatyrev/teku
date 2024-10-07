@@ -50,8 +50,8 @@ public class MetadataMessageHandler
           case 1 -> SpecMilestone.PHASE0;
           case 2 -> SpecMilestone.ALTAIR;
           case 3 -> SpecMilestone.ELECTRA;
-          default -> throw new IllegalStateException(
-              "Unexpected protocol version: " + protocolVersion);
+          default ->
+              throw new IllegalStateException("Unexpected protocol version: " + protocolVersion);
         };
     final MetadataMessageSchema<?> schema =
         spec.forMilestone(milestone).getSchemaDefinitions().getMetadataMessageSchema();

@@ -80,45 +80,45 @@ public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapel
         syncCommitteeMessageOperationProcessor,
         signedBlsToExecutionChangeOperationProcessor,
         debugDataDumper);
-      this.dataColumnSidecarOperationProcessor = dataColumnSidecarOperationProcessor;
+    this.dataColumnSidecarOperationProcessor = dataColumnSidecarOperationProcessor;
   }
 
-    @Override
-    protected void addGossipManagers(ForkInfo forkInfo) {
-        super.addGossipManagers(forkInfo);
+  @Override
+  protected void addGossipManagers(ForkInfo forkInfo) {
+    super.addGossipManagers(forkInfo);
 
-        addDataColumnSidecarGossipManager(forkInfo);
-    }
+    addDataColumnSidecarGossipManager(forkInfo);
+  }
 
-    void addDataColumnSidecarGossipManager(final ForkInfo forkInfo) {
-        DataColumnSidecarSubnetSubscriptions dataColumnSidecarSubnetSubscriptions =
-                new DataColumnSidecarSubnetSubscriptions(
-                        spec,
-                        asyncRunner,
-                        discoveryNetwork,
-                        gossipEncoding,
-                        recentChainData,
-                        dataColumnSidecarOperationProcessor,
-                        forkInfo);
+  void addDataColumnSidecarGossipManager(final ForkInfo forkInfo) {
+    DataColumnSidecarSubnetSubscriptions dataColumnSidecarSubnetSubscriptions =
+        new DataColumnSidecarSubnetSubscriptions(
+            spec,
+            asyncRunner,
+            discoveryNetwork,
+            gossipEncoding,
+            recentChainData,
+            dataColumnSidecarOperationProcessor,
+            forkInfo);
 
-        dataColumnSidecarGossipManager =
-                new DataColumnSidecarGossipManager(dataColumnSidecarSubnetSubscriptions);
+    dataColumnSidecarGossipManager =
+        new DataColumnSidecarGossipManager(dataColumnSidecarSubnetSubscriptions);
 
-        addGossipManager(dataColumnSidecarGossipManager);
-    }
+    addGossipManager(dataColumnSidecarGossipManager);
+  }
 
-    @Override
-    public void publishDataColumnSidecar(DataColumnSidecar blobSidecar) {
-        dataColumnSidecarGossipManager.publish(blobSidecar);
-    }
+  @Override
+  public void publishDataColumnSidecar(DataColumnSidecar blobSidecar) {
+    dataColumnSidecarGossipManager.publish(blobSidecar);
+  }
 
-    @Override
-    public void subscribeToDataColumnSidecarSubnet(int subnetId) {
-        dataColumnSidecarGossipManager.subscribeToSubnetId(subnetId);
-    }
+  @Override
+  public void subscribeToDataColumnSidecarSubnet(int subnetId) {
+    dataColumnSidecarGossipManager.subscribeToSubnetId(subnetId);
+  }
 
-    @Override
-    public void unsubscribeFromDataColumnSidecarSubnet(int subnetId) {
-        dataColumnSidecarGossipManager.unsubscribeFromSubnetId(subnetId);
-    }
+  @Override
+  public void unsubscribeFromDataColumnSidecarSubnet(int subnetId) {
+    dataColumnSidecarGossipManager.unsubscribeFromSubnetId(subnetId);
+  }
 }

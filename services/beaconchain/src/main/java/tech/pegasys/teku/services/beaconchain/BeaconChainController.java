@@ -781,7 +781,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             sidecarRetriever,
             kzg,
             miscHelpersEip7594,
-                schemaDefinitionsElectra,
+            schemaDefinitionsElectra,
             canonicalBlockResolver,
             dbAccessor,
             operationPoolAsyncRunner,

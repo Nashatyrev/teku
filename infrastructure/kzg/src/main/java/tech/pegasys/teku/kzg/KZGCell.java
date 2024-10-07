@@ -13,17 +13,6 @@
 
 package tech.pegasys.teku.kzg;
 
-<<<<<<<< HEAD:ethereum/spec/src/testFixtures/java/tech/pegasys/teku/spec/propertytest/suppliers/execution/versions/electra/WithdrawalRequestSupplier.java
-import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.datastructures.execution.versions.electra.WithdrawalRequest;
-import tech.pegasys.teku.spec.propertytest.suppliers.DataStructureUtilSupplier;
-import tech.pegasys.teku.spec.util.DataStructureUtil;
-
-public class WithdrawalRequestSupplier extends DataStructureUtilSupplier<WithdrawalRequest> {
-
-  public WithdrawalRequestSupplier() {
-    super(DataStructureUtil::randomWithdrawalRequest, SpecMilestone.ELECTRA);
-========
 import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
 
 import java.util.List;
@@ -35,6 +24,5 @@ public record KZGCell(Bytes bytes) {
 
   static List<KZGCell> splitBytes(Bytes bytes) {
     return CKZG4844Utils.bytesChunked(bytes, BYTES_PER_CELL).stream().map(KZGCell::new).toList();
->>>>>>>> das:infrastructure/kzg/src/main/java/tech/pegasys/teku/kzg/KZGCell.java
   }
 }

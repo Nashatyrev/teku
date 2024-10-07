@@ -78,8 +78,8 @@ import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.statetransition.attestation.DeferredAttestations;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.block.BlockImportPerformance;
-import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
+import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.statetransition.validation.AttestationStateSelector;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
@@ -559,8 +559,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     }
 
     switch (dataAndValidationResult.validationResult()) {
-      case VALID, NOT_REQUIRED -> LOG.debug(
-          "sidecars validation result: {}", dataAndValidationResult::toLogString);
+      case VALID, NOT_REQUIRED ->
+          LOG.debug("sidecars validation result: {}", dataAndValidationResult::toLogString);
       case NOT_AVAILABLE -> {
         LOG.debug("sidecars validation result: {}", dataAndValidationResult::toLogString);
         return BlockImportResult.failedDataAvailabilityCheckNotAvailable(
@@ -568,8 +568,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       }
       case INVALID -> {
         LOG.error("sidecars validation result: {}", dataAndValidationResult::toLogString);
-          debugDataDumper.saveInvalidBlobSidecars(
-                  dataAndValidationResult.data(), block);
+        debugDataDumper.saveInvalidBlobSidecars(dataAndValidationResult.data(), block);
         return BlockImportResult.failedDataAvailabilityCheckInvalid(
             dataAndValidationResult.cause());
       }

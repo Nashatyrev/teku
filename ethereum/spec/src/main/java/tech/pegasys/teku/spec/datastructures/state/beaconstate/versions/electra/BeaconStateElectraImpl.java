@@ -28,11 +28,18 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.Transition
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.altair.ValidatorStatsAltair;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateElectra;
 
-public class BeaconStateElectraImpl extends AbstractBeaconState<tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateElectra>
+public class BeaconStateElectraImpl
+    extends AbstractBeaconState<
+        tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
+            .MutableBeaconStateElectra>
     implements BeaconStateEip7594, BeaconStateCache, ValidatorStatsAltair {
 
   BeaconStateElectraImpl(
-      final BeaconStateSchema<BeaconStateEip7594, tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateElectra> schema) {
+      final BeaconStateSchema<
+              BeaconStateEip7594,
+              tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
+                  .MutableBeaconStateElectra>
+          schema) {
     super(schema);
   }
 

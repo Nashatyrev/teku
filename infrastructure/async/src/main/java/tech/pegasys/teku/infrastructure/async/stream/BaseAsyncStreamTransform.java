@@ -13,17 +13,6 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-<<<<<<<< HEAD:ethereum/spec/src/testFixtures/java/tech/pegasys/teku/spec/propertytest/suppliers/execution/versions/electra/DepositRequestSupplier.java
-import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.datastructures.execution.versions.electra.DepositRequest;
-import tech.pegasys.teku.spec.propertytest.suppliers.DataStructureUtilSupplier;
-import tech.pegasys.teku.spec.util.DataStructureUtil;
-
-public class DepositRequestSupplier extends DataStructureUtilSupplier<DepositRequest> {
-
-  public DepositRequestSupplier() {
-    super(DataStructureUtil::randomDepositRequest, SpecMilestone.ELECTRA);
-========
 import java.util.function.Function;
 
 /**
@@ -36,7 +25,6 @@ public interface BaseAsyncStreamTransform<T> {
     CONTINUE,
     INCLUDE_AND_STOP,
     SKIP_AND_STOP
->>>>>>>> das:infrastructure/async/src/main/java/tech/pegasys/teku/infrastructure/async/stream/BaseAsyncStreamTransform.java
   }
 
   interface BaseSlicer<T> {

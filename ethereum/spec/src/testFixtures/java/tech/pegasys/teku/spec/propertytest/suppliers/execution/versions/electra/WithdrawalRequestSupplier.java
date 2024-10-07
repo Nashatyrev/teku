@@ -11,9 +11,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.kzg;
+package tech.pegasys.teku.spec.propertytest.suppliers.execution.versions.electra;
 
-<<<<<<<< HEAD:ethereum/spec/src/testFixtures/java/tech/pegasys/teku/spec/propertytest/suppliers/execution/versions/electra/WithdrawalRequestSupplier.java
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.WithdrawalRequest;
 import tech.pegasys.teku.spec.propertytest.suppliers.DataStructureUtilSupplier;
@@ -23,18 +22,5 @@ public class WithdrawalRequestSupplier extends DataStructureUtilSupplier<Withdra
 
   public WithdrawalRequestSupplier() {
     super(DataStructureUtil::randomWithdrawalRequest, SpecMilestone.ELECTRA);
-========
-import static ethereum.ckzg4844.CKZG4844JNI.BYTES_PER_CELL;
-
-import java.util.List;
-import org.apache.tuweni.bytes.Bytes;
-
-public record KZGCell(Bytes bytes) {
-
-  static final KZGCell ZERO = new KZGCell(Bytes.wrap(new byte[BYTES_PER_CELL]));
-
-  static List<KZGCell> splitBytes(Bytes bytes) {
-    return CKZG4844Utils.bytesChunked(bytes, BYTES_PER_CELL).stream().map(KZGCell::new).toList();
->>>>>>>> das:infrastructure/kzg/src/main/java/tech/pegasys/teku/kzg/KZGCell.java
   }
 }

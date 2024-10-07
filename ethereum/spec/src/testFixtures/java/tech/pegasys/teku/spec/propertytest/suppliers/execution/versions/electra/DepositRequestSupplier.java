@@ -11,9 +11,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.infrastructure.async.stream;
+package tech.pegasys.teku.spec.propertytest.suppliers.execution.versions.electra;
 
-<<<<<<<< HEAD:ethereum/spec/src/testFixtures/java/tech/pegasys/teku/spec/propertytest/suppliers/execution/versions/electra/DepositRequestSupplier.java
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.DepositRequest;
 import tech.pegasys.teku.spec.propertytest.suppliers.DataStructureUtilSupplier;
@@ -23,27 +22,5 @@ public class DepositRequestSupplier extends DataStructureUtilSupplier<DepositReq
 
   public DepositRequestSupplier() {
     super(DataStructureUtil::randomDepositRequest, SpecMilestone.ELECTRA);
-========
-import java.util.function.Function;
-
-/**
- * Contains fundamental transformation stream methods All other transformations are expressed my
- * means of those methods
- */
-public interface BaseAsyncStreamTransform<T> {
-
-  enum SliceResult {
-    CONTINUE,
-    INCLUDE_AND_STOP,
-    SKIP_AND_STOP
->>>>>>>> das:infrastructure/async/src/main/java/tech/pegasys/teku/infrastructure/async/stream/BaseAsyncStreamTransform.java
   }
-
-  interface BaseSlicer<T> {
-    SliceResult slice(T element);
-  }
-
-  <R> AsyncStream<R> flatMap(Function<T, AsyncStream<R>> toStreamMapper);
-
-  AsyncStream<T> slice(BaseSlicer<T> slicer);
 }

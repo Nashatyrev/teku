@@ -65,7 +65,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
       new MiscHelpersEip7594(
           spec.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
           predicates,
-              schemaDefinitionsElectra);
+          schemaDefinitionsElectra);
 
   @ParameterizedTest(name = "{0} allowed failure(s)")
   @MethodSource("getExtendedSampleCountFixtures")
@@ -145,7 +145,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
         new MiscHelpersEip7594(
             spec.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
             predicatesMock,
-                schemaDefinitionsElectra);
+            schemaDefinitionsElectra);
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
     final DataColumnSidecar dataColumnSidecar =
         schemaDefinitionsElectra
@@ -190,7 +190,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
         new MiscHelpersEip7594(
             specMainnet.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
             predicatesMainnet,
-                schemaDefinitionsElectraMainnet);
+            schemaDefinitionsElectraMainnet);
     final DataColumnSidecar dataColumnSidecar =
         schemaDefinitionsElectraMainnet
             .getDataColumnSidecarSchema()

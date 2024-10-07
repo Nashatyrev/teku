@@ -50,7 +50,8 @@ public class MetadataMessagesFactory {
   }
 
   public synchronized MetadataMessage createMetadataMessage(final MetadataMessageSchema<?> schema) {
-    return schema.create(getCurrentSeqNumber(), attestationSubnetIds, syncCommitteeSubnetIds, custodySubnetCount);
+    return schema.create(
+        getCurrentSeqNumber(), attestationSubnetIds, syncCommitteeSubnetIds, custodySubnetCount);
   }
 
   public PingMessage createPingMessage() {

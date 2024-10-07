@@ -37,8 +37,8 @@ import tech.pegasys.teku.api.schema.deneb.BeaconStateDeneb;
 import tech.pegasys.teku.api.schema.deneb.BlindedBeaconBlockBodyDeneb;
 import tech.pegasys.teku.api.schema.deneb.BlindedBlockDeneb;
 import tech.pegasys.teku.api.schema.eip7594.BeaconBlockBodyEip7594;
-import tech.pegasys.teku.api.schema.electra.BeaconStateEip7594;
 import tech.pegasys.teku.api.schema.eip7594.BlindedBeaconBlockBodyEip7594;
+import tech.pegasys.teku.api.schema.electra.BeaconStateEip7594;
 import tech.pegasys.teku.api.schema.phase0.BeaconBlockPhase0;
 import tech.pegasys.teku.api.schema.phase0.BeaconStatePhase0;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -239,8 +239,7 @@ public class SchemaObjectProvider {
 
   private BlindedBeaconBlockBodyEip7594 getBlindedBlockBodyEip7594(
       final tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody body) {
-    return new BlindedBeaconBlockBodyEip7594(
-        BlindedBeaconBlockBodyElectra.required(body));
+    return new BlindedBeaconBlockBodyEip7594(BlindedBeaconBlockBodyElectra.required(body));
   }
 
   public BeaconState getBeaconState(

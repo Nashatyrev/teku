@@ -223,19 +223,19 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
                       SchemaDefinitionsElectra.required(schemas)
                           .getPendingPartialWithdrawalSchema()))
 
-              // EIP7594 types
-              .put(
-                      "ssz_static/DataColumnIdentifier",
-                      new SszTestExecutor<>(schemas -> DataColumnIdentifier.SSZ_SCHEMA))
-              .put(
-                      "ssz_static/DataColumnSidecar",
-                      new SszTestExecutor<>(
-                              schemas ->
-                                      SchemaDefinitionsElectra.required(schemas).getDataColumnSidecarSchema()))
-              .put(
-                      "ssz_static/MatrixEntry",
-                      new SszTestExecutor<>(
-                              schemas -> SchemaDefinitionsElectra.required(schemas).getMatrixEntrySchema()))
+          // EIP7594 types
+          .put(
+              "ssz_static/DataColumnIdentifier",
+              new SszTestExecutor<>(schemas -> DataColumnIdentifier.SSZ_SCHEMA))
+          .put(
+              "ssz_static/DataColumnSidecar",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsElectra.required(schemas).getDataColumnSidecarSchema()))
+          .put(
+              "ssz_static/MatrixEntry",
+              new SszTestExecutor<>(
+                  schemas -> SchemaDefinitionsElectra.required(schemas).getMatrixEntrySchema()))
 
           // Legacy Schemas (Not yet migrated to SchemaDefinitions)
           .put(

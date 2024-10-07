@@ -560,8 +560,7 @@ public class PeerSyncTest extends AbstractSyncTest {
             builder ->
                 builder
                     .denebBuilder(denebBuilder -> denebBuilder.denebForkEpoch(denebForkEpoch))
-                    .electraBuilder(
-                        electraBuilder -> electraBuilder.eip7594Epoch(eip7594Epoch)));
+                    .electraBuilder(electraBuilder -> electraBuilder.eip7594Epoch(eip7594Epoch)));
     when(recentChainData.getFinalizedEpoch()).thenReturn(denebForkEpoch);
     when(blobSidecarManager.isAvailabilityRequiredAtSlot(any()))
         .thenAnswer(

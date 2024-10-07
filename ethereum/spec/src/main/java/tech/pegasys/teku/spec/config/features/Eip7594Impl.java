@@ -13,14 +13,9 @@
 
 package tech.pegasys.teku.spec.config.features;
 
+import java.util.Objects;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.config.DelegatingSpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
-
-import java.util.Objects;
-import java.util.Optional;
 
 public class Eip7594Impl implements Eip7594 {
   private final Bytes4 eip7594ForkVersion;

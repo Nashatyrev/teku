@@ -11,9 +11,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.datastructures.execution.versions.eip7594;
+package tech.pegasys.teku.spec.datastructures.execution.versions.electra;
 
-<<<<<<<< HEAD:ethereum/spec/src/main/java/tech/pegasys/teku/spec/datastructures/execution/versions/eip7594/ExecutionRequestsFields.java
 import java.util.Locale;
 import tech.pegasys.teku.infrastructure.ssz.schema.SszFieldName;
 
@@ -31,15 +30,5 @@ public enum ExecutionRequestsFields implements SszFieldName {
   @Override
   public String getSszFieldName() {
     return sszFieldName;
-========
-import java.util.Optional;
-import tech.pegasys.teku.spec.datastructures.execution.versions.deneb.ExecutionPayloadHeaderDeneb;
-
-public interface ExecutionPayloadHeaderEip7594 extends ExecutionPayloadHeaderDeneb {
-
-  @Override
-  default Optional<ExecutionPayloadHeaderEip7594> toVersionEip7594() {
-    return Optional.of(this);
->>>>>>>> das:ethereum/spec/src/main/java/tech/pegasys/teku/spec/datastructures/execution/versions/eip7594/ExecutionPayloadHeaderEip7594.java
   }
 }
