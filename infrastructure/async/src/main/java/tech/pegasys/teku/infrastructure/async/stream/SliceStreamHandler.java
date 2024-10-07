@@ -13,21 +13,25 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-abstract class AbstractDelegatingIteratorCallback<S, T> implements AsyncIteratorCallback<T> {
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-  protected final AsyncIteratorCallback<S> delegate;
+class SliceStreamHandler<T> extends AbstractDelegatingStreamHandler<T, T> {
 
-  protected AbstractDelegatingIteratorCallback(AsyncIteratorCallback<S> delegate) {
-    this.delegate = delegate;
+  private final BaseAsyncStreamTransform.BaseSlicer<T> slicer;
+
+  protected SliceStreamHandler(
+      AsyncStreamHandler<T> delegate, BaseAsyncStreamTransform.BaseSlicer<T> slicer) {
+    super(delegate);
+    this.slicer = slicer;
   }
 
   @Override
-  public void onComplete() {
-    delegate.onComplete();
-  }
-
-  @Override
-  public void onError(Throwable t) {
-    delegate.onError(t);
+  public SafeFuture<Boolean> onNext(T t) {
+    BaseAsyncStreamTransform.SliceResult sliceResult = slicer.slice(t);
+    return switch (sliceResult) {
+      case CONTINUE -> delegate.onNext(t);
+      case SKIP_AND_STOP -> FALSE_FUTURE;
+      case INCLUDE_AND_STOP -> delegate.onNext(t).thenApply(__ -> false);
+    };
   }
 }

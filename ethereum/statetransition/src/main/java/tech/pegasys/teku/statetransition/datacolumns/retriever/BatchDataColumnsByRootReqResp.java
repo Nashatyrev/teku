@@ -11,23 +11,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.infrastructure.async.stream;
+package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
-import java.util.concurrent.CompletionStage;
+import java.util.List;
+import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
-class FutureAsyncIteratorImpl<T> extends AsyncIterator<T> {
+public interface BatchDataColumnsByRootReqResp {
 
-  private final SafeFuture<T> future;
+  AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRoot(
+      UInt256 nodeId, List<DataColumnIdentifier> columnIdentifiers);
 
-  FutureAsyncIteratorImpl(CompletionStage<T> future) {
-    this.future = SafeFuture.of(future);
-  }
-
-  @Override
-  public void iterate(AsyncStreamHandler<T> callback) {
-    future.finish(
-        succ -> callback.onNext(succ).finish(__ -> callback.onComplete(), callback::onError),
-        callback::onError);
-  }
+  int getCurrentRequestLimit(UInt256 nodeId);
 }

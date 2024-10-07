@@ -11,26 +11,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.infrastructure.async.stream;
+package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
-import java.util.function.Predicate;
+import java.util.List;
+import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 
-class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
+public interface BatchDataColumnsByRangeReqResp {
 
-  private final Predicate<T> filter;
+  AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRange(
+      UInt256 nodeId, UInt64 startSlot, int slotCount, List<UInt64> columnIndexes);
 
-  protected FilteringIteratorCallback(AsyncIteratorCallback<T> delegate, Predicate<T> filter) {
-    super(delegate);
-    this.filter = filter;
-  }
-
-  @Override
-  public SafeFuture<Boolean> onNext(T t) {
-    if (filter.test(t)) {
-      return delegate.onNext(t);
-    } else {
-      return TRUE_FUTURE;
-    }
-  }
+  int getCurrentRequestLimit(UInt256 nodeId);
 }

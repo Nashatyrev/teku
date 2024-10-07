@@ -11,18 +11,23 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.statetransition.datacolumns.retriever;
+package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.List;
-import org.apache.tuweni.units.bigints.UInt256;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+abstract class AbstractDelegatingStreamHandler<S, T> implements AsyncStreamHandler<T> {
 
-public interface BatchDataColumnReqResp {
+  protected final AsyncStreamHandler<S> delegate;
 
-  SafeFuture<List<DataColumnSidecar>> requestDataColumnSidecar(
-      UInt256 nodeId, List<DataColumnIdentifier> columnIdentifiers);
+  protected AbstractDelegatingStreamHandler(AsyncStreamHandler<S> delegate) {
+    this.delegate = delegate;
+  }
 
-  int getCurrentRequestLimit(UInt256 nodeId);
+  @Override
+  public void onComplete() {
+    delegate.onComplete();
+  }
+
+  @Override
+  public void onError(Throwable t) {
+    delegate.onError(t);
+  }
 }
