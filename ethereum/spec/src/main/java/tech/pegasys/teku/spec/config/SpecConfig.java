@@ -21,7 +21,7 @@ import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
 
-public interface SpecConfig extends NetworkingSpecConfig {
+public interface SpecConfig extends NetworkingSpecConfig, FeatureSpecConfig {
   // Non-configurable constants
   UInt64 GENESIS_SLOT = UInt64.ZERO;
   UInt64 GENESIS_EPOCH = UInt64.ZERO;
