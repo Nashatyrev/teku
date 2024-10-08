@@ -30,8 +30,15 @@ class SliceStreamHandler<T> extends AbstractDelegatingStreamHandler<T, T> {
     BaseAsyncStreamTransform.SliceResult sliceResult = slicer.slice(t);
     return switch (sliceResult) {
       case CONTINUE -> delegate.onNext(t);
-      case SKIP_AND_STOP -> FALSE_FUTURE;
-      case INCLUDE_AND_STOP -> delegate.onNext(t).thenApply(__ -> false);
+      case SKIP_AND_STOP -> {
+        delegate.onComplete();
+        yield FALSE_FUTURE;
+      }
+      case INCLUDE_AND_STOP -> {
+        SafeFuture<Boolean> ret = delegate.onNext(t).thenApply(__ -> false);
+        delegate.onComplete();
+        yield ret;
+      }
     };
   }
 }

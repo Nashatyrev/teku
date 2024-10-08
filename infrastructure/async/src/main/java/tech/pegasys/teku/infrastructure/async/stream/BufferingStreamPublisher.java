@@ -62,17 +62,22 @@ class BufferingStreamPublisher<T> extends AsyncIterator<T> implements AsyncStrea
   void iterate(AsyncStreamHandler<T> delegate) {
     SafeFuture.asyncDoWhile(
         () ->
-          takeNext()
-              .thenApply(
-                  event -> {
-                    switch (event) {
-                      case ItemEvent<T> item -> delegate.onNext(item.item()).propagateTo(item.nextReturn());
-                      case CompleteEvent<T> ignored -> delegate.onComplete();
-                      case ErrorEvent<T> errorEvent -> delegate.onError(errorEvent.error());
-                    }
-                    return event.isTerminal();
-                  })
-        );
+            takeNext()
+                .thenCompose(
+                    event -> switch (event) {
+                      case ItemEvent<T> item -> {
+                        delegate.onNext(item.item()).propagateTo(item.nextReturn());
+                        yield item.nextReturn();
+                      }
+                      case CompleteEvent<T> ignored -> {
+                        delegate.onComplete();
+                        yield FALSE_FUTURE;
+                      }
+                      case ErrorEvent<T> errorEvent -> {
+                        delegate.onError(errorEvent.error());
+                        yield FALSE_FUTURE;
+                      }
+                    }));
   }
 
   @Override
