@@ -20,14 +20,18 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 public class DataColumnReqRespImpl implements DataColumnReqResp {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
+  private static final int LOG_EVERY_NTH_ERROR = 64;
 
   // TODO: suppress until real ban is commented out
   @SuppressWarnings("unused")
   private final DataColumnPeerManager peerManager;
 
   private final DataColumnReqResp reqResp;
+  private final AtomicLong errorCounter = new AtomicLong();
 
   public DataColumnReqRespImpl(DataColumnPeerManager peerManager, DataColumnReqResp reqResp) {
     this.peerManager = peerManager;
@@ -41,20 +45,22 @@ public class DataColumnReqRespImpl implements DataColumnReqResp {
         .requestDataColumnSidecar(nodeId, columnIdentifier)
         .whenException(
             ex -> {
-              if (ex instanceof DataColumnReqRespException) {
-                LOG.debug(
-                    "Error requesting data column sidecar {} from {}: {}",
-                    columnIdentifier,
-                    nodeId,
-                    ex);
-              } else {
-                LOG.warn(
-                    "Error requesting data column sidecar {} from {}: {}",
-                    columnIdentifier,
-                    nodeId,
-                    ex);
-                // TODO: uncomment in production
-                // peerManager.banNode(nodeId);
+              if (errorCounter.getAndIncrement() % LOG_EVERY_NTH_ERROR == 0) {
+                if (ex instanceof DataColumnReqRespException) {
+                  LOG.debug(
+                      "Error requesting data column sidecar {} from {}: {}",
+                      columnIdentifier,
+                      nodeId,
+                      ex);
+                } else {
+                  LOG.warn(
+                      "Error requesting data column sidecar {} from {}: {}",
+                      columnIdentifier,
+                      nodeId,
+                      ex);
+                  // TODO: uncomment in production
+                  // peerManager.banNode(nodeId);
+                }
               }
             });
   }
