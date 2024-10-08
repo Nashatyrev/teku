@@ -115,15 +115,13 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
 
           @Override
           public void onError(Throwable err) {
+            LOG.info(
+                "[nyota] Error batch from {}, hash={}, err: {}",
+                "0x..." + nodeId.toHexString().substring(58),
+                nodeRequests.hashCode(),
+                err.toString());
             nodeRequests.forEach(
-                e -> {
-                  LOG.info(
-                      "[nyota] Error batch from {}, hash={}, err: {}",
-                      "0x..." + nodeId.toHexString().substring(58),
-                      nodeRequests.hashCode(),
-                      e.toString());
-                  e.promise().completeExceptionally(err);
-                });
+                e -> e.promise().completeExceptionally(err));
           }
         });
   }
