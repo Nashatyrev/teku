@@ -13,10 +13,12 @@
 
 package tech.pegasys.teku.networking.eth2.peers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.tuweni.units.bigints.UInt256;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStreamPublisher;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
@@ -92,27 +94,6 @@ public class DataColumnPeerManagerImpl
           .finish(__ -> ret.onComplete(), ret::onError);
     }
     return ret;
-  }
-
-  @Override
-  public SafeFuture<List<DataColumnSidecar>> requestDataColumnSidecarsByRange(
-      UInt256 nodeId, UInt64 startSlot, int slotCount, List<UInt64> columnIndexes) {
-    Eth2Peer eth2Peer = connectedPeers.get(nodeId);
-    if (eth2Peer == null) {
-      return SafeFuture.failedFuture(new DataColumnReqResp.DasPeerDisconnectedException());
-    } else {
-      List<DataColumnSidecar> responseCollector = new ArrayList<>();
-      return eth2Peer
-          .requestDataColumnSidecarsByRange(
-              startSlot,
-              UInt64.valueOf(slotCount),
-              columnIndexes,
-              sidecar -> {
-                responseCollector.add(sidecar);
-                return SafeFuture.COMPLETE;
-              })
-          .thenApply(__ -> responseCollector);
-    }
   }
 
   @Override
