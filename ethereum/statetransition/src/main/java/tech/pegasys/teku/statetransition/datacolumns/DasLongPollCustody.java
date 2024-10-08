@@ -30,6 +30,7 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
@@ -71,6 +72,11 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
     SafeFuture<Optional<DataColumnSidecar>> existingFuture =
         delegate.getCustodyDataColumnSidecar(columnId);
     return anyNonEmpty(pendingFuture, existingFuture);
+  }
+
+  @Override
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(SlotAndBlockRoot blockId) {
+    return delegate.getColumnIdentifiers(blockId);
   }
 
   @Override

@@ -14,6 +14,7 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -26,6 +27,7 @@ import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
@@ -84,6 +86,11 @@ public class DataColumnSidecarByRootCustodyImpl
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnSlotAndIdentifier columnId) {
     return custody.getCustodyDataColumnSidecar(columnId);
+  }
+
+  @Override
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(SlotAndBlockRoot blockId) {
+    return custody.getColumnIdentifiers(blockId);
   }
 
   private static class ColumnSlotCache {

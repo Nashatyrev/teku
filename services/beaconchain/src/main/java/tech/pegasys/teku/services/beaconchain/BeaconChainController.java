@@ -316,7 +316,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   protected volatile LateInitDataColumnSidecarCustody dataColumnSidecarCustody =
       new LateInitDataColumnSidecarCustody();
   protected volatile DasCustodySync dasCustodySync;
-  protected volatile AvailabilityCheckerFactory<DataColumnSidecar> dasSamplerManager;
+  protected volatile AvailabilityCheckerFactory<UInt64> dasSamplerManager;
   protected volatile DataAvailabilitySampler dataAvailabilitySampler;
   protected volatile Optional<TerminalPowBlockMonitor> terminalPowBlockMonitor = Optional.empty();
   protected volatile ProposersDataManager proposersDataManager;

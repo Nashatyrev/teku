@@ -13,15 +13,32 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import java.util.List;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 public interface DataColumnSidecarCustody {
 
-  DataColumnSidecarCustody NOOP = (__) -> SafeFuture.completedFuture(Optional.empty());
+  DataColumnSidecarCustody NOOP =
+      new DataColumnSidecarCustody() {
+        @Override
+        public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
+            DataColumnSlotAndIdentifier columnId) {
+          return SafeFuture.completedFuture(Optional.empty());
+        }
+
+        @Override
+        public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(
+            SlotAndBlockRoot blockId) {
+          return SafeFuture.completedFuture(List.of());
+        }
+      };
 
   SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnSlotAndIdentifier columnId);
+
+  SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(SlotAndBlockRoot blockId);
 }
