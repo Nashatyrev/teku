@@ -15,8 +15,6 @@ package tech.pegasys.teku.infrastructure.async.stream;
 
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.stream.Collector;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 abstract class AsyncIterator<T> implements AsyncStream<T> {
 
@@ -29,8 +27,7 @@ abstract class AsyncIterator<T> implements AsyncStream<T> {
     return OperationAsyncIterator.create(
         this,
         sourceCallback ->
-            new MapStreamHandler<>(
-                new FlattenStreamHandler<>(sourceCallback), toIteratorMapper));
+            new MapStreamHandler<>(new FlattenStreamHandler<>(sourceCallback), toIteratorMapper));
   }
 
   @Override

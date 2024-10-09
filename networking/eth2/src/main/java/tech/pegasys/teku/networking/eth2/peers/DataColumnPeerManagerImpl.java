@@ -13,12 +13,10 @@
 
 package tech.pegasys.teku.networking.eth2.peers;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.apache.tuweni.units.bigints.UInt256;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStreamPublisher;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
@@ -32,7 +30,10 @@ import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerMan
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
 
 public class DataColumnPeerManagerImpl
-    implements DataColumnPeerManager, PeerConnectedSubscriber<Eth2Peer>, BatchDataColumnsByRootReqResp, BatchDataColumnsByRangeReqResp {
+    implements DataColumnPeerManager,
+        PeerConnectedSubscriber<Eth2Peer>,
+        BatchDataColumnsByRootReqResp,
+        BatchDataColumnsByRangeReqResp {
 
   private final Subscribers<PeerListener> listeners = Subscribers.create(true);
   private Map<UInt256, Eth2Peer> connectedPeers = new ConcurrentHashMap<>();

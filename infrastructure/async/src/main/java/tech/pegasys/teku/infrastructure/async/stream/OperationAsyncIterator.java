@@ -23,8 +23,7 @@ abstract class OperationAsyncIterator<S, T> extends AsyncIterator<T> {
       Function<AsyncStreamHandler<T>, AsyncStreamHandler<S>> callbackMapper) {
     return new OperationAsyncIterator<>(srcIterator) {
       @Override
-      protected AsyncStreamHandler<S> createDelegateCallback(
-          AsyncStreamHandler<T> sourceCallback) {
+      protected AsyncStreamHandler<S> createDelegateCallback(AsyncStreamHandler<T> sourceCallback) {
         return callbackMapper.apply(sourceCallback);
       }
     };

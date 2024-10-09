@@ -28,19 +28,22 @@ class BufferingStreamPublisher<T> extends AsyncIterator<T> implements AsyncStrea
   sealed interface Event<T> {
     boolean isTerminal();
   }
-  record ItemEvent<T>(T item, SafeFuture<Boolean> nextReturn) implements Event<T>{
+
+  record ItemEvent<T>(T item, SafeFuture<Boolean> nextReturn) implements Event<T> {
     @Override
     public boolean isTerminal() {
       return false;
     }
   }
-  record CompleteEvent<T>() implements Event<T>{
+
+  record CompleteEvent<T>() implements Event<T> {
     @Override
     public boolean isTerminal() {
       return true;
     }
   }
-  record ErrorEvent<T>(Throwable error) implements Event<T>{
+
+  record ErrorEvent<T>(Throwable error) implements Event<T> {
     @Override
     public boolean isTerminal() {
       return true;
@@ -64,20 +67,21 @@ class BufferingStreamPublisher<T> extends AsyncIterator<T> implements AsyncStrea
         () ->
             takeNext()
                 .thenCompose(
-                    event -> switch (event) {
-                      case ItemEvent<T> item -> {
-                        delegate.onNext(item.item()).propagateTo(item.nextReturn());
-                        yield item.nextReturn();
-                      }
-                      case CompleteEvent<T> ignored -> {
-                        delegate.onComplete();
-                        yield FALSE_FUTURE;
-                      }
-                      case ErrorEvent<T> errorEvent -> {
-                        delegate.onError(errorEvent.error());
-                        yield FALSE_FUTURE;
-                      }
-                    }));
+                    event ->
+                        switch (event) {
+                          case ItemEvent<T> item -> {
+                            delegate.onNext(item.item()).propagateTo(item.nextReturn());
+                            yield item.nextReturn();
+                          }
+                          case CompleteEvent<T> ignored -> {
+                            delegate.onComplete();
+                            yield FALSE_FUTURE;
+                          }
+                          case ErrorEvent<T> errorEvent -> {
+                            delegate.onError(errorEvent.error());
+                            yield FALSE_FUTURE;
+                          }
+                        }));
   }
 
   @Override
