@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
+@SuppressWarnings("FutureReturnValueIgnored")
 public class AsyncStreamPublisherTest {
 
   AsyncStreamPublisher<Integer> publisher = AsyncStream.createPublisher(Integer.MAX_VALUE);
@@ -40,17 +41,29 @@ public class AsyncStreamPublisherTest {
 
     assertThat(collector).isEmpty();
 
-    publisher.onNext(0);
+    {
+      SafeFuture<Boolean> f = publisher.onNext(0);
+      assertThat(f).isCompletedWithValue(true);
+    }
     assertThat(collector).containsExactly(0, 20, 40);
 
-    publisher.onNext(1);
+    {
+      SafeFuture<Boolean> f = publisher.onNext(1);
+      assertThat(f).isCompletedWithValue(true);
+    }
     assertThat(collector).containsExactly(0, 20, 40, 100, 120, 140);
 
-    publisher.onNext(2);
+    {
+      SafeFuture<Boolean> f = publisher.onNext(2);
+      assertThat(f).isCompletedWithValue(true);
+    }
     assertThat(collector).containsExactly(0, 20, 40, 100, 120, 140, 200, 220, 240);
     assertThat(listPromise).isNotDone();
 
-    publisher.onNext(3);
+    {
+      SafeFuture<Boolean> f = publisher.onNext(3);
+      assertThat(f).isCompletedWithValue(false);
+    }
     // limit(10) kicks in
     assertThat(collector).containsExactly(0, 20, 40, 100, 120, 140, 200, 220, 240, 300);
     assertThat(listPromise)

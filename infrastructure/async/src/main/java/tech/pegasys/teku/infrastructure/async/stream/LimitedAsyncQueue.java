@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
+import java.util.ArrayDeque;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -22,14 +23,15 @@ class LimitedAsyncQueue<T> implements AsyncQueue<T> {
 
   private final int maxSize;
 
-  private final Queue<T> items = new LinkedList<>();
-  private final Queue<SafeFuture<T>> takers = new LinkedList<>();
+  private final Queue<T> items = new ArrayDeque<>();
+  private final Queue<SafeFuture<T>> takers = new ArrayDeque<>();
 
   public LimitedAsyncQueue(int maxSize) {
     this.maxSize = maxSize;
   }
 
   // Adds an item to the queue
+  @Override
   public synchronized void put(T item) {
     if (!takers.isEmpty()) {
       // If there are pending takers, complete one with the item
@@ -45,6 +47,7 @@ class LimitedAsyncQueue<T> implements AsyncQueue<T> {
   }
 
   // Returns a CompletableFuture that will be completed when an item is available
+  @Override
   public synchronized SafeFuture<T> take() {
     if (!items.isEmpty()) {
       // If items are available, return a completed future
