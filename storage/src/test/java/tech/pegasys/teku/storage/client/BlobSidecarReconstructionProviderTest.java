@@ -53,13 +53,13 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 public class BlobSidecarReconstructionProviderTest {
   private final CombinedChainDataClient client = mock(CombinedChainDataClient.class);
-  private final Spec spec = TestSpecFactory.createMinimalEip7594();
+  private final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
   private final KZG kzg = mock(KZG.class);
 
   private final BlobSidecarReconstructionProvider blobSidecarReconstructionProvider =

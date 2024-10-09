@@ -59,6 +59,7 @@ public class MilestoneBasedBlockFactory implements BlockFactory {
         .forEach(
             forkAndSpecMilestone -> {
               final SpecMilestone milestone = forkAndSpecMilestone.getSpecMilestone();
+              // TODO: not for all electra
               if (milestone.isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
                 registeredFactories.put(milestone, blockFactoryEip7594Supplier.get());
               } else if (milestone.equals(SpecMilestone.DENEB)) {

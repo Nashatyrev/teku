@@ -220,9 +220,8 @@ public class TekuNodeConfigBuilder {
     specConfigModifier =
         specConfigModifier.andThen(
             specConfigBuilder ->
-                specConfigBuilder.electraBuilder(
-                    // TODO: should not be a hard fork
-                    electraBuilder -> electraBuilder.eip7594Epoch(eip7594Epoch)));
+                specConfigBuilder.eip7594Builder(
+                    eip7594Builder -> eip7594Builder.eip7594Epoch(eip7594Epoch)));
     return this;
   }
 

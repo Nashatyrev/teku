@@ -62,7 +62,7 @@ public class Eip7594Impl implements Eip7594 {
   }
 
   @Override
-  public UInt64 getEip7594ForkEpoch() {
+  public UInt64 getEip7594FeatureEpoch() {
     return eip7594ForkEpoch;
   }
 

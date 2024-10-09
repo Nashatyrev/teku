@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.logic.versions.eip7594;
+package tech.pegasys.teku.spec.logic.versions.electra;
 
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
@@ -48,11 +48,11 @@ import tech.pegasys.teku.spec.logic.versions.electra.statetransition.epoch.Epoch
 import tech.pegasys.teku.spec.logic.versions.electra.util.AttestationUtilElectra;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 
-public class SpecLogicEip7594 extends AbstractSpecLogic {
+public class SpecLogicElectra extends AbstractSpecLogic {
   private final Optional<SyncCommitteeUtil> syncCommitteeUtil;
   private final Optional<LightClientUtil> lightClientUtil;
 
-  private SpecLogicEip7594(
+  private SpecLogicElectra(
       final Predicates predicates,
       final MiscHelpersDeneb miscHelpers,
       final BeaconStateAccessorsElectra beaconStateAccessors,
@@ -70,7 +70,7 @@ public class SpecLogicEip7594 extends AbstractSpecLogic {
       final BlindBlockUtil blindBlockUtil,
       final SyncCommitteeUtil syncCommitteeUtil,
       final LightClientUtil lightClientUtil,
-      final Eip7594StateUpgrade stateUpgrade) {
+      final ElectraStateUpgrade stateUpgrade) {
     super(
         predicates,
         miscHelpers,
@@ -153,8 +153,8 @@ public class SpecLogicEip7594 extends AbstractSpecLogic {
             beaconStateAccessors, validatorsUtil, config, miscHelpers, schemaDefinitions);
     final LightClientUtil lightClientUtil =
         new LightClientUtil(beaconStateAccessors, syncCommitteeUtil, schemaDefinitions);
-    final BlockProcessorEip7594 blockProcessor =
-        new BlockProcessorEip7594(
+    final BlockProcessorElectra blockProcessor =
+        new BlockProcessorElectra(
             config,
             predicates,
             miscHelpers,
@@ -180,7 +180,7 @@ public class SpecLogicEip7594 extends AbstractSpecLogic {
         new ElectraStateUpgrade(
             config, schemaDefinitions, beaconStateAccessors, beaconStateMutators);
 
-    return new SpecLogicEip7594(
+    return new SpecLogicElectra(
         predicates,
         miscHelpers,
         beaconStateAccessors,

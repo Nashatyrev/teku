@@ -17,7 +17,7 @@ import static com.google.common.base.Preconditions.checkState;
 import static tech.pegasys.teku.infrastructure.time.TimeUtilities.millisToSeconds;
 import static tech.pegasys.teku.infrastructure.time.TimeUtilities.secondsToMillis;
 import static tech.pegasys.teku.spec.SpecMilestone.DENEB;
-import static tech.pegasys.teku.spec.SpecMilestone.ELECTRA;
+import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
@@ -52,8 +52,7 @@ import tech.pegasys.teku.spec.config.NetworkingSpecConfigDeneb;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigAltair;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
-import tech.pegasys.teku.spec.config.features.NetworkingSpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.constants.Domain;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
@@ -222,16 +221,6 @@ public class Spec {
     return Optional.ofNullable(forMilestone(DENEB))
         .map(SpecVersion::getConfig)
         .map(specConfig -> (NetworkingSpecConfigDeneb) specConfig.getNetworkingConfig());
-  }
-
-  /**
-   * Networking config with EIP7594 constants. Use {@link SpecConfigEip7594#required(SpecConfig)}
-   * when you are sure that EIP7594 is available, otherwise use this method
-   */
-  public Optional<NetworkingSpecConfigEip7594> getNetworkingConfigEip7594() {
-    return Optional.ofNullable(forMilestone(ELECTRA))
-        .map(SpecVersion::getConfig)
-        .map(specConfig -> (NetworkingSpecConfigEip7594) specConfig.getNetworkingConfig());
   }
 
   public SchemaDefinitions getGenesisSchemaDefinitions() {
@@ -428,6 +417,7 @@ public class Spec {
   public DataColumnSidecar deserializeSidecar(final Bytes serializedSidecar, final UInt64 slot) {
     return atSlot(slot)
         .getSchemaDefinitions()
+        // TODO
         .toVersionEip7594()
         .orElseThrow(
             () ->
@@ -976,16 +966,20 @@ public class Spec {
   }
 
   public Optional<Integer> getNumberOfDataColumns() {
-    return getSpecConfigEip7594().map(SpecConfigEip7594::getNumberOfColumns);
+    return getFeatureConfigEip7594().map(Eip7594::getNumberOfColumns);
+  }
+
+  public Optional<Integer> getNumberOfDataColumnSubnets() {
+    return getFeatureConfigEip7594().map(Eip7594::getDataColumnSidecarSubnetCount);
   }
 
   public boolean isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
       final ReadOnlyStore store, final UInt64 epoch) {
-    if (!forkSchedule.getSpecMilestoneAtEpoch(epoch).isGreaterThanOrEqualTo(ELECTRA)) {
+    if (!isFeatureActivatedAtEpoch(SpecFeature.EIP7594, epoch)) {
       return false;
     }
     final SpecConfig config = atEpoch(epoch).getConfig();
-    final SpecConfigEip7594 specConfigEip7594 = SpecConfigEip7594.required(config);
+    final Eip7594 specConfigEip7594 = Eip7594.required(config);
     return getCurrentEpoch(store)
         .minusMinZero(epoch)
         .isLessThanOrEqualTo(specConfigEip7594.getMinEpochsForDataColumnSidecarsRequests());
@@ -993,7 +987,7 @@ public class Spec {
 
   public UInt64 computeSubnetForDataColumnSidecar(final DataColumnSidecar dataColumnSidecar) {
     final SpecConfig config = atSlot(dataColumnSidecar.getSlot()).getConfig();
-    final SpecConfigEip7594 specConfigEip7594 = SpecConfigEip7594.required(config);
+    final Eip7594 specConfigEip7594 = Eip7594.required(config);
     return dataColumnSidecar.getIndex().mod(specConfigEip7594.getDataColumnSidecarSubnetCount());
   }
 
@@ -1006,6 +1000,30 @@ public class Spec {
   // Electra Utils
   public boolean isFormerDepositMechanismDisabled(final BeaconState state) {
     return atState(state).miscHelpers().isFormerDepositMechanismDisabled(state);
+  }
+
+  public boolean isFeatureScheduled(final SpecFeature feature) {
+    return switch (feature) {
+      case EIP7594 ->
+          this.getFeatureConfigEip7594()
+              .map(eip7594 -> eip7594.getEip7594FeatureEpoch().isLessThan(FAR_FUTURE_EPOCH))
+              .orElse(false);
+      default -> false;
+    };
+  }
+
+  public boolean isFeatureActivated(final SpecFeature feature, final ReadOnlyStore store) {
+    return isFeatureActivatedAtEpoch(feature, getCurrentEpoch(store));
+  }
+
+  public boolean isFeatureActivatedAtEpoch(final SpecFeature feature, final UInt64 epoch) {
+    return switch (feature) {
+      case EIP7594 ->
+          this.getFeatureConfigEip7594()
+              .map(eip7594 -> epoch.isGreaterThanOrEqualTo(eip7594.getEip7594FeatureEpoch()))
+              .orElse(false);
+      default -> false;
+    };
   }
 
   // Deneb private helpers
@@ -1022,12 +1040,12 @@ public class Spec {
   }
 
   // EIP7594 private helpers
-  private Optional<SpecConfigEip7594> getSpecConfigEip7594() {
+  private Optional<Eip7594> getFeatureConfigEip7594() {
     final SpecMilestone highestSupportedMilestone =
         getForkSchedule().getHighestSupportedMilestone();
     return Optional.ofNullable(forMilestone(highestSupportedMilestone))
         .map(SpecVersion::getConfig)
-        .flatMap(SpecConfig::toVersionEip7594);
+        .flatMap(SpecConfig::getOptionalEip7594Config);
   }
 
   // Private helpers

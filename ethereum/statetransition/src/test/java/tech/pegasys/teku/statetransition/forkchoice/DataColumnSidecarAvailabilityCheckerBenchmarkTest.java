@@ -42,7 +42,7 @@ public class DataColumnSidecarAvailabilityCheckerBenchmarkTest extends KZGAbstra
       mock(DataAvailabilitySampler.class);
   private static final int ROUNDS = 10;
 
-  private final Spec spec = TestSpecFactory.createMinimalEip7594();
+  private final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
 
   @Test

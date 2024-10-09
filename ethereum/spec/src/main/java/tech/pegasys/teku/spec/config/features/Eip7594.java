@@ -15,11 +15,23 @@ package tech.pegasys.teku.spec.config.features;
 
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.config.SpecConfig;
 
 public interface Eip7594 {
+
+  static Eip7594 required(final SpecConfig specConfig) {
+    return specConfig
+        .getOptionalEip7594Config()
+        .orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "Expected spec config with EIP7594 feature but got: "
+                        + specConfig.getClass().getSimpleName()));
+  }
+
   Bytes4 getEip7594ForkVersion();
 
-  UInt64 getEip7594ForkEpoch();
+  UInt64 getEip7594FeatureEpoch();
 
   UInt64 getFieldElementsPerCell();
 

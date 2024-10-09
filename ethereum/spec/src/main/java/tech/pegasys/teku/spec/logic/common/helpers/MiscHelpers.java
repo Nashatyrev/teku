@@ -39,7 +39,6 @@ import tech.pegasys.teku.kzg.KZGCommitment;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.constants.NetworkConstants;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.ForkData;
 import tech.pegasys.teku.spec.datastructures.state.SigningData;
@@ -48,6 +47,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.deneb.types.VersionedHash;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 
 public class MiscHelpers {
 
@@ -387,12 +387,7 @@ public class MiscHelpers {
     return UInt64.valueOf(specConfig.getNetworkingConfig().getMaxRequestBlocks());
   }
 
-  public boolean verifyDataColumnSidecarKzgProof(
-      final KZG kzg, final DataColumnSidecar dataColumnSidecar) {
-    return false;
-  }
-
-  public boolean verifyDataColumnSidecarInclusionProof(final DataColumnSidecar dataColumnSidecar) {
+  public boolean isFormerDepositMechanismDisabled(final BeaconState state) {
     return false;
   }
 
@@ -401,6 +396,10 @@ public class MiscHelpers {
   }
 
   public Optional<MiscHelpersElectra> toVersionElectra() {
+    return Optional.empty();
+  }
+
+  public Optional<MiscHelpersEip7594> getEip7594Helpers() {
     return Optional.empty();
   }
 }

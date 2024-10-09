@@ -43,7 +43,7 @@ public class DasCustodySyncTest {
   static final int MAX_AVERAGE_BLOCK_DB_READS_PER_SLOT = 30;
 
   final Spec spec =
-      TestSpecFactory.createMinimalEip7594(
+      TestSpecFactory.createMinimalElectraEip7594(
           builder ->
               builder.eip7594Builder(
                   dasBuilder ->

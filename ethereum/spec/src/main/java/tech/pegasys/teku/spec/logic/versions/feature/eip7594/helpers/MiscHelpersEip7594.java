@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.logic.versions.eip7594.helpers;
+package tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers;
 
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.bytesToUInt64;
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.uint256ToBytes;
@@ -21,7 +21,6 @@ import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -38,7 +37,7 @@ import tech.pegasys.teku.kzg.KZGCell;
 import tech.pegasys.teku.kzg.KZGCellAndProof;
 import tech.pegasys.teku.kzg.KZGCellID;
 import tech.pegasys.teku.kzg.KZGCellWithColumnId;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.Cell;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumn;
@@ -50,37 +49,35 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
-import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodyEip7594;
+import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.deneb.BeaconBlockBodyDeneb;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BeaconBlockBodySchemaElectra;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGProof;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
-import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 
-public class MiscHelpersEip7594 extends MiscHelpersDeneb {
+public class MiscHelpersEip7594 {
   private static final MathContext BIGDECIMAL_PRECISION = MathContext.DECIMAL128;
 
   public static MiscHelpersEip7594 required(final MiscHelpers miscHelpers) {
     return miscHelpers
-        .toVersionEip7594()
+        .getEip7594Helpers()
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
-                    "Expected EIP7594 misc helpers but got: "
+                    "Expected misc helpers with EIP7594 but got: "
                         + miscHelpers.getClass().getSimpleName()));
   }
 
-  private final SpecConfigEip7594 specConfigEip7594;
+  private final Eip7594 specConfigEip7594;
   private final Predicates predicates;
   private final SchemaDefinitionsElectra schemaDefinitions;
 
   public MiscHelpersEip7594(
-      final SpecConfigEip7594 specConfig,
+      final Eip7594 specConfig,
       final Predicates predicates,
       final SchemaDefinitionsElectra schemaDefinitions) {
-    super(specConfig, predicates, schemaDefinitions);
     this.predicates = predicates;
     this.specConfigEip7594 = specConfig;
     this.schemaDefinitions = schemaDefinitions;
@@ -143,7 +140,6 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
     return computeCustodySubnetIndexes(nodeId, subnetCount);
   }
 
-  @Override
   public boolean verifyDataColumnSidecarKzgProof(KZG kzg, DataColumnSidecar dataColumnSidecar) {
     final int dataColumns = specConfigEip7594.getNumberOfColumns();
     if (dataColumnSidecar.getIndex().isGreaterThanOrEqualTo(dataColumns)) {
@@ -174,7 +170,6 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
         dataColumnSidecar.getSszKZGProofs().stream().map(SszKZGProof::getKZGProof).toList());
   }
 
-  @Override
   public boolean verifyDataColumnSidecarInclusionProof(final DataColumnSidecar dataColumnSidecar) {
     if (dataColumnSidecar.getSszKZGCommitments().isEmpty()) {
       return false;
@@ -244,8 +239,8 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
     if (extendedMatrix.isEmpty()) {
       return Collections.emptyList();
     }
-    final BeaconBlockBodyEip7594 beaconBlockBody =
-        BeaconBlockBodyEip7594.required(beaconBlock.getBody());
+    final BeaconBlockBodyDeneb beaconBlockBody =
+        BeaconBlockBodyDeneb.required(beaconBlock.getBody());
     final SszList<SszKZGCommitment> sszKZGCommitments = beaconBlockBody.getBlobKzgCommitments();
     final List<Bytes32> kzgCommitmentsInclusionProof =
         computeDataColumnKzgCommitmentsInclusionProof(beaconBlockBody);
@@ -391,9 +386,8 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
         .sum();
   }
 
-  @Override
   public boolean isAvailabilityOfBlobSidecarsRequiredAtEpoch(UInt64 currentEpoch, UInt64 epoch) {
-    return false;
+    return !epoch.isGreaterThanOrEqualTo(specConfigEip7594.getEip7594FeatureEpoch());
   }
 
   public boolean isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
@@ -401,10 +395,5 @@ public class MiscHelpersEip7594 extends MiscHelpersDeneb {
     return currentEpoch
         .minusMinZero(epoch)
         .isLessThanOrEqualTo(specConfigEip7594.getMinEpochsForDataColumnSidecarsRequests());
-  }
-
-  @Override
-  public Optional<MiscHelpersEip7594> toVersionEip7594() {
-    return Optional.of(this);
   }
 }

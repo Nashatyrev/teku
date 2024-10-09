@@ -556,11 +556,13 @@ public class PeerSyncTest extends AbstractSyncTest {
   void sync_blobSidecarsWhenEndSlotInEpoch7594() {
     final UInt64 eip7594Epoch = UInt64.valueOf(101);
     final Spec spec =
-        TestSpecFactory.createMinimalEip7594(
+        TestSpecFactory.createMinimalElectraEip7594(
             builder ->
                 builder
                     .denebBuilder(denebBuilder -> denebBuilder.denebForkEpoch(denebForkEpoch))
-                    .electraBuilder(electraBuilder -> electraBuilder.eip7594Epoch(eip7594Epoch)));
+                    .electraBuilder(
+                        electraBuilder -> electraBuilder.electraForkEpoch(denebForkEpoch))
+                    .eip7594Builder(eip7594Builder -> eip7594Builder.eip7594Epoch(eip7594Epoch)));
     when(recentChainData.getFinalizedEpoch()).thenReturn(denebForkEpoch);
     when(blobSidecarManager.isAvailabilityRequiredAtSlot(any()))
         .thenAnswer(

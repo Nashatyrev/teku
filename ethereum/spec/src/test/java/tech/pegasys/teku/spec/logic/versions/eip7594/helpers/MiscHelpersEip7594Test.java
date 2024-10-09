@@ -47,6 +47,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
@@ -54,7 +55,7 @@ import tech.pegasys.teku.spec.util.DataStructureUtil;
 public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
 
   private final Spec spec =
-      TestSpecFactory.createMinimalEip7594(
+      TestSpecFactory.createMinimalElectraEip7594(
           builder ->
               builder.eip7594Builder(
                   eip7594Builder -> eip7594Builder.numberOfColumns(128).samplesPerSlot(16)));

@@ -244,7 +244,9 @@ public class BlobSidecarSelectorFactoryTest {
         mock(BlobSidecarReconstructionProvider.class);
     final BlobSidecarSelectorFactory blobSidecarSelectorFactoryEip7594 =
         new BlobSidecarSelectorFactory(
-            TestSpecFactory.createMinimalEip7594(), client, blobSidecarReconstructionProviderMock);
+            TestSpecFactory.createMinimalElectraEip7594(),
+            client,
+            blobSidecarReconstructionProviderMock);
 
     final SignedBlockAndState blockAndState = data.randomSignedBlockAndState(100);
 
@@ -267,7 +269,9 @@ public class BlobSidecarSelectorFactoryTest {
         mock(BlobSidecarReconstructionProvider.class);
     final BlobSidecarSelectorFactory blobSidecarSelectorFactoryEip7594 =
         new BlobSidecarSelectorFactory(
-            TestSpecFactory.createMinimalEip7594(), client, blobSidecarReconstructionProviderMock);
+            TestSpecFactory.createMinimalElectraEip7594(),
+            client,
+            blobSidecarReconstructionProviderMock);
 
     when(client.isFinalized(block.getSlot())).thenReturn(true);
     when(blobSidecarReconstructionProviderMock.reconstructBlobSidecars(block.getSlot(), indices))
