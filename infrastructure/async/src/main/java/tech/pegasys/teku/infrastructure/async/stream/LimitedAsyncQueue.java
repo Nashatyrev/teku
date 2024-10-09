@@ -14,7 +14,6 @@
 package tech.pegasys.teku.infrastructure.async.stream;
 
 import java.util.ArrayDeque;
-import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
