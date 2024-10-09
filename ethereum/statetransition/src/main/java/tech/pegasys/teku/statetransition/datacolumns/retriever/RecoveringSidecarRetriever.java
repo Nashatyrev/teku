@@ -82,15 +82,15 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   public SafeFuture<DataColumnSidecar> retrieve(DataColumnSlotAndIdentifier columnId) {
     SafeFuture<DataColumnSidecar> promise = delegate.retrieve(columnId);
     // TODO we probably need a better heuristics to submit requests for recovery
-    asyncRunner
-        .runAfterDelay(
-            () -> {
-              if (!promise.isDone()) {
-                maybeInitiateRecovery(columnId, promise);
-              }
-            },
-            recoverInitiationTimeout)
-        .ifExceptionGetsHereRaiseABug();
+//    asyncRunner
+//        .runAfterDelay(
+//            () -> {
+//              if (!promise.isDone()) {
+//                maybeInitiateRecovery(columnId, promise);
+//              }
+//            },
+//            recoverInitiationTimeout)
+//        .ifExceptionGetsHereRaiseABug();
     return promise;
   }
 
