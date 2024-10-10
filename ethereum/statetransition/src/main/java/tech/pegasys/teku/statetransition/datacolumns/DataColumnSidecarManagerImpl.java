@@ -14,10 +14,15 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.Optional;
+import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hyperledger.besu.metrics.prometheus.PrometheusMetricsSystem;
+import org.hyperledger.besu.plugin.services.MetricsSystem;
+import org.hyperledger.besu.plugin.services.metrics.LabelledMetric;
 import org.hyperledger.besu.plugin.services.metrics.OperationTimer;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -38,8 +43,14 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
     SafeFuture<InternalValidationResult> validation;
+    MetricsSystem metricsSystem = new PrometheusMetricsSystem(Set.of(TekuMetricCategory.BEACON), true);
+    LabelledMetric<OperationTimer> dataColumnSidecarGossipVerificationTimer =
+            metricsSystem.createLabelledTimer(
+                    TekuMetricCategory.BEACON,
+                    "data_column_sidecar_gossip_verification_seconds",
+                    "Full runtime of data column sidecars gossip verification");
     try (OperationTimer.TimingContext ignored =
-        validator.dataColumnSidecarGossipVerificationTimer.labels("").startTimer()) {
+        dataColumnSidecarGossipVerificationTimer.labels("").startTimer()) {
       validation = validator.validate(dataColumnSidecar);
     } catch (final Throwable t) {
       LOG.error("Failed to start data column sidecar gossip validation metric timer.", t);
