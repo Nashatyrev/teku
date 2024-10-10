@@ -25,19 +25,20 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 public class AsyncStreamPublisherTest {
 
   AsyncStreamPublisher<Integer> publisher = AsyncStream.createPublisher(Integer.MAX_VALUE);
+  AsyncStream<Integer> stream =
+      publisher
+          .flatMap(
+              i -> AsyncStream.create(IntStream.range(i * 10, i * 10 + 5).boxed().iterator()))
+          .filter(i -> i % 2 == 0)
+          .map(i -> i * 10)
+          .limit(10);
+
+  List<Integer> expectedValues = List.of(0, 20, 40, 100, 120, 140, 200, 220, 240, 300);
 
   @Test
   void sanityTest() {
-    ArrayList<Integer> collector = new ArrayList<>();
-
-    SafeFuture<List<Integer>> listPromise =
-        publisher
-            .flatMap(
-                i -> AsyncStream.create(IntStream.range(i * 10, i * 10 + 5).boxed().iterator()))
-            .filter(i -> i % 2 == 0)
-            .map(i -> i * 10)
-            .limit(10)
-            .collect(collector);
+    List<Integer> collector = new ArrayList<>();
+    SafeFuture<List<Integer>> listPromise = stream.collect(collector);
 
     assertThat(collector).isEmpty();
 
@@ -72,14 +73,7 @@ public class AsyncStreamPublisherTest {
 
   @Test
   void completeShouldCompleteStream() {
-    SafeFuture<List<Integer>> listPromise =
-        publisher
-            .flatMap(
-                i -> AsyncStream.create(IntStream.range(i * 10, i * 10 + 5).boxed().iterator()))
-            .filter(i -> i % 2 == 0)
-            .map(i -> i * 10)
-            .toList();
-
+    SafeFuture<List<Integer>> listPromise = stream.toList();
     publisher.onNext(0);
     publisher.onComplete();
     assertThat(listPromise).isCompletedWithValue(List.of(0, 20, 40));
@@ -87,16 +81,14 @@ public class AsyncStreamPublisherTest {
 
   @Test
   void errorShouldCompleteStream() {
-    SafeFuture<List<Integer>> listPromise =
-        publisher
-            .flatMap(
-                i -> AsyncStream.create(IntStream.range(i * 10, i * 10 + 5).boxed().iterator()))
-            .filter(i -> i % 2 == 0)
-            .map(i -> i * 10)
-            .toList();
-
+    SafeFuture<List<Integer>> listPromise = stream.toList();
     publisher.onNext(0);
     publisher.onError(new RuntimeException("test"));
     assertThat(listPromise).isCompletedExceptionally();
+  }
+
+  @Test
+  void publishingPriorToConsumeShouldWork() {
+
   }
 }
