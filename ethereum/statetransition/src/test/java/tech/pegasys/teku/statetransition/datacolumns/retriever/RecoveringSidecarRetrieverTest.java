@@ -29,14 +29,14 @@ import tech.pegasys.teku.kzg.trusted_setups.TrustedSetupLoader;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarDBStub;
@@ -53,12 +53,11 @@ public class RecoveringSidecarRetrieverTest {
       DataColumnSidecarDbAccessor.builder(db).spec(spec).build();
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
 
-  final SpecConfigEip7594 config =
-      SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
+  final Eip7594 config = Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
   final MiscHelpersEip7594 miscHelpers =
       MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).miscHelpers());
-  final SchemaDefinitionsElectra schemaDefinitions =
-      SchemaDefinitionsElectra.required(
+  final SchemaDefinitionsEip7594 schemaDefinitions =
+      SchemaDefinitionsEip7594.required(
           spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions());
   final int columnCount = config.getNumberOfColumns();
   final KZG kzg = KZG.getInstance(false);

@@ -102,20 +102,20 @@ final class RustWithCKZG implements KZG {
   }
 
   @Override
-  public List<KZGCellAndProof> computeCellsAndProofs(Bytes blob) {
+  public List<KZGCellAndProof> computeCellsAndProofs(final Bytes blob) {
     return rustKzgDelegeate.computeCellsAndProofs(blob);
   }
 
   @Override
   public boolean verifyCellProofBatch(
-      List<KZGCommitment> commitments,
-      List<KZGCellWithColumnId> cellWithIds,
-      List<KZGProof> proofs) {
+      final List<KZGCommitment> commitments,
+      final List<KZGCellWithColumnId> cellWithIds,
+      final List<KZGProof> proofs) {
     return rustKzgDelegeate.verifyCellProofBatch(commitments, cellWithIds, proofs);
   }
 
   @Override
-  public List<KZGCellAndProof> recoverCellsAndProofs(List<KZGCellWithColumnId> cells) {
+  public List<KZGCellAndProof> recoverCellsAndProofs(final List<KZGCellWithColumnId> cells) {
     return rustKzgDelegeate.recoverCellsAndProofs(cells);
   }
 }

@@ -132,7 +132,7 @@ public class DataColumnSidecarCustodyImpl
     UInt64 epoch = spec.computeEpochAtSlot(slot);
     return spec.atEpoch(epoch)
         .miscHelpers()
-        .toVersionEip7594()
+        .getEip7594Helpers()
         .map(
             miscHelpersEip7594 ->
                 miscHelpersEip7594
@@ -213,7 +213,7 @@ public class DataColumnSidecarCustodyImpl
                         block ->
                             block
                                     .getBeaconBlock()
-                                    .flatMap(b -> b.getBody().toVersionEip7594())
+                                    .flatMap(b -> b.getBody().toVersionDeneb())
                                     .map(b -> b.getBlobKzgCommitments().size())
                                     .orElse(0)
                                 > 0)

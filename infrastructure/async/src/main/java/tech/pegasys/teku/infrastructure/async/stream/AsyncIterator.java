@@ -23,8 +23,8 @@ abstract class AsyncIterator<T> implements AsyncStream<T> {
   abstract void iterate(AsyncIteratorCallback<T> callback);
 
   @Override
-  public <R> AsyncIterator<R> flatMap(Function<T, AsyncStream<R>> toStreamMapper) {
-    Function<T, AsyncIterator<R>> toIteratorMapper =
+  public <R> AsyncIterator<R> flatMap(final Function<T, AsyncStream<R>> toStreamMapper) {
+    final Function<T, AsyncIterator<R>> toIteratorMapper =
         toStreamMapper.andThen(stream -> (AsyncIterator<R>) stream);
     return OperationAsyncIterator.create(
         this,
@@ -34,24 +34,24 @@ abstract class AsyncIterator<T> implements AsyncStream<T> {
   }
 
   @Override
-  public <R> AsyncIterator<R> map(Function<T, R> mapper) {
+  public <R> AsyncIterator<R> map(final Function<T, R> mapper) {
     return OperationAsyncIterator.create(
         this, sourceCallback -> new MapIteratorCallback<>(sourceCallback, mapper));
   }
 
   @Override
-  public AsyncIterator<T> filter(Predicate<T> filter) {
+  public AsyncIterator<T> filter(final Predicate<T> filter) {
     return OperationAsyncIterator.create(
         this, sourceCallback -> new FilteringIteratorCallback<>(sourceCallback, filter));
   }
 
   @Override
-  public <A, R> SafeFuture<R> collect(Collector<T, A, R> collector) {
+  public <A, R> SafeFuture<R> collect(final Collector<T, A, R> collector) {
     return new AsyncIteratorCollector<>(this).collect(collector);
   }
 
   @Override
-  public AsyncStream<T> slice(BaseSlicer<T> slicer) {
+  public AsyncStream<T> slice(final BaseSlicer<T> slicer) {
     return OperationAsyncIterator.create(
         this, sourceCallback -> new SliceIteratorCallback<>(sourceCallback, slicer));
   }

@@ -26,19 +26,19 @@ public interface AsyncStream<T> extends AsyncStreamTransform<T>, AsyncStreamRedu
   }
 
   @SafeVarargs
-  static <T> AsyncStream<T> of(T... elements) {
+  static <T> AsyncStream<T> of(final T... elements) {
     return create(List.of(elements).iterator());
   }
 
-  static <T> AsyncStream<T> create(Stream<T> stream) {
+  static <T> AsyncStream<T> create(final Stream<T> stream) {
     return create(stream.iterator());
   }
 
-  static <T> AsyncStream<T> create(Iterator<T> iterator) {
+  static <T> AsyncStream<T> create(final Iterator<T> iterator) {
     return new SyncToAsyncIteratorImpl<>(iterator);
   }
 
-  static <T> AsyncStream<T> create(CompletionStage<T> future) {
+  static <T> AsyncStream<T> create(final CompletionStage<T> future) {
     return new FutureAsyncIteratorImpl<>(future);
   }
 }

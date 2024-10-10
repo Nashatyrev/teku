@@ -28,7 +28,7 @@ import tech.pegasys.teku.spec.config.SpecConfigAltair;
 import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
 import tech.pegasys.teku.spec.config.SpecConfigCapella;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.SpecConfigElectra;
 import tech.pegasys.teku.spec.config.SpecConfigLoader;
 import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
 
@@ -58,14 +58,14 @@ public class SpecFactory {
             .orElse(FAR_FUTURE_EPOCH);
     final UInt64 denebForkEpoch =
         config.toVersionDeneb().map(SpecConfigDeneb::getDenebForkEpoch).orElse(FAR_FUTURE_EPOCH);
-    final UInt64 eip7594ForkEpoch =
+    final UInt64 electraForkEpoch =
         config
-            .toVersionEip7594()
-            .map(SpecConfigEip7594::getEip7594ForkEpoch)
+            .toVersionElectra()
+            .map(SpecConfigElectra::getElectraForkEpoch)
             .orElse(FAR_FUTURE_EPOCH);
     final SpecMilestone highestMilestoneSupported;
 
-    if (!eip7594ForkEpoch.equals(FAR_FUTURE_EPOCH)) {
+    if (!electraForkEpoch.equals(FAR_FUTURE_EPOCH)) {
       highestMilestoneSupported = ELECTRA;
     } else if (!denebForkEpoch.equals(FAR_FUTURE_EPOCH)) {
       highestMilestoneSupported = DENEB;

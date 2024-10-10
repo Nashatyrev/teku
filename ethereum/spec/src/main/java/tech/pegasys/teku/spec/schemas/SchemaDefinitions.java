@@ -42,7 +42,7 @@ import tech.pegasys.teku.spec.datastructures.state.HistoricalBatch.HistoricalBat
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 
-public interface SchemaDefinitions {
+public interface SchemaDefinitions extends FeatureSchemaDefinitions {
 
   BeaconStateSchema<?, ?> getBeaconStateSchema();
 

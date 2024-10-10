@@ -11,11 +11,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.kzg;
+package tech.pegasys.teku.spec.schemas;
 
-public record KZGCellWithColumnId(KZGCell cell, KZGCellID columnId) {
+import java.util.Optional;
 
-  public static KZGCellWithColumnId fromCellAndColumn(final KZGCell cell, final int columnIndex) {
-    return new KZGCellWithColumnId(cell, KZGCellID.fromCellColumnIndex(columnIndex));
+public interface FeatureSchemaDefinitions {
+  default Optional<SchemaDefinitionsEip7594> getOptionalSchemaDefinitionsEip7594() {
+    return Optional.empty();
   }
 }

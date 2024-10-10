@@ -101,7 +101,7 @@ import tech.pegasys.teku.services.executionlayer.ExecutionLayerBlockManagerFacto
 import tech.pegasys.teku.services.timer.TimerService;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -124,7 +124,7 @@ import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportRe
 import tech.pegasys.teku.spec.logic.common.util.BlockRewardCalculatorUtil;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.statetransition.EpochCachePrimer;
 import tech.pegasys.teku.statetransition.LocalOperationAcceptedFilter;
 import tech.pegasys.teku.statetransition.MappedOperationPool;
@@ -236,7 +236,7 @@ import tech.pegasys.teku.validator.coordinator.Eth1DataCache;
 import tech.pegasys.teku.validator.coordinator.Eth1DataProvider;
 import tech.pegasys.teku.validator.coordinator.Eth1VotingPeriod;
 import tech.pegasys.teku.validator.coordinator.GraffitiBuilder;
-import tech.pegasys.teku.validator.coordinator.MilestoneBasedBlockFactory;
+import tech.pegasys.teku.validator.coordinator.MilestoneWithFeaturesBlockFactory;
 import tech.pegasys.teku.validator.coordinator.ValidatorApiHandler;
 import tech.pegasys.teku.validator.coordinator.ValidatorIndexCacheTracker;
 import tech.pegasys.teku.validator.coordinator.performance.DefaultPerformanceTracker;
@@ -678,11 +678,10 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (!spec.isMilestoneSupported(SpecMilestone.ELECTRA)) {
       return;
     }
-    SpecConfigEip7594 configEip7594 =
-        SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
+    Eip7594 configEip7594 = Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
     MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator =
         MinCustodyPeriodSlotCalculator.createFromSpec(spec);
-    int slotsPerEpoch = configEip7594.getSlotsPerEpoch();
+    int slotsPerEpoch = spec.getGenesisSpec().getSlotsPerEpoch();
 
     final DataColumnSidecarDbAccessor dbAccessor;
     {
@@ -773,15 +772,15 @@ public class BeaconChainController extends Service implements BeaconChainControl
             Duration.ofSeconds(1));
     MiscHelpersEip7594 miscHelpersEip7594 =
         MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).miscHelpers());
-    SchemaDefinitionsElectra schemaDefinitionsElectra =
-        SchemaDefinitionsElectra.required(
+    SchemaDefinitionsEip7594 schemaDefinitionsEip7594 =
+        SchemaDefinitionsEip7594.required(
             spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions());
     RecoveringSidecarRetriever recoveringSidecarRetriever =
         new RecoveringSidecarRetriever(
             sidecarRetriever,
             kzg,
             miscHelpersEip7594,
-            schemaDefinitionsElectra,
+            schemaDefinitionsEip7594,
             canonicalBlockResolver,
             dbAccessor,
             operationPoolAsyncRunner,
@@ -1062,7 +1061,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
   protected void initEth1DataCache() {
     LOG.debug("BeaconChainController.initEth1DataCache");
-    eth1DataCache = new Eth1DataCache(spec, metricsSystem, new Eth1VotingPeriod(spec));
+    eth1DataCache = new Eth1DataCache(metricsSystem, new Eth1VotingPeriod(spec));
   }
 
   public void initDepositProvider() {
@@ -1172,7 +1171,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
             graffitiBuilder,
             forkChoiceNotifier,
             executionLayerBlockProductionManager);
-    final BlockFactory blockFactory = new MilestoneBasedBlockFactory(spec, operationSelector, kzg);
+    final BlockFactory blockFactory =
+        new MilestoneWithFeaturesBlockFactory(spec, operationSelector, kzg);
     SyncCommitteeSubscriptionManager syncCommitteeSubscriptionManager =
         beaconConfig.p2pConfig().isSubscribeAllSubnetsEnabled()
             ? new AllSyncCommitteeSubscriptions(p2pNetwork, spec)

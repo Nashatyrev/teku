@@ -17,14 +17,14 @@ import org.apache.tuweni.bytes.Bytes;
 import tech.pegasys.teku.infrastructure.ssz.schema.collections.impl.SszByteVectorSchemaImpl;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 
 public class CellSchema extends SszByteVectorSchemaImpl<Cell> {
 
-  public CellSchema(final SpecConfigEip7594 specConfig) {
+  public CellSchema(final Eip7594 featureConfig) {
     super(
         SpecConfigDeneb.BYTES_PER_FIELD_ELEMENT.longValue()
-            * specConfig.getFieldElementsPerCell().longValue());
+            * featureConfig.getFieldElementsPerCell().longValue());
   }
 
   public Cell create(final Bytes bytes) {

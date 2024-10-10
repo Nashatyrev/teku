@@ -417,8 +417,7 @@ public class Spec {
   public DataColumnSidecar deserializeSidecar(final Bytes serializedSidecar, final UInt64 slot) {
     return atSlot(slot)
         .getSchemaDefinitions()
-        // TODO
-        .toVersionEip7594()
+        .getOptionalSchemaDefinitionsEip7594()
         .orElseThrow(
             () ->
                 new RuntimeException("EIP7594 milestone is required to deserialize column sidecar"))

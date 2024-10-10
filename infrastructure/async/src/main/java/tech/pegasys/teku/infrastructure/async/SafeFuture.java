@@ -320,7 +320,7 @@ public class SafeFuture<T> extends CompletableFuture<T> {
   }
 
   @SafeVarargs
-  public final SafeFuture<Void> ignoreExceptions(Class<? extends Throwable>... errors) {
+  public final SafeFuture<Void> ignoreExceptions(final Class<? extends Throwable>... errors) {
     return this.exceptionally(
             err -> {
               if (ExceptionUtil.hasCause(err, errors)) {
@@ -335,11 +335,11 @@ public class SafeFuture<T> extends CompletableFuture<T> {
         .thenApply(__ -> null);
   }
 
-  public void completeAsync(T value, AsyncRunner asyncRunner) {
+  public void completeAsync(final T value, final AsyncRunner asyncRunner) {
     asyncRunner.runAsync(() -> complete(value)).ifExceptionGetsHereRaiseABug();
   }
 
-  public void completeExceptionallyAsync(Throwable exception, AsyncRunner asyncRunner) {
+  public void completeExceptionallyAsync(final Throwable exception, final AsyncRunner asyncRunner) {
     asyncRunner.runAsync(() -> completeExceptionally(exception)).ifExceptionGetsHereRaiseABug();
   }
 
@@ -663,12 +663,12 @@ public class SafeFuture<T> extends CompletableFuture<T> {
   }
 
   /** Schedules future timeout on the specified {@link AsyncRunner} */
-  public SafeFuture<T> orTimeout(AsyncRunner async, final long timeout, final TimeUnit unit) {
+  public SafeFuture<T> orTimeout(final AsyncRunner async, final long timeout, final TimeUnit unit) {
     return orTimeout(async, Duration.of(timeout, unit.toChronoUnit()));
   }
 
   /** Schedules future timeout on the specified {@link AsyncRunner} */
-  public SafeFuture<T> orTimeout(AsyncRunner async, Duration timeout) {
+  public SafeFuture<T> orTimeout(final AsyncRunner async, final Duration timeout) {
     if (!isDone()) {
       SafeFuture<Void> timeoutInterruptor =
           async.runAfterDelay(

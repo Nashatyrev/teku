@@ -19,14 +19,9 @@ import java.util.Optional;
 import tech.pegasys.teku.infrastructure.ssz.schema.SszListSchema;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.CellSchema;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSchema;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecarSchema;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntrySchema;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockSchema;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockContainer;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockContainerSchema;
-import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockSchema;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockContainer;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockContainerSchema;
@@ -50,10 +45,6 @@ import tech.pegasys.teku.spec.datastructures.execution.versions.electra.DepositR
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.ExecutionRequestsSchema;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.WithdrawalRequest;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.WithdrawalRequestSchema;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessageSchema;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageSchemaEip7594;
 import tech.pegasys.teku.spec.datastructures.operations.AggregateAndProof.AggregateAndProofSchema;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.AttestationSchema;
@@ -111,19 +102,13 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
       pendingPartialWithdrawalSchema;
   private final PendingConsolidation.PendingConsolidationSchema pendingConsolidationSchema;
 
-  private final CellSchema cellSchema;
-  private final DataColumnSchema dataColumnSchema;
-  private final DataColumnSidecarSchema dataColumnSidecarSchema;
-  private final MatrixEntrySchema matrixEntrySchema;
-  private final DataColumnSidecarsByRootRequestMessageSchema
-      dataColumnSidecarsByRootRequestMessageSchema;
-  private final DataColumnSidecarsByRangeRequestMessage
-          .DataColumnSidecarsByRangeRequestMessageSchema
-      dataColumnSidecarsByRangeRequestMessageSchema;
-  private final MetadataMessageSchemaEip7594 metadataMessageSchema;
+  private final Optional<SchemaDefinitionsEip7594> maybeSchemaDefinitionsEip7594;
 
-  public SchemaDefinitionsElectra(final SchemaRegistry schemaRegistry) {
+  public SchemaDefinitionsElectra(
+      final SchemaRegistry schemaRegistry,
+      final Optional<SchemaDefinitionsEip7594> maybeSchemaDefinitionsEip7594) {
     super(schemaRegistry);
+    this.maybeSchemaDefinitionsEip7594 = maybeSchemaDefinitionsEip7594;
     final SpecConfigElectra specConfig = SpecConfigElectra.required(schemaRegistry.getSpecConfig());
 
     final long maxValidatorsPerAttestation = getMaxValidatorPerAttestation(specConfig);
@@ -193,20 +178,6 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
     this.pendingPartialWithdrawalSchema =
         new PendingPartialWithdrawal.PendingPartialWithdrawalSchema();
     this.pendingConsolidationSchema = new PendingConsolidation.PendingConsolidationSchema();
-
-    this.cellSchema = new CellSchema(specConfig);
-    this.dataColumnSchema = new DataColumnSchema(specConfig);
-    this.dataColumnSidecarSchema =
-        DataColumnSidecarSchema.create(
-            SignedBeaconBlockHeader.SSZ_SCHEMA, dataColumnSchema, specConfig);
-    this.matrixEntrySchema = MatrixEntrySchema.create(cellSchema);
-    this.dataColumnSidecarsByRootRequestMessageSchema =
-        new DataColumnSidecarsByRootRequestMessageSchema(specConfig);
-    this.dataColumnSidecarsByRangeRequestMessageSchema =
-        new DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema(
-            specConfig);
-
-    this.metadataMessageSchema = new MetadataMessageSchemaEip7594(specConfig);
   }
 
   public static SchemaDefinitionsElectra required(final SchemaDefinitions schemaDefinitions) {
@@ -373,43 +344,12 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
   }
 
   @Override
-  public MetadataMessageSchema<?> getMetadataMessageSchema() {
-    return metadataMessageSchema;
-  }
-
-  @Override
   public Optional<SchemaDefinitionsElectra> toVersionElectra() {
     return Optional.of(this);
   }
 
   public PendingConsolidation.PendingConsolidationSchema getPendingConsolidationSchema() {
     return pendingConsolidationSchema;
-  }
-
-  public CellSchema getCellSchema() {
-    return cellSchema;
-  }
-
-  public DataColumnSchema getDataColumnSchema() {
-    return dataColumnSchema;
-  }
-
-  public DataColumnSidecarSchema getDataColumnSidecarSchema() {
-    return dataColumnSidecarSchema;
-  }
-
-  public MatrixEntrySchema getMatrixEntrySchema() {
-    return matrixEntrySchema;
-  }
-
-  public DataColumnSidecarsByRootRequestMessageSchema
-      getDataColumnSidecarsByRootRequestMessageSchema() {
-    return dataColumnSidecarsByRootRequestMessageSchema;
-  }
-
-  public DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema
-      getDataColumnSidecarsByRangeRequestMessageSchema() {
-    return dataColumnSidecarsByRangeRequestMessageSchema;
   }
 
   public ConsolidationRequestSchema getConsolidationRequestSchema() {
@@ -419,5 +359,10 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
   @Override
   long getMaxValidatorPerAttestation(final SpecConfig specConfig) {
     return (long) specConfig.getMaxValidatorsPerCommittee() * specConfig.getMaxCommitteesPerSlot();
+  }
+
+  @Override
+  public Optional<SchemaDefinitionsEip7594> getOptionalSchemaDefinitionsEip7594() {
+    return maybeSchemaDefinitionsEip7594;
   }
 }

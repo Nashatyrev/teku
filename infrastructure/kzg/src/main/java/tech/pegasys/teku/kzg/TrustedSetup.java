@@ -20,8 +20,9 @@ import static tech.pegasys.teku.kzg.KZG.BYTES_PER_G2;
 import java.util.List;
 import org.apache.tuweni.bytes.Bytes;
 
-record TrustedSetup(List<Bytes> g1Points, List<Bytes> g2Points) {
+record TrustedSetup(List<Bytes> g1Lagrange, List<Bytes> g2Monomial, List<Bytes> g1Monomial) {
 
+  @SuppressWarnings("MethodInputParametersMustBeFinal")
   public TrustedSetup {
     g1Lagrange.forEach(this::validateG1Point);
     g2Monomial.forEach(this::validateG2Point);

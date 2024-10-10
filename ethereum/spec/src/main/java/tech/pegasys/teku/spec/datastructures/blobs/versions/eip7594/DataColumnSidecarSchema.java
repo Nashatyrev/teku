@@ -27,7 +27,8 @@ import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZGCommitment;
 import tech.pegasys.teku.kzg.KZGProof;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.SpecConfigDeneb;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeaderSchema;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
@@ -55,7 +56,8 @@ public class DataColumnSidecarSchema
   DataColumnSidecarSchema(
       final SignedBeaconBlockHeaderSchema signedBeaconBlockHeaderSchema,
       final DataColumnSchema dataColumnSchema,
-      final SpecConfigEip7594 specConfig) {
+      final Eip7594 featureConfig,
+      final SpecConfigDeneb specConfigDeneb) {
     super(
         "DataColumnSidecar",
         namedSchema("index", SszPrimitiveSchemas.UINT64_SCHEMA),
@@ -63,16 +65,16 @@ public class DataColumnSidecarSchema
         namedSchema(
             FIELD_KZG_COMMITMENTS,
             SszListSchema.create(
-                SszKZGCommitmentSchema.INSTANCE, specConfig.getMaxBlobCommitmentsPerBlock())),
+                SszKZGCommitmentSchema.INSTANCE, specConfigDeneb.getMaxBlobCommitmentsPerBlock())),
         namedSchema(
             FIELD_KZG_PROOFS,
             SszListSchema.create(
-                SszKZGProofSchema.INSTANCE, specConfig.getMaxBlobCommitmentsPerBlock())),
+                SszKZGProofSchema.INSTANCE, specConfigDeneb.getMaxBlobCommitmentsPerBlock())),
         namedSchema(FIELD_SIGNED_BLOCK_HEADER, signedBeaconBlockHeaderSchema),
         namedSchema(
             FIELD_KZG_COMMITMENTS_INCLUSION_PROOF,
             SszBytes32VectorSchema.create(
-                specConfig.getKzgCommitmentsInclusionProofDepth().intValue())));
+                featureConfig.getKzgCommitmentsInclusionProofDepth().intValue())));
   }
 
   @SuppressWarnings("unchecked")
@@ -153,8 +155,10 @@ public class DataColumnSidecarSchema
   public static DataColumnSidecarSchema create(
       final SignedBeaconBlockHeaderSchema signedBeaconBlockHeaderSchema,
       final DataColumnSchema dataColumnSchema,
-      final SpecConfigEip7594 specConfig) {
-    return new DataColumnSidecarSchema(signedBeaconBlockHeaderSchema, dataColumnSchema, specConfig);
+      final Eip7594 featureConfig,
+      final SpecConfigDeneb specConfigDeneb) {
+    return new DataColumnSidecarSchema(
+        signedBeaconBlockHeaderSchema, dataColumnSchema, featureConfig, specConfigDeneb);
   }
 
   @Override

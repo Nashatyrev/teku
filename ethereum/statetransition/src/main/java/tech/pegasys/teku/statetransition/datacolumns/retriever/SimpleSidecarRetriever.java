@@ -36,7 +36,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
@@ -78,7 +78,7 @@ public class SimpleSidecarRetriever
     this.reqResp = new DataColumnReqRespImpl(peerManager, reqResp);
     peerManager.addPeerListener(this);
     this.maxRequestCount =
-        SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig())
+        Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig())
             .getMaxRequestDataColumnSidecars();
   }
 
@@ -208,7 +208,7 @@ public class SimpleSidecarRetriever
         connectedPeers.values().stream()
             .flatMap(p -> p.getNodeCustodyIndexes(specVersion).stream())
             .collect(Collectors.groupingBy(i -> i, Collectors.counting()));
-    int numberOfColumns = SpecConfigEip7594.required(specVersion.getConfig()).getNumberOfColumns();
+    int numberOfColumns = Eip7594.required(specVersion.getConfig()).getNumberOfColumns();
     IntStream.range(0, numberOfColumns)
         .mapToObj(UInt64::valueOf)
         .forEach(idx -> colIndexToCount.putIfAbsent(idx, 0L));
