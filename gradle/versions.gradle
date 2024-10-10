@@ -35,7 +35,7 @@ dependencyManagement {
     dependency 'io.libp2p:jvm-libp2p:1.1.1-RELEASE'
     dependency 'tech.pegasys:jblst:0.3.12'
     dependency 'io.consensys.protocols:jc-kzg-4844:2.0.0'
-    dependency 'io.github.crate-crypto:java-eth-kzg:0.5.1'
+    dependency 'io.github.crate-crypto:java-eth-kzg:0.5.2'
 
     dependency 'org.hdrhistogram:HdrHistogram:2.2.2'
 
@@ -129,7 +129,7 @@ dependencyManagement {
     dependency 'org.fusesource.leveldbjni:leveldbjni-win32:1.8'
     dependency 'tech.pegasys:leveldb-native:0.3.1'
 
-    dependencySet(group: "org.web3j", version: "4.12.0") {
+    dependencySet(group: "org.web3j", version: "4.12.2") {
       entry 'core'
       entry 'abi'
       entry 'crypto'
@@ -158,7 +158,7 @@ dependencyManagement {
 
     // discovery includes tuweni libraries under a different name so version resolution doesn't work
     // exclude them here and leave them to be included on the classpath by the version we use
-    dependency('tech.pegasys.discovery:discovery:24.6.0') {
+    dependency('tech.pegasys.discovery:discovery:24.9.1') {
       exclude 'org.apache.tuweni:bytes'
       exclude 'org.apache.tuweni:crypto'
       exclude 'org.apache.tuweni:units'
