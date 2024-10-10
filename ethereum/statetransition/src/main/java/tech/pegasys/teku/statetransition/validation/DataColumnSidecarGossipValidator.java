@@ -30,6 +30,7 @@ import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.hyperledger.besu.plugin.services.metrics.Counter;
+import org.hyperledger.besu.plugin.services.metrics.LabelledMetric;
 import org.hyperledger.besu.plugin.services.metrics.OperationTimer;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.collections.LimitedSet;
@@ -62,7 +63,7 @@ public class DataColumnSidecarGossipValidator {
   private final KZG kzg;
   private final Counter totalDataColumnSidecarsProcessingRequestsCounter;
   private final Counter totalDataColumnSidecarsProcessingSuccessesCounter;
-  public final OperationTimer dataColumnSidecarGossipVerificationTimer;
+  public final LabelledMetric<OperationTimer> dataColumnSidecarGossipVerificationTimer;
 
   public static DataColumnSidecarGossipValidator create(
       final Spec spec,
@@ -123,11 +124,10 @@ public class DataColumnSidecarGossipValidator {
             "data_column_sidecar_processing_successes_total",
             "Total number of data column sidecars verified for gossip");
     this.dataColumnSidecarGossipVerificationTimer =
-        (OperationTimer)
-            metricsSystem.createLabelledTimer(
-                TekuMetricCategory.BEACON,
-                "data_column_sidecar_gossip_verification_seconds",
-                "Full runtime of data column sidecars gossip verification");
+        metricsSystem.createSimpleLabelledTimer(
+            TekuMetricCategory.BEACON,
+            "data_column_sidecar_gossip_verification_seconds",
+            "Full runtime of data column sidecars gossip verification");
     this.validInclusionProofInfoSet = validInclusionProofInfoSet;
     this.validSignedBlockHeaders = validSignedBlockHeaders;
   }

@@ -39,7 +39,7 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
     SafeFuture<InternalValidationResult> validation;
     try (OperationTimer.TimingContext ignored =
-        validator.dataColumnSidecarGossipVerificationTimer.startTimer()) {
+        validator.dataColumnSidecarGossipVerificationTimer.labels("").startTimer()) {
       validation = validator.validate(dataColumnSidecar);
     } catch (final Throwable t) {
       LOG.error("Failed to start data column sidecar gossip validation metric timer.", t);
