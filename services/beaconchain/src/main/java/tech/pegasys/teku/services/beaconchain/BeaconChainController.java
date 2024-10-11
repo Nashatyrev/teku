@@ -653,7 +653,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
               MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).miscHelpers()),
               kzg,
               metricsSystem);
-      dataColumnSidecarManager = new DataColumnSidecarManagerImpl(dataColumnSidecarGossipValidator);
+      dataColumnSidecarManager =
+          new DataColumnSidecarManagerImpl(dataColumnSidecarGossipValidator, metricsSystem);
       eventChannels.subscribe(
           DataColumnSidecarGossipChannel.class,
           dataColumnSidecarManager::onDataColumnSidecarPublish);

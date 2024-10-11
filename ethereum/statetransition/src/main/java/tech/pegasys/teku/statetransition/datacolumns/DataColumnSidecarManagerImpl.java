@@ -14,10 +14,8 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.util.Optional;
-import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hyperledger.besu.metrics.prometheus.PrometheusMetricsSystem;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.hyperledger.besu.plugin.services.metrics.LabelledMetric;
 import org.hyperledger.besu.plugin.services.metrics.OperationTimer;
@@ -34,23 +32,25 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   private final DataColumnSidecarGossipValidator validator;
   private final Subscribers<ValidDataColumnSidecarsListener> validDataColumnSidecarsSubscribers =
       Subscribers.create(true);
+  private final LabelledMetric<OperationTimer> dataColumnSidecarGossipVerificationTimer;
 
-  public DataColumnSidecarManagerImpl(DataColumnSidecarGossipValidator validator) {
+  public DataColumnSidecarManagerImpl(
+      DataColumnSidecarGossipValidator validator, MetricsSystem metricsSystem) {
     this.validator = validator;
+    this.dataColumnSidecarGossipVerificationTimer =
+        metricsSystem.createSimpleLabelledTimer(
+            TekuMetricCategory.BEACON,
+            "data_column_sidecar_gossip_verification_seconds",
+            "Full runtime of data column sidecars gossip verification");
   }
 
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
     SafeFuture<InternalValidationResult> validation;
-    MetricsSystem metricsSystem = new PrometheusMetricsSystem(Set.of(TekuMetricCategory.BEACON), true);
-    LabelledMetric<OperationTimer> dataColumnSidecarGossipVerificationTimer =
-            metricsSystem.createLabelledTimer(
-                    TekuMetricCategory.BEACON,
-                    "data_column_sidecar_gossip_verification_seconds",
-                    "Full runtime of data column sidecars gossip verification");
+
     try (OperationTimer.TimingContext ignored =
-        dataColumnSidecarGossipVerificationTimer.labels("").startTimer()) {
+        dataColumnSidecarGossipVerificationTimer.labels().startTimer()) {
       validation = validator.validate(dataColumnSidecar);
     } catch (final Throwable t) {
       LOG.error("Failed to start data column sidecar gossip validation metric timer.", t);
