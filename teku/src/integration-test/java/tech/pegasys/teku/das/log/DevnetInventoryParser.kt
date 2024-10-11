@@ -12,12 +12,12 @@ import java.net.URI
 fun main() {
     val pairs = DevnetInventoryParser().downloadInventory()
     pairs.ethereum_pairs.forEach { name, data ->
-        println("$name: nodeId: ${data.consensus.nodeId}")
+        println("${data.consensus.nodeId} $name")
     }
 }
 
 class DevnetInventoryParser(
-    val url: String = "https://config.peerdas-devnet-2.ethpandaops.io/api/v1/nodes/inventory"
+    val url: String = "https://config.peerdas-devnet-3.ethpandaops.io/api/v1/nodes/inventory"
 ) {
 
     @Serializable
