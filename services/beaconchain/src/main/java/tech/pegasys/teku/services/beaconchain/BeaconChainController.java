@@ -30,10 +30,13 @@ import java.net.BindException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
+import java.util.stream.IntStream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
@@ -102,7 +105,6 @@ import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodySchema;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.capella.BeaconBlockBodySchemaCapella;
@@ -146,6 +148,7 @@ import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.CurrentSlotProvider;
 import tech.pegasys.teku.statetransition.datacolumns.CustodyCalculator;
+import tech.pegasys.teku.statetransition.datacolumns.DasColumnsScanner;
 import tech.pegasys.teku.statetransition.datacolumns.DasCustodySync;
 import tech.pegasys.teku.statetransition.datacolumns.DasLongPollCustody;
 import tech.pegasys.teku.statetransition.datacolumns.DasPreSampler;
@@ -747,16 +750,24 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     DataColumnPeerManagerImpl dasPeerManager = new DataColumnPeerManagerImpl();
     p2pNetwork.subscribeConnect(dasPeerManager);
-
-    DataColumnReqResp dasRpc = new DataColumnReqRespBatchingImpl(dasPeerManager);
-
-    MetadataDasPeerCustodyTracker peerCustodyTracker = new MetadataDasPeerCustodyTracker();
     p2pNetwork.subscribeConnect(peerCustodyTracker);
-    DasPeerCustodyCountSupplier custodyCountSupplier =
-        DasPeerCustodyCountSupplier.capped(peerCustodyTracker, minCustodyRequirement, maxSubnets);
 
     DataColumnReqResp dasRpc = new DataColumnReqRespBatchingImpl(dasPeerManager);
+
+    //    List<UInt64> slotsToScan = IntStream.range(16544,
+    // 16700).mapToObj(UInt64::valueOf).toList();
+    //    List<UInt64> slotsToScan = IntStream.of(16563, 16565,
+    // 16566).mapToObj(UInt64::valueOf).toList();
+    List<UInt64> slotsToScan = IntStream.of(16563, 16565).mapToObj(UInt64::valueOf).toList();
+    //    List<UInt64> slotsToScan = IntStream.of(16493).mapToObj(UInt64::valueOf).toList();
+    CustodyCalculator dummyCustodyCalculator = (nodeId, slot) -> List.of(UInt64.valueOf(13));
     CustodyCalculator custodyCalculator = CustodyCalculator.create(spec, custodyCountSupplier);
+    DasColumnsScanner dasColumnsScanner =
+        new DasColumnsScanner(
+            dasPeerManager,
+            dasPeerManager,
+            slotsToScan,
+            custodyCalculator);
 
     // TODO NOOP peer searcher should work for interop but needs to be implemented
     DataColumnPeerSearcher dataColumnPeerSearcher = DataColumnPeerSearcher.NOOP;
