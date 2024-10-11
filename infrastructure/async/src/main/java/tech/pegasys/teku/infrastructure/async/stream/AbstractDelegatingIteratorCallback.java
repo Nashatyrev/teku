@@ -17,7 +17,7 @@ abstract class AbstractDelegatingIteratorCallback<S, T> implements AsyncIterator
 
   protected final AsyncIteratorCallback<S> delegate;
 
-  protected AbstractDelegatingIteratorCallback(AsyncIteratorCallback<S> delegate) {
+  protected AbstractDelegatingIteratorCallback(final AsyncIteratorCallback<S> delegate) {
     this.delegate = delegate;
   }
 
@@ -27,7 +27,7 @@ abstract class AbstractDelegatingIteratorCallback<S, T> implements AsyncIterator
   }
 
   @Override
-  public void onError(Throwable t) {
+  public void onError(final Throwable t) {
     delegate.onError(t);
   }
 }

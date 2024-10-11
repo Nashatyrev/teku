@@ -37,7 +37,7 @@ public class SszByte extends AbstractSszPrimitive<Byte> {
     this(value, SszPrimitiveSchemas.BYTE_SCHEMA);
   }
 
-  private SszByte(Byte value, AbstractSszPrimitiveSchema<Byte, SszByte> schema) {
+  private SszByte(final Byte value, final AbstractSszPrimitiveSchema<Byte, SszByte> schema) {
     super(value, schema);
   }
 }

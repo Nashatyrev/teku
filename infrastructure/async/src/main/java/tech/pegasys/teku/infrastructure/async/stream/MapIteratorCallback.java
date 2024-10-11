@@ -20,13 +20,14 @@ class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallback<T, S>
 
   private final Function<S, T> mapper;
 
-  protected MapIteratorCallback(AsyncIteratorCallback<T> delegate, Function<S, T> mapper) {
+  protected MapIteratorCallback(
+      final AsyncIteratorCallback<T> delegate, final Function<S, T> mapper) {
     super(delegate);
     this.mapper = mapper;
   }
 
   @Override
-  public SafeFuture<Boolean> onNext(S s) {
+  public SafeFuture<Boolean> onNext(final S s) {
     try {
       return delegate.onNext(mapper.apply(s));
     } catch (Exception e) {
