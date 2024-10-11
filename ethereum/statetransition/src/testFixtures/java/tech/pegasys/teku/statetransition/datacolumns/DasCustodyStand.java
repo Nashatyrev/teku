@@ -71,6 +71,7 @@ public class DasCustodyStand {
   private final List<SlotEventsChannel> slotListeners = new CopyOnWriteArrayList<>();
   private final List<FinalizedCheckpointChannel> finalizedListeners = new CopyOnWriteArrayList<>();
   private final int totalCustodySubnetCount;
+  private final NodeCustodyCalculator myCustodyCalculator;
 
   private UInt64 currentSlot = UInt64.ZERO;
 
@@ -104,14 +105,16 @@ public class DasCustodyStand {
 
     this.dbAccessor = DataColumnSidecarDbAccessor.builder(asyncDb).spec(spec).build();
 
+    this.myCustodyCalculator =
+        NodeCustodyCalculator.create(spec, myNodeId, totalCustodySubnetCount);
+
     this.custody =
         new DataColumnSidecarCustodyImpl(
             spec,
             asyncBlockResolver,
             dbAccessor,
             minCustodyPeriodSlotCalculator,
-            myNodeId,
-            totalCustodySubnetCount);
+            myCustodyCalculator);
     subscribeToSlotEvents(this.custody);
     subscribeToFinalizedEvents(this.custody);
 

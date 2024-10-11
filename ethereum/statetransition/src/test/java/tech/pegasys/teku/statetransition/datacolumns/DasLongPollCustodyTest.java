@@ -56,14 +56,16 @@ public class DasLongPollCustodyTest {
       SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
 
+  final NodeCustodyCalculator myCustodyCalculator =
+      NodeCustodyCalculator.create(spec, myNodeId, subnetCount);
+
   final DataColumnSidecarCustodyImpl custodyImpl =
       new DataColumnSidecarCustodyImpl(
           spec,
           blockResolver,
           dbAccessor,
           MinCustodyPeriodSlotCalculator.createFromSpec(spec),
-          myNodeId,
-          subnetCount);
+          myCustodyCalculator);
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
   private final Duration currentSlotTimeout = ofSeconds(3);

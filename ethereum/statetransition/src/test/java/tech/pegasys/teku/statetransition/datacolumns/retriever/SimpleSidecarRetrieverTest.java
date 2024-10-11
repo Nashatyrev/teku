@@ -43,6 +43,7 @@ import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolverStub;
+import tech.pegasys.teku.statetransition.datacolumns.CustodyCalculator;
 
 @SuppressWarnings({"unused", "JavaCase"})
 public class SimpleSidecarRetrieverTest {
@@ -61,6 +62,9 @@ public class SimpleSidecarRetrieverTest {
 
   final DasPeerCustodyCountSupplierStub custodyCountSupplier =
       new DasPeerCustodyCountSupplierStub(config.getCustodyRequirement());
+  final CustodyCalculator custodyCalculator =
+      CustodyCalculator.create(
+          spec, DasPeerCustodyCountSupplier.createStub(config.getCustodyRequirement()));
 
   final Duration retrieverRound = Duration.ofSeconds(1);
   final SimpleSidecarRetriever simpleSidecarRetriever =
@@ -68,7 +72,7 @@ public class SimpleSidecarRetrieverTest {
           spec,
           testPeerManager,
           dataColumnPeerSearcherStub,
-          custodyCountSupplier,
+          custodyCalculator,
           testPeerManager,
           stubAsyncRunner,
           retrieverRound);
@@ -95,8 +99,7 @@ public class SimpleSidecarRetrieverTest {
   }
 
   List<UInt64> nodeCustodyColumns(UInt256 nodeId) {
-    return miscHelpers.computeCustodyColumnIndexes(
-        nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId));
+    return custodyCalculator.computeCustodyColumnIndexes(nodeId, UInt64.ZERO).stream().toList();
   }
 
   Stream<UInt256> craftNodeIds() {

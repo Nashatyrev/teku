@@ -43,7 +43,7 @@ import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.statetransition.datacolumns.CustodyCalculator;
 
 // TODO improve thread-safety: external calls are better to do outside of the synchronize block to
 // prevent potential dead locks
@@ -53,7 +53,7 @@ public class SimpleSidecarRetriever
 
   private final Spec spec;
   private final DataColumnPeerSearcher peerSearcher;
-  private final DasPeerCustodyCountSupplier custodyCountSupplier;
+  private final CustodyCalculator custodyCalculator;
   private final DataColumnReqResp reqResp;
   private final AsyncRunner asyncRunner;
   private final Duration roundPeriod;
@@ -70,13 +70,13 @@ public class SimpleSidecarRetriever
       Spec spec,
       DataColumnPeerManager peerManager,
       DataColumnPeerSearcher peerSearcher,
-      DasPeerCustodyCountSupplier custodyCountSupplier,
+      CustodyCalculator custodyCalculator,
       DataColumnReqResp reqResp,
       AsyncRunner asyncRunner,
       Duration roundPeriod) {
     this.spec = spec;
     this.peerSearcher = peerSearcher;
-    this.custodyCountSupplier = custodyCountSupplier;
+    this.custodyCalculator = custodyCalculator;
     this.asyncRunner = asyncRunner;
     this.roundPeriod = roundPeriod;
     this.reqResp = new DataColumnReqRespImpl(peerManager, reqResp);
@@ -208,9 +208,11 @@ public class SimpleSidecarRetriever
 
   private String gatherAvailableCustodiesInfo() {
     SpecVersion specVersion = spec.forMilestone(SpecMilestone.EIP7594);
+    UInt64 eip7594Epoch = spec.getForkSchedule().getFork(SpecMilestone.EIP7594).getEpoch();
+    UInt64 eip7594Slot = spec.computeStartSlotAtEpoch(eip7594Epoch);
     Map<UInt64, Long> colIndexToCount =
         connectedPeers.values().stream()
-            .flatMap(p -> p.getNodeCustodyIndexes(specVersion).stream())
+            .flatMap(p -> p.getNodeCustodyIndexes(eip7594Slot).stream())
             .collect(Collectors.groupingBy(i -> i, Collectors.counting()));
     int numberOfColumns = SpecConfigEip7594.required(specVersion.getConfig()).getNumberOfColumns();
     IntStream.range(0, numberOfColumns)
@@ -279,19 +281,13 @@ public class SimpleSidecarRetriever
       this.nodeId = nodeId;
     }
 
-    private Set<UInt64> calcNodeCustodyIndexes(SpecVersion specVersion) {
-      return new HashSet<>(
-          MiscHelpersEip7594.required(specVersion.miscHelpers())
-              .computeCustodyColumnIndexes(
-                  nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId)));
-    }
-
-    private Set<UInt64> getNodeCustodyIndexes(SpecVersion specVersion) {
-      return custodyIndexesCache.get(specVersion, this::calcNodeCustodyIndexes);
+    private Set<UInt64> getNodeCustodyIndexes(UInt64 slot) {
+      return new HashSet<>(custodyCalculator
+          .computeCustodyColumnIndexes(nodeId, slot));
     }
 
     public boolean isCustodyFor(DataColumnSlotAndIdentifier columnId) {
-      return getNodeCustodyIndexes(spec.atSlot(columnId.slot())).contains(columnId.columnIndex());
+      return getNodeCustodyIndexes(columnId.slot()).contains(columnId.columnIndex());
     }
   }
 

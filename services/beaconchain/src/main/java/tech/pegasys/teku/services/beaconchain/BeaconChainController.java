@@ -145,6 +145,7 @@ import tech.pegasys.teku.statetransition.block.FailedExecutionPool;
 import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.CurrentSlotProvider;
+import tech.pegasys.teku.statetransition.datacolumns.CustodyCalculator;
 import tech.pegasys.teku.statetransition.datacolumns.DasCustodySync;
 import tech.pegasys.teku.statetransition.datacolumns.DasLongPollCustody;
 import tech.pegasys.teku.statetransition.datacolumns.DasPreSampler;
@@ -157,6 +158,7 @@ import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalculator;
+import tech.pegasys.teku.statetransition.datacolumns.NodeCustodyCalculator;
 import tech.pegasys.teku.statetransition.datacolumns.UpdatableDataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
@@ -700,16 +702,21 @@ public class BeaconChainController extends Service implements BeaconChainControl
             .p2pConfig()
             .getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.EIP7594));
 
+    MetadataDasPeerCustodyTracker peerCustodyTracker = new MetadataDasPeerCustodyTracker();
+    DasPeerCustodyCountSupplier custodyCountSupplier =
+        DasPeerCustodyCountSupplier.capped(peerCustodyTracker, minCustodyRequirement, maxSubnets);
     final UpdatableDataColumnSidecarCustody custody;
     {
+      NodeCustodyCalculator myCustodyCalculator =
+          NodeCustodyCalculator.create(spec, nodeId, totalMyCustodySubnets);
+
       DataColumnSidecarCustodyImpl dataColumnSidecarCustodyImpl =
           new DataColumnSidecarCustodyImpl(
               spec,
               canonicalBlockResolver,
               dbAccessor,
               minCustodyPeriodSlotCalculator,
-              nodeId,
-              totalMyCustodySubnets);
+              myCustodyCalculator);
       eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarCustodyImpl);
       eventChannels.subscribe(FinalizedCheckpointChannel.class, dataColumnSidecarCustodyImpl);
 
@@ -748,6 +755,9 @@ public class BeaconChainController extends Service implements BeaconChainControl
     DasPeerCustodyCountSupplier custodyCountSupplier =
         DasPeerCustodyCountSupplier.capped(peerCustodyTracker, minCustodyRequirement, maxSubnets);
 
+    DataColumnReqResp dasRpc = new DataColumnReqRespBatchingImpl(dasPeerManager);
+    CustodyCalculator custodyCalculator = CustodyCalculator.create(spec, custodyCountSupplier);
+
     // TODO NOOP peer searcher should work for interop but needs to be implemented
     DataColumnPeerSearcher dataColumnPeerSearcher = DataColumnPeerSearcher.NOOP;
     DataColumnSidecarRetriever sidecarRetriever =
@@ -755,7 +765,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             spec,
             dasPeerManager,
             dataColumnPeerSearcher,
-            custodyCountSupplier,
+            custodyCalculator,
             dasRpc,
             operationPoolAsyncRunner,
             Duration.ofSeconds(1));

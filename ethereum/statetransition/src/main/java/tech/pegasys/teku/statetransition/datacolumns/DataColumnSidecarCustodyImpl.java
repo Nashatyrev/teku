@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes32;
-import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
@@ -33,7 +32,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
@@ -84,9 +82,8 @@ public class DataColumnSidecarCustodyImpl
   private final Spec spec;
   private final DataColumnSidecarDbAccessor db;
   private final CanonicalBlockResolver blockResolver;
-  private final UInt256 nodeId;
-  private final int totalCustodySubnetCount;
   private final MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator;
+  private final NodeCustodyCalculator myCustodyCalculator;
 
   private volatile UInt64 currentSlot = null;
 
@@ -95,29 +92,18 @@ public class DataColumnSidecarCustodyImpl
       CanonicalBlockResolver blockResolver,
       DataColumnSidecarDbAccessor db,
       MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator,
-      UInt256 nodeId,
-      int totalCustodySubnetCount) {
+      NodeCustodyCalculator myCustodyCalculator) {
     checkNotNull(spec);
     checkNotNull(blockResolver);
     checkNotNull(minCustodyPeriodSlotCalculator);
     checkNotNull(db);
-    checkNotNull(nodeId);
+    checkNotNull(myCustodyCalculator);
 
     this.spec = spec;
     this.db = db;
     this.blockResolver = blockResolver;
     this.minCustodyPeriodSlotCalculator = minCustodyPeriodSlotCalculator;
-    this.nodeId = nodeId;
-    this.totalCustodySubnetCount = totalCustodySubnetCount;
-  }
-
-  private List<UInt64> getCustodyColumnsForSlot(UInt64 slot) {
-    return getCustodyColumnsForEpoch(spec.computeEpochAtSlot(slot));
-  }
-
-  private List<UInt64> getCustodyColumnsForEpoch(UInt64 epoch) {
-    return MiscHelpersEip7594.required(spec.atEpoch(epoch).miscHelpers())
-        .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount);
+    this.myCustodyCalculator = myCustodyCalculator;
   }
 
   @Override
@@ -130,16 +116,7 @@ public class DataColumnSidecarCustodyImpl
   }
 
   private boolean isMyCustody(UInt64 slot, UInt64 columnIndex) {
-    UInt64 epoch = spec.computeEpochAtSlot(slot);
-    return spec.atEpoch(epoch)
-        .miscHelpers()
-        .toVersionEip7594()
-        .map(
-            miscHelpersEip7594 ->
-                miscHelpersEip7594
-                    .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount)
-                    .contains(columnIndex))
-        .orElse(false);
+    return myCustodyCalculator.computeNodeCustodyColumnIndexes(slot).contains(columnIndex);
   }
 
   @Override
@@ -149,7 +126,8 @@ public class DataColumnSidecarCustodyImpl
   }
 
   @Override
-  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(SlotAndBlockRoot blockId) {
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(
+      SlotAndBlockRoot blockId) {
     return db.getColumnIdentifiers(blockId);
   }
 
@@ -196,7 +174,7 @@ public class DataColumnSidecarCustodyImpl
 
   private SafeFuture<SlotCustody> retrieveSlotCustody(final UInt64 slot) {
     final SafeFuture<Optional<Bytes32>> maybeCanonicalBlockRoot = getBlockRootIfHaveBlobs(slot);
-    final List<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
+    final Collection<UInt64> requiredColumns = myCustodyCalculator.computeNodeCustodyColumnIndexes(slot);
     final SafeFuture<List<DataColumnSlotAndIdentifier>> existingColumns =
         db.getColumnIdentifiers(slot);
     return SafeFuture.allOf(maybeCanonicalBlockRoot, existingColumns)
