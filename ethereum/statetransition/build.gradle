@@ -25,6 +25,8 @@ dependencies {
   implementation project(':storage')
   implementation project(':storage:api')
 
+  implementation testFixtures(project(':infrastructure:metrics'))
+
   implementation 'org.apache.tuweni:tuweni-units'
   implementation 'org.hyperledger.besu.internal:metrics-core'
 

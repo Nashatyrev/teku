@@ -13,15 +13,17 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
+import java.util.List;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
-import org.hyperledger.besu.plugin.services.metrics.LabelledMetric;
-import org.hyperledger.besu.plugin.services.metrics.OperationTimer;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.metrics.MetricsHistogram;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
+import tech.pegasys.teku.infrastructure.time.SystemTimeProvider;
+import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.statetransition.validation.DataColumnSidecarGossipValidator;
@@ -32,28 +34,32 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   private final DataColumnSidecarGossipValidator validator;
   private final Subscribers<ValidDataColumnSidecarsListener> validDataColumnSidecarsSubscribers =
       Subscribers.create(true);
-  private final LabelledMetric<OperationTimer> dataColumnSidecarGossipVerificationTimer;
+  private final MetricsHistogram histogram;
 
   public DataColumnSidecarManagerImpl(
       DataColumnSidecarGossipValidator validator, MetricsSystem metricsSystem) {
     this.validator = validator;
-    this.dataColumnSidecarGossipVerificationTimer =
-        metricsSystem.createSimpleLabelledTimer(
+    this.histogram =
+        MetricsHistogram.create(
             TekuMetricCategory.BEACON,
-            "data_column_sidecar_gossip_verification_seconds",
-            "Full runtime of data column sidecars gossip verification");
-  }
+            metricsSystem,
+            "data_column_sidecar_gossip_verification_seconds_bucket",
+            "Full runtime of data column sidecars gossip verification",
+            3,
+            List.of());
+    }
 
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
     SafeFuture<InternalValidationResult> validation;
-
-    try (OperationTimer.TimingContext ignored =
-        dataColumnSidecarGossipVerificationTimer.labels().startTimer()) {
+    TimeProvider timeProvider = new SystemTimeProvider();
+    long startTime = timeProvider.getTimeInMillis().longValue();
+    try {
       validation = validator.validate(dataColumnSidecar);
+      histogram.recordValue(timeProvider.getTimeInMillis().longValue() - startTime);
     } catch (final Throwable t) {
-      LOG.error("Failed to start data column sidecar gossip validation metric timer.", t);
+      LOG.error("Failed to validate data column sidecar", t);
       return SafeFuture.completedFuture(InternalValidationResult.reject("error"));
     }
 
