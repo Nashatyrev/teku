@@ -50,6 +50,16 @@ class RunOtherNode {
     }
 }
 
+class RunSimpleNode {
+    companion object {
+        @JvmStatic
+        fun main(vararg args: String) {
+            val dasTeku = DasTeku(extraDasCustodySubnetCount = 0)
+            dasTeku.createAndStartNode(2, IntRange.EMPTY)
+        }
+    }
+}
+
 const val STARTUP_TIME_SECONDS = 7
 
 class DasTeku(
