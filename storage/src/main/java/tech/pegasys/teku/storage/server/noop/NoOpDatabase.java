@@ -369,16 +369,16 @@ public class NoOpDatabase implements Database {
   }
 
   @Override
-  public void setFirstCustodyIncompleteSlot(UInt64 slot) {}
+  public void setFirstCustodyIncompleteSlot(final UInt64 slot) {}
 
   @Override
-  public void setFirstSamplerIncompleteSlot(UInt64 slot) {}
+  public void setFirstSamplerIncompleteSlot(final UInt64 slot) {}
 
   @Override
-  public void addSidecar(DataColumnSidecar sidecar) {}
+  public void addSidecar(final DataColumnSidecar sidecar) {}
 
   @Override
-  public void pruneAllSidecars(UInt64 tillSlotInclusive) {}
+  public void pruneAllSidecars(final UInt64 tillSlotInclusive) {}
 
   @Override
   public void close() {}

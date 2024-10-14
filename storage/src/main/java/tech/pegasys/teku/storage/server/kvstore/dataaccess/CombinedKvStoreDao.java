@@ -536,7 +536,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
   @Override
   @MustBeClosed
   public Stream<DataColumnSlotAndIdentifier> streamDataColumnIdentifiers(
-      UInt64 startSlot, UInt64 endSlot) {
+      final UInt64 startSlot, final UInt64 endSlot) {
     return db.streamKeys(
         schema.getColumnSidecarByColumnSlotAndIdentifier(),
         new DataColumnSlotAndIdentifier(startSlot, MIN_BLOCK_ROOT, UInt64.ZERO),
@@ -545,7 +545,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
 
   @Override
   public List<DataColumnSlotAndIdentifier> getDataColumnIdentifiers(
-      SlotAndBlockRoot slotAndBlockRoot) {
+      final SlotAndBlockRoot slotAndBlockRoot) {
     try (final Stream<DataColumnSlotAndIdentifier> columnSlotAndIdentifierStream =
         db.streamKeys(
             schema.getColumnSidecarByColumnSlotAndIdentifier(),

@@ -23,16 +23,25 @@ import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 public interface DataColumnSidecarRetriever {
 
   /**
+   * Queues the specified sidecar for search
+   *
+   * @return a future which may run indefinitely until finds a requested data or cancelled or may
+   *     complete exceptionally when cancelled or with {@link NotOnCanonicalChainException}
+   */
+  SafeFuture<DataColumnSidecar> retrieve(DataColumnSlotAndIdentifier columnId);
+
+  /**
    * The request may complete with this exception when requested column is no more on our local
    * canonical chain
    */
   class NotOnCanonicalChainException extends RuntimeException {
-    public NotOnCanonicalChainException(String msg) {
+    public NotOnCanonicalChainException(final String msg) {
       super(msg);
     }
 
     public NotOnCanonicalChainException(
-        DataColumnSlotAndIdentifier columnId, Optional<BeaconBlock> maybeCanonicalBlock) {
+        final DataColumnSlotAndIdentifier columnId,
+        final Optional<BeaconBlock> maybeCanonicalBlock) {
       super(
           "The column requested is not on local canonical chain: "
               + columnId
@@ -40,12 +49,4 @@ public interface DataColumnSidecarRetriever {
               + maybeCanonicalBlock.map(BeaconBlock::getRoot));
     }
   }
-
-  /**
-   * Queues the specified sidecar for search
-   *
-   * @return a future which may run indefinitely until finds a requested data or cancelled or may
-   *     complete exceptionally when cancelled or with {@link NotOnCanonicalChainException}
-   */
-  SafeFuture<DataColumnSidecar> retrieve(DataColumnSlotAndIdentifier columnId);
 }

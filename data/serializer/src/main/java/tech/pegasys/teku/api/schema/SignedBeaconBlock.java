@@ -67,11 +67,11 @@ public class SignedBeaconBlock implements SignedBlock {
     return Stream.of(
             () ->
                 beaconBlock
-                    .toBlindedVersionEip7594()
+                    .toBlindedVersionElectra()
                     .map(__ -> new SignedBlindedBeaconBlockElectra(internalBlock)),
             () ->
                 beaconBlock
-                    .toVersionEip7594()
+                    .toVersionElectra()
                     .map(__ -> new SignedBeaconBlockElectra(internalBlock)),
             () ->
                 beaconBlock

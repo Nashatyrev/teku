@@ -35,10 +35,12 @@ import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetBlobsV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV2;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV3;
+import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV4;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineJsonRpcMethod;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV2;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV3;
+import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV4;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
@@ -75,8 +77,7 @@ public class MilestoneBasedEngineJsonRpcMethodsResolver implements EngineJsonRpc
                   methodsByMilestone.put(milestone, denebSupportedMethods());
                   break;
                 case ELECTRA:
-                  // not changed
-                  methodsByMilestone.put(milestone, denebSupportedMethods());
+                  methodsByMilestone.put(milestone, electraSupportedMethods());
                   break;
               }
             });

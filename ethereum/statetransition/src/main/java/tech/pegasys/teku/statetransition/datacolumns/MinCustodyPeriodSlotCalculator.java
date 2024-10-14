@@ -19,10 +19,10 @@ import tech.pegasys.teku.spec.config.features.Eip7594;
 
 public interface MinCustodyPeriodSlotCalculator {
 
-  static MinCustodyPeriodSlotCalculator createFromSpec(Spec spec) {
+  static MinCustodyPeriodSlotCalculator createFromSpec(final Spec spec) {
     return currentSlot -> {
-      UInt64 currentEpoch = spec.computeEpochAtSlot(currentSlot);
-      int custodyPeriodEpochs =
+      final UInt64 currentEpoch = spec.computeEpochAtSlot(currentSlot);
+      final int custodyPeriodEpochs =
           spec.getSpecConfig(currentEpoch)
               .getOptionalEip7594Config()
               .map(Eip7594::getMinEpochsForDataColumnSidecarsRequests)
@@ -30,7 +30,7 @@ public interface MinCustodyPeriodSlotCalculator {
       if (custodyPeriodEpochs == 0) {
         return currentSlot;
       } else {
-        UInt64 minCustodyEpoch = currentEpoch.minusMinZero(custodyPeriodEpochs);
+        final UInt64 minCustodyEpoch = currentEpoch.minusMinZero(custodyPeriodEpochs);
         return spec.computeStartSlotAtEpoch(minCustodyEpoch);
       }
     };

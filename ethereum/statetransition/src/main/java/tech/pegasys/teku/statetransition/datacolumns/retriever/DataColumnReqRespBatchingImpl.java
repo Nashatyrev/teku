@@ -30,7 +30,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
 
   private final BatchDataColumnReqResp batchRpc;
 
-  public DataColumnReqRespBatchingImpl(BatchDataColumnReqResp batchRpc) {
+  public DataColumnReqRespBatchingImpl(final BatchDataColumnReqResp batchRpc) {
     this.batchRpc = batchRpc;
   }
 
@@ -44,7 +44,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
 
   @Override
   public SafeFuture<DataColumnSidecar> requestDataColumnSidecar(
-      UInt256 nodeId, DataColumnIdentifier columnIdentifier) {
+      final UInt256 nodeId, final DataColumnIdentifier columnIdentifier) {
     RequestEntry entry = new RequestEntry(nodeId, columnIdentifier, new SafeFuture<>());
     bufferedRequests.add(entry);
     return entry.promise();
@@ -62,7 +62,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
     }
   }
 
-  private void flushForNode(UInt256 nodeId, List<RequestEntry> nodeRequests) {
+  private void flushForNode(final UInt256 nodeId, final List<RequestEntry> nodeRequests) {
     LOG.info(
         "[nyota] Requesting batch of {} from {}, hash={}",
         nodeRequests.size(),
@@ -107,7 +107,7 @@ public class DataColumnReqRespBatchingImpl implements DataColumnReqResp {
   }
 
   @Override
-  public int getCurrentRequestLimit(UInt256 nodeId) {
+  public int getCurrentRequestLimit(final UInt256 nodeId) {
     return batchRpc.getCurrentRequestLimit(nodeId);
   }
 }

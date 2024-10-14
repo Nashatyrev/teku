@@ -26,23 +26,23 @@ public class DataColumnSidecarDbAccessorBuilder {
   private MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator;
   private final AutoPruneDbBuilder autoPruneDbBuilder = new AutoPruneDbBuilder();
 
-  DataColumnSidecarDbAccessorBuilder(DataColumnSidecarDB db) {
+  DataColumnSidecarDbAccessorBuilder(final DataColumnSidecarDB db) {
     this.db = db;
   }
 
-  public DataColumnSidecarDbAccessorBuilder spec(Spec spec) {
+  public DataColumnSidecarDbAccessorBuilder spec(final Spec spec) {
     this.spec = spec;
     return this;
   }
 
   public DataColumnSidecarDbAccessorBuilder minCustodyPeriodSlotCalculator(
-      MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator) {
+      final MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator) {
     this.minCustodyPeriodSlotCalculator = minCustodyPeriodSlotCalculator;
     return this;
   }
 
   public DataColumnSidecarDbAccessorBuilder withAutoPrune(
-      Consumer<AutoPruneDbBuilder> builderConsumer) {
+      final Consumer<AutoPruneDbBuilder> builderConsumer) {
     builderConsumer.accept(this.autoPruneDbBuilder);
     return this;
   }
@@ -64,7 +64,7 @@ public class DataColumnSidecarDbAccessorBuilder {
     private int prunePeriodInSlots = 1;
 
     /** Additional period in slots to retain data column sidecars in DB before pruning */
-    public AutoPruneDbBuilder pruneMarginSlots(int pruneMarginSlots) {
+    public AutoPruneDbBuilder pruneMarginSlots(final int pruneMarginSlots) {
       this.pruneMarginSlots = pruneMarginSlots;
       return this;
     }
@@ -73,11 +73,11 @@ public class DataColumnSidecarDbAccessorBuilder {
      * Specifies how often (in slots) the db prune will be performed 1 means that the prune is to be
      * called every slot
      */
-    public void prunePeriodSlots(int prunePeriodInSlots) {
+    public void prunePeriodSlots(final int prunePeriodInSlots) {
       this.prunePeriodInSlots = prunePeriodInSlots;
     }
 
-    AutoPruningDasDb build(DataColumnSidecarDB db) {
+    AutoPruningDasDb build(final DataColumnSidecarDB db) {
       return new AutoPruningDasDb(
           db, getMinCustodyPeriodSlotCalculator(), pruneMarginSlots, prunePeriodInSlots);
     }

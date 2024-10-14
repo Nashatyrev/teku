@@ -186,8 +186,8 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconStat
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.altair.BeaconStateSchemaAltair;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.phase0.BeaconStateSchemaPhase0;
 import tech.pegasys.teku.spec.datastructures.state.versions.capella.HistoricalSummary;
-import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingBalanceDeposit;
 import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingConsolidation;
+import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingDeposit;
 import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingPartialWithdrawal;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGProof;
@@ -203,6 +203,7 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsAltair;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsBellatrix;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsCapella;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 
 public final class DataStructureUtil {
@@ -236,7 +237,7 @@ public final class DataStructureUtil {
   }
 
   public DataStructureUtil withSignatureGenerator(
-      Function<Integer, BLSSignature> signatureGenerator) {
+      final Function<Integer, BLSSignature> signatureGenerator) {
     this.signatureGenerator = signatureGenerator;
     return this;
   }
@@ -1031,9 +1032,18 @@ public final class DataStructureUtil {
   }
 
   public SignedBeaconBlock randomSignedBeaconBlockWithCommitments(
+      final UInt64 slot, final int count) {
+    return randomSignedBeaconBlockWithCommitments(slot, randomBlobKzgCommitments(count));
+  }
+
+  public SignedBeaconBlock randomSignedBeaconBlockWithCommitments(
       final SszList<SszKZGCommitment> commitments) {
+    return randomSignedBeaconBlockWithCommitments(randomUInt64(), commitments);
+  }
+
+  public SignedBeaconBlock randomSignedBeaconBlockWithCommitments(
+      final UInt64 slot, final SszList<SszKZGCommitment> commitments) {
     final UInt64 proposerIndex = randomUInt64();
-    final UInt64 slot = randomUInt64();
     final Bytes32 stateRoot = randomBytes32();
     final Bytes32 parentRoot = randomBytes32();
 
@@ -1090,7 +1100,7 @@ public final class DataStructureUtil {
     return randomBeaconBlock(slotNum, randomBeaconBlockBody(slotNum));
   }
 
-  public BeaconBlock randomBeaconBlock(final UInt64 slotNum, BeaconBlockBody body) {
+  public BeaconBlock randomBeaconBlock(final UInt64 slotNum, final BeaconBlockBody body) {
     final UInt64 proposerIndex = randomUInt64();
     final Bytes32 previousRoot = randomBytes32();
     final Bytes32 stateRoot = randomBytes32();
@@ -1886,8 +1896,7 @@ public final class DataStructureUtil {
       case BELLATRIX -> stateBuilderBellatrix(validatorCount, numItemsInSszLists);
       case CAPELLA -> stateBuilderCapella(validatorCount, numItemsInSszLists);
       case DENEB -> stateBuilderDeneb(validatorCount, numItemsInSszLists);
-      // TODO
-      case ELECTRA -> stateBuilderEip7594(validatorCount, numItemsInSszLists);
+      case ELECTRA -> stateBuilderElectra(validatorCount, numItemsInSszLists);
     };
   }
 
@@ -1932,9 +1941,9 @@ public final class DataStructureUtil {
         this, spec, defaultValidatorCount, defaultItemsInSSZLists);
   }
 
-  public BeaconStateBuilderEip7594 stateBuilderEip7594(
+  public BeaconStateBuilderElectra stateBuilderElectra(
       final int defaultValidatorCount, final int defaultItemsInSSZLists) {
-    return BeaconStateBuilderEip7594.create(
+    return BeaconStateBuilderElectra.create(
         this, spec, defaultValidatorCount, defaultItemsInSSZLists);
   }
 
@@ -2668,10 +2677,15 @@ public final class DataStructureUtil {
         .create(executionAddress, validator.getPublicKey(), amount);
   }
 
-  public PendingBalanceDeposit randomPendingBalanceDeposit() {
+  public PendingDeposit randomPendingDeposit() {
     return getElectraSchemaDefinitions(randomSlot())
-        .getPendingBalanceDepositSchema()
-        .create(SszUInt64.of(randomUInt64()), SszUInt64.of(randomUInt64()));
+        .getPendingDepositSchema()
+        .create(
+            randomSszPublicKey(),
+            SszBytes32.of(randomEth1WithdrawalCredentials()),
+            SszUInt64.of(randomUInt64()),
+            randomSszSignature(),
+            SszUInt64.of(randomUInt64()));
   }
 
   public ConsolidationRequest randomConsolidationRequest() {
@@ -2728,8 +2742,12 @@ public final class DataStructureUtil {
     return SchemaDefinitionsDeneb.required(spec.atSlot(slot).getSchemaDefinitions());
   }
 
-  private SchemaDefinitionsElectra getEip7594SchemaDefinitions(final UInt64 slot) {
+  private SchemaDefinitionsElectra getElectraSchemaDefinitions(final UInt64 slot) {
     return SchemaDefinitionsElectra.required(spec.atSlot(slot).getSchemaDefinitions());
+  }
+
+  private SchemaDefinitionsEip7594 getEip7594SchemaDefinitions(final UInt64 slot) {
+    return SchemaDefinitionsEip7594.required(spec.atSlot(slot).getSchemaDefinitions());
   }
 
   int getEpochsPerEth1VotingPeriod() {

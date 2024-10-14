@@ -38,10 +38,12 @@ import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetBlobsV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV2;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV3;
+import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV4;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineJsonRpcMethod;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV2;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV3;
+import tech.pegasys.teku.ethereum.executionclient.methods.EngineNewPayloadV4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
@@ -205,7 +207,7 @@ class MilestoneBasedEngineJsonRpcMethodsResolverTest {
   @Test
   void getsCapabilities() {
     final Spec spec =
-        TestSpecFactory.createMinimalWithCapellaDenebAndEip7594ForkEpoch(
+        TestSpecFactory.createMinimalWithCapellaDenebAndElectraForkEpoch(
             UInt64.ONE, UInt64.valueOf(2), UInt64.valueOf(3));
 
     final MilestoneBasedEngineJsonRpcMethodsResolver engineMethodsResolver =
@@ -223,7 +225,9 @@ class MilestoneBasedEngineJsonRpcMethodsResolverTest {
             "engine_forkchoiceUpdatedV2",
             "engine_newPayloadV3",
             "engine_getPayloadV3",
-            "engine_forkchoiceUpdatedV3");
+            "engine_forkchoiceUpdatedV3",
+            "engine_newPayloadV4",
+            "engine_getPayloadV4");
   }
 
   @Test

@@ -72,8 +72,8 @@ public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
   }
 
   @Override
-  public int getPendingBalanceDepositsLimit() {
-    return specConfigElectra.getPendingBalanceDepositsLimit();
+  public int getPendingDepositsLimit() {
+    return specConfigElectra.getPendingDepositsLimit();
   }
 
   @Override
@@ -124,5 +124,10 @@ public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
   @Override
   public int getMaxPendingPartialsPerWithdrawalsSweep() {
     return specConfigElectra.getMaxPendingPartialsPerWithdrawalsSweep();
+  }
+
+  @Override
+  public int getMaxPendingDepositsPerEpoch() {
+    return specConfigElectra.getMaxPendingDepositsPerEpoch();
   }
 }

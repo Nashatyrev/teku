@@ -20,15 +20,15 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
-public class SpecConfigEip7594Test {
+public class SpecConfigElectraTest {
   private final Spec spec = TestSpecFactory.createMinimalDeneb();
 
   @Test
   public void equals_mainnet() {
-    final SpecConfigEip7594 configA =
-        SpecConfigLoader.loadConfig("mainnet").toVersionEip7594().orElseThrow();
-    final SpecConfigEip7594 configB =
-        SpecConfigLoader.loadConfig("mainnet").toVersionEip7594().orElseThrow();
+    final SpecConfigElectra configA =
+        SpecConfigLoader.loadConfig("mainnet").toVersionElectra().orElseThrow();
+    final SpecConfigElectra configB =
+        SpecConfigLoader.loadConfig("mainnet").toVersionElectra().orElseThrow();
 
     assertThat(configA).isEqualTo(configB);
     assertThat(configA.hashCode()).isEqualTo(configB.hashCode());
@@ -38,8 +38,8 @@ public class SpecConfigEip7594Test {
   public void equals_sameRandomValues() {
     final SpecConfigDeneb specConfigDeneb =
         SpecConfigLoader.loadConfig("mainnet").toVersionDeneb().orElseThrow();
-    final SpecConfigEip7594 configA = createRandomEip7594Config(specConfigDeneb, 1);
-    final SpecConfigEip7594 configB = createRandomEip7594Config(specConfigDeneb, 1);
+    final SpecConfigElectra configA = createRandomElectraConfig(specConfigDeneb, 1);
+    final SpecConfigElectra configB = createRandomElectraConfig(specConfigDeneb, 1);
 
     assertThat(configA).isEqualTo(configB);
     assertThat(configA.hashCode()).isEqualTo(configB.hashCode());
@@ -49,8 +49,8 @@ public class SpecConfigEip7594Test {
   public void equals_differentRandomValues() {
     final SpecConfigDeneb specConfigDeneb =
         SpecConfigLoader.loadConfig("mainnet").toVersionDeneb().orElseThrow();
-    final SpecConfigEip7594 configA = createRandomEip7594Config(specConfigDeneb, 1);
-    final SpecConfigEip7594 configB = createRandomEip7594Config(specConfigDeneb, 2);
+    final SpecConfigElectra configA = createRandomElectraConfig(specConfigDeneb, 1);
+    final SpecConfigElectra configB = createRandomElectraConfig(specConfigDeneb, 2);
 
     assertThat(configA).isNotEqualTo(configB);
     assertThat(configA.hashCode()).isNotEqualTo(configB.hashCode());
@@ -67,14 +67,14 @@ public class SpecConfigEip7594Test {
             .toVersionDeneb()
             .orElseThrow();
 
-    final SpecConfigEip7594 configA = createRandomEip7594Config(denebA, 1);
-    final SpecConfigEip7594 configB = createRandomEip7594Config(denebB, 1);
+    final SpecConfigElectra configA = createRandomElectraConfig(denebA, 1);
+    final SpecConfigElectra configB = createRandomElectraConfig(denebB, 1);
 
     assertThat(configA).isNotEqualTo(configB);
     assertThat(configA.hashCode()).isNotEqualTo(configB.hashCode());
   }
 
-  private SpecConfigEip7594 createRandomEip7594Config(
+  private SpecConfigElectra createRandomElectraConfig(
       final SpecConfigDeneb denebConfig, final int seed) {
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(seed, spec);
 
@@ -95,6 +95,7 @@ public class SpecConfigEip7594Test {
         dataStructureUtil.randomPositiveInt(1),
         dataStructureUtil.randomPositiveInt(8192),
         dataStructureUtil.randomPositiveInt(16),
-        dataStructureUtil.randomPositiveInt(8)) {};
+        dataStructureUtil.randomPositiveInt(8),
+        dataStructureUtil.randomPositiveInt(16)) {};
   }
 }

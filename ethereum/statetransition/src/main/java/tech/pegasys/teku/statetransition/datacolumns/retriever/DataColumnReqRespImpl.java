@@ -29,14 +29,15 @@ public class DataColumnReqRespImpl implements DataColumnReqResp {
 
   private final DataColumnReqResp reqResp;
 
-  public DataColumnReqRespImpl(DataColumnPeerManager peerManager, DataColumnReqResp reqResp) {
+  public DataColumnReqRespImpl(
+      final DataColumnPeerManager peerManager, final DataColumnReqResp reqResp) {
     this.peerManager = peerManager;
     this.reqResp = reqResp;
   }
 
   @Override
   public SafeFuture<DataColumnSidecar> requestDataColumnSidecar(
-      UInt256 nodeId, DataColumnIdentifier columnIdentifier) {
+      final UInt256 nodeId, final DataColumnIdentifier columnIdentifier) {
     return reqResp
         .requestDataColumnSidecar(nodeId, columnIdentifier)
         .whenException(
@@ -60,7 +61,7 @@ public class DataColumnReqRespImpl implements DataColumnReqResp {
   }
 
   @Override
-  public int getCurrentRequestLimit(UInt256 nodeId) {
+  public int getCurrentRequestLimit(final UInt256 nodeId) {
     return reqResp.getCurrentRequestLimit(nodeId);
   }
 

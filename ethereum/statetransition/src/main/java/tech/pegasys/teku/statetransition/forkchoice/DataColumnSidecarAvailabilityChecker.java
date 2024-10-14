@@ -85,7 +85,7 @@ public class DataColumnSidecarAvailabilityChecker
 
   @Override
   public DataAndValidationResult<DataColumnSidecar> validateImmediately(
-      List<DataColumnSidecar> dataColumnSidecars) {
+      final List<DataColumnSidecar> dataColumnSidecars) {
     if (dataColumnSidecars.isEmpty()) {
       return DataAndValidationResult.validResult(dataColumnSidecars);
     }
@@ -96,7 +96,7 @@ public class DataColumnSidecarAvailabilityChecker
                 dataColumnSidecar ->
                     spec.atSlot(dataColumnSidecar.getSlot())
                         .miscHelpers()
-                        .toVersionEip7594()
+                        .getEip7594Helpers()
                         .map(
                             miscHelpersEip7594 ->
                                 miscHelpersEip7594.verifyDataColumnSidecarKzgProof(

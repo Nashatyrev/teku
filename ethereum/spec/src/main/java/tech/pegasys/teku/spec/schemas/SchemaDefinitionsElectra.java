@@ -53,17 +53,17 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashingSchema;
 import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation;
 import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestationSchema;
 import tech.pegasys.teku.spec.datastructures.operations.SignedAggregateAndProof.SignedAggregateAndProofSchema;
-import tech.pegasys.teku.spec.datastructures.operations.versions.electra.AttestationElectraSchema;
 import tech.pegasys.teku.spec.datastructures.operations.versions.electra.AttesterSlashingElectraSchema;
 import tech.pegasys.teku.spec.datastructures.operations.versions.electra.IndexedAttestationElectraSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateElectra;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateSchemaElectra;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.MutableBeaconStateElectra;
-import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingBalanceDeposit;
 import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingConsolidation;
+import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingDeposit;
 import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingPartialWithdrawal;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
+import tech.pegasys.teku.spec.schemas.registry.SchemaTypes;
 
 public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
 
@@ -96,7 +96,7 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
   private final WithdrawalRequestSchema withdrawalRequestSchema;
   private final ConsolidationRequestSchema consolidationRequestSchema;
 
-  private final PendingBalanceDeposit.PendingBalanceDepositSchema pendingBalanceDepositSchema;
+  private final PendingDeposit.PendingDepositSchema pendingDepositSchema;
 
   private final PendingPartialWithdrawal.PendingPartialWithdrawalSchema
       pendingPartialWithdrawalSchema;
@@ -119,10 +119,7 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
         new AttesterSlashingElectraSchema(indexedAttestationSchema)
             .castTypeToAttesterSlashingSchema();
 
-    this.attestationSchema =
-        new AttestationElectraSchema(
-                maxValidatorsPerAttestation, specConfig.getMaxCommitteesPerSlot())
-            .castTypeToAttestationSchema();
+    this.attestationSchema = schemaRegistry.get(SchemaTypes.ATTESTATION_SCHEMA);
     this.aggregateAndProofSchema = new AggregateAndProofSchema(attestationSchema);
     this.signedAggregateAndProofSchema = new SignedAggregateAndProofSchema(aggregateAndProofSchema);
 
@@ -174,7 +171,7 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
     this.depositRequestSchema = DepositRequest.SSZ_SCHEMA;
     this.withdrawalRequestSchema = WithdrawalRequest.SSZ_SCHEMA;
     this.consolidationRequestSchema = ConsolidationRequest.SSZ_SCHEMA;
-    this.pendingBalanceDepositSchema = new PendingBalanceDeposit.PendingBalanceDepositSchema();
+    this.pendingDepositSchema = new PendingDeposit.PendingDepositSchema();
     this.pendingPartialWithdrawalSchema =
         new PendingPartialWithdrawal.PendingPartialWithdrawalSchema();
     this.pendingConsolidationSchema = new PendingConsolidation.PendingConsolidationSchema();
@@ -322,12 +319,12 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
     return withdrawalRequestSchema;
   }
 
-  public PendingBalanceDeposit.PendingBalanceDepositSchema getPendingBalanceDepositSchema() {
-    return pendingBalanceDepositSchema;
+  public PendingDeposit.PendingDepositSchema getPendingDepositSchema() {
+    return pendingDepositSchema;
   }
 
-  public SszListSchema<PendingBalanceDeposit, ?> getPendingBalanceDepositsSchema() {
-    return beaconStateSchema.getPendingBalanceDepositsSchema();
+  public SszListSchema<PendingDeposit, ?> getPendingDepositsSchema() {
+    return beaconStateSchema.getPendingDepositsSchema();
   }
 
   public SszListSchema<PendingConsolidation, ?> getPendingConsolidationsSchema() {
