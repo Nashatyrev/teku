@@ -272,10 +272,11 @@ public class SimpleSidecarRetrieverTest {
             .currentRequestLimit(1000);
     testPeerManager.connectPeer(peer);
 
-    List<DataColumnSlotAndIdentifier> colIds = IntStream.range(0, columnCount)
-        .mapToObj(UInt64::valueOf)
-        .map(colIdx -> new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, colIdx))
-        .toList();
+    List<DataColumnSlotAndIdentifier> colIds =
+        IntStream.range(0, columnCount)
+            .mapToObj(UInt64::valueOf)
+            .map(colIdx -> new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, colIdx))
+            .toList();
 
     colIds.forEach(simpleSidecarRetriever::retrieve);
 
