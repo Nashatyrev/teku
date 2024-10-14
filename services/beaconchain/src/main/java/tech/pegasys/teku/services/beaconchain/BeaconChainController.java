@@ -160,6 +160,8 @@ import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalcula
 import tech.pegasys.teku.statetransition.datacolumns.UpdatableDataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDB;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
+import tech.pegasys.teku.statetransition.datacolumns.log.DasGossipBatchLogger;
+import tech.pegasys.teku.statetransition.datacolumns.log.DasGossipLogger;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DasPeerCustodyCountSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnPeerSearcher;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnReqResp;
@@ -653,7 +655,10 @@ public class BeaconChainController extends Service implements BeaconChainControl
               MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).miscHelpers()),
               kzg,
               metricsSystem);
-      dataColumnSidecarManager = new DataColumnSidecarManagerImpl(dataColumnSidecarGossipValidator);
+      DasGossipLogger dasGossipLogger =
+          new DasGossipBatchLogger(
+              operationPoolAsyncRunner, timeProvider, LogManager.getLogger("das-nyota"));
+      dataColumnSidecarManager = new DataColumnSidecarManagerImpl(dataColumnSidecarGossipValidator, dasGossipLogger);
       eventChannels.subscribe(
           DataColumnSidecarGossipChannel.class,
           dataColumnSidecarManager::onDataColumnSidecarPublish);
