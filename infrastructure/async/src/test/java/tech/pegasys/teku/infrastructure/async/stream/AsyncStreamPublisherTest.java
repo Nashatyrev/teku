@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
@@ -32,7 +34,7 @@ public class AsyncStreamPublisherTest {
           .map(i -> i * 10)
           .limit(10);
 
-  List<Integer> expectedValues = List.of(0, 20, 40, 100, 120, 140, 200, 220, 240, 300);
+  //  List<Integer> expectedValues = List.of(0, 20, 40, 100, 120, 140, 200, 220, 240, 300);
 
   @Test
   void sanityTest() {
@@ -87,5 +89,81 @@ public class AsyncStreamPublisherTest {
   }
 
   @Test
-  void publishingPriorToConsumeShouldWork() {}
+  void publishingAllPriorToConsumeShouldWork() {
+    publisher.onNext(0);
+    publisher.onNext(1);
+    publisher.onComplete();
+
+    assertThat(stream.toList()).isCompletedWithValue(List.of(0, 20, 40, 100, 120, 140));
+  }
+
+  @Test
+  void publishingPartiallyPriorToConsumeShouldWork() {
+    publisher.onNext(0);
+    SafeFuture<List<Integer>> list = stream.toList();
+    publisher.onNext(1);
+    publisher.onComplete();
+
+    assertThat(list).isCompletedWithValue(List.of(0, 20, 40, 100, 120, 140));
+  }
+
+  @Test
+  void issuingErrorPriorToConsumeShouldWork() {
+    publisher.onNext(0);
+    publisher.onError(new RuntimeException("test"));
+
+    assertThat(stream.toList()).isCompletedExceptionally();
+  }
+
+  @Test
+  void shouldIgnoreAnyItemsAfterOnComplete() {
+    publisher.onNext(0);
+    publisher.onComplete();
+    publisher.onNext(1);
+
+    assertThat(stream.toList()).isCompletedWithValue(List.of(0, 20, 40));
+  }
+
+  @Test
+  void sanityThreadSafetyTest() throws Exception {
+    AsyncStreamPublisher<Integer> myPublisher = AsyncStream.createPublisher(Integer.MAX_VALUE);
+    AsyncStream<Integer> stream =
+        myPublisher
+            .map(i -> i * 10)
+            .flatMap(i -> AsyncStream.of(i / 10, 777777))
+            .filter(i -> i != 777777);
+
+    int threadCount = 16;
+    CountDownLatch startLatch = new CountDownLatch(threadCount);
+    CountDownLatch finishLatch = new CountDownLatch(threadCount);
+    for (int i = 0; i < threadCount; i++) {
+      int finalI = i;
+      new Thread(
+              () -> {
+                startLatch.countDown();
+                try {
+                  startLatch.await();
+                } catch (InterruptedException e) {
+                  throw new RuntimeException(e);
+                }
+                for (int j = 0; j < 1000; j++) {
+                  myPublisher.onNext(finalI * 1000 + j);
+                }
+                finishLatch.countDown();
+              })
+          .start();
+    }
+    SafeFuture<List<Integer>> listPromise = stream.toList();
+
+    boolean rc = finishLatch.await(5, TimeUnit.SECONDS);
+    assertThat(rc).isTrue();
+
+    myPublisher.onComplete();
+
+    List<Integer> list = listPromise.get(5, TimeUnit.SECONDS);
+
+    assertThat(list)
+        .containsExactlyInAnyOrderElementsOf(
+            IntStream.range(0, threadCount * 1000).boxed().toList());
+  }
 }
