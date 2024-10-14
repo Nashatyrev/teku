@@ -265,6 +265,7 @@ public class SimpleSidecarRetrieverTest {
   }
 
   @Test
+  @SuppressWarnings("FutureReturnValueIgnored")
   void shouldTrackCustodyCountChangesForPeers() {
     Duration responseLatency = Duration.ofDays(1); // complete responses manually
     TestPeer peer =
