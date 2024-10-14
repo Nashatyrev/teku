@@ -16,8 +16,9 @@ package tech.pegasys.teku.infrastructure.async.stream;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 /**
- * FIFO queue analogous to {@link java.util.concurrent.BlockingQueue} which returns {@link SafeFuture} element promise
- * from {@link #take()} instead of blocking when no elements available in the queue.
+ * FIFO queue analogous to {@link java.util.concurrent.BlockingQueue} which returns {@link
+ * SafeFuture} element promise from {@link #take()} instead of blocking when no elements available
+ * in the queue.
  */
 interface AsyncQueue<T> {
 
