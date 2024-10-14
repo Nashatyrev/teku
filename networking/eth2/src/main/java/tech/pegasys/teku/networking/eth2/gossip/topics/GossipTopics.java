@@ -75,10 +75,10 @@ public class GossipTopics {
   public static Set<String> getAllDataColumnSidecarSubnetTopics(
       final GossipEncoding gossipEncoding, final Bytes4 forkDigest, final Spec spec) {
 
-    return spec.getNetworkingConfigEip7594()
+    return spec.getNumberOfDataColumnSubnets()
         .map(
-            eip7594NetworkConfig ->
-                IntStream.range(0, eip7594NetworkConfig.getDataColumnSidecarSubnetCount())
+            subnetCount ->
+                IntStream.range(0, subnetCount)
                     .mapToObj(i -> getDataColumnSidecarSubnetTopic(forkDigest, i, gossipEncoding))
                     .collect(Collectors.toSet()))
         .orElse(Collections.emptySet());

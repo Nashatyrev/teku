@@ -44,6 +44,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.capella.
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.capella.BeaconStateSchemaCapella;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.capella.MutableBeaconStateCapella;
 import tech.pegasys.teku.spec.datastructures.state.versions.capella.HistoricalSummary;
+import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 
 public class SchemaDefinitionsCapella extends SchemaDefinitionsBellatrix {
 
@@ -70,8 +71,9 @@ public class SchemaDefinitionsCapella extends SchemaDefinitionsBellatrix {
 
   private final HistoricalSummary.HistoricalSummarySchema historicalSummarySchema;
 
-  public SchemaDefinitionsCapella(final SpecConfigCapella specConfig) {
-    super(specConfig);
+  public SchemaDefinitionsCapella(final SchemaRegistry schemaRegistry) {
+    super(schemaRegistry);
+    final SpecConfigCapella specConfig = SpecConfigCapella.required(schemaRegistry.getSpecConfig());
     this.executionPayloadSchemaCapella = new ExecutionPayloadSchemaCapella(specConfig);
     this.blsToExecutionChangeSchema = new BlsToExecutionChangeSchema();
     this.signedBlsToExecutionChangeSchema = new SignedBlsToExecutionChangeSchema();
@@ -83,14 +85,14 @@ public class SchemaDefinitionsCapella extends SchemaDefinitionsBellatrix {
     this.beaconBlockBodySchema =
         BeaconBlockBodySchemaCapellaImpl.create(
             specConfig,
-            getAttesterSlashingSchema(),
             signedBlsToExecutionChangeSchema,
+            getMaxValidatorPerAttestation(specConfig),
             "BeaconBlockBodyCapella");
     this.blindedBeaconBlockBodySchema =
         BlindedBeaconBlockBodySchemaCapellaImpl.create(
             specConfig,
-            getAttesterSlashingSchema(),
             signedBlsToExecutionChangeSchema,
+            getMaxValidatorPerAttestation(specConfig),
             "BlindedBlockBodyCapella");
     this.beaconBlockSchema = new BeaconBlockSchema(beaconBlockBodySchema, "BeaconBlockCapella");
     this.blindedBeaconBlockSchema =
@@ -109,7 +111,7 @@ public class SchemaDefinitionsCapella extends SchemaDefinitionsBellatrix {
   public static SchemaDefinitionsCapella required(final SchemaDefinitions schemaDefinitions) {
     checkArgument(
         schemaDefinitions instanceof SchemaDefinitionsCapella,
-        "Expected definitions of type %s by got %s",
+        "Expected definitions of type %s but got %s",
         SchemaDefinitionsCapella.class,
         schemaDefinitions.getClass());
     return (SchemaDefinitionsCapella) schemaDefinitions;

@@ -72,7 +72,7 @@ public class TestDefinition {
           case TestFork.BELLATRIX -> SpecMilestone.BELLATRIX;
           case TestFork.CAPELLA -> SpecMilestone.CAPELLA;
           case TestFork.DENEB -> SpecMilestone.DENEB;
-          case TestFork.EIP7594 -> SpecMilestone.EIP7594;
+          case TestFork.EIP7594 -> SpecMilestone.ELECTRA;
           default -> throw new IllegalArgumentException("Unknown fork: " + fork);
         };
     spec = TestSpecFactory.create(milestone, network);

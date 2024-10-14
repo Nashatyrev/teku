@@ -35,7 +35,7 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntry;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
@@ -60,7 +60,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       DataColumnSidecarRetriever delegate,
       KZG kzg,
       MiscHelpersEip7594 specHelpers,
-      SchemaDefinitionsEip7594 schemaDefinitionsEip7594,
+      SchemaDefinitionsEip7594 schemaDefinitionsElectra,
       CanonicalBlockResolver blockResolver,
       DataColumnSidecarDbAccessor sidecarDB,
       AsyncRunner asyncRunner,
@@ -69,7 +69,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     this.delegate = delegate;
     this.kzg = kzg;
     this.specHelpers = specHelpers;
-    this.schemaDefinitions = schemaDefinitionsEip7594;
+    this.schemaDefinitions = schemaDefinitionsElectra;
     this.blockResolver = blockResolver;
     this.sidecarDB = sidecarDB;
     this.asyncRunner = asyncRunner;

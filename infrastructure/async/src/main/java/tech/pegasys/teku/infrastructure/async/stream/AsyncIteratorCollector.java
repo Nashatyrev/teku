@@ -20,29 +20,29 @@ class AsyncIteratorCollector<T> {
 
   private final AsyncIterator<T> iterator;
 
-  public AsyncIteratorCollector(AsyncIterator<T> iterator) {
+  public AsyncIteratorCollector(final AsyncIterator<T> iterator) {
     this.iterator = iterator;
   }
 
-  public <R, A> SafeFuture<R> collect(Collector<T, A, R> collector) {
-    SafeFuture<R> promise = new SafeFuture<>();
-    A accumulator = collector.supplier().get();
+  public <R, A> SafeFuture<R> collect(final Collector<T, A, R> collector) {
+    final SafeFuture<R> promise = new SafeFuture<>();
+    final A accumulator = collector.supplier().get();
     iterator.iterate(
         new AsyncIteratorCallback<T>() {
           @Override
-          public SafeFuture<Boolean> onNext(T t) {
+          public SafeFuture<Boolean> onNext(final T t) {
             collector.accumulator().accept(accumulator, t);
             return TRUE_FUTURE;
           }
 
           @Override
           public void onComplete() {
-            R result = collector.finisher().apply(accumulator);
+            final R result = collector.finisher().apply(accumulator);
             promise.complete(result);
           }
 
           @Override
-          public void onError(Throwable t) {
+          public void onError(final Throwable t) {
             promise.completeExceptionally(t);
           }
         });

@@ -43,7 +43,7 @@ public class DasLongPollCustodyTest {
   final StubTimeProvider stubTimeProvider = StubTimeProvider.withTimeInSeconds(0);
   final StubAsyncRunner stubAsyncRunner = new StubAsyncRunner(stubTimeProvider);
 
-  final Spec spec = TestSpecFactory.createMinimalEip7594();
+  final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
   final Duration dbDelay = ofMillis(5);
   final DelayedDasDb delayedDb = new DelayedDasDb(db, stubAsyncRunner, dbDelay);
@@ -53,7 +53,7 @@ public class DasLongPollCustodyTest {
   final UInt256 myNodeId = UInt256.ONE;
 
   final SpecConfigEip7594 config =
-      SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
+      SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
 
   final DataColumnSidecarCustodyImpl custodyImpl =

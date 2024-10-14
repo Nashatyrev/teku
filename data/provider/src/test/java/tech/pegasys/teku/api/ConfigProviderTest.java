@@ -23,7 +23,7 @@ import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigLoader;
 
 class ConfigProviderTest {
-  private final Spec spec = SpecFactory.create("prater");
+  private final Spec spec = SpecFactory.create("holesky");
 
   private final ConfigProvider configProvider = new ConfigProvider(spec);
 
@@ -33,5 +33,10 @@ class ConfigProviderTest {
     final SpecConfig specConfig = SpecConfigLoader.loadRemoteConfig(configMap);
     final SpecConfig expectedConfig = spec.getGenesisSpecConfig();
     assertThat(specConfig).isEqualToComparingFieldByField(expectedConfig);
+  }
+
+  @Test
+  void nullInNullOut() {
+    assertThat(ConfigProvider.formatValue(null)).isNull();
   }
 }

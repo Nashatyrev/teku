@@ -15,6 +15,7 @@ package tech.pegasys.teku.spec.util;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.List;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.ssz.collections.SszUInt64List;
 import tech.pegasys.teku.infrastructure.ssz.primitive.SszByte;
@@ -22,15 +23,19 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
+import tech.pegasys.teku.spec.config.SpecConfigElectra;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayloadHeader;
 import tech.pegasys.teku.spec.datastructures.state.SyncCommittee;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.BeaconStateEip7594;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.BeaconStateSchemaEip7594;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateEip7594;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateElectra;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateSchemaElectra;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.MutableBeaconStateElectra;
+import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingBalanceDeposit;
+import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingConsolidation;
+import tech.pegasys.teku.spec.datastructures.state.versions.electra.PendingPartialWithdrawal;
 
-public class BeaconStateBuilderEip7594
+public class BeaconStateBuilderElectra
     extends AbstractBeaconStateBuilder<
-        BeaconStateEip7594, MutableBeaconStateEip7594, BeaconStateBuilderEip7594> {
+        BeaconStateElectra, MutableBeaconStateElectra, BeaconStateBuilderElectra> {
   private UInt64 nextWithdrawalIndex;
   private UInt64 nextWithdrawalValidatorIndex;
 
@@ -41,7 +46,20 @@ public class BeaconStateBuilderEip7594
   private SyncCommittee nextSyncCommittee;
   private ExecutionPayloadHeader latestExecutionPayloadHeader;
 
-  protected BeaconStateBuilderEip7594(
+  private UInt64 depositRequestsStartIndex;
+  private UInt64 depositBalanceToConsume;
+  private UInt64 exitBalanceToConsume;
+  private UInt64 earliestExitEpoch;
+
+  private UInt64 consolidationBalanceToConsume;
+
+  private UInt64 earliestConsolidationEpoch;
+
+  private SszList<PendingBalanceDeposit> pendingBalanceDeposits;
+  private SszList<PendingPartialWithdrawal> pendingPartialWithdrawals;
+  private SszList<PendingConsolidation> pendingConsolidations;
+
+  protected BeaconStateBuilderElectra(
       final SpecVersion spec,
       final DataStructureUtil dataStructureUtil,
       final int defaultValidatorCount,
@@ -50,12 +68,12 @@ public class BeaconStateBuilderEip7594
   }
 
   @Override
-  protected BeaconStateEip7594 getEmptyState() {
-    return BeaconStateSchemaEip7594.create(spec.getConfig()).createEmpty();
+  protected BeaconStateElectra getEmptyState() {
+    return BeaconStateSchemaElectra.create(spec.getConfig()).createEmpty();
   }
 
   @Override
-  protected void setUniqueFields(final MutableBeaconStateEip7594 state) {
+  protected void setUniqueFields(final MutableBeaconStateElectra state) {
     state.setPreviousEpochParticipation(previousEpochParticipation);
     state.setCurrentEpochParticipation(currentEpochParticipation);
     state.setInactivityScores(inactivityScores);
@@ -64,42 +82,64 @@ public class BeaconStateBuilderEip7594
     state.setLatestExecutionPayloadHeader(latestExecutionPayloadHeader);
     state.setNextWithdrawalIndex(nextWithdrawalIndex);
     state.setNextWithdrawalValidatorIndex(nextWithdrawalValidatorIndex);
+    state.setDepositRequestsStartIndex(depositRequestsStartIndex);
+    state.setDepositBalanceToConsume(depositBalanceToConsume);
+    state.setExitBalanceToConsume(exitBalanceToConsume);
+    state.setEarliestExitEpoch(earliestExitEpoch);
+    state.setConsolidationBalanceToConsume(consolidationBalanceToConsume);
+    state.setEarliestConsolidationEpoch(earliestConsolidationEpoch);
+    state.setPendingBalanceDeposits(pendingBalanceDeposits);
+    state.setPendingPartialWithdrawals(pendingPartialWithdrawals);
+    state.setPendingConsolidations(pendingConsolidations);
   }
 
-  public static BeaconStateBuilderEip7594 create(
+  public static BeaconStateBuilderElectra create(
       final DataStructureUtil dataStructureUtil,
       final Spec spec,
       final int defaultValidatorCount,
       final int defaultItemsInSSZLists) {
-    return new BeaconStateBuilderEip7594(
-        spec.forMilestone(SpecMilestone.EIP7594),
+    return new BeaconStateBuilderElectra(
+        spec.forMilestone(SpecMilestone.ELECTRA),
         dataStructureUtil,
         defaultValidatorCount,
         defaultItemsInSSZLists);
   }
 
-  public BeaconStateBuilderEip7594 nextWithdrawalIndex(final UInt64 nextWithdrawalIndex) {
+  public BeaconStateBuilderElectra nextWithdrawalIndex(final UInt64 nextWithdrawalIndex) {
     checkNotNull(nextWithdrawalIndex);
     this.nextWithdrawalIndex = nextWithdrawalIndex;
     return this;
   }
 
-  public BeaconStateBuilderEip7594 nextWithdrawalValidatorIndex(
+  public BeaconStateBuilderElectra nextWithdrawalValidatorIndex(
       final UInt64 nextWithdrawalValidatorIndex) {
     checkNotNull(nextWithdrawalValidatorIndex);
     this.nextWithdrawalValidatorIndex = nextWithdrawalValidatorIndex;
     return this;
   }
 
-  private BeaconStateSchemaEip7594 getBeaconStateSchema() {
-    return (BeaconStateSchemaEip7594) spec.getSchemaDefinitions().getBeaconStateSchema();
+  public BeaconStateBuilderElectra depositRequestsStartIndex(
+      final UInt64 depositRequestsStartIndex) {
+    checkNotNull(depositRequestsStartIndex);
+    this.depositRequestsStartIndex = depositRequestsStartIndex;
+    return this;
+  }
+
+  public BeaconStateBuilderElectra depositBalanceToConsume(final UInt64 depositBalanceToConsume) {
+    checkNotNull(depositBalanceToConsume);
+    this.depositBalanceToConsume = depositBalanceToConsume;
+    return this;
+  }
+
+  private BeaconStateSchemaElectra getBeaconStateSchema() {
+    return (BeaconStateSchemaElectra) spec.getSchemaDefinitions().getBeaconStateSchema();
   }
 
   @Override
   protected void initDefaults() {
     super.initDefaults();
 
-    final BeaconStateSchemaEip7594 schema = getBeaconStateSchema();
+    final BeaconStateSchemaElectra schema = getBeaconStateSchema();
 
     previousEpochParticipation =
         dataStructureUtil.randomSszList(
@@ -118,12 +158,25 @@ public class BeaconStateBuilderEip7594
     nextSyncCommittee = dataStructureUtil.randomSyncCommittee();
     latestExecutionPayloadHeader =
         dataStructureUtil.randomExecutionPayloadHeader(
-            dataStructureUtil.getSpec().forMilestone(SpecMilestone.EIP7594));
+            dataStructureUtil.getSpec().forMilestone(SpecMilestone.ELECTRA));
 
     this.nextWithdrawalIndex = UInt64.ZERO;
     this.nextWithdrawalValidatorIndex =
         defaultValidatorCount > 0
             ? dataStructureUtil.randomUInt64(defaultValidatorCount)
             : UInt64.ZERO;
+
+    this.depositRequestsStartIndex = SpecConfigElectra.UNSET_DEPOSIT_REQUESTS_START_INDEX;
+    this.depositBalanceToConsume = UInt64.ZERO;
+    this.exitBalanceToConsume = UInt64.ZERO;
+    this.earliestExitEpoch = UInt64.ZERO;
+    this.consolidationBalanceToConsume = UInt64.ZERO;
+    this.earliestConsolidationEpoch = UInt64.ZERO;
+    this.pendingBalanceDeposits =
+        schema.getPendingBalanceDepositsSchema().createFromElements(List.of());
+    this.pendingPartialWithdrawals =
+        schema.getPendingPartialWithdrawalsSchema().createFromElements(List.of());
+    this.pendingConsolidations =
+        schema.getPendingConsolidationsSchema().createFromElements(List.of());
   }
 }

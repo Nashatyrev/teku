@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.Test;
-import tech.pegasys.teku.api.schema.eip7594.SignedBeaconBlockEip7594;
+import tech.pegasys.teku.infrastructure.bytes.Bytes20;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.test.acceptance.dsl.AcceptanceTestBase;
 import tech.pegasys.teku.test.acceptance.dsl.GenesisGenerator.InitialStateData;
@@ -45,10 +45,7 @@ public class BlockProposalAcceptanceTest extends AcceptanceTestBase {
         createGenesisGenerator()
             .network(networkName)
             .withAltairEpoch(UInt64.ZERO)
-            .withBellatrixEpoch(UInt64.ONE)
-            .withCapellaEpoch(UInt64.valueOf(2))
-            .withDenebEpoch(UInt64.valueOf(3))
-            .withEip7594Epoch(UInt64.valueOf(4))
+            .withBellatrixEpoch(UInt64.ZERO)
             .validatorKeys(validatorKeystores, validatorKeystores)
             .generate();
 
@@ -61,14 +58,8 @@ public class BlockProposalAcceptanceTest extends AcceptanceTestBase {
                 .withJwtSecretFile(JWT_FILE)
                 .withNetwork(networkName)
                 .withInitialState(genesis)
-                .withRealNetwork()
                 .withAltairEpoch(UInt64.ZERO)
-                .withBellatrixEpoch(UInt64.ONE)
-                .withCapellaEpoch(UInt64.valueOf(2))
-                .withDenebEpoch(UInt64.valueOf(3))
-                .withEip7594Epoch(UInt64.valueOf(4))
-                .withTotalTerminalDifficulty(0)
-                .withTrustedSetupFromClasspath("mainnet-trusted-setup.txt")
+                .withBellatrixEpoch(UInt64.ZERO)
                 .withValidatorProposerDefaultFeeRecipient(defaultFeeRecipient)
                 .build());
     final TekuValidatorNode validatorClient =
@@ -85,15 +76,18 @@ public class BlockProposalAcceptanceTest extends AcceptanceTestBase {
     beaconNode.start();
     validatorClient.start();
 
-    beaconNode.waitForEpochAtOrAbove(4);
     beaconNode.waitForBlockSatisfying(
         block -> {
-          assertThat(block).isInstanceOf(SignedBeaconBlockEip7594.class);
-          final SignedBeaconBlockEip7594 eip7594Block = (SignedBeaconBlockEip7594) block;
-          assertThat(
-                  eip7594Block.getMessage().getBody().executionPayload.feeRecipient.toHexString())
+          final Bytes20 feeRecipient =
+              block
+                  .getMessage()
+                  .getBody()
+                  .getOptionalExecutionPayload()
+                  .orElseThrow()
+                  .getFeeRecipient();
+          assertThat(feeRecipient.toHexString().toLowerCase(Locale.ROOT))
               .isEqualTo(defaultFeeRecipient.toLowerCase(Locale.ROOT));
-          final Bytes32 graffiti = eip7594Block.getMessage().getBody().graffiti;
+          final Bytes32 graffiti = block.getMessage().getBody().getGraffiti();
           final String graffitiMessage =
               new String(
                   Arrays.copyOfRange(

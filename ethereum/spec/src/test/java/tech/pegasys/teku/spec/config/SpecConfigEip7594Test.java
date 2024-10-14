@@ -78,18 +78,23 @@ public class SpecConfigEip7594Test {
       final SpecConfigDeneb denebConfig, final int seed) {
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(seed, spec);
 
-    return new SpecConfigEip7594Impl(
+    return new SpecConfigElectraImpl(
         denebConfig,
         dataStructureUtil.randomBytes4(),
         dataStructureUtil.randomUInt64(999_999),
-        dataStructureUtil.randomUInt64(64),
-        dataStructureUtil.randomUInt64(8192),
-        dataStructureUtil.randomUInt64(10),
-        dataStructureUtil.randomPositiveInt(128),
-        dataStructureUtil.randomPositiveInt(64),
-        dataStructureUtil.randomPositiveInt(64),
-        dataStructureUtil.randomPositiveInt(64),
+        dataStructureUtil.randomUInt64(128000000000L),
+        dataStructureUtil.randomUInt64(32000000000L),
+        dataStructureUtil.randomUInt64(2048000000000L),
+        dataStructureUtil.randomPositiveInt(134217728),
+        dataStructureUtil.randomPositiveInt(134217728),
+        dataStructureUtil.randomPositiveInt(262144),
         dataStructureUtil.randomPositiveInt(4096),
-        dataStructureUtil.randomPositiveInt(16384)) {};
+        dataStructureUtil.randomPositiveInt(4096),
+        dataStructureUtil.randomPositiveInt(1),
+        dataStructureUtil.randomPositiveInt(8),
+        dataStructureUtil.randomPositiveInt(1),
+        dataStructureUtil.randomPositiveInt(8192),
+        dataStructureUtil.randomPositiveInt(16),
+        dataStructureUtil.randomPositiveInt(8)) {};
   }
 }

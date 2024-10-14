@@ -19,7 +19,7 @@ import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 
 public class DataColumn extends SszListImpl<Cell> implements SszList<Cell> {
 
-  DataColumn(DataColumnSchema schema, TreeNode node) {
+  DataColumn(final DataColumnSchema schema, final TreeNode node) {
     super(schema, node);
   }
 

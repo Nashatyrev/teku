@@ -28,12 +28,12 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
@@ -73,13 +73,13 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   }
 
   private int getColumnCount(UInt64 slot) {
-    return SpecConfigEip7594.required(spec.atSlot(slot).getConfig()).getNumberOfColumns();
+    return Eip7594.required(spec.atSlot(slot).getConfig()).getNumberOfColumns();
   }
 
   private List<DataColumnSlotAndIdentifier> calculateSamplingColumnIds(
       UInt64 slot, Bytes32 blockRoot) {
     final Optional<MiscHelpersEip7594> maybeMiscHelpers =
-        spec.atSlot(slot).miscHelpers().toVersionEip7594();
+        spec.atSlot(slot).miscHelpers().getEip7594Helpers();
     return maybeMiscHelpers
         .map(
             miscHelpersEip7594 ->
@@ -172,7 +172,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   private boolean isEIP7594(BeaconBlock block) {
     return spec.atSlot(block.getSlot())
         .getMilestone()
-        .isGreaterThanOrEqualTo(SpecMilestone.EIP7594);
+        .isGreaterThanOrEqualTo(SpecMilestone.ELECTRA);
   }
 
   private boolean hasBlobs(BeaconBlock block) {

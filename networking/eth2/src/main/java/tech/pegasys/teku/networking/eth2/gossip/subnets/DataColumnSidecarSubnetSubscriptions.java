@@ -32,7 +32,7 @@ import tech.pegasys.teku.spec.config.SpecConfigEip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecarSchema;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
 public class DataColumnSidecarSubnetSubscriptions extends CommitteeSubnetSubscriptions {
@@ -59,9 +59,9 @@ public class DataColumnSidecarSubnetSubscriptions extends CommitteeSubnetSubscri
     this.recentChainData = recentChainData;
     this.processor = processor;
     this.forkInfo = forkInfo;
-    SpecVersion specVersion = spec.forMilestone(SpecMilestone.EIP7594);
+    SpecVersion specVersion = spec.forMilestone(SpecMilestone.ELECTRA);
     this.dataColumnSidecarSchema =
-        SchemaDefinitionsEip7594.required(specVersion.getSchemaDefinitions())
+        SchemaDefinitionsElectra.required(specVersion.getSchemaDefinitions())
             .getDataColumnSidecarSchema();
     this.subnetCount =
         SpecConfigEip7594.required(specVersion.getConfig()).getDataColumnSidecarSubnetCount();

@@ -13,6 +13,8 @@
 
 package tech.pegasys.teku.cli.subcommand.debug;
 
+import static tech.pegasys.teku.infrastructure.time.SystemTimeProvider.SYSTEM_TIME_PROVIDER;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -33,7 +35,6 @@ import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.MetricTrackingExecutorFactory;
 import tech.pegasys.teku.infrastructure.exceptions.InvalidConfigurationException;
 import tech.pegasys.teku.infrastructure.restapi.RestApi;
-import tech.pegasys.teku.infrastructure.time.SystemTimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.infrastructure.version.VersionProvider;
 import tech.pegasys.teku.service.serviceutils.layout.DataDirLayout;
@@ -42,6 +43,7 @@ import tech.pegasys.teku.spec.SpecFactory;
 import tech.pegasys.teku.spec.datastructures.state.CommitteeAssignment;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.validator.api.ValidatorApiChannel;
+import tech.pegasys.teku.validator.api.noop.NoOpGraffitiManager;
 import tech.pegasys.teku.validator.beaconnode.GenesisDataProvider;
 import tech.pegasys.teku.validator.client.KeyManager;
 import tech.pegasys.teku.validator.client.NoOpKeyManager;
@@ -146,7 +148,7 @@ public class DebugToolsCommand implements Runnable {
     tempDir.toFile().deleteOnExit();
 
     DataDirLayout dataDirLayout =
-        new SeparateServiceDataDirLayout(tempDir, Optional.empty(), Optional.empty());
+        new SeparateServiceDataDirLayout(tempDir, Optional.empty(), Optional.empty(), false);
     final KeyManager keyManager = new NoOpKeyManager();
 
     final AsyncRunnerFactory asyncRunnerFactory =
@@ -163,9 +165,10 @@ public class DebugToolsCommand implements Runnable {
             Optional.empty(),
             keyManager,
             dataDirLayout,
-            new SystemTimeProvider(),
+            SYSTEM_TIME_PROVIDER,
             Optional.empty(),
-            new DoppelgangerDetectionAlert());
+            new DoppelgangerDetectionAlert(),
+            new NoOpGraffitiManager());
 
     if (api.getRestApiDocs().isPresent()) {
       final String docs = api.getRestApiDocs().get();
@@ -231,9 +234,9 @@ public class DebugToolsCommand implements Runnable {
     System.out.printf(
         "Validator %s assigned to attest at slot %s in committee index %s, position %s%n",
         validatorIndex,
-        assignment.getSlot(),
-        assignment.getCommitteeIndex(),
-        assignment.getCommittee().indexOf(validatorIndex));
+        assignment.slot(),
+        assignment.committeeIndex(),
+        assignment.committee().indexOf(validatorIndex));
     return 0;
   }
 }

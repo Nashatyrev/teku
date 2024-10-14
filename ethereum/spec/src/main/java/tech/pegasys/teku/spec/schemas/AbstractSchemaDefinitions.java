@@ -18,31 +18,36 @@ import tech.pegasys.teku.infrastructure.ssz.schema.collections.SszBitvectorSchem
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.constants.NetworkConstants;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.BeaconBlocksByRootRequestMessage;
-import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing.AttesterSlashingSchema;
-import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation.IndexedAttestationSchema;
-import tech.pegasys.teku.spec.datastructures.operations.SignedAggregateAndProof.SignedAggregateAndProofSchema;
 import tech.pegasys.teku.spec.datastructures.state.HistoricalBatch.HistoricalBatchSchema;
+import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 
 public abstract class AbstractSchemaDefinitions implements SchemaDefinitions {
+  protected SchemaRegistry schemaRegistry;
 
   final SszBitvectorSchema<SszBitvector> attnetsENRFieldSchema;
   final SszBitvectorSchema<SszBitvector> syncnetsENRFieldSchema =
       SszBitvectorSchema.create(NetworkConstants.SYNC_COMMITTEE_SUBNET_COUNT);
   private final HistoricalBatchSchema historicalBatchSchema;
-  private final SignedAggregateAndProofSchema signedAggregateAndProofSchema;
-  private final IndexedAttestationSchema indexedAttestationSchema;
-  private final AttesterSlashingSchema attesterSlashingSchema;
   private final BeaconBlocksByRootRequestMessage.BeaconBlocksByRootRequestMessageSchema
       beaconBlocksByRootRequestMessageSchema;
 
-  public AbstractSchemaDefinitions(final SpecConfig specConfig) {
-    this.historicalBatchSchema = new HistoricalBatchSchema(specConfig.getSlotsPerHistoricalRoot());
-    this.signedAggregateAndProofSchema = new SignedAggregateAndProofSchema(specConfig);
-    this.indexedAttestationSchema = new IndexedAttestationSchema(specConfig);
-    this.attesterSlashingSchema = new AttesterSlashingSchema(indexedAttestationSchema);
+  public AbstractSchemaDefinitions(final SchemaRegistry schemaRegistry) {
+    this.schemaRegistry = schemaRegistry;
+    this.historicalBatchSchema =
+        new HistoricalBatchSchema(schemaRegistry.getSpecConfig().getSlotsPerHistoricalRoot());
+
     this.beaconBlocksByRootRequestMessageSchema =
-        new BeaconBlocksByRootRequestMessage.BeaconBlocksByRootRequestMessageSchema(specConfig);
-    this.attnetsENRFieldSchema = SszBitvectorSchema.create(specConfig.getAttestationSubnetCount());
+        new BeaconBlocksByRootRequestMessage.BeaconBlocksByRootRequestMessageSchema(
+            schemaRegistry.getSpecConfig());
+    this.attnetsENRFieldSchema =
+        SszBitvectorSchema.create(schemaRegistry.getSpecConfig().getAttestationSubnetCount());
+  }
+
+  abstract long getMaxValidatorPerAttestation(SpecConfig specConfig);
+
+  @Override
+  public SchemaRegistry getSchemaRegistry() {
+    return schemaRegistry;
   }
 
   @Override
@@ -58,21 +63,6 @@ public abstract class AbstractSchemaDefinitions implements SchemaDefinitions {
   @Override
   public HistoricalBatchSchema getHistoricalBatchSchema() {
     return historicalBatchSchema;
-  }
-
-  @Override
-  public SignedAggregateAndProofSchema getSignedAggregateAndProofSchema() {
-    return signedAggregateAndProofSchema;
-  }
-
-  @Override
-  public IndexedAttestationSchema getIndexedAttestationSchema() {
-    return indexedAttestationSchema;
-  }
-
-  @Override
-  public AttesterSlashingSchema getAttesterSlashingSchema() {
-    return attesterSlashingSchema;
   }
 
   @Override

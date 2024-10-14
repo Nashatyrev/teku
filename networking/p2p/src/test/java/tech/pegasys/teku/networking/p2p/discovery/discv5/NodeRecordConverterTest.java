@@ -83,20 +83,20 @@ class NodeRecordConverterTest {
             ATTNETS,
             SYNCNETS,
             Optional.empty());
-    assertThat(CONVERTER.convertToDiscoveryPeer(nodeRecord, SCHEMA_DEFINITIONS))
+    assertThat(CONVERTER.convertToDiscoveryPeer(nodeRecord, false, SCHEMA_DEFINITIONS))
         .contains(expectedPeer);
   }
 
   @Test
   public void shouldNotConvertRecordWithNoIp() {
-    assertThat(convertNodeRecordWithFields()).isEmpty();
+    assertThat(convertNodeRecordWithFields(false)).isEmpty();
   }
 
   @Test
   public void shouldNotConvertRecordWithIpButNoPort() {
     assertThat(
             convertNodeRecordWithFields(
-                new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {127, 0, 0, 1}))))
+                false, new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {127, 0, 0, 1}))))
         .isEmpty();
   }
 
@@ -104,6 +104,7 @@ class NodeRecordConverterTest {
   public void shouldNotConvertRecordWithIpAndUdpPortButNoTcpPort() {
     assertThat(
             convertNodeRecordWithFields(
+                false,
                 new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {127, 0, 0, 1})),
                 new EnrField(EnrField.UDP, 30303)))
         .isEmpty();
@@ -114,7 +115,9 @@ class NodeRecordConverterTest {
   public void shouldUseV4PortIfV6PortSpecifiedWithNoV6Ip() {
     assertThat(
             convertNodeRecordWithFields(
-                new EnrField(EnrField.IP_V6, IPV6_LOCALHOST), new EnrField(EnrField.TCP, 30303)))
+                true,
+                new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
+                new EnrField(EnrField.TCP, 30303)))
         .contains(
             new DiscoveryPeer(
                 PUB_KEY,
@@ -130,13 +133,15 @@ class NodeRecordConverterTest {
   public void shouldNotConvertRecordWithV4IpAndV6Port() {
     assertThat(
             convertNodeRecordWithFields(
-                new EnrField(EnrField.IP_V4, IPV6_LOCALHOST), new EnrField(EnrField.TCP_V6, 30303)))
+                false,
+                new EnrField(EnrField.IP_V4, IPV6_LOCALHOST),
+                new EnrField(EnrField.TCP_V6, 30303)))
         .isEmpty();
   }
 
   @Test
   public void shouldNotConvertRecordWithPortButNoIp() {
-    assertThat(convertNodeRecordWithFields(new EnrField(EnrField.TCP, 30303))).isEmpty();
+    assertThat(convertNodeRecordWithFields(false, new EnrField(EnrField.TCP, 30303))).isEmpty();
   }
 
   @Test
@@ -144,6 +149,7 @@ class NodeRecordConverterTest {
     // IP address bytes are unsigned. Make sure we handle that correctly.
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
+            true,
             new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {-127, 24, 31, 22})),
             new EnrField(EnrField.TCP, 1234));
     assertThat(result)
@@ -159,11 +165,23 @@ class NodeRecordConverterTest {
   }
 
   @Test
+  public void shouldNotConvertIpV6RecordIfIpV6IsNotSupported() {
+    assertThat(
+            convertNodeRecordWithFields(
+                false,
+                new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
+                new EnrField(EnrField.TCP_V6, 1234)))
+        .isEmpty();
+  }
+
+  @Test
   @Disabled("Needs IPv6 update from master")
   public void shouldConvertIpV6Record() {
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
-            new EnrField(EnrField.IP_V6, IPV6_LOCALHOST), new EnrField(EnrField.TCP_V6, 1234));
+            true,
+            new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
+            new EnrField(EnrField.TCP_V6, 1234));
     assertThat(result)
         .contains(
             new DiscoveryPeer(
@@ -177,12 +195,34 @@ class NodeRecordConverterTest {
   }
 
   @Test
+  public void shouldConvertDualStackRecordIfIpV6IsNotSupported() {
+    final Optional<DiscoveryPeer> result =
+        convertNodeRecordWithFields(
+            false,
+            new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {127, 0, 0, 1})),
+            new EnrField(EnrField.TCP, 1234),
+            new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
+            new EnrField(EnrField.TCP_V6, 1235));
+    assertThat(result)
+        .contains(
+            new DiscoveryPeer(
+                PUB_KEY,
+                NODE_ID,
+                new InetSocketAddress("127.0.0.1", 1234),
+                ENR_FORK_ID,
+                ATTNETS,
+                SYNCNETS,
+                Optional.empty()));
+  }
+
+  @Test
   @Disabled("Needs IPv6 update from master")
   public void shouldConvertAttnets() {
     SszBitvector persistentSubnets = ATT_SUBNET_SCHEMA.ofBits(1, 8, 14, 32);
     Bytes encodedPersistentSubnets = persistentSubnets.sszSerialize();
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
+            true,
             new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
             new EnrField(EnrField.TCP_V6, 1234),
             new EnrField(ATTESTATION_SUBNET_ENR_FIELD, encodedPersistentSubnets));
@@ -205,6 +245,7 @@ class NodeRecordConverterTest {
     Bytes encodedPersistentSubnets = persistentSubnets.sszSerialize();
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
+            true,
             new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
             new EnrField(EnrField.TCP_V6, 1234),
             new EnrField(ATTESTATION_SUBNET_ENR_FIELD, encodedPersistentSubnets));
@@ -227,6 +268,7 @@ class NodeRecordConverterTest {
     Bytes encodedSyncnets = syncnets.sszSerialize();
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
+            true,
             new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
             new EnrField(EnrField.TCP_V6, 1234),
             new EnrField(SYNC_COMMITTEE_SUBNET_ENR_FIELD, encodedSyncnets));
@@ -251,6 +293,7 @@ class NodeRecordConverterTest {
     Bytes encodedSyncnets = syncnets.sszSerialize();
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
+            true,
             new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
             new EnrField(EnrField.TCP_V6, 1234),
             new EnrField(SYNC_COMMITTEE_SUBNET_ENR_FIELD, encodedSyncnets));
@@ -273,6 +316,7 @@ class NodeRecordConverterTest {
     Bytes encodedForkId = enrForkId.sszSerialize();
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
+            true,
             new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
             new EnrField(EnrField.TCP_V6, 1234),
             new EnrField(ETH2_ENR_FIELD, encodedForkId));
@@ -294,6 +338,7 @@ class NodeRecordConverterTest {
     Bytes encodedForkId = Bytes.fromHexString("0x1234");
     final Optional<DiscoveryPeer> result =
         convertNodeRecordWithFields(
+            true,
             new EnrField(EnrField.IP_V6, IPV6_LOCALHOST),
             new EnrField(EnrField.TCP_V6, 1234),
             new EnrField(ETH2_ENR_FIELD, encodedForkId));
@@ -314,7 +359,7 @@ class NodeRecordConverterTest {
   public void shouldDecodeCscCorrectly(final String hexString, final Integer csc) {
     assertThat(
             convertNodeRecordWithFields(
-                new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {-127, 24, 31, 22})),
+                new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {127, 0, 0, 1})),
                 new EnrField(EnrField.TCP, 1234),
                 new EnrField(DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, Bytes.fromHexString(hexString))))
         .contains(
@@ -328,8 +373,10 @@ class NodeRecordConverterTest {
                 Optional.of(csc)));
   }
 
-  private Optional<DiscoveryPeer> convertNodeRecordWithFields(final EnrField... fields) {
-    return CONVERTER.convertToDiscoveryPeer(createNodeRecord(fields), SCHEMA_DEFINITIONS);
+  private Optional<DiscoveryPeer> convertNodeRecordWithFields(
+      final boolean supportsIpv6, final EnrField... fields) {
+    return CONVERTER.convertToDiscoveryPeer(
+        createNodeRecord(fields), supportsIpv6, SCHEMA_DEFINITIONS);
   }
 
   private NodeRecord createNodeRecord(final EnrField... fields) {

@@ -46,6 +46,7 @@ import tech.pegasys.teku.storage.api.UpdateResult;
 import tech.pegasys.teku.storage.api.WeakSubjectivityState;
 import tech.pegasys.teku.storage.api.WeakSubjectivityUpdate;
 import tech.pegasys.teku.storage.server.Database;
+import tech.pegasys.teku.storage.server.DatabaseArchiveWriter;
 
 public class NoOpDatabase implements Database {
 
@@ -224,11 +225,19 @@ public class NoOpDatabase implements Database {
   }
 
   @Override
-  public void setFinalizedDepositSnapshot(DepositTreeSnapshot finalizedDepositSnapshot) {}
+  public void setFinalizedDepositSnapshot(final DepositTreeSnapshot finalizedDepositSnapshot) {}
 
   @Override
-  public UInt64 pruneFinalizedBlocks(UInt64 lastSlotToPrune, int pruneLimit) {
+  public UInt64 pruneFinalizedBlocks(final UInt64 lastSlotToPrune, final int pruneLimit) {
     return lastSlotToPrune;
+  }
+
+  @Override
+  public Optional<UInt64> pruneFinalizedStates(
+      final Optional<UInt64> lastPrunedSlot,
+      final UInt64 lastSlotToPruneStateFor,
+      final long pruneLimit) {
+    return Optional.of(lastSlotToPruneStateFor);
   }
 
   @Override
@@ -238,7 +247,7 @@ public class NoOpDatabase implements Database {
   public void addDepositsFromBlockEvent(final DepositsFromBlockEvent event) {}
 
   @Override
-  public void removeDepositsFromBlockEvents(List<UInt64> blockNumbers) {}
+  public void removeDepositsFromBlockEvents(final List<UInt64> blockNumbers) {}
 
   @Override
   public void storeVotes(final Map<UInt64, VoteTracker> votes) {}
@@ -319,7 +328,10 @@ public class NoOpDatabase implements Database {
   }
 
   @Override
-  public boolean pruneOldestBlobSidecars(final UInt64 lastSlotToPrune, final int pruneLimit) {
+  public boolean pruneOldestBlobSidecars(
+      final UInt64 lastSlotToPrune,
+      final int pruneLimit,
+      final DatabaseArchiveWriter<BlobSidecar> archiveWriter) {
     return false;
   }
 

@@ -20,14 +20,15 @@ class SliceIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> 
   private final BaseAsyncStreamTransform.BaseSlicer<T> slicer;
 
   protected SliceIteratorCallback(
-      AsyncIteratorCallback<T> delegate, BaseAsyncStreamTransform.BaseSlicer<T> slicer) {
+      final AsyncIteratorCallback<T> delegate,
+      final BaseAsyncStreamTransform.BaseSlicer<T> slicer) {
     super(delegate);
     this.slicer = slicer;
   }
 
   @Override
-  public SafeFuture<Boolean> onNext(T t) {
-    BaseAsyncStreamTransform.SliceResult sliceResult = slicer.slice(t);
+  public SafeFuture<Boolean> onNext(final T t) {
+    final BaseAsyncStreamTransform.SliceResult sliceResult = slicer.slice(t);
     return switch (sliceResult) {
       case CONTINUE -> delegate.onNext(t);
       case SKIP_AND_STOP -> FALSE_FUTURE;

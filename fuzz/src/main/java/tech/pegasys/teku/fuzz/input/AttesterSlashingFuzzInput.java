@@ -29,13 +29,13 @@ public class AttesterSlashingFuzzInput
       createType(final SpecVersion spec) {
     return ContainerSchema2.create(
         SszSchema.as(BeaconState.class, spec.getSchemaDefinitions().getBeaconStateSchema()),
-        spec.getSchemaDefinitions().getAttesterSlashingSchema(),
+        spec.getSchemaDefinitions().getAttesterSlashingSchema().castTypeToAttesterSlashingSchema(),
         AttesterSlashingFuzzInput::new);
   }
 
   private AttesterSlashingFuzzInput(
-      ContainerSchema2<AttesterSlashingFuzzInput, BeaconState, AttesterSlashing> type,
-      TreeNode backingNode) {
+      final ContainerSchema2<AttesterSlashingFuzzInput, BeaconState, AttesterSlashing> type,
+      final TreeNode backingNode) {
     super(type, backingNode);
   }
 

@@ -37,7 +37,7 @@ import tech.pegasys.teku.networking.eth2.peers.PeerScorer;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
 import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.config.NetworkingSpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.NetworkingSpecConfigEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 
 public class PeerSubnetSubscriptions {
@@ -279,7 +279,7 @@ public class PeerSubnetSubscriptions {
       this.subscriptionsByPeer = subscriptionsByPeer;
     }
 
-    public static Builder builder(SszBitvectorSchema<?> subscriptionSchema) {
+    public static Builder builder(final SszBitvectorSchema<?> subscriptionSchema) {
       return new Builder(subscriptionSchema);
     }
 

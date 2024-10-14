@@ -206,7 +206,7 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
 
   @Test
   public void onNewBlock_shouldIgnoreEip7594Blocks() {
-    final Spec spec = TestSpecFactory.createMinimalEip7594();
+    final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
     final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolEip7594 =
         new PoolFactory(metricsSystem)
             .createPoolForBlockBlobSidecarsTrackers(
@@ -1084,7 +1084,7 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
     assertStats("block", "gossip", 2);
   }
 
-  private Checkpoint finalizedCheckpoint(SignedBeaconBlock block) {
+  private Checkpoint finalizedCheckpoint(final SignedBeaconBlock block) {
     final UInt64 epoch = spec.computeEpochAtSlot(block.getSlot()).plus(UInt64.ONE);
     final Bytes32 root = block.getMessage().hashTreeRoot();
 
@@ -1096,7 +1096,8 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
   }
 
   private void assertStats(final String type, final String subType, final double count) {
-    assertThat(getMetricsValues("block_blobs_trackers_pool_stats").get(List.of(type, subType)))
+    assertThat(
+            getMetricsValues("block_blobs_trackers_pool_stats_total").get(List.of(type, subType)))
         .isEqualTo(count);
   }
 

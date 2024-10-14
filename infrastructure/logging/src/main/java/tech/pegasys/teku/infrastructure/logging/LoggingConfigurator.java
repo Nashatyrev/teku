@@ -162,9 +162,9 @@ public class LoggingConfigurator {
         break;
       default:
         displayUnknownDestinationConfigured();
-        // fall through
+      // fall through
       case DEFAULT_BOTH:
-        // fall through
+      // fall through
       case BOTH:
         consoleAppender = consoleAppender(configuration, true);
         final LoggerConfig eventsLogger = setUpEventsLogger(consoleAppender);
@@ -196,9 +196,9 @@ public class LoggingConfigurator {
         STATUS_LOG.info("Logging file location: {}", file);
         break;
       default:
-        // fall through
+      // fall through
       case DEFAULT_BOTH:
-        // fall through
+      // fall through
       case BOTH:
         STATUS_LOG.info("Configuring logging for destination: console and file");
         STATUS_LOG.info("Logging file location: {}", file);
@@ -296,7 +296,7 @@ public class LoggingConfigurator {
 
   @VisibleForTesting
   static PatternLayout consoleAppenderLayout(
-      AbstractConfiguration configuration, final boolean omitStackTraces) {
+      final AbstractConfiguration configuration, final boolean omitStackTraces) {
     final Pattern logReplacement =
         Pattern.compile(isColorEnabled() ? COLOR_LOG_REGEX : NO_COLOR_LOG_REGEX);
     return PatternLayout.newBuilder()
@@ -324,7 +324,7 @@ public class LoggingConfigurator {
   }
 
   @VisibleForTesting
-  static PatternLayout fileAppenderLayout(AbstractConfiguration configuration) {
+  static PatternLayout fileAppenderLayout(final AbstractConfiguration configuration) {
     final Pattern logReplacement =
         Pattern.compile(isColorEnabled() ? COLOR_LOG_REGEX : NO_COLOR_LOG_REGEX);
     return PatternLayout.newBuilder()

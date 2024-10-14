@@ -17,7 +17,6 @@ import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.infrastructure.ssz.containers.Container2;
 import tech.pegasys.teku.infrastructure.ssz.containers.ContainerSchema2;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
-import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.operations.AggregateAndProof.AggregateAndProofSchema;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
 import tech.pegasys.teku.spec.datastructures.type.SszSignatureSchema;
@@ -28,10 +27,12 @@ public class SignedAggregateAndProof
   public static class SignedAggregateAndProofSchema
       extends ContainerSchema2<SignedAggregateAndProof, AggregateAndProof, SszSignature> {
 
-    public SignedAggregateAndProofSchema(final SpecConfig specConfig) {
+    public SignedAggregateAndProofSchema(final AggregateAndProofSchema aggregateAndProofSchema) {
       super(
-          "SignedAggregateAndProof",
-          namedSchema("message", new AggregateAndProofSchema(specConfig)),
+          aggregateAndProofSchema.getAttestationSchema().requiresCommitteeBits()
+              ? "SignedAggregateAndProofElectra"
+              : "SignedAggregateAndProofPhase0",
+          namedSchema("message", aggregateAndProofSchema),
           namedSchema("signature", SszSignatureSchema.INSTANCE));
     }
 
@@ -40,16 +41,18 @@ public class SignedAggregateAndProof
     }
 
     @Override
-    public SignedAggregateAndProof createFromBackingNode(TreeNode node) {
+    public SignedAggregateAndProof createFromBackingNode(final TreeNode node) {
       return new SignedAggregateAndProof(this, node);
     }
 
-    public SignedAggregateAndProof create(final AggregateAndProof message, BLSSignature signature) {
+    public SignedAggregateAndProof create(
+        final AggregateAndProof message, final BLSSignature signature) {
       return new SignedAggregateAndProof(this, message, signature);
     }
   }
 
-  private SignedAggregateAndProof(SignedAggregateAndProofSchema type, TreeNode backingNode) {
+  private SignedAggregateAndProof(
+      final SignedAggregateAndProofSchema type, final TreeNode backingNode) {
     super(type, backingNode);
   }
 

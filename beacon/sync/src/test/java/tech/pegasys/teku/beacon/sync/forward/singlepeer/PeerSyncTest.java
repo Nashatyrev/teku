@@ -554,14 +554,15 @@ public class PeerSyncTest extends AbstractSyncTest {
 
   @Test
   void sync_blobSidecarsWhenEndSlotInEpoch7594() {
-    final UInt64 eip7594ForkEpoch = UInt64.valueOf(101);
+    final UInt64 eip7594Epoch = UInt64.valueOf(101);
     final Spec spec =
-        TestSpecFactory.createMinimalEip7594(
+        TestSpecFactory.createMinimalElectraEip7594(
             builder ->
                 builder
                     .denebBuilder(denebBuilder -> denebBuilder.denebForkEpoch(denebForkEpoch))
-                    .eip7594Builder(
-                        eip7594Builder -> eip7594Builder.eip7594ForkEpoch(eip7594ForkEpoch)));
+                    .electraBuilder(
+                        electraBuilder -> electraBuilder.electraForkEpoch(denebForkEpoch))
+                    .eip7594Builder(eip7594Builder -> eip7594Builder.eip7594Epoch(eip7594Epoch)));
     when(recentChainData.getFinalizedEpoch()).thenReturn(denebForkEpoch);
     when(blobSidecarManager.isAvailabilityRequiredAtSlot(any()))
         .thenAnswer(
@@ -593,7 +594,7 @@ public class PeerSyncTest extends AbstractSyncTest {
 
     final UInt64 slotsPerEpochMinimal = UInt64.valueOf(8);
     final UInt64 denebLastSlot = denebFirstSlot.plus(slotsPerEpochMinimal);
-    assertThat(spec.atSlot(denebLastSlot).getMilestone().equals(SpecMilestone.EIP7594)).isTrue();
+    assertThat(spec.atSlot(denebLastSlot).getMilestone().equals(SpecMilestone.ELECTRA)).isTrue();
     assertThat(denebPeerSlotsAhead.isGreaterThan(slotsPerEpochMinimal)).isTrue();
 
     verify(peer).requestBlobSidecarsByRange(eq(denebSecondSlot), eq(denebPeerSlotsAhead), any());

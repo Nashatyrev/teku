@@ -20,13 +20,14 @@ class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T,
 
   private final Predicate<T> filter;
 
-  protected FilteringIteratorCallback(AsyncIteratorCallback<T> delegate, Predicate<T> filter) {
+  protected FilteringIteratorCallback(
+      final AsyncIteratorCallback<T> delegate, final Predicate<T> filter) {
     super(delegate);
     this.filter = filter;
   }
 
   @Override
-  public SafeFuture<Boolean> onNext(T t) {
+  public SafeFuture<Boolean> onNext(final T t) {
     if (filter.test(t)) {
       return delegate.onNext(t);
     } else {

@@ -52,6 +52,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.deneb.BeaconStateDeneb;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.deneb.BeaconStateSchemaDeneb;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.deneb.MutableBeaconStateDeneb;
+import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 
 public class SchemaDefinitionsDeneb extends SchemaDefinitionsCapella {
 
@@ -82,8 +83,9 @@ public class SchemaDefinitionsDeneb extends SchemaDefinitionsCapella {
   private final ExecutionPayloadAndBlobsBundleSchema executionPayloadAndBlobsBundleSchema;
   private final BlobSidecarsByRootRequestMessageSchema blobSidecarsByRootRequestMessageSchema;
 
-  public SchemaDefinitionsDeneb(final SpecConfigDeneb specConfig) {
-    super(specConfig);
+  public SchemaDefinitionsDeneb(final SchemaRegistry schemaRegistry) {
+    super(schemaRegistry);
+    final SpecConfigDeneb specConfig = SpecConfigDeneb.required(schemaRegistry.getSpecConfig());
     this.executionPayloadSchemaDeneb = new ExecutionPayloadSchemaDeneb(specConfig);
 
     this.beaconStateSchema = BeaconStateSchemaDeneb.create(specConfig);
@@ -93,16 +95,16 @@ public class SchemaDefinitionsDeneb extends SchemaDefinitionsCapella {
     this.beaconBlockBodySchema =
         BeaconBlockBodySchemaDenebImpl.create(
             specConfig,
-            getAttesterSlashingSchema(),
             getSignedBlsToExecutionChangeSchema(),
             blobKzgCommitmentsSchema,
+            getMaxValidatorPerAttestation(specConfig),
             "BeaconBlockBodyDeneb");
     this.blindedBeaconBlockBodySchema =
         BlindedBeaconBlockBodySchemaDenebImpl.create(
             specConfig,
-            getAttesterSlashingSchema(),
             getSignedBlsToExecutionChangeSchema(),
             blobKzgCommitmentsSchema,
+            getMaxValidatorPerAttestation(specConfig),
             "BlindedBlockBodyDeneb");
     this.beaconBlockSchema = new BeaconBlockSchema(beaconBlockBodySchema, "BeaconBlockDeneb");
     this.blindedBeaconBlockSchema =
@@ -140,7 +142,7 @@ public class SchemaDefinitionsDeneb extends SchemaDefinitionsCapella {
   public static SchemaDefinitionsDeneb required(final SchemaDefinitions schemaDefinitions) {
     checkArgument(
         schemaDefinitions instanceof SchemaDefinitionsDeneb,
-        "Expected definitions of type %s by got %s",
+        "Expected definitions of type %s but got %s",
         SchemaDefinitionsDeneb.class,
         schemaDefinitions.getClass());
     return (SchemaDefinitionsDeneb) schemaDefinitions;

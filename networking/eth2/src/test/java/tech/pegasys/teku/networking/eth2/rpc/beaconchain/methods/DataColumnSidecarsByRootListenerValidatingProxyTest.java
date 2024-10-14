@@ -38,7 +38,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 @SuppressWarnings("JavaCase")
@@ -154,14 +154,14 @@ public class DataColumnSidecarsByRootListenerValidatingProxyTest {
 
   @Test
   void dataColumnSidecarFailsInclusionProofVerification() {
-    final SchemaDefinitionsEip7594 schemaDefinitionsEip7594 =
-        SchemaDefinitionsEip7594.required(spec.getGenesisSchemaDefinitions());
+    final SchemaDefinitionsElectra schemaDefinitionsElectra =
+        SchemaDefinitionsElectra.required(spec.getGenesisSchemaDefinitions());
     final DataColumnSidecar dataColumnSidecar =
-        schemaDefinitionsEip7594
+        schemaDefinitionsElectra
             .getDataColumnSidecarSchema()
             .create(
                 UInt64.ZERO,
-                schemaDefinitionsEip7594.getDataColumnSchema().create(List.of()),
+                schemaDefinitionsElectra.getDataColumnSchema().create(List.of()),
                 List.of(),
                 List.of(),
                 new SignedBeaconBlockHeader(

@@ -31,11 +31,11 @@ public interface AsyncStreamReduce<T> extends BaseAsyncStreamReduce<T>, AsyncStr
         .thenApply(l -> l.isEmpty() ? Optional.empty() : Optional.of(l.getFirst()));
   }
 
-  default SafeFuture<Void> forEach(Consumer<T> consumer) {
+  default SafeFuture<Void> forEach(final Consumer<T> consumer) {
     return collect(Collector.of(() -> null, (a, t) -> consumer.accept(t), noCallBinaryOperator()));
   }
 
-  default <C extends Collection<T>> SafeFuture<C> collect(C targetCollection) {
+  default <C extends Collection<T>> SafeFuture<C> collect(final C targetCollection) {
     return collect(Collectors.toCollection(() -> targetCollection));
   }
 
@@ -48,17 +48,17 @@ public interface AsyncStreamReduce<T> extends BaseAsyncStreamReduce<T>, AsyncStr
         .thenApply(l -> l.isEmpty() ? Optional.empty() : Optional.of(l.getFirst()));
   }
 
-  default SafeFuture<List<T>> collectLast(int count) {
+  default SafeFuture<List<T>> collectLast(final int count) {
     class CircularBuf<C> {
       final ArrayDeque<C> buf;
       final int maxSize;
 
-      public CircularBuf(int maxSize) {
+      public CircularBuf(final int maxSize) {
         buf = new ArrayDeque<>(maxSize);
         this.maxSize = maxSize;
       }
 
-      public void add(C t) {
+      public void add(final C t) {
         if (buf.size() == maxSize) {
           buf.removeFirst();
         }

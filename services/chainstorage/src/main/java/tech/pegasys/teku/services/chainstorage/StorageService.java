@@ -17,11 +17,14 @@ import static tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory.DEFAULT_
 import static tech.pegasys.teku.spec.config.Constants.STORAGE_QUERY_CHANNEL_PARALLELISM;
 
 import java.util.Optional;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.ethereum.pow.api.Eth1EventsChannel;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.eventthread.AsyncRunnerEventThread;
 import tech.pegasys.teku.infrastructure.events.EventChannels;
+import tech.pegasys.teku.infrastructure.exceptions.InvalidConfigurationException;
 import tech.pegasys.teku.infrastructure.metrics.SettableLabelledGauge;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.service.serviceutils.Service;
@@ -35,12 +38,14 @@ import tech.pegasys.teku.storage.server.BatchingVoteUpdateChannel;
 import tech.pegasys.teku.storage.server.ChainStorage;
 import tech.pegasys.teku.storage.server.CombinedStorageChannelSplitter;
 import tech.pegasys.teku.storage.server.Database;
+import tech.pegasys.teku.storage.server.DatabaseVersion;
 import tech.pegasys.teku.storage.server.DepositStorage;
 import tech.pegasys.teku.storage.server.RetryingStorageUpdateChannel;
 import tech.pegasys.teku.storage.server.StorageConfiguration;
 import tech.pegasys.teku.storage.server.VersionedDatabaseFactory;
 import tech.pegasys.teku.storage.server.pruner.BlobSidecarPruner;
 import tech.pegasys.teku.storage.server.pruner.BlockPruner;
+import tech.pegasys.teku.storage.server.pruner.StatePruner;
 
 public class StorageService extends Service implements StorageServiceFacade {
   private final StorageConfiguration config;
@@ -50,8 +55,10 @@ public class StorageService extends Service implements StorageServiceFacade {
   private volatile BatchingVoteUpdateChannel batchingVoteUpdateChannel;
   private volatile Optional<BlockPruner> blockPruner = Optional.empty();
   private volatile Optional<BlobSidecarPruner> blobsPruner = Optional.empty();
+  private volatile Optional<StatePruner> statePruner = Optional.empty();
   private final boolean depositSnapshotStorageEnabled;
   private final boolean blobSidecarsStorageCountersEnabled;
+  private static final Logger LOG = LogManager.getLogger();
 
   public StorageService(
       final ServiceConfig serviceConfig,
@@ -111,6 +118,31 @@ public class StorageService extends Service implements StorageServiceFacade {
                             "block",
                             pruningTimingsLabelledGauge,
                             pruningActiveLabelledGauge));
+              }
+              if (config.getDataStorageMode().storesFinalizedStates()
+                  && config.getRetainedSlots() > 0) {
+                if (config.getDataStorageCreateDbVersion() == DatabaseVersion.LEVELDB_TREE) {
+                  throw new InvalidConfigurationException(
+                      "State pruning is not supported with leveldb_tree database.");
+                } else {
+                  LOG.info(
+                      "State pruner will run every: {} minute(s), retaining states for the last {} finalized slots. Limited to {} state prune per execution. ",
+                      config.getStatePruningInterval().toMinutes(),
+                      config.getRetainedSlots(),
+                      config.getStatePruningLimit());
+                  statePruner =
+                      Optional.of(
+                          new StatePruner(
+                              config.getSpec(),
+                              database,
+                              storagePrunerAsyncRunner,
+                              config.getStatePruningInterval(),
+                              config.getRetainedSlots(),
+                              config.getStatePruningLimit(),
+                              "state",
+                              pruningTimingsLabelledGauge,
+                              pruningActiveLabelledGauge));
+                }
               }
               if (config.getSpec().isMilestoneSupported(SpecMilestone.DENEB)) {
                 blobsPruner =
@@ -172,6 +204,11 @@ public class StorageService extends Service implements StorageServiceFacade {
             __ ->
                 blobsPruner
                     .map(BlobSidecarPruner::start)
+                    .orElseGet(() -> SafeFuture.completedFuture(null)))
+        .thenCompose(
+            __ ->
+                statePruner
+                    .map(StatePruner::start)
                     .orElseGet(() -> SafeFuture.completedFuture(null)));
   }
 

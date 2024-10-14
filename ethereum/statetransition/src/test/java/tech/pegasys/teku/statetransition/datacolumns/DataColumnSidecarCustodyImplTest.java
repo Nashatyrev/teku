@@ -36,7 +36,7 @@ import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAcces
 @SuppressWarnings({"JavaCase", "FutureReturnValueIgnored"})
 public class DataColumnSidecarCustodyImplTest {
 
-  final Spec spec = TestSpecFactory.createMinimalEip7594();
+  final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
   final DataColumnSidecarDbAccessor dbAccessor =
       DataColumnSidecarDbAccessor.builder(db).spec(spec).build();
@@ -44,7 +44,7 @@ public class DataColumnSidecarCustodyImplTest {
   final UInt256 myNodeId = UInt256.ONE;
 
   final SpecConfigEip7594 config =
-      SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
+      SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
   final int custodyCount = config.getCustodyRequirement();
 

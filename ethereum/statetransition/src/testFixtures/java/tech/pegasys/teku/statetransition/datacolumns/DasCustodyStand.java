@@ -92,7 +92,7 @@ public class DasCustodyStand {
                         new DelayedCanonicalBlockResolver(
                             this.blockResolver, stubAsyncRunner, delay))
             .orElse(this.blockResolver);
-    this.config = SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
+    this.config = SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
     this.minCustodyPeriodSlotCalculator = MinCustodyPeriodSlotCalculator.createFromSpec(spec);
     this.db = new DataColumnSidecarDBStub();
     DataColumnSidecarDB asyncDb =
@@ -267,7 +267,7 @@ public class DasCustodyStand {
       if (totalCustodySubnetCount == null) {
         checkNotNull(spec);
         SpecConfigEip7594 configEip7594 =
-            SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).getConfig());
+            SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
         totalCustodySubnetCount = configEip7594.getCustodyRequirement();
       }
       return new DasCustodyStand(

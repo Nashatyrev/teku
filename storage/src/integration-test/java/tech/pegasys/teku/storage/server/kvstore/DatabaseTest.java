@@ -87,6 +87,7 @@ import tech.pegasys.teku.storage.api.StorageUpdate;
 import tech.pegasys.teku.storage.api.WeakSubjectivityUpdate;
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.storage.server.Database;
+import tech.pegasys.teku.storage.server.DatabaseArchiveNoopWriter;
 import tech.pegasys.teku.storage.server.DatabaseContext;
 import tech.pegasys.teku.storage.server.ShuttingDownException;
 import tech.pegasys.teku.storage.server.StateStorageMode;
@@ -298,7 +299,10 @@ public class DatabaseTest {
             List.of(blobSidecar5_0)));
 
     // let's prune with limit to 1
-    assertThat(database.pruneOldestBlobSidecars(UInt64.MAX_VALUE, 1)).isTrue();
+    assertThat(
+            database.pruneOldestBlobSidecars(
+                UInt64.MAX_VALUE, 1, DatabaseArchiveNoopWriter.NOOP_BLOBSIDECAR_STORE))
+        .isTrue();
     assertBlobSidecarKeys(
         blobSidecar2_0.getSlot(),
         blobSidecar5_0.getSlot(),
@@ -315,7 +319,10 @@ public class DatabaseTest {
     assertThat(database.getBlobSidecarColumnCount()).isEqualTo(4L);
 
     // let's prune up to slot 1 (nothing will be pruned)
-    assertThat(database.pruneOldestBlobSidecars(ONE, 10)).isFalse();
+    assertThat(
+            database.pruneOldestBlobSidecars(
+                ONE, 10, DatabaseArchiveNoopWriter.NOOP_BLOBSIDECAR_STORE))
+        .isFalse();
     assertBlobSidecarKeys(
         blobSidecar2_0.getSlot(),
         blobSidecar5_0.getSlot(),
@@ -332,7 +339,10 @@ public class DatabaseTest {
     assertThat(database.getBlobSidecarColumnCount()).isEqualTo(4L);
 
     // let's prune all from slot 4 excluded
-    assertThat(database.pruneOldestBlobSidecars(UInt64.valueOf(3), 10)).isFalse();
+    assertThat(
+            database.pruneOldestBlobSidecars(
+                UInt64.valueOf(3), 10, DatabaseArchiveNoopWriter.NOOP_BLOBSIDECAR_STORE))
+        .isFalse();
     assertBlobSidecarKeys(
         blobSidecar1_0.getSlot(), blobSidecar5_0.getSlot(), blobSidecarToKey(blobSidecar5_0));
     assertBlobSidecars(Map.of(blobSidecar5_0.getSlot(), List.of(blobSidecar5_0)));
@@ -340,7 +350,10 @@ public class DatabaseTest {
     assertThat(database.getBlobSidecarColumnCount()).isEqualTo(1L);
 
     // let's prune all
-    assertThat(database.pruneOldestBlobSidecars(UInt64.valueOf(5), 1)).isTrue();
+    assertThat(
+            database.pruneOldestBlobSidecars(
+                UInt64.valueOf(5), 1, DatabaseArchiveNoopWriter.NOOP_BLOBSIDECAR_STORE))
+        .isTrue();
     // all empty now
     assertBlobSidecarKeys(ZERO, UInt64.valueOf(10));
     assertThat(database.getEarliestBlobSidecarSlot()).contains(UInt64.valueOf(6));
@@ -2176,7 +2189,7 @@ public class DatabaseTest {
 
   @TestTemplate
   public void addSidecar_isOperative(final DatabaseContext context) throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
     initialize(context);
     final DataColumnSidecar dataColumnSidecar = dataStructureUtil.randomDataColumnSidecar();
     final DataColumnSlotAndIdentifier columnSlotAndIdentifier =
@@ -2190,7 +2203,7 @@ public class DatabaseTest {
   @TestTemplate
   public void setFirstCustodyIncompleteSlot_isOperative(final DatabaseContext context)
       throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
     initialize(context);
     assertThat(database.getFirstCustodyIncompleteSlot().isEmpty()).isTrue();
 
@@ -2202,7 +2215,7 @@ public class DatabaseTest {
   @TestTemplate
   public void setFirstSamplerIncompleteSlot_isOperative(final DatabaseContext context)
       throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
     initialize(context);
     assertThat(database.getFirstSamplerIncompleteSlot().isEmpty()).isTrue();
 
@@ -2215,7 +2228,7 @@ public class DatabaseTest {
   @SuppressWarnings("JavaCase")
   public void streamDataColumnIdentifiers_isOperative(final DatabaseContext context)
       throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
     initialize(context);
 
     final SignedBeaconBlockHeader blockHeader1 = dataStructureUtil.randomSignedBeaconBlockHeader();
@@ -2261,7 +2274,7 @@ public class DatabaseTest {
   @TestTemplate
   @SuppressWarnings("JavaCase")
   public void pruneAllSidecars_isOperative(final DatabaseContext context) throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
     initialize(context);
 
     final SignedBeaconBlockHeader blockHeader1 =
@@ -2492,7 +2505,7 @@ public class DatabaseTest {
     }
 
     // Check that last block
-    final SignedBeaconBlock lastFinalizedBlock = finalizedBlocks.get(finalizedBlocks.size() - 1);
+    final SignedBeaconBlock lastFinalizedBlock = finalizedBlocks.getLast();
     for (int i = 0; i < 10; i++) {
       final UInt64 slot = lastFinalizedBlock.getSlot().plus(i);
       assertThat(database.getLatestFinalizedBlockAtSlot(slot))
@@ -2753,7 +2766,7 @@ public class DatabaseTest {
   }
 
   private void assertBlobSidecarKeys(
-      final UInt64 from, final UInt64 to, SlotAndBlockRootAndBlobIndex... keys) {
+      final UInt64 from, final UInt64 to, final SlotAndBlockRootAndBlobIndex... keys) {
     try (final Stream<SlotAndBlockRootAndBlobIndex> blobSidecarsStream =
         database.streamBlobSidecarKeys(from, to)) {
       final List<SlotAndBlockRootAndBlobIndex> keysFromDb = blobSidecarsStream.collect(toList());
@@ -2762,7 +2775,7 @@ public class DatabaseTest {
   }
 
   private void assertNonCanonicalBlobSidecarKeys(
-      final UInt64 from, final UInt64 to, SlotAndBlockRootAndBlobIndex... keys) {
+      final UInt64 from, final UInt64 to, final SlotAndBlockRootAndBlobIndex... keys) {
     try (final Stream<SlotAndBlockRootAndBlobIndex> blobSidecarsStream =
         database.streamNonCanonicalBlobSidecarKeys(from, to)) {
       final List<SlotAndBlockRootAndBlobIndex> keysFromDb = blobSidecarsStream.collect(toList());
@@ -2778,7 +2791,7 @@ public class DatabaseTest {
 
     final Map<UInt64, List<BlobSidecar>> blobSidecarsDb = new HashMap<>();
     try (final Stream<SlotAndBlockRootAndBlobIndex> blobSidecarsStream =
-        database.streamBlobSidecarKeys(slots.get(0), slots.get(slots.size() - 1))) {
+        database.streamBlobSidecarKeys(slots.getFirst(), slots.getLast())) {
 
       for (final Iterator<SlotAndBlockRootAndBlobIndex> iterator = blobSidecarsStream.iterator();
           iterator.hasNext(); ) {

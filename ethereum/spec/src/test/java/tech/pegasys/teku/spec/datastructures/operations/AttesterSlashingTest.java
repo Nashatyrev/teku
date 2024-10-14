@@ -20,21 +20,20 @@ import java.util.Objects;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing.AttesterSlashingSchema;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 class AttesterSlashingTest {
 
   private final Spec spec = TestSpecFactory.createDefault();
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
-  private final AttesterSlashingSchema attesterSlashingSchema =
+  private final AttesterSlashingSchema<?> attesterSlashingSchema =
       spec.getGenesisSchemaDefinitions().getAttesterSlashingSchema();
   private final IndexedAttestation indexedAttestation1 =
       dataStructureUtil.randomIndexedAttestation();
   private final IndexedAttestation indexedAttestation2 =
       dataStructureUtil.randomIndexedAttestation();
 
-  private AttesterSlashing attesterSlashing =
+  private final AttesterSlashing attesterSlashing =
       attesterSlashingSchema.create(indexedAttestation1, indexedAttestation2);
 
   @Test

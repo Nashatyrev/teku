@@ -31,7 +31,7 @@ import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 public class LinkedObjectsDeliveryTest {
   private final DataStructureUtil dataStructureUtil =
-      new DataStructureUtil(TestSpecFactory.createMinimalEip7594());
+      new DataStructureUtil(TestSpecFactory.createMinimalElectraEip7594());
   private final ExecutorService executorService = Executors.newFixedThreadPool(4);
   private final AsyncRunnerFactory asyncRunnerFactory =
       AsyncRunnerFactory.createDefault(new MetricTrackingExecutorFactory(new StubMetricsSystem()));

@@ -18,17 +18,17 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 class FlattenIteratorCallback<TCol extends AsyncIterator<T>, T>
     extends AbstractDelegatingIteratorCallback<T, TCol> {
 
-  protected FlattenIteratorCallback(AsyncIteratorCallback<T> delegate) {
+  protected FlattenIteratorCallback(final AsyncIteratorCallback<T> delegate) {
     super(delegate);
   }
 
   @Override
-  public SafeFuture<Boolean> onNext(TCol asyncIterator) {
+  public SafeFuture<Boolean> onNext(final TCol asyncIterator) {
     SafeFuture<Boolean> ret = new SafeFuture<>();
     asyncIterator.iterate(
         new AsyncIteratorCallback<T>() {
           @Override
-          public SafeFuture<Boolean> onNext(T t) {
+          public SafeFuture<Boolean> onNext(final T t) {
             SafeFuture<Boolean> proceedFuture = delegate.onNext(t);
 
             return proceedFuture.thenPeek(
@@ -45,7 +45,7 @@ class FlattenIteratorCallback<TCol extends AsyncIterator<T>, T>
           }
 
           @Override
-          public void onError(Throwable t) {
+          public void onError(final Throwable t) {
             ret.complete(false);
             delegate.onError(t);
           }

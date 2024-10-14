@@ -24,7 +24,7 @@ import java.util.Objects;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation.IndexedAttestationSchema;
+import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestationSchema;
 
 @SuppressWarnings("JavaCase")
 public class IndexedAttestation {
@@ -37,7 +37,8 @@ public class IndexedAttestation {
   public final BLSSignature signature;
 
   public IndexedAttestation(
-      tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation indexedAttestation) {
+      final tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation
+          indexedAttestation) {
     this.attesting_indices = indexedAttestation.getAttestingIndices().streamUnboxed().toList();
     this.data = new AttestationData(indexedAttestation.getData());
     this.signature = new BLSSignature(indexedAttestation.getSignature());
@@ -60,7 +61,7 @@ public class IndexedAttestation {
 
   public tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation
       asInternalIndexedAttestation(final SpecVersion spec) {
-    final IndexedAttestationSchema indexedAttestationSchema =
+    final IndexedAttestationSchema<?> indexedAttestationSchema =
         spec.getSchemaDefinitions().getIndexedAttestationSchema();
     return indexedAttestationSchema.create(
         indexedAttestationSchema.getAttestingIndicesSchema().of(attesting_indices),
@@ -69,7 +70,7 @@ public class IndexedAttestation {
   }
 
   @Override
-  public boolean equals(Object o) {
+  public boolean equals(final Object o) {
     if (this == o) {
       return true;
     }

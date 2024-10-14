@@ -4,18 +4,23 @@
 
 ## Current Releases
 
-For information on changes in released versions of Teku, see
-the [releases page](https://github.com/Consensys/teku/releases).
-
 ## Unreleased Changes
 
 ### Breaking Changes
+- Renamed metrics `validator_attestation_publication_delay`,`validator_block_publication_delay` and `beacon_block_import_delay_counter` to include the suffix `_total` added by the current version of prometheus.
 
 ### Additions and Improvements
-- Increased the executor queue default maximum size to 40_000 (previously 20_000), and other queues to 10_000 (previously 5_000). If you have custom settings for these queues, check to ensure they're still required.
-- Added `peers_direction_current` libp2p metric to track the number of peers by direction (inbound and outbound).
-- Deposit tree snapshots will be loaded from database as a default unless custom snapshot has been provided.
-- Added hidden option `--Xdeposit-contract-logs-syncing-enabled` to allow disabling the syncing of the deposit contract logs from the EL. This is useful when running a non-validating node. It is advisable to be used alongside with `--Xeth1-missing-deposits-event-logging-enabled=false` to avoid unnecessary logging of missing deposits.
-- Updated the bootnodes for Chiado and Gnosis networks
+- Removed the deprecated [GetBlindedBlock](https://ethereum.github.io/beacon-APIs/#/ValidatorRequiredApi/produceBlindedBlock)
+- Removed the deprecated [GetBlockV2](https://ethereum.github.io/beacon-APIs/?urls.primaryName=dev#/Validator/produceBlockV2)
+- Implemented [PostAggregateAndProofsV2](https://ethereum.github.io/beacon-APIs/?urls.primaryName=dev#/Validator/publishAggregateAndProofsV2) (adding support for Electra)
+- Added support for [Ephemery Testnet](https://github.com/ephemery.dev) `--network=ephemery`
+- Updated bootnodes for Holesky network
+- Disabled flood publish behaviour on all p2p subnets. `--Xp2p-flood-publish-enabled` experimental parameter can be used to re-enable it, restoring previous behaviour.
+- Add a fix for [CVE-2024-7254](https://avd.aquasec.com/nvd/2024/cve-2024-7254/)
+- Updated LUKSO configuration with Deneb fork scheduled for epoch 123075 (November 20, 2024, 16:20:00 UTC)
+- Support for `IDONTWANT` libp2p protocol messages
+- `/eth/v1/node/peers` endpoint now populates `enr` field of the peer whenever is possible
 
 ### Bug Fixes
+ - Removed a warning from logs about non blinded blocks being requested (#8562)
+ - Fixed `blockImportCompleted` log message timing [#8653](https://github.com/Consensys/teku/pull/8653)

@@ -32,7 +32,7 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
@@ -132,7 +132,7 @@ public class DataColumnSidecarCustodyImpl
     UInt64 epoch = spec.computeEpochAtSlot(slot);
     return spec.atEpoch(epoch)
         .miscHelpers()
-        .toVersionEip7594()
+        .getEip7594Helpers()
         .map(
             miscHelpersEip7594 ->
                 miscHelpersEip7594
@@ -213,7 +213,7 @@ public class DataColumnSidecarCustodyImpl
                         block ->
                             block
                                     .getBeaconBlock()
-                                    .flatMap(b -> b.getBody().toVersionEip7594())
+                                    .flatMap(b -> b.getBody().toVersionDeneb())
                                     .map(b -> b.getBlobKzgCommitments().size())
                                     .orElse(0)
                                 > 0)

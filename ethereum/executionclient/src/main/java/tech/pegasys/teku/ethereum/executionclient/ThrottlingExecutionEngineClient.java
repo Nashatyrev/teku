@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
+import tech.pegasys.teku.ethereum.executionclient.schema.BlobAndProofV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.ClientVersionV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.ExecutionPayloadV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.ExecutionPayloadV2;
@@ -101,6 +102,21 @@ public class ThrottlingExecutionEngineClient implements ExecutionEngineClient {
   }
 
   @Override
+  public SafeFuture<Response<PayloadStatusV1>> newPayloadV4(
+      final ExecutionPayloadV3 executionPayload,
+      final List<VersionedHash> blobVersionedHashes,
+      final Bytes32 parentBeaconBlockRoot,
+      final Bytes32 executionRequestHash) {
+    return taskQueue.queueTask(
+        () ->
+            delegate.newPayloadV4(
+                executionPayload,
+                blobVersionedHashes,
+                parentBeaconBlockRoot,
+                executionRequestHash));
+  }
+
+  @Override
   public SafeFuture<Response<ForkChoiceUpdatedResult>> forkChoiceUpdatedV1(
       final ForkChoiceStateV1 forkChoiceState,
       final Optional<PayloadAttributesV1> payloadAttributes) {
@@ -133,5 +149,11 @@ public class ThrottlingExecutionEngineClient implements ExecutionEngineClient {
   public SafeFuture<Response<List<ClientVersionV1>>> getClientVersionV1(
       final ClientVersionV1 clientVersion) {
     return taskQueue.queueTask(() -> delegate.getClientVersionV1(clientVersion));
+  }
+
+  @Override
+  public SafeFuture<Response<List<BlobAndProofV1>>> getBlobsV1(
+      final List<VersionedHash> blobVersionedHashes) {
+    return taskQueue.queueTask(() -> delegate.getBlobsV1(blobVersionedHashes));
   }
 }

@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.reference.common.operations;
 
+import java.util.List;
 import java.util.Optional;
 import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.spec.Spec;
@@ -22,6 +23,9 @@ import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodySch
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair.SyncAggregate;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.capella.BeaconBlockBodySchemaCapella;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayloadSummary;
+import tech.pegasys.teku.spec.datastructures.execution.versions.electra.ConsolidationRequest;
+import tech.pegasys.teku.spec.datastructures.execution.versions.electra.DepositRequest;
+import tech.pegasys.teku.spec.datastructures.execution.versions.electra.WithdrawalRequest;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
@@ -132,5 +136,32 @@ public class DefaultOperationProcessor implements OperationProcessor {
       final MutableBeaconState state, final ExecutionPayloadSummary payloadSummary)
       throws BlockProcessingException {
     spec.getBlockProcessor(state.getSlot()).processWithdrawals(state, payloadSummary);
+  }
+
+  @Override
+  public void processDepositRequest(
+      final MutableBeaconState state, final List<DepositRequest> depositRequests)
+      throws BlockProcessingException {
+    spec.getBlockProcessor(state.getSlot()).processDepositRequests(state, depositRequests);
+  }
+
+  @Override
+  public void processWithdrawalRequest(
+      final MutableBeaconState state, final List<WithdrawalRequest> withdrawalRequests)
+      throws BlockProcessingException {
+    final Supplier<ValidatorExitContext> validatorExitContextSupplier =
+        spec.atSlot(state.getSlot())
+            .beaconStateMutators()
+            .createValidatorExitContextSupplier(state);
+    spec.getBlockProcessor(state.getSlot())
+        .processWithdrawalRequests(state, withdrawalRequests, validatorExitContextSupplier);
+  }
+
+  @Override
+  public void processConsolidationRequest(
+      final MutableBeaconState state, final List<ConsolidationRequest> consolidationRequests)
+      throws BlockProcessingException {
+    spec.getBlockProcessor(state.getSlot())
+        .processConsolidationRequests(state, consolidationRequests);
   }
 }

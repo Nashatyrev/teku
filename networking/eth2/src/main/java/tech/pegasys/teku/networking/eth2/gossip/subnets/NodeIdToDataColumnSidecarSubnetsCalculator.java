@@ -24,7 +24,7 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.config.SpecConfigEip7594;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 
 @FunctionalInterface
 public interface NodeIdToDataColumnSidecarSubnetsCalculator {
@@ -59,7 +59,7 @@ public interface NodeIdToDataColumnSidecarSubnetsCalculator {
                 slot -> {
                   SpecVersion specVersion = spec.atSlot(slot);
                   final NodeIdToDataColumnSidecarSubnetsCalculator calculatorAtSlot;
-                  if (specVersion.getMilestone().isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
+                  if (specVersion.getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
                     calculatorAtSlot =
                         createAtSlot(
                             SpecConfigEip7594.required(specVersion.getConfig()),

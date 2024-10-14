@@ -32,6 +32,7 @@ import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedCo
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.ValidatableSyncCommitteeMessage;
 import tech.pegasys.teku.spec.datastructures.state.Fork;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
+import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
 public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapella {
@@ -59,6 +60,7 @@ public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapel
           syncCommitteeMessageOperationProcessor,
       final OperationProcessor<SignedBlsToExecutionChange>
           signedBlsToExecutionChangeOperationProcessor,
+      final DebugDataDumper debugDataDumper,
       final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor) {
     super(
         fork,
@@ -76,7 +78,8 @@ public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapel
         voluntaryExitProcessor,
         signedContributionAndProofOperationProcessor,
         syncCommitteeMessageOperationProcessor,
-        signedBlsToExecutionChangeOperationProcessor);
+        signedBlsToExecutionChangeOperationProcessor,
+        debugDataDumper);
     this.dataColumnSidecarOperationProcessor = dataColumnSidecarOperationProcessor;
   }
 
