@@ -36,15 +36,16 @@ import tech.pegasys.teku.api.schema.deneb.BeaconBlockDeneb;
 import tech.pegasys.teku.api.schema.deneb.BeaconStateDeneb;
 import tech.pegasys.teku.api.schema.deneb.BlindedBeaconBlockBodyDeneb;
 import tech.pegasys.teku.api.schema.deneb.BlindedBlockDeneb;
-import tech.pegasys.teku.api.schema.eip7594.BeaconBlockBodyEip7594;
-import tech.pegasys.teku.api.schema.eip7594.BlindedBeaconBlockBodyEip7594;
-import tech.pegasys.teku.api.schema.electra.BeaconStateEip7594;
+import tech.pegasys.teku.api.schema.electra.BeaconBlockBodyElectra;
+import tech.pegasys.teku.api.schema.electra.BeaconBlockElectra;
+import tech.pegasys.teku.api.schema.electra.BeaconStateElectra;
+import tech.pegasys.teku.api.schema.electra.BlindedBeaconBlockBodyElectra;
+import tech.pegasys.teku.api.schema.electra.BlindedBlockElectra;
 import tech.pegasys.teku.api.schema.phase0.BeaconBlockPhase0;
 import tech.pegasys.teku.api.schema.phase0.BeaconStatePhase0;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra.BlindedBeaconBlockBodyElectra;
 
 /**
  * Takes objects from Internal layers and converts to an appropriate schema object.
@@ -209,11 +210,11 @@ public class SchemaObjectProvider {
             .required(body));
   }
 
-  private BeaconBlockBodyEip7594 getBeaconBlockBodyEip7594(
+  private BeaconBlockBodyElectra getBeaconBlockBodyElectra(
       final tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody body) {
-    return new BeaconBlockBodyEip7594(
+    return new BeaconBlockBodyElectra(
         tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra
-            .BeaconBlockBodyEip7594.required(body));
+            .BeaconBlockBodyElectra.required(body));
   }
 
   private BlindedBeaconBlockBodyBellatrix getBlindedBlockBodyBellatrix(
@@ -237,9 +238,11 @@ public class SchemaObjectProvider {
             .BlindedBeaconBlockBodyDeneb.required(body));
   }
 
-  private BlindedBeaconBlockBodyEip7594 getBlindedBlockBodyEip7594(
+  private BlindedBeaconBlockBodyElectra getBlindedBlockBodyElectra(
       final tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody body) {
-    return new BlindedBeaconBlockBodyEip7594(BlindedBeaconBlockBodyElectra.required(body));
+    return new BlindedBeaconBlockBodyElectra(
+        tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.electra
+            .BlindedBeaconBlockBodyElectra.required(body));
   }
 
   public BeaconState getBeaconState(
@@ -251,7 +254,7 @@ public class SchemaObjectProvider {
       case BELLATRIX -> new BeaconStateBellatrix(state);
       case CAPELLA -> new BeaconStateCapella(state);
       case DENEB -> new BeaconStateDeneb(state);
-      case ELECTRA -> new BeaconStateEip7594(state);
+      case ELECTRA -> new BeaconStateElectra(state);
     };
   }
 }

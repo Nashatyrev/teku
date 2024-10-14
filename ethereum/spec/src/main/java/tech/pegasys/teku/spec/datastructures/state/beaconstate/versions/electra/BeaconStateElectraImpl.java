@@ -26,20 +26,12 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.AbstractBe
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.SlotCaches;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.TransitionCaches;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.altair.ValidatorStatsAltair;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateElectra;
 
-public class BeaconStateElectraImpl
-    extends AbstractBeaconState<
-        tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
-            .MutableBeaconStateElectra>
-    implements BeaconStateEip7594, BeaconStateCache, ValidatorStatsAltair {
+public class BeaconStateElectraImpl extends AbstractBeaconState<MutableBeaconStateElectra>
+    implements BeaconStateElectra, BeaconStateCache, ValidatorStatsAltair {
 
   BeaconStateElectraImpl(
-      final BeaconStateSchema<
-              BeaconStateEip7594,
-              tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
-                  .MutableBeaconStateElectra>
-          schema) {
+      final BeaconStateSchema<BeaconStateElectra, MutableBeaconStateElectra> schema) {
     super(schema);
   }
 
@@ -58,8 +50,8 @@ public class BeaconStateElectraImpl
   }
 
   @Override
-  public BeaconStateSchemaEip7594 getBeaconStateSchema() {
-    return (BeaconStateSchemaEip7594) getSchema();
+  public BeaconStateSchemaElectra getBeaconStateSchema() {
+    return (BeaconStateSchemaElectra) getSchema();
   }
 
   @Override
@@ -69,6 +61,6 @@ public class BeaconStateElectraImpl
 
   @Override
   protected void describeCustomFields(final MoreObjects.ToStringHelper stringBuilder) {
-    BeaconStateEip7594.describeCustomEip7594Fields(stringBuilder, this);
+    BeaconStateElectra.describeCustomElectraFields(stringBuilder, this);
   }
 }

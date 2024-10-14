@@ -60,7 +60,7 @@ public class MatrixEntrySchema
   }
 
   @Override
-  public MatrixEntry createFromBackingNode(TreeNode node) {
+  public MatrixEntry createFromBackingNode(final TreeNode node) {
     return new MatrixEntry(this, node);
   }
 }

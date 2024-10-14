@@ -32,7 +32,7 @@ public class CellSchema extends SszByteVectorSchemaImpl<Cell> {
   }
 
   @Override
-  public Cell createFromBackingNode(TreeNode node) {
+  public Cell createFromBackingNode(final TreeNode node) {
     return new Cell(this, node);
   }
 }

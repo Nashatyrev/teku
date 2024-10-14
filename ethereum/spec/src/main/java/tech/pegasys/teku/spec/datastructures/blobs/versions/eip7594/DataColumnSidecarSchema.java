@@ -162,7 +162,7 @@ public class DataColumnSidecarSchema
   }
 
   @Override
-  public DataColumnSidecar createFromBackingNode(TreeNode node) {
+  public DataColumnSidecar createFromBackingNode(final TreeNode node) {
     return new DataColumnSidecar(this, node);
   }
 }

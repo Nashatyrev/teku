@@ -22,14 +22,10 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.AbstractMu
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.SlotCaches;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.TransitionCaches;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.altair.ValidatorStatsAltair;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594.MutableBeaconStateElectra;
 
 public class MutableBeaconStateElectraImpl
     extends AbstractMutableBeaconState<BeaconStateElectraImpl>
-    implements tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
-            .MutableBeaconStateElectra,
-        BeaconStateCache,
-        ValidatorStatsAltair {
+    implements MutableBeaconStateElectra, BeaconStateCache, ValidatorStatsAltair {
 
   MutableBeaconStateElectraImpl(final BeaconStateElectraImpl backingImmutableView) {
     super(backingImmutableView);
@@ -52,18 +48,16 @@ public class MutableBeaconStateElectraImpl
 
   @Override
   protected void addCustomFields(final MoreObjects.ToStringHelper stringBuilder) {
-    BeaconStateEip7594.describeCustomEip7594Fields(stringBuilder, this);
+    BeaconStateElectra.describeCustomElectraFields(stringBuilder, this);
   }
 
   @Override
-  public BeaconStateEip7594 commitChanges() {
-    return (BeaconStateEip7594) super.commitChanges();
+  public BeaconStateElectra commitChanges() {
+    return (BeaconStateElectra) super.commitChanges();
   }
 
   @Override
-  public tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.eip7594
-          .MutableBeaconStateElectra
-      createWritableCopy() {
+  public MutableBeaconStateElectra createWritableCopy() {
     return (MutableBeaconStateElectra) super.createWritableCopy();
   }
 }

@@ -27,13 +27,13 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   private final Subscribers<ValidDataColumnSidecarsListener> validDataColumnSidecarsSubscribers =
       Subscribers.create(true);
 
-  public DataColumnSidecarManagerImpl(DataColumnSidecarGossipValidator validator) {
+  public DataColumnSidecarManagerImpl(final DataColumnSidecarGossipValidator validator) {
     this.validator = validator;
   }
 
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
-      DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
+      final DataColumnSidecar dataColumnSidecar, final Optional<UInt64> arrivalTimestamp) {
     return validator
         .validate(dataColumnSidecar)
         .thenPeek(
@@ -46,12 +46,13 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   }
 
   @Override
-  public void onDataColumnSidecarPublish(DataColumnSidecar sidecar) {
+  public void onDataColumnSidecarPublish(final DataColumnSidecar sidecar) {
     validDataColumnSidecarsSubscribers.forEach(l -> l.onNewValidSidecar(sidecar));
   }
 
   @Override
-  public void subscribeToValidDataColumnSidecars(ValidDataColumnSidecarsListener sidecarsListener) {
+  public void subscribeToValidDataColumnSidecars(
+      final ValidDataColumnSidecarsListener sidecarsListener) {
     validDataColumnSidecarsSubscribers.subscribe(sidecarsListener);
   }
 }

@@ -31,7 +31,7 @@ public class DataColumnSchema extends AbstractSszListSchema<Cell, DataColumn> {
   }
 
   @Override
-  public DataColumn createFromBackingNode(TreeNode node) {
+  public DataColumn createFromBackingNode(final TreeNode node) {
     return new DataColumn(this, node);
   }
 }

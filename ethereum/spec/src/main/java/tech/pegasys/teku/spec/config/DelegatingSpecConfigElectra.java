@@ -46,66 +46,82 @@ public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
     return eip7594;
   }
 
+  @Override
   public Bytes4 getElectraForkVersion() {
     return specConfigElectra.getElectraForkVersion();
   }
 
+  @Override
   public UInt64 getElectraForkEpoch() {
     return specConfigElectra.getElectraForkEpoch();
   }
 
+  @Override
   public UInt64 getMinPerEpochChurnLimitElectra() {
     return specConfigElectra.getMinPerEpochChurnLimitElectra();
   }
 
+  @Override
   public UInt64 getMinActivationBalance() {
     return specConfigElectra.getMinActivationBalance();
   }
 
+  @Override
   public UInt64 getMaxEffectiveBalanceElectra() {
     return specConfigElectra.getMaxEffectiveBalanceElectra();
   }
 
+  @Override
   public int getPendingBalanceDepositsLimit() {
     return specConfigElectra.getPendingBalanceDepositsLimit();
   }
 
+  @Override
   public int getPendingPartialWithdrawalsLimit() {
     return specConfigElectra.getPendingPartialWithdrawalsLimit();
   }
 
+  @Override
   public int getPendingConsolidationsLimit() {
     return specConfigElectra.getPendingConsolidationsLimit();
   }
 
+  @Override
   public int getMinSlashingPenaltyQuotientElectra() {
     return specConfigElectra.getMinSlashingPenaltyQuotientElectra();
   }
 
+  @Override
   public int getWhistleblowerRewardQuotientElectra() {
     return specConfigElectra.getWhistleblowerRewardQuotientElectra();
   }
 
+  @Override
   public int getMaxAttesterSlashingsElectra() {
     return specConfigElectra.getMaxAttesterSlashingsElectra();
   }
 
+  @Override
   public int getMaxAttestationsElectra() {
     return specConfigElectra.getMaxAttestationsElectra();
   }
 
+  @Override
   public int getMaxConsolidationRequestsPerPayload() {
     return specConfigElectra.getMaxConsolidationRequestsPerPayload();
   }
 
+  @Override
   public int getMaxDepositRequestsPerPayload() {
     return specConfigElectra.getMaxDepositRequestsPerPayload();
   }
 
+  @Override
   public int getMaxWithdrawalRequestsPerPayload() {
     return specConfigElectra.getMaxWithdrawalRequestsPerPayload();
   }
 
+  @Override
   public int getMaxPendingPartialsPerWithdrawalsSweep() {
     return specConfigElectra.getMaxPendingPartialsPerWithdrawalsSweep();
   }

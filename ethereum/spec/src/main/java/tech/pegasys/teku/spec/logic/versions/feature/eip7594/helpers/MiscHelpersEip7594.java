@@ -55,6 +55,7 @@ import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGProof;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 
 public class MiscHelpersEip7594 {
@@ -72,18 +73,20 @@ public class MiscHelpersEip7594 {
 
   private final Eip7594 specConfigEip7594;
   private final Predicates predicates;
-  private final SchemaDefinitionsElectra schemaDefinitions;
+  private final SchemaDefinitionsEip7594 schemaDefinitions;
+  private final SchemaDefinitionsElectra schemaDefinitionsElectra;
 
   public MiscHelpersEip7594(
       final Eip7594 specConfig,
       final Predicates predicates,
-      final SchemaDefinitionsElectra schemaDefinitions) {
+      final SchemaDefinitionsElectra schemaDefinitionsElectra) {
     this.predicates = predicates;
     this.specConfigEip7594 = specConfig;
-    this.schemaDefinitions = schemaDefinitions;
+    this.schemaDefinitions = SchemaDefinitionsEip7594.required(schemaDefinitionsElectra);
+    this.schemaDefinitionsElectra = schemaDefinitionsElectra;
   }
 
-  public UInt64 computeSubnetForDataColumnSidecar(UInt64 columnIndex) {
+  public UInt64 computeSubnetForDataColumnSidecar(final UInt64 columnIndex) {
     return columnIndex.mod(specConfigEip7594.getDataColumnSidecarSubnetCount());
   }
 
@@ -109,7 +112,7 @@ public class MiscHelpersEip7594 {
         .toList();
   }
 
-  private UInt256 incrementByModule(UInt256 n) {
+  private UInt256 incrementByModule(final UInt256 n) {
     if (n.equals(UInt256.MAX_VALUE)) {
       return UInt256.ZERO;
     } else {
@@ -118,7 +121,7 @@ public class MiscHelpersEip7594 {
   }
 
   public List<UInt64> computeCustodyColumnIndexes(final UInt256 nodeId, final int subnetCount) {
-    List<UInt64> subnetIds = computeCustodySubnetIndexes(nodeId, subnetCount);
+    final List<UInt64> subnetIds = computeCustodySubnetIndexes(nodeId, subnetCount);
     final int columnsPerSubnet =
         specConfigEip7594.getNumberOfColumns()
             / specConfigEip7594.getDataColumnSidecarSubnetCount();
@@ -140,7 +143,8 @@ public class MiscHelpersEip7594 {
     return computeCustodySubnetIndexes(nodeId, subnetCount);
   }
 
-  public boolean verifyDataColumnSidecarKzgProof(KZG kzg, DataColumnSidecar dataColumnSidecar) {
+  public boolean verifyDataColumnSidecarKzgProof(
+      final KZG kzg, final DataColumnSidecar dataColumnSidecar) {
     final int dataColumns = specConfigEip7594.getNumberOfColumns();
     if (dataColumnSidecar.getIndex().isGreaterThanOrEqualTo(dataColumns)) {
       return false;
@@ -184,7 +188,7 @@ public class MiscHelpersEip7594 {
 
   public int getBlockBodyKzgCommitmentsGeneralizedIndex() {
     return (int)
-        BeaconBlockBodySchemaElectra.required(schemaDefinitions.getBeaconBlockBodySchema())
+        BeaconBlockBodySchemaElectra.required(schemaDefinitionsElectra.getBeaconBlockBodySchema())
             .getBlobKzgCommitmentsGeneralizedIndex();
   }
 
@@ -251,7 +255,7 @@ public class MiscHelpersEip7594 {
     final SszListSchema<SszKZGProof, ?> kzgProofsSchema =
         dataColumnSidecarSchema.getKzgProofsSchema();
 
-    int columnCount = extendedMatrix.getFirst().size();
+    final int columnCount = extendedMatrix.getFirst().size();
 
     return IntStream.range(0, columnCount)
         .mapToObj(
@@ -386,7 +390,8 @@ public class MiscHelpersEip7594 {
         .sum();
   }
 
-  public boolean isAvailabilityOfBlobSidecarsRequiredAtEpoch(UInt64 currentEpoch, UInt64 epoch) {
+  public boolean isAvailabilityOfBlobSidecarsRequiredAtEpoch(
+      final UInt64 currentEpoch, final UInt64 epoch) {
     return !epoch.isGreaterThanOrEqualTo(specConfigEip7594.getEip7594FeatureEpoch());
   }
 
