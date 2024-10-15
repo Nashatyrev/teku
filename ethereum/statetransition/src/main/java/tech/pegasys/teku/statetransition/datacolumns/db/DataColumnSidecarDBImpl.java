@@ -95,9 +95,9 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
     private final AtomicInteger addCounter = new AtomicInteger();
     private long maxAddedSlot = 0;
 
-    private void logOnNewSidecar(DataColumnSidecar sidecar) {
-      int currentAddCounter = addCounter.incrementAndGet();
-      int slot = sidecar.getSlot().intValue();
+    private void logOnNewSidecar(final DataColumnSidecar sidecar) {
+      final int currentAddCounter = addCounter.incrementAndGet();
+      final int slot = sidecar.getSlot().intValue();
       final long prevMaxAddedSlot;
       final long curMaxAddedSlot;
       synchronized (this) {
@@ -131,7 +131,7 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
     }
 
     private SafeFuture<Void> logNewFirstCustodyIncompleteSlot(
-        Optional<UInt64> maybeCurrentSlot, final UInt64 newSlot) {
+        final Optional<UInt64> maybeCurrentSlot, final UInt64 newSlot) {
       if (maybeCurrentSlot.isEmpty() || !maybeCurrentSlot.get().equals(newSlot)) {
         return getColumnIdentifiers(newSlot)
             .thenCompose(
@@ -160,7 +160,7 @@ class DataColumnSidecarDBImpl implements DataColumnSidecarDB {
     }
 
     private void logNewFirstSamplerIncompleteSlot(
-        Optional<UInt64> maybeCurrentSlot, final UInt64 newSlot) {
+        final Optional<UInt64> maybeCurrentSlot, final UInt64 newSlot) {
       if (maybeCurrentSlot.isEmpty() || !maybeCurrentSlot.get().equals(newSlot)) {
         LOG.info(
             "[nyota] DataColumnSidecarDB: setFirstSamplerIncompleteSlot {} ~> {}",

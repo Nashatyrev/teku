@@ -59,17 +59,17 @@ public class SimpleSidecarRetriever
       new LinkedHashMap<>();
   private final Map<UInt256, ConnectedPeer> connectedPeers = new HashMap<>();
   private boolean started = false;
-  private AtomicLong retrieveCounter = new AtomicLong();
-  private AtomicLong errorCounter = new AtomicLong();
+  private final AtomicLong retrieveCounter = new AtomicLong();
+  private final AtomicLong errorCounter = new AtomicLong();
 
   public SimpleSidecarRetriever(
-      Spec spec,
-      DataColumnPeerManager peerManager,
-      DataColumnPeerSearcher peerSearcher,
-      DasPeerCustodyCountSupplier custodyCountSupplier,
-      DataColumnReqResp reqResp,
-      AsyncRunner asyncRunner,
-      Duration roundPeriod) {
+      final Spec spec,
+      final DataColumnPeerManager peerManager,
+      final DataColumnPeerSearcher peerSearcher,
+      final DasPeerCustodyCountSupplier custodyCountSupplier,
+      final DataColumnReqResp reqResp,
+      final AsyncRunner asyncRunner,
+      final Duration roundPeriod) {
     this.spec = spec;
     this.peerSearcher = peerSearcher;
     this.custodyCountSupplier = custodyCountSupplier;
@@ -91,13 +91,14 @@ public class SimpleSidecarRetriever
   }
 
   @Override
-  public synchronized SafeFuture<DataColumnSidecar> retrieve(DataColumnSlotAndIdentifier columnId) {
-    DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest =
+  public synchronized SafeFuture<DataColumnSidecar> retrieve(
+      final DataColumnSlotAndIdentifier columnId) {
+    final DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest =
         peerSearcher.requestPeers(columnId.slot(), columnId.columnIndex());
 
-    RetrieveRequest existingRequest = pendingRequests.get(columnId);
+    final RetrieveRequest existingRequest = pendingRequests.get(columnId);
     if (existingRequest == null) {
-      RetrieveRequest request = new RetrieveRequest(columnId, peerSearchRequest);
+      final RetrieveRequest request = new RetrieveRequest(columnId, peerSearchRequest);
       pendingRequests.put(columnId, request);
       startIfNecessary();
       return request.result;
@@ -109,7 +110,7 @@ public class SimpleSidecarRetriever
 
   private synchronized List<RequestMatch> matchRequestsAndPeers() {
     disposeCompletedRequests();
-    RequestTracker ongoingRequestsTracker = createFromCurrentPendingRequests();
+    final RequestTracker ongoingRequestsTracker = createFromCurrentPendingRequests();
     return pendingRequests.entrySet().stream()
         .filter(entry -> entry.getValue().activeRpcRequest == null)
         .flatMap(
@@ -123,11 +124,12 @@ public class SimpleSidecarRetriever
   }
 
   private Optional<ConnectedPeer> findBestMatchingPeer(
-      RetrieveRequest request, RequestTracker ongoingRequestsTracker) {
-    Collection<ConnectedPeer> matchingPeers = findMatchingPeers(request, ongoingRequestsTracker);
+      final RetrieveRequest request, final RequestTracker ongoingRequestsTracker) {
+    final Collection<ConnectedPeer> matchingPeers =
+        findMatchingPeers(request, ongoingRequestsTracker);
 
     // taking first the peers which were not requested yet, then peers which are less busy
-    Comparator<ConnectedPeer> comparator =
+    final Comparator<ConnectedPeer> comparator =
         Comparator.comparing((ConnectedPeer peer) -> request.getPeerRequestCount(peer.nodeId))
             .reversed()
             .thenComparing(
@@ -137,7 +139,7 @@ public class SimpleSidecarRetriever
   }
 
   private Collection<ConnectedPeer> findMatchingPeers(
-      RetrieveRequest request, RequestTracker ongoingRequestsTracker) {
+      final RetrieveRequest request, final RequestTracker ongoingRequestsTracker) {
     return connectedPeers.values().stream()
         .filter(peer -> peer.isCustodyFor(request.columnId))
         .filter(peer -> ongoingRequestsTracker.hasAvailableRequests(peer.nodeId))
@@ -145,11 +147,12 @@ public class SimpleSidecarRetriever
   }
 
   private void disposeCompletedRequests() {
-    Iterator<Map.Entry<DataColumnSlotAndIdentifier, RetrieveRequest>> pendingIterator =
+    final Iterator<Map.Entry<DataColumnSlotAndIdentifier, RetrieveRequest>> pendingIterator =
         pendingRequests.entrySet().iterator();
     while (pendingIterator.hasNext()) {
-      Map.Entry<DataColumnSlotAndIdentifier, RetrieveRequest> pendingEntry = pendingIterator.next();
-      RetrieveRequest pendingRequest = pendingEntry.getValue();
+      final Map.Entry<DataColumnSlotAndIdentifier, RetrieveRequest> pendingEntry =
+          pendingIterator.next();
+      final RetrieveRequest pendingRequest = pendingEntry.getValue();
       if (pendingRequest.result.isDone()) {
         pendingIterator.remove();
         pendingRequest.peerSearchRequest.dispose();
@@ -161,9 +164,9 @@ public class SimpleSidecarRetriever
   }
 
   private synchronized void nextRound() {
-    List<RequestMatch> matches = matchRequestsAndPeers();
-    for (RequestMatch match : matches) {
-      SafeFuture<DataColumnSidecar> reqRespPromise =
+    final List<RequestMatch> matches = matchRequestsAndPeers();
+    for (final RequestMatch match : matches) {
+      final SafeFuture<DataColumnSidecar> reqRespPromise =
           reqResp.requestDataColumnSidecar(
               match.peer.nodeId, match.request.columnId.toDataColumnIdentifier());
       match.request().onPeerRequest(match.peer().nodeId);
@@ -174,7 +177,7 @@ public class SimpleSidecarRetriever
               match.peer);
     }
 
-    long activeRequestCount =
+    final long activeRequestCount =
         pendingRequests.values().stream().filter(r -> r.activeRpcRequest != null).count();
     LOG.info(
         "[nyota] SimpleSidecarRetriever.nextRound: completed: {}, errored: {},  total pending: {}, active pending: {}, new pending: {}, number of custody peers: {}",
@@ -190,7 +193,9 @@ public class SimpleSidecarRetriever
 
   @SuppressWarnings("unused")
   private synchronized void reqRespCompleted(
-      RetrieveRequest request, DataColumnSidecar maybeResult, Throwable maybeError) {
+      final RetrieveRequest request,
+      final DataColumnSidecar maybeResult,
+      final Throwable maybeError) {
     if (maybeResult != null) {
       pendingRequests.remove(request.columnId);
       request.result.completeAsync(maybeResult, asyncRunner);
@@ -203,17 +208,17 @@ public class SimpleSidecarRetriever
   }
 
   private String gatherAvailableCustodiesInfo() {
-    SpecVersion specVersion = spec.forMilestone(SpecMilestone.ELECTRA);
-    Map<UInt64, Long> colIndexToCount =
+    final SpecVersion specVersion = spec.forMilestone(SpecMilestone.ELECTRA);
+    final Map<UInt64, Long> colIndexToCount =
         connectedPeers.values().stream()
             .flatMap(p -> p.getNodeCustodyIndexes(specVersion).stream())
             .collect(Collectors.groupingBy(i -> i, Collectors.counting()));
-    int numberOfColumns = Eip7594.required(specVersion.getConfig()).getNumberOfColumns();
+    final int numberOfColumns = Eip7594.required(specVersion.getConfig()).getNumberOfColumns();
     IntStream.range(0, numberOfColumns)
         .mapToObj(UInt64::valueOf)
         .forEach(idx -> colIndexToCount.putIfAbsent(idx, 0L));
     colIndexToCount.replaceAll((colIdx, count) -> Long.min(3, count));
-    Map<Long, Long> custodyCountToPeerCount =
+    final Map<Long, Long> custodyCountToPeerCount =
         colIndexToCount.entrySet().stream()
             .collect(Collectors.groupingBy(Map.Entry::getValue, Collectors.counting()));
     return new TreeMap<>(custodyCountToPeerCount)
@@ -227,7 +232,7 @@ public class SimpleSidecarRetriever
   }
 
   @Override
-  public synchronized void peerConnected(UInt256 nodeId) {
+  public synchronized void peerConnected(final UInt256 nodeId) {
     LOG.info(
         "[nyota] SimpleSidecarRetriever.peerConnected: {}",
         "0x..." + nodeId.toHexString().substring(58));
@@ -235,7 +240,7 @@ public class SimpleSidecarRetriever
   }
 
   @Override
-  public synchronized void peerDisconnected(UInt256 nodeId) {
+  public synchronized void peerDisconnected(final UInt256 nodeId) {
     LOG.info(
         "[nyota] SimpleSidecarRetriever.peerDisconnected: {}",
         "0x..." + nodeId.toHexString().substring(58));
@@ -252,17 +257,17 @@ public class SimpleSidecarRetriever
     volatile ActiveRequest activeRpcRequest = null;
 
     private RetrieveRequest(
-        DataColumnSlotAndIdentifier columnId,
-        DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest) {
+        final DataColumnSlotAndIdentifier columnId,
+        final DataColumnPeerSearcher.PeerSearchRequest peerSearchRequest) {
       this.columnId = columnId;
       this.peerSearchRequest = peerSearchRequest;
     }
 
-    public void onPeerRequest(UInt256 peerId) {
+    public void onPeerRequest(final UInt256 peerId) {
       peerRequestCount.compute(peerId, (__, curCount) -> curCount == null ? 1 : curCount + 1);
     }
 
-    public int getPeerRequestCount(UInt256 peerId) {
+    public int getPeerRequestCount(final UInt256 peerId) {
       return peerRequestCount.getOrDefault(peerId, 0);
     }
   }
@@ -270,16 +275,16 @@ public class SimpleSidecarRetriever
   private class ConnectedPeer {
     final UInt256 nodeId;
 
-    public ConnectedPeer(UInt256 nodeId) {
+    public ConnectedPeer(final UInt256 nodeId) {
       this.nodeId = nodeId;
     }
 
-    private List<UInt64> getNodeCustodyIndexes(SpecVersion specVersion) {
+    private List<UInt64> getNodeCustodyIndexes(final SpecVersion specVersion) {
       return MiscHelpersEip7594.required(specVersion.miscHelpers())
           .computeCustodyColumnIndexes(nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId));
     }
 
-    public boolean isCustodyFor(DataColumnSlotAndIdentifier columnId) {
+    public boolean isCustodyFor(final DataColumnSlotAndIdentifier columnId) {
       return getNodeCustodyIndexes(spec.atSlot(columnId.slot())).contains(columnId.columnIndex());
     }
   }
@@ -287,7 +292,7 @@ public class SimpleSidecarRetriever
   private record RequestMatch(ConnectedPeer peer, RetrieveRequest request) {}
 
   private RequestTracker createFromCurrentPendingRequests() {
-    Map<UInt256, Integer> pendingRequestsCount =
+    final Map<UInt256, Integer> pendingRequestsCount =
         pendingRequests.values().stream()
             .map(r -> r.activeRpcRequest)
             .filter(Objects::nonNull)
@@ -299,20 +304,20 @@ public class SimpleSidecarRetriever
   private class RequestTracker {
     private final Map<UInt256, Integer> pendingRequestsCount;
 
-    private RequestTracker(Map<UInt256, Integer> pendingRequestsCount) {
+    private RequestTracker(final Map<UInt256, Integer> pendingRequestsCount) {
       this.pendingRequestsCount = pendingRequestsCount;
     }
 
-    int getAvailableRequestCount(UInt256 nodeId) {
+    int getAvailableRequestCount(final UInt256 nodeId) {
       return Integer.min(maxRequestCount, reqResp.getCurrentRequestLimit(nodeId))
           - pendingRequestsCount.getOrDefault(nodeId, 0);
     }
 
-    boolean hasAvailableRequests(UInt256 nodeId) {
+    boolean hasAvailableRequests(final UInt256 nodeId) {
       return getAvailableRequestCount(nodeId) > 0;
     }
 
-    void decreaseAvailableRequests(UInt256 nodeId) {
+    void decreaseAvailableRequests(final UInt256 nodeId) {
       pendingRequestsCount.compute(nodeId, (__, cnt) -> cnt == null ? 1 : cnt + 1);
     }
   }
