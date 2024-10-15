@@ -106,6 +106,7 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
 import tech.pegasys.teku.statetransition.block.VerifiedBlockOperationsListener;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.datacolumns.log.DasGossipLogger;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.api.StubStorageQueryChannel;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
@@ -380,105 +381,112 @@ public class Eth2P2PNetworkFactory {
         final DiscoveryNetwork<?> network,
         final GossipEncoding gossipEncoding) {
       return switch (forkAndSpecMilestone.getSpecMilestone()) {
-        case PHASE0 -> new GossipForkSubscriptionsPhase0(
-            forkAndSpecMilestone.getFork(),
-            spec,
-            asyncRunner,
-            metricsSystem,
-            network,
-            recentChainData,
-            gossipEncoding,
-            gossipedBlockProcessor,
-            gossipedAttestationProcessor,
-            gossipedAggregateProcessor,
-            attesterSlashingProcessor,
-            proposerSlashingProcessor,
-            voluntaryExitProcessor);
-        case ALTAIR -> new GossipForkSubscriptionsAltair(
-            forkAndSpecMilestone.getFork(),
-            spec,
-            asyncRunner,
-            metricsSystem,
-            network,
-            recentChainData,
-            gossipEncoding,
-            gossipedBlockProcessor,
-            gossipedAttestationProcessor,
-            gossipedAggregateProcessor,
-            attesterSlashingProcessor,
-            proposerSlashingProcessor,
-            voluntaryExitProcessor,
-            signedContributionAndProofProcessor,
-            syncCommitteeMessageProcessor);
-        case BELLATRIX -> new GossipForkSubscriptionsBellatrix(
-            forkAndSpecMilestone.getFork(),
-            spec,
-            asyncRunner,
-            metricsSystem,
-            network,
-            recentChainData,
-            gossipEncoding,
-            gossipedBlockProcessor,
-            gossipedAttestationProcessor,
-            gossipedAggregateProcessor,
-            attesterSlashingProcessor,
-            proposerSlashingProcessor,
-            voluntaryExitProcessor,
-            signedContributionAndProofProcessor,
-            syncCommitteeMessageProcessor);
-        case CAPELLA -> new GossipForkSubscriptionsCapella(
-            forkAndSpecMilestone.getFork(),
-            spec,
-            asyncRunner,
-            metricsSystem,
-            network,
-            recentChainData,
-            gossipEncoding,
-            gossipedBlockProcessor,
-            gossipedAttestationProcessor,
-            gossipedAggregateProcessor,
-            attesterSlashingProcessor,
-            proposerSlashingProcessor,
-            voluntaryExitProcessor,
-            signedContributionAndProofProcessor,
-            syncCommitteeMessageProcessor,
-            signedBlsToExecutionChangeProcessor);
-        case DENEB -> new GossipForkSubscriptionsDeneb(
-            forkAndSpecMilestone.getFork(),
-            spec,
-            asyncRunner,
-            metricsSystem,
-            network,
-            recentChainData,
-            gossipEncoding,
-            gossipedBlockProcessor,
-            gossipedBlobSidecarProcessor,
-            gossipedAttestationProcessor,
-            gossipedAggregateProcessor,
-            attesterSlashingProcessor,
-            proposerSlashingProcessor,
-            voluntaryExitProcessor,
-            signedContributionAndProofProcessor,
-            syncCommitteeMessageProcessor,
-            signedBlsToExecutionChangeProcessor);
-        case EIP7594 -> new GossipForkSubscriptionsEip7594(
-            forkAndSpecMilestone.getFork(),
-            spec,
-            asyncRunner,
-            metricsSystem,
-            network,
-            recentChainData,
-            gossipEncoding,
-            gossipedBlockProcessor,
-            gossipedAttestationProcessor,
-            gossipedAggregateProcessor,
-            attesterSlashingProcessor,
-            proposerSlashingProcessor,
-            voluntaryExitProcessor,
-            signedContributionAndProofProcessor,
-            syncCommitteeMessageProcessor,
-            signedBlsToExecutionChangeProcessor,
-            dataColumnSidecarOperationProcessor);
+        case PHASE0 ->
+            new GossipForkSubscriptionsPhase0(
+                forkAndSpecMilestone.getFork(),
+                spec,
+                asyncRunner,
+                metricsSystem,
+                network,
+                recentChainData,
+                gossipEncoding,
+                gossipedBlockProcessor,
+                gossipedAttestationProcessor,
+                gossipedAggregateProcessor,
+                attesterSlashingProcessor,
+                proposerSlashingProcessor,
+                voluntaryExitProcessor);
+        case ALTAIR ->
+            new GossipForkSubscriptionsAltair(
+                forkAndSpecMilestone.getFork(),
+                spec,
+                asyncRunner,
+                metricsSystem,
+                network,
+                recentChainData,
+                gossipEncoding,
+                gossipedBlockProcessor,
+                gossipedAttestationProcessor,
+                gossipedAggregateProcessor,
+                attesterSlashingProcessor,
+                proposerSlashingProcessor,
+                voluntaryExitProcessor,
+                signedContributionAndProofProcessor,
+                syncCommitteeMessageProcessor);
+        case BELLATRIX ->
+            new GossipForkSubscriptionsBellatrix(
+                forkAndSpecMilestone.getFork(),
+                spec,
+                asyncRunner,
+                metricsSystem,
+                network,
+                recentChainData,
+                gossipEncoding,
+                gossipedBlockProcessor,
+                gossipedAttestationProcessor,
+                gossipedAggregateProcessor,
+                attesterSlashingProcessor,
+                proposerSlashingProcessor,
+                voluntaryExitProcessor,
+                signedContributionAndProofProcessor,
+                syncCommitteeMessageProcessor);
+        case CAPELLA ->
+            new GossipForkSubscriptionsCapella(
+                forkAndSpecMilestone.getFork(),
+                spec,
+                asyncRunner,
+                metricsSystem,
+                network,
+                recentChainData,
+                gossipEncoding,
+                gossipedBlockProcessor,
+                gossipedAttestationProcessor,
+                gossipedAggregateProcessor,
+                attesterSlashingProcessor,
+                proposerSlashingProcessor,
+                voluntaryExitProcessor,
+                signedContributionAndProofProcessor,
+                syncCommitteeMessageProcessor,
+                signedBlsToExecutionChangeProcessor);
+        case DENEB ->
+            new GossipForkSubscriptionsDeneb(
+                forkAndSpecMilestone.getFork(),
+                spec,
+                asyncRunner,
+                metricsSystem,
+                network,
+                recentChainData,
+                gossipEncoding,
+                gossipedBlockProcessor,
+                gossipedBlobSidecarProcessor,
+                gossipedAttestationProcessor,
+                gossipedAggregateProcessor,
+                attesterSlashingProcessor,
+                proposerSlashingProcessor,
+                voluntaryExitProcessor,
+                signedContributionAndProofProcessor,
+                syncCommitteeMessageProcessor,
+                signedBlsToExecutionChangeProcessor);
+        case EIP7594 ->
+            new GossipForkSubscriptionsEip7594(
+                forkAndSpecMilestone.getFork(),
+                spec,
+                asyncRunner,
+                metricsSystem,
+                network,
+                recentChainData,
+                gossipEncoding,
+                gossipedBlockProcessor,
+                gossipedAttestationProcessor,
+                gossipedAggregateProcessor,
+                attesterSlashingProcessor,
+                proposerSlashingProcessor,
+                voluntaryExitProcessor,
+                signedContributionAndProofProcessor,
+                syncCommitteeMessageProcessor,
+                signedBlsToExecutionChangeProcessor,
+                dataColumnSidecarOperationProcessor,
+                DasGossipLogger.NOOP);
       };
     }
 

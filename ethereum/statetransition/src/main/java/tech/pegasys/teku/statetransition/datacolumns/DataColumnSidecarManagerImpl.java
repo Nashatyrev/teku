@@ -37,12 +37,11 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
-    dasGossipLogger.onGossipInboundReceive(dataColumnSidecar);
     return validator
         .validate(dataColumnSidecar)
         .thenPeek(
             res -> {
-              dasGossipLogger.onGossipInboundValidate(dataColumnSidecar, res);
+              dasGossipLogger.onReceive(dataColumnSidecar, res);
               if (res.isAccept()) {
                 validDataColumnSidecarsSubscribers.forEach(
                     listener -> listener.onNewValidSidecar(dataColumnSidecar));
@@ -52,7 +51,6 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
 
   @Override
   public void onDataColumnSidecarPublish(DataColumnSidecar sidecar) {
-    dasGossipLogger.onGossipOutboundPublish(sidecar);
     validDataColumnSidecarsSubscribers.forEach(l -> l.onNewValidSidecar(sidecar));
   }
 
