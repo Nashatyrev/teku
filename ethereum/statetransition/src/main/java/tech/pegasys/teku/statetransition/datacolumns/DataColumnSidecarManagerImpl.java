@@ -29,7 +29,8 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
       Subscribers.create(true);
   private final DasGossipLogger dasGossipLogger;
 
-  public DataColumnSidecarManagerImpl(DataColumnSidecarGossipValidator validator, DasGossipLogger dasGossipLogger) {
+  public DataColumnSidecarManagerImpl(
+      DataColumnSidecarGossipValidator validator, DasGossipLogger dasGossipLogger) {
     this.validator = validator;
     this.dasGossipLogger = dasGossipLogger;
   }

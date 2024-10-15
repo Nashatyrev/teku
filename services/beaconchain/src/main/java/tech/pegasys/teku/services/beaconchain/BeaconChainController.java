@@ -376,9 +376,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             "future_items_size",
             "Current number of items held for future slots, labelled by type",
             "type");
-    this.dasGossipLogger =
-        new DasGossipBatchLogger(
-            operationPoolAsyncRunner, timeProvider);
+    this.dasGossipLogger = new DasGossipBatchLogger(operationPoolAsyncRunner, timeProvider);
   }
 
   @Override
@@ -659,7 +657,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
               MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.EIP7594).miscHelpers()),
               kzg,
               metricsSystem);
-      dataColumnSidecarManager = new DataColumnSidecarManagerImpl(dataColumnSidecarGossipValidator, dasGossipLogger);
+      dataColumnSidecarManager =
+          new DataColumnSidecarManagerImpl(dataColumnSidecarGossipValidator, dasGossipLogger);
       eventChannels.subscribe(
           DataColumnSidecarGossipChannel.class,
           dataColumnSidecarManager::onDataColumnSidecarPublish);
