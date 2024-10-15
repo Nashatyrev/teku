@@ -65,7 +65,6 @@ public class StringifyUtil {
   }
 
   public static String toIntRangeStringWithSize(Collection<Integer> ints) {
-    List<IntRange> ranges = reduceToIntRanges(ints);
     return "(size: " + ints.size() + ") " + toIntRangeString(ints);
   }
 
