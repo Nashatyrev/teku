@@ -1,3 +1,16 @@
+/*
+ * Copyright Consensys Software Inc., 2024
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
 import org.apache.logging.log4j.Level;
@@ -13,8 +26,17 @@ class DasByRangeResponseLogger
       TimeProvider timeProvider,
       Direction direction,
       ReqRespMethodLogger.PeerId peerId,
-      DataColumnSidecarsByRangeRequestMessage dataColumnIdentifiers, Logger logger, Level logLevel) {
-    super(timeProvider, "data_column_sidecars_by_range", direction, peerId, dataColumnIdentifiers,logger,logLevel);
+      DataColumnSidecarsByRangeRequestMessage dataColumnIdentifiers,
+      Logger logger,
+      Level logLevel) {
+    super(
+        timeProvider,
+        "data_column_sidecars_by_range",
+        direction,
+        peerId,
+        dataColumnIdentifiers,
+        logger,
+        logLevel);
   }
 
   @Override
@@ -25,6 +47,7 @@ class DasByRangeResponseLogger
         + request.getCount()
         + ", columns = "
         + StringifyUtil.toIntRangeString(
-            request.getColumns().stream().map(UInt64::intValue).toList()) + "]";
+            request.getColumns().stream().map(UInt64::intValue).toList())
+        + "]";
   }
 }

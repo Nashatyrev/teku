@@ -106,8 +106,7 @@ public class DataColumnSidecarsByRangeMessageHandler
             .getDataColumnSidecarsByRangeLogger()
             .onInboundRequest(
                 ReqRespMethodLogger.PeerId.fromPeerAndNodeId(
-                    peer.getId().toBase58(),
-                    peer.getDiscoveryNodeId().orElseThrow()),
+                    peer.getId().toBase58(), peer.getDiscoveryNodeId().orElseThrow()),
                 message);
     LoggingResponseCallback<DataColumnSidecar> loggingCallback =
         new LoggingResponseCallback<>(responseCallback, responseLogger);

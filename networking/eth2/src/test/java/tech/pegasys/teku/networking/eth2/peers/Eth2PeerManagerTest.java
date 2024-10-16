@@ -80,7 +80,8 @@ public class Eth2PeerManagerTest {
           rpcEncoding,
           Eth2P2PNetworkBuilder.DEFAULT_ETH2_RPC_PING_INTERVAL,
           Eth2P2PNetworkBuilder.DEFAULT_ETH2_RPC_OUTSTANDING_PING_THRESHOLD,
-          Eth2P2PNetworkBuilder.DEFAULT_ETH2_STATUS_UPDATE_INTERVAL, DasReqRespLogger.NOOP);
+          Eth2P2PNetworkBuilder.DEFAULT_ETH2_STATUS_UPDATE_INTERVAL,
+          DasReqRespLogger.NOOP);
 
   @Test
   public void subscribeConnect_singleListener() {

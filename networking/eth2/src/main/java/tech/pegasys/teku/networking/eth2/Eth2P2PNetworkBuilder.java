@@ -187,7 +187,8 @@ public class Eth2P2PNetworkBuilder {
             spec,
             kzg,
             discoveryNodeIdExtractor,
-            dasTotalCustodySubnetCount, dasReqRespLogger);
+            dasTotalCustodySubnetCount,
+            dasReqRespLogger);
     final Collection<RpcMethod<?, ?, ?>> eth2RpcMethods =
         eth2PeerManager.getBeaconChainMethods().all();
     rpcMethods.addAll(eth2RpcMethods);
@@ -662,6 +663,7 @@ public class Eth2P2PNetworkBuilder {
     this.dasGossipLogger = dasGossipLogger;
     return this;
   }
+
   public Eth2P2PNetworkBuilder reqRespDasLogger(final DasReqRespLogger dasReqRespLogger) {
     this.dasReqRespLogger = dasReqRespLogger;
     return this;

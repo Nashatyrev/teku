@@ -179,7 +179,8 @@ public class BeaconChainMethods {
             dataColumnSidecarCustody,
             peerLookup,
             rpcEncoding,
-            recentChainData, dasLogger),
+            recentChainData,
+            dasLogger),
         createDataColumnsSidecarsByRange(
             spec,
             metricsSystem,
@@ -187,7 +188,8 @@ public class BeaconChainMethods {
             combinedChainDataClient,
             peerLookup,
             rpcEncoding,
-            recentChainData, dasLogger),
+            recentChainData,
+            dasLogger),
         createMetadata(spec, asyncRunner, metadataMessagesFactory, peerLookup, rpcEncoding),
         createPing(spec, asyncRunner, metadataMessagesFactory, peerLookup, rpcEncoding),
         dasLogger);
@@ -398,7 +400,7 @@ public class BeaconChainMethods {
           final PeerLookup peerLookup,
           final RpcEncoding rpcEncoding,
           final RecentChainData recentChainData,
-  final DasReqRespLogger dasLogger) {
+          final DasReqRespLogger dasLogger) {
     if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       return Optional.empty();
     }
@@ -438,7 +440,8 @@ public class BeaconChainMethods {
           final CombinedChainDataClient combinedChainDataClient,
           final PeerLookup peerLookup,
           final RpcEncoding rpcEncoding,
-          final RecentChainData recentChainData,final DasReqRespLogger dasLogger) {
+          final RecentChainData recentChainData,
+          final DasReqRespLogger dasLogger) {
 
     if (!spec.isMilestoneSupported(SpecMilestone.EIP7594)) {
       return Optional.empty();

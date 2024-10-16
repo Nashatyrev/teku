@@ -1,3 +1,16 @@
+/*
+ * Copyright Consensys Software Inc., 2024
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
 import java.util.Comparator;
@@ -6,7 +19,6 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.logging.LogFormatter;
@@ -26,8 +38,17 @@ abstract class AbstractDasResponseLogger<TRequest>
       String methodName,
       Direction direction,
       ReqRespMethodLogger.PeerId peerId,
-      TRequest request, Logger logger, Level logLevel) {
-    super(timeProvider, direction, peerId, request, DataColumnSlotAndIdentifier::fromDataColumn, logger,logLevel);
+      TRequest request,
+      Logger logger,
+      Level logLevel) {
+    super(
+        timeProvider,
+        direction,
+        peerId,
+        request,
+        DataColumnSlotAndIdentifier::fromDataColumn,
+        logger,
+        logLevel);
     this.methodName = methodName;
   }
 
@@ -57,7 +78,8 @@ abstract class AbstractDasResponseLogger<TRequest>
               + result.get();
     }
     getLogger()
-        .log(getLogLevel(),
+        .log(
+            getLogLevel(),
             "DAS ReqResp {} {} {} peer {}: request: {} ms ago {}, response: {} ago {}",
             direction,
             methodName,
@@ -78,13 +100,15 @@ abstract class AbstractDasResponseLogger<TRequest>
         new TreeMap<>(
             responses.stream()
                 .collect(Collectors.groupingBy(AbstractDasResponseLogger::blockIdFromResponse)));
-    return responses.size() + " columns: " + responsesByBlock.entrySet().stream()
-        .map(
-            entry ->
-                blockIdString(entry.getKey())
-                    + " colIdxs: "
-                    + blockResponsesToString(entry.getValue()))
-        .collect(Collectors.joining(", "));
+    return responses.size()
+        + " columns: "
+        + responsesByBlock.entrySet().stream()
+            .map(
+                entry ->
+                    blockIdString(entry.getKey())
+                        + " colIdxs: "
+                        + blockResponsesToString(entry.getValue()))
+            .collect(Collectors.joining(", "));
   }
 
   protected String blockResponsesToString(
@@ -107,8 +131,8 @@ abstract class AbstractDasResponseLogger<TRequest>
     long lastMillisAgo =
         curTime - events.stream().max(Comparator.comparing(Timestamped::time)).orElseThrow().time();
     return (lastMillisAgo == firstMillisAgo
-            ? lastMillisAgo + "ms"
-            : lastMillisAgo + "ms-" + firstMillisAgo + "ms");
+        ? lastMillisAgo + "ms"
+        : lastMillisAgo + "ms-" + firstMillisAgo + "ms");
   }
 
   private static SlotAndBlockRoot blockIdFromResponse(

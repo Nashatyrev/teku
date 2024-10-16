@@ -101,7 +101,8 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
             metricsSystem,
             statusMessageFactory,
             metadataMessagesFactory,
-            rpcEncoding, dasLogger);
+            rpcEncoding,
+            dasLogger);
     this.eth2RpcPingInterval = eth2RpcPingInterval;
     this.eth2RpcOutstandingPingThreshold = eth2RpcOutstandingPingThreshold;
     this.eth2StatusUpdateInterval = eth2StatusUpdateInterval;
@@ -162,7 +163,8 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
         rpcEncoding,
         eth2RpcPingInterval,
         eth2RpcOutstandingPingThreshold,
-        eth2StatusUpdateInterval, dasLogger);
+        eth2StatusUpdateInterval,
+        dasLogger);
   }
 
   public MetadataMessage getMetadataMessage() {

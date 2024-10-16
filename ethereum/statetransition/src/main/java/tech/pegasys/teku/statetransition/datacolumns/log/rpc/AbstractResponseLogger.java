@@ -1,14 +1,26 @@
-package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
+/*
+ * Copyright Consensys Software Inc., 2024
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import tech.pegasys.teku.infrastructure.time.TimeProvider;
+package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import tech.pegasys.teku.infrastructure.time.TimeProvider;
 
 abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
     implements ReqRespMethodLogger.ResponseLogger<TResponse> {
@@ -43,7 +55,9 @@ abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
       Direction direction,
       ReqRespMethodLogger.PeerId peerId,
       TRequest request,
-      Function<TResponse, TResponseSummary> responseSummarizer, Logger logger, Level logLevel) {
+      Function<TResponse, TResponseSummary> responseSummarizer,
+      Logger logger,
+      Level logLevel) {
     this.timeProvider = timeProvider;
     this.direction = direction;
     this.peerId = peerId;
