@@ -41,6 +41,8 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessage;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespMethodLogger;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 /**
@@ -62,12 +64,14 @@ public class DataColumnSidecarsByRootMessageHandler
 
   private final LabelledMetric<Counter> requestCounter;
   private final Counter totalDataColumnSidecarsRequestedCounter;
+  private final DasReqRespLogger dasLogger;
 
   public DataColumnSidecarsByRootMessageHandler(
       final Spec spec,
       final MetricsSystem metricsSystem,
       final CombinedChainDataClient combinedChainDataClient,
-      final DataColumnSidecarByRootCustody dataColumnSidecarCustody) {
+      final DataColumnSidecarByRootCustody dataColumnSidecarCustody,
+      final DasReqRespLogger dasLogger) {
     this.spec = spec;
     this.combinedChainDataClient = combinedChainDataClient;
     requestCounter =
@@ -82,6 +86,7 @@ public class DataColumnSidecarsByRootMessageHandler
             "rpc_data_column_sidecars_by_root_requested_blob_sidecars_total",
             "Total number of data column sidecars requested in accepted data column sidecars by root requests from peers");
     this.dataColumnSidecarCustody = dataColumnSidecarCustody;
+    this.dasLogger = dasLogger;
   }
 
   private SafeFuture<Boolean> validateAndSendMaybeRespond(
@@ -102,23 +107,24 @@ public class DataColumnSidecarsByRootMessageHandler
       final String protocolId,
       final Eth2Peer peer,
       final DataColumnSidecarsByRootRequestMessage message,
-      final ResponseCallback<DataColumnSidecar> callback) {
+      final ResponseCallback<DataColumnSidecar> responseCallback) {
 
     long requestId = REQUEST_ID_COUNTER.getAndIncrement();
 
-    LOG.debug(
-        "Peer {} requested {} data column sidecars with identifiers: {}",
-        peer.getId(),
-        message.size(),
-        message);
-    LOG_DAS.info(
-        "[nyota] DataColumnSidecarsByRootMessageHandler: REQUEST(#{}) {} data column sidecars from {}",
-        requestId,
-        message.size(),
-        peer.getId());
+    ReqRespMethodLogger.ResponseLogger<DataColumnSidecar> responseLogger =
+        dasLogger
+            .getDataColumnSidecarsByRootLogger()
+            .onInboundRequest(
+                ReqRespMethodLogger.PeerId.fromPeerAndNodeId(
+                    peer.getId().toBase58(),
+                    peer.getDiscoveryNodeId().orElseThrow()),
+                message);
+
+    LoggingResponseCallback<DataColumnSidecar> loggingCallback =
+        new LoggingResponseCallback<>(responseCallback, responseLogger);
 
     final Optional<RequestApproval> dataColumnSidecarsRequestApproval =
-        peer.approveDataColumnSidecarsRequest(callback, message.size());
+        peer.approveDataColumnSidecarsRequest(loggingCallback, message.size());
 
     if (!peer.approveRequest() || dataColumnSidecarsRequestApproval.isEmpty()) {
       requestCounter.labels("rate_limited").inc();
@@ -138,7 +144,7 @@ public class DataColumnSidecarsByRootMessageHandler
                         .thenCompose(
                             maybeSidecar ->
                                 validateAndSendMaybeRespond(
-                                    identifier, maybeSidecar, finalizedEpoch, callback)));
+                                    identifier, maybeSidecar, finalizedEpoch, loggingCallback)));
 
     SafeFuture<List<Boolean>> listOfResponses = SafeFuture.collectAll(responseStream);
 
@@ -150,22 +156,12 @@ public class DataColumnSidecarsByRootMessageHandler
                 peer.adjustDataColumnSidecarsRequest(
                     dataColumnSidecarsRequestApproval.get(), sentDataColumnSidecarsCount);
               }
-              callback.completeSuccessfully();
-              LOG_DAS.info(
-                  "[nyota] DataColumnSidecarsByRootMessageHandler: RESPOND(#{}) {} data column sidecars to {}",
-                  requestId,
-                  sentDataColumnSidecarsCount,
-                  peer.getId());
+              loggingCallback.completeSuccessfully();
             })
         .finish(
             err -> {
               peer.adjustDataColumnSidecarsRequest(dataColumnSidecarsRequestApproval.get(), 0);
-              handleError(callback, err);
-              LOG_DAS.info(
-                  "[nyota] DataColumnSidecarsByRootMessageHandler: ERROR(#{}) to {}: {}",
-                  requestId,
-                  peer.getId(),
-                  err.toString());
+              handleError(loggingCallback, err);
             });
   }
 
