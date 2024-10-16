@@ -1,4 +1,4 @@
-package tech.pegasys.teku.statetransition.datacolumns.log;
+package tech.pegasys.teku.statetransition.datacolumns.log.gossip;
 
 import java.util.Optional;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;

@@ -1,4 +1,4 @@
-package tech.pegasys.teku.statetransition.datacolumns.log;
+package tech.pegasys.teku.statetransition.datacolumns.log.gossip;
 
 public interface SubnetGossipLogger<TMessage> extends GossipLogger<TMessage>  {
 
