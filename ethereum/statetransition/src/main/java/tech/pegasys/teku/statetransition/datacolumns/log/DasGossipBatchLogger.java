@@ -166,7 +166,7 @@ public class DasGossipBatchLogger implements DasGossipLogger {
     return StringifyUtil.toIntRangeString(columnIndexes);
   }
 
-  private String blockIdString(SlotAndBlockRoot blockId) {
+  private static String blockIdString(SlotAndBlockRoot blockId) {
     return "#"
         + blockId.getSlot()
         + " (0x"

@@ -17,7 +17,7 @@ import java.util.Optional;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
 
-public interface DasGossipLogger {
+public interface DasGossipLogger extends SubnetGossipLogger<DataColumnSidecar> {
 
   DasGossipLogger NOOP =
       new DasGossipLogger() {
@@ -34,12 +34,4 @@ public interface DasGossipLogger {
         @Override
         public void onDataColumnSubnetUnsubscribe(int subnetId) {}
       };
-
-  void onReceive(DataColumnSidecar sidecar, InternalValidationResult validationResult);
-
-  void onPublish(DataColumnSidecar sidecar, Optional<Throwable> result);
-
-  void onDataColumnSubnetSubscribe(int subnetId);
-
-  void onDataColumnSubnetUnsubscribe(int subnetId);
 }
