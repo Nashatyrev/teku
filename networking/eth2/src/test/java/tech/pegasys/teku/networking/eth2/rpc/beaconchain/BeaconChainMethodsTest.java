@@ -157,6 +157,7 @@ public class BeaconChainMethodsTest {
         metricsSystem,
         statusMessageFactory,
         metadataMessagesFactory,
-        RpcEncoding.createSszSnappyEncoding(spec.getNetworkingConfig().getMaxChunkSize()), DasReqRespLogger.NOOP);
+        RpcEncoding.createSszSnappyEncoding(spec.getNetworkingConfig().getMaxChunkSize()),
+        DasReqRespLogger.NOOP);
   }
 }

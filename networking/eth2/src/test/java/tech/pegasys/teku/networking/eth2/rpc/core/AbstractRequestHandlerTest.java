@@ -71,7 +71,8 @@ abstract class AbstractRequestHandlerTest<T extends RpcRequestHandler> {
             new NoOpMetricsSystem(),
             new StatusMessageFactory(recentChainData),
             new MetadataMessagesFactory(),
-            getRpcEncoding(), DasReqRespLogger.NOOP);
+            getRpcEncoding(),
+            DasReqRespLogger.NOOP);
 
     reqHandler = createRequestHandler(beaconChainMethods);
 
