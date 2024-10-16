@@ -264,8 +264,7 @@ class ForkChoiceTest {
 
     when(blobSidecarsAvailabilityChecker.getAvailabilityCheckResult())
         .thenReturn(
-            SafeFuture.completedFuture(
-                BlobSidecarsAndValidationResult.invalidResult(blobSidecars)));
+            SafeFuture.completedFuture(DataAndValidationResult.invalidResult(blobSidecars)));
 
     importBlockAndAssertFailure(
         blockAndState, FailureReason.FAILED_DATA_AVAILABILITY_CHECK_INVALID);

@@ -71,7 +71,7 @@ public class LinkedObjectsDeliveryTest {
   static class Sync {
     final Retriever retriever;
 
-    public Sync(Retriever retriever) {
+    public Sync(final Retriever retriever) {
       this.retriever = retriever;
     }
 

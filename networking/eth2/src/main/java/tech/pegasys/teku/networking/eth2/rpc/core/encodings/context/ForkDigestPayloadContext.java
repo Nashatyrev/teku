@@ -20,7 +20,7 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 
 public interface ForkDigestPayloadContext<TPayload extends SszData> {
 
@@ -62,7 +62,7 @@ public interface ForkDigestPayloadContext<TPayload extends SszData> {
         @Override
         public SszSchema<DataColumnSidecar> getSchemaFromSchemaDefinitions(
             final SchemaDefinitions schemaDefinitions) {
-          return SchemaDefinitionsElectra.required(schemaDefinitions).getDataColumnSidecarSchema();
+          return SchemaDefinitionsEip7594.required(schemaDefinitions).getDataColumnSidecarSchema();
         }
       };
 

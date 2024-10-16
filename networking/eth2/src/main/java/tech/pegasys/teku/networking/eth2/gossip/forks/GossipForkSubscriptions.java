@@ -72,15 +72,15 @@ public interface GossipForkSubscriptions {
 
   default void publishSignedBlsToExecutionChangeMessage(final SignedBlsToExecutionChange message) {}
 
-  default void publishDataColumnSidecar(DataColumnSidecar blobSidecar) {
+  default void publishDataColumnSidecar(final DataColumnSidecar blobSidecar) {
     // since EIP7594
   }
 
-  default void subscribeToDataColumnSidecarSubnet(int subnetId) {
+  default void subscribeToDataColumnSidecarSubnet(final int subnetId) {
     // since EIP7594
   }
 
-  default void unsubscribeFromDataColumnSidecarSubnet(int subnetId) {
+  default void unsubscribeFromDataColumnSidecarSubnet(final int subnetId) {
     // since EIP7594
   }
 }

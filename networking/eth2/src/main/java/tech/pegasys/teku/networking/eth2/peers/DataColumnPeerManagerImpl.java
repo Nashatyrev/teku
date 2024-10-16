@@ -31,44 +31,44 @@ public class DataColumnPeerManagerImpl
     implements DataColumnPeerManager, PeerConnectedSubscriber<Eth2Peer>, BatchDataColumnReqResp {
 
   private final Subscribers<PeerListener> listeners = Subscribers.create(true);
-  private Map<UInt256, Eth2Peer> connectedPeers = new ConcurrentHashMap<>();
+  private final Map<UInt256, Eth2Peer> connectedPeers = new ConcurrentHashMap<>();
 
   @Override
-  public void onConnected(Eth2Peer peer) {
+  public void onConnected(final Eth2Peer peer) {
     peerConnected(peer);
   }
 
-  private void peerConnected(Eth2Peer peer) {
-    UInt256 nodeId = peer.getDiscoveryNodeId().orElseThrow();
+  private void peerConnected(final Eth2Peer peer) {
+    final UInt256 nodeId = peer.getDiscoveryNodeId().orElseThrow();
     listeners.forEach(l -> l.peerConnected(nodeId));
     connectedPeers.put(nodeId, peer);
     peer.subscribeDisconnect((__, ___) -> peerDisconnected(peer));
   }
 
-  private void peerDisconnected(Eth2Peer peer) {
-    UInt256 nodeId = peer.getDiscoveryNodeId().orElseThrow();
+  private void peerDisconnected(final Eth2Peer peer) {
+    final UInt256 nodeId = peer.getDiscoveryNodeId().orElseThrow();
     listeners.forEach(l -> l.peerDisconnected(nodeId));
     connectedPeers.remove(nodeId);
   }
 
   @Override
-  public void addPeerListener(PeerListener listener) {
+  public void addPeerListener(final PeerListener listener) {
     listeners.subscribe(listener);
   }
 
   @Override
-  public void banNode(UInt256 node) {
+  public void banNode(final UInt256 node) {
     // TODO
   }
 
   @Override
   public SafeFuture<List<DataColumnSidecar>> requestDataColumnSidecar(
-      UInt256 nodeId, List<DataColumnIdentifier> columnIdentifiers) {
-    Eth2Peer eth2Peer = connectedPeers.get(nodeId);
+      final UInt256 nodeId, final List<DataColumnIdentifier> columnIdentifiers) {
+    final Eth2Peer eth2Peer = connectedPeers.get(nodeId);
     if (eth2Peer == null) {
       return SafeFuture.failedFuture(new DataColumnReqResp.DasPeerDisconnectedException());
     } else {
-      List<DataColumnSidecar> responseCollector = new ArrayList<>();
+      final List<DataColumnSidecar> responseCollector = new ArrayList<>();
       return eth2Peer
           .requestDataColumnSidecarsByRoot(
               columnIdentifiers,
@@ -81,8 +81,8 @@ public class DataColumnPeerManagerImpl
   }
 
   @Override
-  public int getCurrentRequestLimit(UInt256 nodeId) {
-    Eth2Peer eth2Peer = connectedPeers.get(nodeId);
+  public int getCurrentRequestLimit(final UInt256 nodeId) {
+    final Eth2Peer eth2Peer = connectedPeers.get(nodeId);
     if (eth2Peer == null) {
       return 0;
     } else {

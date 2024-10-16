@@ -306,7 +306,7 @@ public class DasCustodySyncTest {
     assertThat(retrieverStub.requests).hasSize(retrieveRequests_1_0.size() * 2);
   }
 
-  private void addBlockAndSidecars(int slot) {
+  private void addBlockAndSidecars(final int slot) {
     SignedBeaconBlock block = custodyStand.createBlockWithBlobs(slot);
     custodyStand.blockResolver.addBlock(block.getMessage());
     List<DataColumnSidecar> columnSidecars = custodyStand.createCustodyColumnSidecars(block);
@@ -318,7 +318,7 @@ public class DasCustodySyncTest {
         custodyStand.getMinCustodySlot().intValue(), custodyStand.getCurrentSlot().intValue());
   }
 
-  private void assertCustodyColumnsPresent(int fromSlot, int tillSlot) {
+  private void assertCustodyColumnsPresent(final int fromSlot, final int tillSlot) {
     for (int slot = fromSlot; slot < tillSlot; slot++) {
       UInt64 uSlot = UInt64.valueOf(slot);
       Optional<BeaconBlock> maybeBlock = custodyStand.blockResolver.getBlockAtSlot(uSlot).join();
@@ -351,11 +351,11 @@ public class DasCustodySyncTest {
     custodyStand.advanceTimeGraduallyUntilAllDone(ofMinutes(1));
   }
 
-  private <T> T await(CompletableFuture<T> future) {
+  private <T> T await(final CompletableFuture<T> future) {
     return await(future, ofMinutes(1));
   }
 
-  private <T> T await(CompletableFuture<T> future, Duration maxWait) {
+  private <T> T await(final CompletableFuture<T> future, final Duration maxWait) {
     for (int i = 0; i < maxWait.toMillis(); i++) {
       if (future.isDone()) {
         try {

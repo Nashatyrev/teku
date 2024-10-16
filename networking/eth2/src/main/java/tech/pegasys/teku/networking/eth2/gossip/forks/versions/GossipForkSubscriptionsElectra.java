@@ -15,14 +15,12 @@ package tech.pegasys.teku.networking.eth2.gossip.forks.versions;
 
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
-import tech.pegasys.teku.networking.eth2.gossip.DataColumnSidecarGossipManager;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
-import tech.pegasys.teku.networking.eth2.gossip.subnets.DataColumnSidecarSubnetSubscriptions;
 import tech.pegasys.teku.networking.eth2.gossip.topics.OperationProcessor;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetwork;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
@@ -31,16 +29,12 @@ import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.ValidatableSyncCommitteeMessage;
 import tech.pegasys.teku.spec.datastructures.state.Fork;
-import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
-public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapella {
+public class GossipForkSubscriptionsElectra extends GossipForkSubscriptionsDeneb {
 
-  private final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor;
-  private DataColumnSidecarGossipManager dataColumnSidecarGossipManager;
-
-  public GossipForkSubscriptionsEip7594(
+  public GossipForkSubscriptionsElectra(
       final Fork fork,
       final Spec spec,
       final AsyncRunner asyncRunner,
@@ -49,6 +43,7 @@ public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapel
       final RecentChainData recentChainData,
       final GossipEncoding gossipEncoding,
       final OperationProcessor<SignedBeaconBlock> blockProcessor,
+      final OperationProcessor<BlobSidecar> blobSidecarProcessor,
       final OperationProcessor<ValidatableAttestation> attestationProcessor,
       final OperationProcessor<ValidatableAttestation> aggregateProcessor,
       final OperationProcessor<AttesterSlashing> attesterSlashingProcessor,
@@ -60,8 +55,7 @@ public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapel
           syncCommitteeMessageOperationProcessor,
       final OperationProcessor<SignedBlsToExecutionChange>
           signedBlsToExecutionChangeOperationProcessor,
-      final DebugDataDumper debugDataDumper,
-      final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor) {
+      final DebugDataDumper debugDataDumper) {
     super(
         fork,
         spec,
@@ -71,6 +65,7 @@ public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapel
         recentChainData,
         gossipEncoding,
         blockProcessor,
+        blobSidecarProcessor,
         attestationProcessor,
         aggregateProcessor,
         attesterSlashingProcessor,
@@ -80,45 +75,5 @@ public class GossipForkSubscriptionsEip7594 extends GossipForkSubscriptionsCapel
         syncCommitteeMessageOperationProcessor,
         signedBlsToExecutionChangeOperationProcessor,
         debugDataDumper);
-    this.dataColumnSidecarOperationProcessor = dataColumnSidecarOperationProcessor;
-  }
-
-  @Override
-  protected void addGossipManagers(ForkInfo forkInfo) {
-    super.addGossipManagers(forkInfo);
-
-    addDataColumnSidecarGossipManager(forkInfo);
-  }
-
-  void addDataColumnSidecarGossipManager(final ForkInfo forkInfo) {
-    DataColumnSidecarSubnetSubscriptions dataColumnSidecarSubnetSubscriptions =
-        new DataColumnSidecarSubnetSubscriptions(
-            spec,
-            asyncRunner,
-            discoveryNetwork,
-            gossipEncoding,
-            recentChainData,
-            dataColumnSidecarOperationProcessor,
-            forkInfo);
-
-    dataColumnSidecarGossipManager =
-        new DataColumnSidecarGossipManager(dataColumnSidecarSubnetSubscriptions);
-
-    addGossipManager(dataColumnSidecarGossipManager);
-  }
-
-  @Override
-  public void publishDataColumnSidecar(DataColumnSidecar blobSidecar) {
-    dataColumnSidecarGossipManager.publish(blobSidecar);
-  }
-
-  @Override
-  public void subscribeToDataColumnSidecarSubnet(int subnetId) {
-    dataColumnSidecarGossipManager.subscribeToSubnetId(subnetId);
-  }
-
-  @Override
-  public void unsubscribeFromDataColumnSidecarSubnet(int subnetId) {
-    dataColumnSidecarGossipManager.unsubscribeFromSubnetId(subnetId);
   }
 }

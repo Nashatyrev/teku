@@ -56,6 +56,7 @@ import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscri
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsBellatrix;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsCapella;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsDeneb;
+import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsElectra;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsPhase0;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.AttestationSubnetTopicProvider;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.DataColumnSidecarSubnetTopicProvider;
@@ -491,8 +492,7 @@ public class Eth2P2PNetworkFactory {
                 signedContributionAndProofProcessor,
                 syncCommitteeMessageProcessor,
                 signedBlsToExecutionChangeProcessor,
-                debugDataDumper,
-                dataColumnSidecarOperationProcessor);
+                debugDataDumper);
       };
     }
 
@@ -715,7 +715,7 @@ public class Eth2P2PNetworkFactory {
     }
 
     public Eth2P2PNetworkBuilder gossipedDataColumnSidecarOperationProcessor(
-        OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor) {
+        final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor) {
       checkNotNull(dataColumnSidecarOperationProcessor);
       this.dataColumnSidecarOperationProcessor = dataColumnSidecarOperationProcessor;
       return this;

@@ -359,6 +359,7 @@ class NodeRecordConverterTest {
   public void shouldDecodeCscCorrectly(final String hexString, final Integer csc) {
     assertThat(
             convertNodeRecordWithFields(
+                false,
                 new EnrField(EnrField.IP_V4, Bytes.wrap(new byte[] {127, 0, 0, 1})),
                 new EnrField(EnrField.TCP, 1234),
                 new EnrField(DAS_CUSTODY_SUBNET_COUNT_ENR_FIELD, Bytes.fromHexString(hexString))))

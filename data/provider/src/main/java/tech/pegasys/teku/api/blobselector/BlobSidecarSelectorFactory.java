@@ -28,7 +28,9 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.deneb.BeaconBlockBodyDeneb;
+import tech.pegasys.teku.spec.datastructures.metadata.BlobSidecarsAndMetaData;
 import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
+import tech.pegasys.teku.storage.client.ChainHead;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 public class BlobSidecarSelectorFactory extends AbstractSelectorFactory<BlobSidecarSelector> {

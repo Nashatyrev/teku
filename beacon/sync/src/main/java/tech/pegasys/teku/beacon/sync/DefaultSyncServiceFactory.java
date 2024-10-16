@@ -85,7 +85,7 @@ public class DefaultSyncServiceFactory implements SyncServiceFactory {
       final RecentChainData recentChainData,
       final CombinedChainDataClient combinedChainDataClient,
       final StorageUpdateChannel storageUpdateChannel,
-      SyncPreImportBlockChannel syncPreImportBlockChannel,
+      final SyncPreImportBlockChannel syncPreImportBlockChannel,
       final Eth2P2PNetwork p2pNetwork,
       final BlockImporter blockImporter,
       final BlobSidecarManager blobSidecarManager,

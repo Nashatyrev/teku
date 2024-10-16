@@ -62,7 +62,7 @@ public class StringifyUtilTest {
 
   @ParameterizedTest
   @MethodSource("provideTestCaseParameters")
-  void columnIndexesToString_test(TestCase testCase) {
+  void columnIndexesToString_test(final TestCase testCase) {
     List<Integer> idxList = testCase.indexes.boxed().toList();
     String s = StringifyUtil.columnIndexesToString(idxList, maxIndexesLen);
     System.out.println(s);

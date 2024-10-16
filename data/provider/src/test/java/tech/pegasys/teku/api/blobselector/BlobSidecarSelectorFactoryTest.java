@@ -40,6 +40,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.metadata.BlobSidecarsAndMetaData;
+import tech.pegasys.teku.spec.datastructures.metadata.ObjectAndMetaData;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
@@ -256,7 +257,11 @@ public class BlobSidecarSelectorFactoryTest {
         .thenReturn(SafeFuture.completedFuture(blobSidecars));
 
     final Optional<List<BlobSidecar>> result =
-        blobSidecarSelectorFactoryEip7594.headSelector().getBlobSidecars(indices).get();
+        blobSidecarSelectorFactoryEip7594
+            .headSelector()
+            .getBlobSidecars(indices)
+            .get()
+            .map(ObjectAndMetaData::getData);
     assertThat(result).hasValue(blobSidecars);
     verify(blobSidecarReconstructionProviderMock)
         .reconstructBlobSidecars(any(SlotAndBlockRoot.class), anyList());
@@ -281,7 +286,8 @@ public class BlobSidecarSelectorFactoryTest {
         blobSidecarSelectorFactoryEip7594
             .slotSelector(block.getSlot())
             .getBlobSidecars(indices)
-            .get();
+            .get()
+            .map(ObjectAndMetaData::getData);
     assertThat(result).hasValue(blobSidecars);
     verify(blobSidecarReconstructionProviderMock)
         .reconstructBlobSidecars(any(UInt64.class), anyList());

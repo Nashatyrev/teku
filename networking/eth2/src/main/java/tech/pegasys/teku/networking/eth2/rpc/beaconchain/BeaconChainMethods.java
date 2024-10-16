@@ -45,7 +45,7 @@ import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -66,7 +66,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.PingMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.StatusMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessage;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -405,7 +405,7 @@ public class BeaconChainMethods {
             spec, metricsSystem, combinedChainDataClient, dataColumnSidecarCustody);
     final DataColumnSidecarsByRootRequestMessageSchema
         dataColumnSidecarsByRootRequestMessageSchema =
-            SchemaDefinitionsElectra.required(
+            SchemaDefinitionsEip7594.required(
                     spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions())
                 .getDataColumnSidecarsByRootRequestMessageSchema();
 
@@ -439,7 +439,7 @@ public class BeaconChainMethods {
 
     final DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema
         requestType =
-            SchemaDefinitionsElectra.required(
+            SchemaDefinitionsEip7594.required(
                     spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions())
                 .getDataColumnSidecarsByRangeRequestMessageSchema();
 
@@ -582,8 +582,8 @@ public class BeaconChainMethods {
     return SpecConfigDeneb.required(spec.forMilestone(SpecMilestone.DENEB).getConfig());
   }
 
-  private static SpecConfigEip7594 getSpecConfigEip7594(final Spec spec) {
-    return SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
+  private static Eip7594 getSpecConfigEip7594(final Spec spec) {
+    return Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
   }
 
   public Collection<RpcMethod<?, ?, ?>> all() {

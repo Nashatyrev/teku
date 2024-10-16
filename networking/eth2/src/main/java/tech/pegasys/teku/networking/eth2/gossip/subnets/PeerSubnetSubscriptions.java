@@ -37,7 +37,7 @@ import tech.pegasys.teku.networking.eth2.peers.PeerScorer;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
 import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.config.features.NetworkingSpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 
 public class PeerSubnetSubscriptions {
@@ -79,8 +79,8 @@ public class PeerSubnetSubscriptions {
     Integer dataColumnSidecarSubnetCount =
         currentVersion
             .getConfig()
-            .toVersionEip7594()
-            .map(NetworkingSpecConfigEip7594::getDataColumnSidecarSubnetCount)
+            .getOptionalEip7594Config()
+            .map(Eip7594::getDataColumnSidecarSubnetCount)
             .orElse(0);
 
     final PeerSubnetSubscriptions subscriptions =
@@ -246,7 +246,7 @@ public class PeerSubnetSubscriptions {
             dataColumnSidecarSubnetSubscriptions.getMinSubscriberCount()));
   }
 
-  private static OptionalInt optionalMin(List<OptionalInt> optionalInts) {
+  private static OptionalInt optionalMin(final List<OptionalInt> optionalInts) {
     return optionalInts.stream().flatMapToInt(OptionalInt::stream).min();
   }
 
@@ -401,7 +401,8 @@ public class PeerSubnetSubscriptions {
     }
 
     public Builder nodeIdToDataColumnSidecarSubnetsCalculator(
-        NodeIdToDataColumnSidecarSubnetsCalculator nodeIdToDataColumnSidecarSubnetsCalculator) {
+        final NodeIdToDataColumnSidecarSubnetsCalculator
+            nodeIdToDataColumnSidecarSubnetsCalculator) {
       this.nodeIdToDataColumnSidecarSubnetsCalculator = nodeIdToDataColumnSidecarSubnetsCalculator;
       return this;
     }

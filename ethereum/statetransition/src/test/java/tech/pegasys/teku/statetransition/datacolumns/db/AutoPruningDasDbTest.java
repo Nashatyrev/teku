@@ -39,7 +39,7 @@ public class AutoPruningDasDbTest {
       new AutoPruningDasDb(
           das.db, minCustodyPeriodSlotCalculator, custodyPeriodMarginSlots, prunePeriodSlots);
 
-  private DataColumnSidecar createSidecar(int slot, int index) {
+  private DataColumnSidecar createSidecar(final int slot, final int index) {
     SignedBeaconBlock block = das.createBlockWithBlobs(slot);
     return das.createSidecar(block, index);
   }

@@ -63,7 +63,7 @@ public class DataColumnSidecarAvailabilityCheckerBenchmarkTest extends KZGAbstra
     final List<DataColumnSidecar> dataColumnSidecars =
         spec.forMilestone(SpecMilestone.ELECTRA)
             .miscHelpers()
-            .toVersionEip7594()
+            .getEip7594Helpers()
             .orElseThrow()
             .constructDataColumnSidecars(signedBeaconBlock, blobs, getKzg());
 

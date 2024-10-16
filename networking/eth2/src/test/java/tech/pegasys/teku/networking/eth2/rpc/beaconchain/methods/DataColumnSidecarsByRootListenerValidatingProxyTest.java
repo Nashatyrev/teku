@@ -38,12 +38,13 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 @SuppressWarnings("JavaCase")
 public class DataColumnSidecarsByRootListenerValidatingProxyTest {
-  private final Spec spec = TestSpecFactory.createMainnetEip7594();
+  private final Spec spec = TestSpecFactory.createMainnetElectraEip7594();
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
   private DataColumnSidecarsByRootListenerValidatingProxy listenerWrapper;
   private final Eth2Peer peer = mock(Eth2Peer.class);
@@ -157,11 +158,13 @@ public class DataColumnSidecarsByRootListenerValidatingProxyTest {
     final SchemaDefinitionsElectra schemaDefinitionsElectra =
         SchemaDefinitionsElectra.required(spec.getGenesisSchemaDefinitions());
     final DataColumnSidecar dataColumnSidecar =
-        schemaDefinitionsElectra
+        SchemaDefinitionsEip7594.required(schemaDefinitionsElectra)
             .getDataColumnSidecarSchema()
             .create(
                 UInt64.ZERO,
-                schemaDefinitionsElectra.getDataColumnSchema().create(List.of()),
+                SchemaDefinitionsEip7594.required(schemaDefinitionsElectra)
+                    .getDataColumnSchema()
+                    .create(List.of()),
                 List.of(),
                 List.of(),
                 new SignedBeaconBlockHeader(

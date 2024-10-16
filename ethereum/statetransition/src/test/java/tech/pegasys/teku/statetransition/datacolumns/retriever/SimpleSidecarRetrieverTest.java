@@ -33,7 +33,7 @@ import tech.pegasys.teku.kzg.trusted_setups.TrustedSetupLoader;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
@@ -51,8 +51,7 @@ public class SimpleSidecarRetrieverTest {
   final TestPeerManager testPeerManager = new TestPeerManager();
 
   final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
-  final SpecConfigEip7594 config =
-      SpecConfigEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
+  final Eip7594 config = Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
   final MiscHelpersEip7594 miscHelpers =
       MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).miscHelpers());
   final int columnCount = config.getNumberOfColumns();
@@ -84,16 +83,16 @@ public class SimpleSidecarRetrieverTest {
     TrustedSetupLoader.loadTrustedSetupForTests(kzg);
   }
 
-  private SignedBeaconBlock createSigned(BeaconBlock block) {
+  private SignedBeaconBlock createSigned(final BeaconBlock block) {
     return dataStructureUtil.signedBlock(block);
   }
 
-  private DataColumnSlotAndIdentifier createId(BeaconBlock block, int colIdx) {
+  private DataColumnSlotAndIdentifier createId(final BeaconBlock block, final int colIdx) {
     return new DataColumnSlotAndIdentifier(
         block.getSlot(), block.getRoot(), UInt64.valueOf(colIdx));
   }
 
-  List<UInt64> nodeCustodyColumns(UInt256 nodeId) {
+  List<UInt64> nodeCustodyColumns(final UInt256 nodeId) {
     return miscHelpers.computeCustodyColumnIndexes(
         nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId));
   }
@@ -102,15 +101,15 @@ public class SimpleSidecarRetrieverTest {
     return IntStream.iterate(0, i -> i + 1).mapToObj(UInt256::valueOf);
   }
 
-  Stream<UInt256> craftNodeIdsCustodyOf(UInt64 custodyColumn) {
+  Stream<UInt256> craftNodeIdsCustodyOf(final UInt64 custodyColumn) {
     return craftNodeIds().filter(nodeId -> nodeCustodyColumns(nodeId).contains(custodyColumn));
   }
 
-  Stream<UInt256> craftNodeIdsNotCustodyOf(UInt64 custodyColumn) {
+  Stream<UInt256> craftNodeIdsNotCustodyOf(final UInt64 custodyColumn) {
     return craftNodeIds().filter(nodeId -> !nodeCustodyColumns(nodeId).contains(custodyColumn));
   }
 
-  private void advanceTimeGradually(Duration delta) {
+  private void advanceTimeGradually(final Duration delta) {
     for (int i = 0; i < delta.toMillis(); i++) {
       stubTimeProvider.advanceTimeBy(Duration.ofMillis(1));
       stubAsyncRunner.executeDueActionsRepeatedly();

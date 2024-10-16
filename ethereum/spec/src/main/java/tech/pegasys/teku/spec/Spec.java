@@ -26,6 +26,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -237,6 +238,10 @@ public class Spec {
    */
   public List<ForkAndSpecMilestone> getEnabledMilestones() {
     return forkSchedule.getActiveMilestones();
+  }
+
+  public List<SpecFeature> getEnabledFeatures() {
+    return Arrays.stream(SpecFeature.values()).filter(this::isFeatureScheduled).toList();
   }
 
   /**

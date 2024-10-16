@@ -68,11 +68,11 @@ public class RecoveringSidecarRetrieverTest {
     TrustedSetupLoader.loadTrustedSetupForTests(kzg);
   }
 
-  private SignedBeaconBlock createSigned(BeaconBlock block) {
+  private SignedBeaconBlock createSigned(final BeaconBlock block) {
     return dataStructureUtil.signedBlock(block);
   }
 
-  private DataColumnSlotAndIdentifier createId(BeaconBlock block, int colIdx) {
+  private DataColumnSlotAndIdentifier createId(final BeaconBlock block, final int colIdx) {
     return new DataColumnSlotAndIdentifier(
         block.getSlot(), block.getRoot(), UInt64.valueOf(colIdx));
   }

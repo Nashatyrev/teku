@@ -40,7 +40,7 @@ public class MetadataMessagesFactory {
     handleUpdate();
   }
 
-  public synchronized void updateCustodySubnetCount(UInt64 custodySubnetCount) {
+  public synchronized void updateCustodySubnetCount(final UInt64 custodySubnetCount) {
     this.custodySubnetCount = Optional.of(custodySubnetCount);
     handleUpdate();
   }

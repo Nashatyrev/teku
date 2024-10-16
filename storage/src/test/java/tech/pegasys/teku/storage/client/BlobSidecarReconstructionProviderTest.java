@@ -54,6 +54,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
@@ -287,6 +288,9 @@ public class BlobSidecarReconstructionProviderTest {
 
   private BlobsAndMatrix loadBlobsAndMatrixFixture() {
     final List<CellData> cellData = loadJson();
+    final SchemaDefinitionsEip7594 schemaDefinitionsEip7594 =
+        SchemaDefinitionsEip7594.required(
+            spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions());
     final SchemaDefinitionsElectra schemaDefinitionsElectra =
         SchemaDefinitionsElectra.required(
             spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions());
@@ -305,8 +309,8 @@ public class BlobSidecarReconstructionProviderTest {
       for (int cellIndex = 0; cellIndex < blobCellData.cells.size(); ++cellIndex) {
         row.add(
             new MatrixEntry(
-                schemaDefinitionsElectra.getMatrixEntrySchema(),
-                schemaDefinitionsElectra
+                schemaDefinitionsEip7594.getMatrixEntrySchema(),
+                schemaDefinitionsEip7594
                     .getCellSchema()
                     .create(Bytes.fromHexString(blobCellData.cells.get(cellIndex))),
                 KZGProof.fromBytesCompressed(Bytes48.ZERO),

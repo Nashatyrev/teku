@@ -60,11 +60,11 @@ public class SchemaDefinitionsEip7594 {
 
   public static SchemaDefinitionsEip7594 required(final SchemaDefinitions schemaDefinitions) {
     checkArgument(
-        schemaDefinitions instanceof SchemaDefinitionsEip7594,
+        schemaDefinitions.getOptionalSchemaDefinitionsEip7594().isPresent(),
         "Expected definitions of type %s but got %s",
         SchemaDefinitionsEip7594.class,
         schemaDefinitions.getClass());
-    return (SchemaDefinitionsEip7594) schemaDefinitions;
+    return schemaDefinitions.getOptionalSchemaDefinitionsEip7594().get();
   }
 
   public MetadataMessageSchemaEip7594 getMetadataMessageSchema() {

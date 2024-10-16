@@ -203,7 +203,8 @@ class SubnetScorerTest {
     assertThat(actual).contains(expected);
   }
 
-  private DiscoveryPeer createDiscoveryPeer(SszBitvector attSubnets, SszBitvector syncSubnets) {
+  private DiscoveryPeer createDiscoveryPeer(
+      final SszBitvector attSubnets, final SszBitvector syncSubnets) {
     try {
       Bytes pubKey =
           Bytes.fromHexString(

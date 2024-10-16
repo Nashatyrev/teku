@@ -139,7 +139,7 @@ public class DiscoveryNetwork<P extends Peer> extends DelegatingP2PNetwork<P> {
             .sszSerialize());
   }
 
-  public void setDASTotalCustodySubnetCount(int count) {
+  public void setDASTotalCustodySubnetCount(final int count) {
     if (count < 0) {
       throw new IllegalArgumentException(
           String.format("Custody subnet count should be a positive number, but was %s", count));

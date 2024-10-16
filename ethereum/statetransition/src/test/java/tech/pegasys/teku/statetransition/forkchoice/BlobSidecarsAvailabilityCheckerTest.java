@@ -455,7 +455,7 @@ public class BlobSidecarsAvailabilityCheckerTest {
   }
 
   private void assertAvailable(
-      SafeFuture<DataAndValidationResult<BlobSidecar>> availabilityOrValidityCheck) {
+      final SafeFuture<DataAndValidationResult<BlobSidecar>> availabilityOrValidityCheck) {
     assertThat(availabilityOrValidityCheck)
         .isCompletedWithValueMatching(result -> !result.isFailure(), "is not failure")
         .isCompletedWithValueMatching(DataAndValidationResult::isValid, "is valid")
