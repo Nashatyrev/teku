@@ -18,7 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.DataColumnSidecarSubnetSubscriptions;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.statetransition.datacolumns.log.DasGossipLogger;
+import tech.pegasys.teku.statetransition.datacolumns.log.gossip.DasGossipLogger;
 
 public class DataColumnSidecarGossipManager implements GossipManager {
   private static final Logger LOG = LogManager.getLogger();
