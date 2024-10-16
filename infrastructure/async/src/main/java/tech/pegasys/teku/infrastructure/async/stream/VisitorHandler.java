@@ -15,29 +15,29 @@ package tech.pegasys.teku.infrastructure.async.stream;
 
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-class SliceStreamHandler<T> extends AbstractDelegatingStreamHandler<T, T> {
+class VisitorHandler<T> extends AbstractDelegatingStreamHandler<T, T> {
+  private final AsyncStreamVisitor<T> visitor;
 
-  private final AsyncStreamSlicer<T> slicer;
-
-  protected SliceStreamHandler(AsyncStreamHandler<T> delegate, AsyncStreamSlicer<T> slicer) {
+  public VisitorHandler(AsyncStreamHandler<T> delegate, AsyncStreamVisitor<T> visitor) {
     super(delegate);
-    this.slicer = slicer;
+    this.visitor = visitor;
+  }
+
+  @Override
+  public void onComplete() {
+    visitor.onComplete();
+    delegate.onComplete();
+  }
+
+  @Override
+  public void onError(Throwable t) {
+    visitor.onError(t);
+    delegate.onError(t);
   }
 
   @Override
   public SafeFuture<Boolean> onNext(T t) {
-    AsyncStreamSlicer.SliceResult sliceResult = slicer.slice(t);
-    return switch (sliceResult) {
-      case CONTINUE -> delegate.onNext(t);
-      case SKIP_AND_STOP -> {
-        delegate.onComplete();
-        yield FALSE_FUTURE;
-      }
-      case INCLUDE_AND_STOP -> {
-        SafeFuture<Boolean> ret = delegate.onNext(t).thenApply(__ -> false);
-        delegate.onComplete();
-        yield ret;
-      }
-    };
+    visitor.onNext(t);
+    return delegate.onNext(t);
   }
 }
