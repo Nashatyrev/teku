@@ -13,7 +13,7 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-public interface AsyncStreamProcessor<TSource, TTarget> {
+public interface AsyncStreamTransformer<TSource, TTarget> {
 
   AsyncStreamHandler<TSource> process(AsyncStreamHandler<TTarget> downstreamHandler);
 }
