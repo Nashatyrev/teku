@@ -17,6 +17,7 @@ abstract class AsyncIterator<T> implements AsyncStream<T> {
 
   abstract void iterate(AsyncStreamHandler<T> callback);
 
+  @Override
   public <R> AsyncIterator<R> transform(AsyncStreamTransformer<T, R> transformer) {
     return new TransformAsyncIterator<>(this, transformer);
   }
