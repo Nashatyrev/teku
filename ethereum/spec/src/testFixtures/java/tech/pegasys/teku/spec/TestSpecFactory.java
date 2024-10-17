@@ -438,7 +438,7 @@ public class TestSpecFactory {
                 .capellaBuilder(c -> c.capellaForkEpoch(capellaForkEpoch))
                 .denebBuilder(d -> d.denebForkEpoch(denebForkEpoch))
                 .electraBuilder(e -> e.electraForkEpoch(electraForkEpoch))
-                .eip7594Builder(eip7594 -> eip7594.eip7594Epoch(eip7594ForkEpoch)));
+                .eip7594Builder(eip7594 -> eip7594.eip7594ForkEpoch(eip7594ForkEpoch)));
   }
 
   private static SpecConfigElectra getElectraEip7594SpecConfig(
@@ -453,7 +453,7 @@ public class TestSpecFactory {
                   .capellaBuilder(c -> c.capellaForkEpoch(UInt64.ZERO))
                   .denebBuilder(d -> d.denebForkEpoch(UInt64.ZERO))
                   .electraBuilder(e -> e.electraForkEpoch(UInt64.ZERO))
-                  .eip7594Builder(eip7594 -> eip7594.eip7594Epoch(UInt64.ZERO));
+                  .eip7594Builder(eip7594 -> eip7594.eip7594ForkEpoch(UInt64.ZERO));
               configAdapter.accept(builder);
             }));
   }

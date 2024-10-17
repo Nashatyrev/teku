@@ -562,13 +562,14 @@ public class PeerSyncTest extends AbstractSyncTest {
                     .denebBuilder(denebBuilder -> denebBuilder.denebForkEpoch(denebForkEpoch))
                     .electraBuilder(
                         electraBuilder -> electraBuilder.electraForkEpoch(denebForkEpoch))
-                    .eip7594Builder(eip7594Builder -> eip7594Builder.eip7594Epoch(eip7594Epoch)));
+                    .eip7594Builder(
+                        eip7594Builder -> eip7594Builder.eip7594ForkEpoch(eip7594Epoch)));
     when(recentChainData.getFinalizedEpoch()).thenReturn(denebForkEpoch);
     when(blobSidecarManager.isAvailabilityRequiredAtSlot(any()))
         .thenAnswer(
             args -> {
               final UInt64 slot = args.getArgument(0);
-              if (spec.atSlot(slot).getMilestone().equals(SpecMilestone.DENEB)) {
+              if (spec.atSlot(slot).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.DENEB)) {
                 return true;
               }
               return false;

@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.spec.config;
 
+import java.util.Objects;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -129,5 +130,23 @@ public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
   @Override
   public int getMaxPendingDepositsPerEpoch() {
     return specConfigElectra.getMaxPendingDepositsPerEpoch();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final DelegatingSpecConfigElectra that = (DelegatingSpecConfigElectra) o;
+    return Objects.equals(specConfigElectra, that.specConfigElectra)
+        && Objects.equals(eip7594, that.eip7594);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(specConfigElectra, eip7594);
   }
 }

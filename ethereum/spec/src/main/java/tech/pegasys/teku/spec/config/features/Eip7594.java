@@ -29,6 +29,7 @@ public interface Eip7594 {
                         + specConfig.getClass().getSimpleName()));
   }
 
+  /** Should be ignored on soft-fork */
   Bytes4 getEip7594ForkVersion();
 
   UInt64 getEip7594FeatureEpoch();

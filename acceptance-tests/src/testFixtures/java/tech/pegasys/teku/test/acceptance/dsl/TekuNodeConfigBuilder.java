@@ -221,7 +221,7 @@ public class TekuNodeConfigBuilder {
         specConfigModifier.andThen(
             specConfigBuilder ->
                 specConfigBuilder.eip7594Builder(
-                    eip7594Builder -> eip7594Builder.eip7594Epoch(eip7594Epoch)));
+                    eip7594Builder -> eip7594Builder.eip7594ForkEpoch(eip7594Epoch)));
     return this;
   }
 

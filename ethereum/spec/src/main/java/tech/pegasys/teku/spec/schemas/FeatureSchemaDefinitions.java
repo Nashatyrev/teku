@@ -13,9 +13,12 @@
 
 package tech.pegasys.teku.spec.schemas;
 
+import static tech.pegasys.teku.spec.schemas.SchemaDefinitions.NonSchema;
+
 import java.util.Optional;
 
 public interface FeatureSchemaDefinitions {
+  @NonSchema
   default Optional<SchemaDefinitionsEip7594> getOptionalSchemaDefinitionsEip7594() {
     return Optional.empty();
   }

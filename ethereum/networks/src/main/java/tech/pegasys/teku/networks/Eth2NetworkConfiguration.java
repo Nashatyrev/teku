@@ -445,7 +445,8 @@ public class Eth2NetworkConfiguration {
                         }
                       });
                   builder.eip7594Builder(
-                      eip7594Builder -> eip7594ForkEpoch.ifPresent(eip7594Builder::eip7594Epoch));
+                      eip7594Builder ->
+                          eip7594ForkEpoch.ifPresent(eip7594Builder::eip7594ForkEpoch));
                 });
       }
       if (spec.getForkSchedule().getSupportedMilestones().contains(SpecMilestone.DENEB)

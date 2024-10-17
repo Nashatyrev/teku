@@ -61,7 +61,7 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
     return new DelegatingSpecConfigElectra(specConfig, Optional.of(eip7594));
   }
 
-  public Eip7594Builder eip7594Epoch(final UInt64 eip7594ForkEpoch) {
+  public Eip7594Builder eip7594ForkEpoch(final UInt64 eip7594ForkEpoch) {
     checkNotNull(eip7594ForkEpoch);
     this.eip7594ForkEpoch = eip7594ForkEpoch;
     return this;
