@@ -45,6 +45,16 @@ class DasByRootResponseLogger
   }
 
   @Override
+  protected int requestedMaxCount() {
+    return request.size();
+  }
+
+  @Override
+  protected String maxOrNot() {
+    return "";
+  }
+
+  @Override
   protected String requestToString() {
     Map<Bytes32, List<DataColumnIdentifier>> columnIdsByBlock =
         request.stream().collect(Collectors.groupingBy(DataColumnIdentifier::getBlockRoot));

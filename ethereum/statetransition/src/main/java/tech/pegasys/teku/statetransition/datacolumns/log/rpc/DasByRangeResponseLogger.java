@@ -39,6 +39,16 @@ class DasByRangeResponseLogger
   }
 
   @Override
+  protected int requestedMaxCount() {
+    return request.slotCount() * request.columnIndexes().size();
+  }
+
+  @Override
+  protected String maxOrNot() {
+    return " max";
+  }
+
+  @Override
   protected String requestToString() {
     return "[startSlot = "
         + request.startSlot()

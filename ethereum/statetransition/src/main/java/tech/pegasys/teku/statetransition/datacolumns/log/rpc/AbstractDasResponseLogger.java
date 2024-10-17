@@ -54,17 +54,15 @@ abstract class AbstractDasResponseLogger<TRequest>
 
   protected abstract String requestToString();
 
+  protected abstract int requestedMaxCount();
+  protected abstract String maxOrNot();
+
   @Override
   protected void responseComplete(
       List<Timestamped<DataColumnSlotAndIdentifier>> responseSummaries,
       Optional<Throwable> result) {
 
     long curTime = timeProvider.getTimeInMillis().longValue();
-    String fromTo = direction == Direction.INBOUND ? "from" : "to";
-    String responsesTime =
-        responseSummaries.isEmpty()
-            ? "0 ms"
-            : msAgoString(timeProvider.getTimeInMillis().longValue(), responseSummaries);
     final String responseString;
     if (result.isEmpty()) {
       responseString = responsesToString(responseSummaries);
@@ -78,22 +76,25 @@ abstract class AbstractDasResponseLogger<TRequest>
               + result.get();
     }
     getLogger()
-        .log(
-            getLogLevel(),
-            "DAS ReqResp {} {} {} peer {}: request: {} ms ago {}, response: {} ago {}",
+        .debug(
+            "ReqResp {} {}, {} columns of {} in {} ms{}, peer {}: request: {}, response: {}",
             direction,
             methodName,
-            fromTo,
-            peerId,
+            responseSummaries.size(),
+            requestedMaxCount() + maxOrNot(),
             curTime - requestTime,
+            result.isEmpty() ? "" : " with ERROR",
+            peerId,
             requestToString(),
-            responsesTime,
             responseString);
   }
 
   protected String responsesToString(List<Timestamped<DataColumnSlotAndIdentifier>> responses) {
     if (responses.isEmpty()) {
       return "<empty>";
+    }
+    if (responses.size() == requestedMaxCount()) {
+      return "<all requested>";
     }
 
     SortedMap<SlotAndBlockRoot, List<Timestamped<DataColumnSlotAndIdentifier>>> responsesByBlock =
