@@ -367,7 +367,7 @@ class NodeRecordConverterTest {
             new DiscoveryPeer(
                 PUB_KEY,
                 NODE_ID,
-                new InetSocketAddress("129.24.31.22", 1234),
+                new InetSocketAddress("127.0.0.1", 1234),
                 Optional.empty(),
                 ATTNETS,
                 SYNCNETS,

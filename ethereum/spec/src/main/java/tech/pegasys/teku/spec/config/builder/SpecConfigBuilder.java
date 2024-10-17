@@ -136,7 +136,8 @@ public class SpecConfigBuilder {
           .appendBuilder(new BellatrixBuilder())
           .appendBuilder(new CapellaBuilder())
           .appendBuilder(new DenebBuilder())
-          .appendBuilder(new ElectraBuilder());
+          .appendBuilder(new ElectraBuilder())
+          .appendBuilder(new Eip7594Builder());
 
   public SpecConfig build() {
     builderChain.addOverridableItemsToRawConfig(
