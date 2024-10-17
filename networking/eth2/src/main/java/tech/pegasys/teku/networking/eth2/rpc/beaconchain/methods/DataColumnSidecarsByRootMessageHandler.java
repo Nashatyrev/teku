@@ -115,11 +115,11 @@ public class DataColumnSidecarsByRootMessageHandler
                     peer.getId().toBase58(), peer.getDiscoveryNodeId().orElseThrow()),
                 message.asList());
 
-    LoggingResponseCallback<DataColumnSidecar> loggingCallback =
+    LoggingResponseCallback<DataColumnSidecar> responseCallbackWithLogging =
         new LoggingResponseCallback<>(responseCallback, responseLogger);
 
     final Optional<RequestApproval> dataColumnSidecarsRequestApproval =
-        peer.approveDataColumnSidecarsRequest(loggingCallback, message.size());
+        peer.approveDataColumnSidecarsRequest(responseCallbackWithLogging, message.size());
 
     if (!peer.approveRequest() || dataColumnSidecarsRequestApproval.isEmpty()) {
       requestCounter.labels("rate_limited").inc();
@@ -139,7 +139,10 @@ public class DataColumnSidecarsByRootMessageHandler
                         .thenCompose(
                             maybeSidecar ->
                                 validateAndSendMaybeRespond(
-                                    identifier, maybeSidecar, finalizedEpoch, loggingCallback)));
+                                    identifier,
+                                    maybeSidecar,
+                                    finalizedEpoch,
+                                    responseCallbackWithLogging)));
 
     SafeFuture<List<Boolean>> listOfResponses = SafeFuture.collectAll(responseStream);
 
@@ -151,12 +154,12 @@ public class DataColumnSidecarsByRootMessageHandler
                 peer.adjustDataColumnSidecarsRequest(
                     dataColumnSidecarsRequestApproval.get(), sentDataColumnSidecarsCount);
               }
-              loggingCallback.completeSuccessfully();
+              responseCallbackWithLogging.completeSuccessfully();
             })
         .finish(
             err -> {
               peer.adjustDataColumnSidecarsRequest(dataColumnSidecarsRequestApproval.get(), 0);
-              handleError(loggingCallback, err);
+              handleError(responseCallbackWithLogging, err);
             });
   }
 

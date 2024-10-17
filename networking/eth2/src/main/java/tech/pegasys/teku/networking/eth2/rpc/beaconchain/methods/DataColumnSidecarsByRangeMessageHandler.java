@@ -110,14 +110,14 @@ public class DataColumnSidecarsByRangeMessageHandler
                     peer.getId().toBase58(), peer.getDiscoveryNodeId().orElseThrow()),
                 new DasReqRespLogger.ByRangeRequest(
                     message.getStartSlot(), message.getCount().intValue(), message.getColumns()));
-    LoggingResponseCallback<DataColumnSidecar> loggingCallback =
+    LoggingResponseCallback<DataColumnSidecar> responseCallbackWithLogging =
         new LoggingResponseCallback<>(responseCallback, responseLogger);
 
     final int requestedCount = message.getMaximumResponseChunks();
 
     if (requestedCount > specConfigEip7594.getMaxRequestDataColumnSidecars()) {
       requestCounter.labels("count_too_big").inc();
-      loggingCallback.completeWithErrorResponse(
+      responseCallbackWithLogging.completeWithErrorResponse(
           new RpcException(
               INVALID_REQUEST_CODE,
               String.format(
@@ -127,7 +127,7 @@ public class DataColumnSidecarsByRangeMessageHandler
     }
 
     final Optional<RequestApproval> dataColumnSidecarsRequestApproval =
-        peer.approveDataColumnSidecarsRequest(loggingCallback, requestedCount);
+        peer.approveDataColumnSidecarsRequest(responseCallbackWithLogging, requestedCount);
 
     if (!peer.approveRequest() || dataColumnSidecarsRequestApproval.isEmpty()) {
       requestCounter.labels("rate_limited").inc();
@@ -174,7 +174,7 @@ public class DataColumnSidecarsByRangeMessageHandler
 
               final RequestState initialState =
                   new RequestState(
-                      loggingCallback,
+                      responseCallbackWithLogging,
                       specConfigEip7594.getMaxRequestDataColumnSidecars(),
                       startSlot,
                       endSlot,
@@ -193,11 +193,11 @@ public class DataColumnSidecarsByRangeMessageHandler
                 peer.adjustDataColumnSidecarsRequest(
                     dataColumnSidecarsRequestApproval.get(), sentDataColumnSidecars);
               }
-              loggingCallback.completeSuccessfully();
+              responseCallbackWithLogging.completeSuccessfully();
             },
             error -> {
               peer.adjustDataColumnSidecarsRequest(dataColumnSidecarsRequestApproval.get(), 0);
-              handleProcessingRequestError(error, loggingCallback);
+              handleProcessingRequestError(error, responseCallbackWithLogging);
             });
     ;
   }
