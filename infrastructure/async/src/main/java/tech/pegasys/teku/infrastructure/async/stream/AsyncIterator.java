@@ -13,10 +13,12 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+import java.util.function.Function;
+import java.util.function.Predicate;
 
   abstract void iterate(AsyncStreamHandler<T> callback);
 
+  @Override
   public <R> AsyncIterator<R> transform(AsyncStreamTransformer<T, R> transformer) {
     return new TransformAsyncIterator<>(this, transformer);
   }
