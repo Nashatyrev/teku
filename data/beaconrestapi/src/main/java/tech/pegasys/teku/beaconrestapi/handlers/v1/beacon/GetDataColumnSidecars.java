@@ -39,7 +39,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionCache;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 
 public class GetDataColumnSidecars extends RestApiEndpoint {
   public static final String ROUTE = "/eth/v1/beacon/data_column_sidecars/{block_id}";
@@ -74,7 +74,7 @@ public class GetDataColumnSidecars extends RestApiEndpoint {
   }
 
   @Override
-  public void handleRequest(RestApiRequest request) throws JsonProcessingException {
+  public void handleRequest(final RestApiRequest request) throws JsonProcessingException {
     final List<UInt64> indices = request.getQueryParameterList(DATA_COLUMN_INDICES_PARAMETER);
     final SafeFuture<Optional<List<DataColumnSidecar>>> future =
         chainDataProvider.getDataColumnSidecars(
@@ -91,7 +91,7 @@ public class GetDataColumnSidecars extends RestApiEndpoint {
   private static SerializableTypeDefinition<List<DataColumnSidecar>> getResponseType(
       final SchemaDefinitionCache schemaCache) {
     final DeserializableTypeDefinition<DataColumnSidecar> dataColumnSidecarType =
-        SchemaDefinitionsElectra.required(schemaCache.getSchemaDefinition(SpecMilestone.ELECTRA))
+        SchemaDefinitionsEip7594.required(schemaCache.getSchemaDefinition(SpecMilestone.ELECTRA))
             .getDataColumnSidecarSchema()
             .getJsonTypeDefinition();
     return SerializableTypeDefinition.<List<DataColumnSidecar>>object()

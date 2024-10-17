@@ -62,7 +62,7 @@ public class BlockPublisherEip7594 extends AbstractBlockPublisher {
   void publishBlockAndBlobSidecars(
       final SignedBeaconBlock block,
       final List<BlobSidecar> blobSidecars,
-      BlockPublishingPerformance blockPublishingPerformance) {
+      final BlockPublishingPerformance blockPublishingPerformance) {
     blockGossipChannel.publishBlock(block);
     List<Blob> blobs = blobSidecars.stream().map(BlobSidecar::getBlob).toList();
     final List<DataColumnSidecar> dataColumnSidecars =

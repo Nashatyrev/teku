@@ -77,18 +77,11 @@ public class GetIdentityIntegrationTest extends AbstractDataBackedRestAPIIntegra
 
     when(eth2P2PNetwork.getMetadata()).thenReturn(metadataMessage);
 
-    final Response response = get();
+    final Response response = getResponse(GetIdentity.ROUTE);
     assertThat(response.code()).isEqualTo(SC_OK);
-    final IdentityResponse identityResponse =
-        jsonProvider.jsonToObject(response.body().string(), IdentityResponse.class);
-    assertThat(identityResponse.data)
-        .isEqualTo(
-            new Identity(
-                node1.toBase58(),
-                enr,
-                List.of(address),
-                List.of(discoveryAddress),
-                new Metadata(metadataMessage)));
+    checkResponseData(
+        response,
+        "{\"seq_number\":\"4666673844721362956\",\"attnets\":\"0x0288000000000000\",\"syncnets\":\"0x0f\"}");
   }
 
   @Test

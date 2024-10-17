@@ -32,7 +32,7 @@ public class BlockFactoryEip7594 extends BlockFactoryDeneb {
 
   @Override
   public List<DataColumnSidecar> createDataColumnSidecars(
-      final SignedBlockContainer blockContainer, List<Blob> blobs) {
+      final SignedBlockContainer blockContainer, final List<Blob> blobs) {
     final MiscHelpersEip7594 miscHelpersEip7594 =
         MiscHelpersEip7594.required(spec.atSlot(blockContainer.getSlot()).miscHelpers());
     return miscHelpersEip7594.constructDataColumnSidecars(
