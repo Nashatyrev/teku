@@ -25,10 +25,8 @@ import java.util.List;
 class DasReqRespLoggerImpl implements DasReqRespLogger {
 
   private final TimeProvider timeProvider;
-  private final Logger logger = LogManager.getLogger(DasReqRespLogger.class);
-  private final Level logLevel = Level.DEBUG;
 
-  ReqRespMethodLogger<List<DataColumnIdentifier>, DataColumnSidecar>
+  private final ReqRespMethodLogger<List<DataColumnIdentifier>, DataColumnSidecar>
       byRootMethodLogger =
           new ReqRespMethodLogger<>() {
             @Override
@@ -38,9 +36,7 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
                   timeProvider,
                   AbstractResponseLogger.Direction.INBOUND,
                   fromPeer,
-                  request,
-                  logger,
-                  logLevel);
+                  request);
             }
 
             @Override
@@ -50,13 +46,11 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
                   timeProvider,
                   AbstractResponseLogger.Direction.OUTBOUND,
                   toPeer,
-                  request,
-                  logger,
-                  logLevel);
+                  request);
             }
           };
 
-  ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar>
+  private final ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar>
       byRangeMethodLogger =
           new ReqRespMethodLogger<>() {
             @Override
@@ -66,9 +60,7 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
                   timeProvider,
                   AbstractResponseLogger.Direction.INBOUND,
                   fromPeer,
-                  request,
-                  logger,
-                  logLevel);
+                  request);
             }
 
             @Override
@@ -78,9 +70,7 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
                   timeProvider,
                   AbstractResponseLogger.Direction.OUTBOUND,
                   toPeer,
-                  request,
-                  logger,
-                  logLevel);
+                  request);
             }
           };
 
@@ -91,16 +81,12 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
   @Override
   public ReqRespMethodLogger<List<DataColumnIdentifier>, DataColumnSidecar>
       getDataColumnSidecarsByRootLogger() {
-    return isLoggingEnabled() ? byRootMethodLogger : new NoopReqRespMethodLogger<>();
+    return byRootMethodLogger;
   }
 
   @Override
   public ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar>
       getDataColumnSidecarsByRangeLogger() {
-    return isLoggingEnabled() ? byRangeMethodLogger : new NoopReqRespMethodLogger<>();
-  }
-
-  private boolean isLoggingEnabled() {
-    return logger.getLevel().compareTo(logLevel) <= 0;
+    return byRangeMethodLogger;
   }
 }

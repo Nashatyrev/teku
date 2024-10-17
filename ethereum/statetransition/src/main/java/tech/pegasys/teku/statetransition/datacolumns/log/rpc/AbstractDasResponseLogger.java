@@ -13,16 +13,22 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
-import java.util.Comparator;
+import java.nio.channels.ClosedChannelException;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import com.google.common.base.Throwables;
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.logging.LogFormatter;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
@@ -30,114 +36,108 @@ import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
 
 abstract class AbstractDasResponseLogger<TRequest>
     extends AbstractResponseLogger<TRequest, DataColumnSidecar, DataColumnSlotAndIdentifier> {
+  private static final Logger LOG = LogManager.getLogger(DasReqRespLogger.class);
 
-  private final String methodName;
+  protected static final UInt64 UNKNOWN_SLOT = UInt64.MAX_VALUE;
+
+  private final int columnCount = 128;
+  private final int maxResponseLongStringLength = 512;
 
   public AbstractDasResponseLogger(
       TimeProvider timeProvider,
-      String methodName,
       Direction direction,
       LoggingPeerId peerId,
-      TRequest request,
-      Logger logger,
-      Level logLevel) {
+      TRequest request) {
     super(
         timeProvider,
         direction,
         peerId,
         request,
-        DataColumnSlotAndIdentifier::fromDataColumn,
-        logger,
-        logLevel);
-    this.methodName = methodName;
+        DataColumnSlotAndIdentifier::fromDataColumn);
   }
-
-  protected abstract String requestToString();
 
   protected abstract int requestedMaxCount();
-  protected abstract String maxOrNot();
 
   @Override
-  protected void responseComplete(
-      List<Timestamped<DataColumnSlotAndIdentifier>> responseSummaries,
-      Optional<Throwable> result) {
-
-    long curTime = timeProvider.getTimeInMillis().longValue();
-    final String responseString;
-    if (result.isEmpty()) {
-      responseString = responsesToString(responseSummaries);
-    } else if (responseSummaries.isEmpty()) {
-      responseString = "error: " + result.get();
-    } else {
-      responseString =
-          "columns then error: "
-              + responsesToString(responseSummaries)
-              + ", error: "
-              + result.get();
-    }
-    getLogger()
-        .debug(
-            "ReqResp {} {}, {} columns of {} in {} ms{}, peer {}: request: {}, response: {}",
-            direction,
-            methodName,
-            responseSummaries.size(),
-            requestedMaxCount() + maxOrNot(),
-            curTime - requestTime,
-            result.isEmpty() ? "" : " with ERROR",
-            peerId,
-            requestToString(),
-            responseString);
+  protected Logger getLogger() {
+    return LOG;
   }
 
-  protected String responsesToString(List<Timestamped<DataColumnSlotAndIdentifier>> responses) {
+  protected String responseString(
+      List<DataColumnSlotAndIdentifier> responses, Optional<Throwable> result) {
+    final String responsesString;
     if (responses.isEmpty()) {
-      return "<empty>";
-    }
-    if (responses.size() == requestedMaxCount()) {
-      return "<all requested>";
+      responsesString = "<empty>";
+    } else if (responses.size() == requestedMaxCount()) {
+      responsesString = "<all requested>";
+    } else {
+      responsesString = columnIdsToString(responses);
     }
 
-    SortedMap<SlotAndBlockRoot, List<Timestamped<DataColumnSlotAndIdentifier>>> responsesByBlock =
-        new TreeMap<>(
-            responses.stream()
-                .collect(Collectors.groupingBy(AbstractDasResponseLogger::blockIdFromResponse)));
+    if (result.isEmpty()) {
+      return responsesString;
+    } else if (responses.isEmpty()) {
+      return "error: " + result.get();
+    } else {
+      return responsesString + ", error: " + result.get();
+    }
+  }
+
+  protected String columnIdsToString(List<DataColumnSlotAndIdentifier> responses) {
+    String longString = columnIdsToStringLong(responses);
+    if (longString.length() <= maxResponseLongStringLength) {
+      return longString;
+    } else {
+      return columnIdsToStringShorter(responses);
+    }
+  }
+
+  protected String columnIdsToStringLong(List<DataColumnSlotAndIdentifier> responses) {
     return responses.size()
         + " columns: "
-        + responsesByBlock.entrySet().stream()
-            .map(
-                entry ->
-                    blockIdString(entry.getKey())
-                        + " colIdxs: "
-                        + blockResponsesToString(entry.getValue()))
+        + mapGroupingByBlock(
+                responses,
+                (blockId, columns) ->
+                    blockIdString(blockId) + " colIdxs: " + blockResponsesToString(columns))
             .collect(Collectors.joining(", "));
   }
 
-  protected String blockResponsesToString(
-      List<Timestamped<DataColumnSlotAndIdentifier>> responses) {
-    return StringifyUtil.toIntRangeString(
-        responses.stream().map(it -> it.value().columnIndex().intValue()).toList());
+  protected String columnIdsToStringShorter(List<DataColumnSlotAndIdentifier> responses) {
+
+    return mapGroupingByBlock(
+            responses, (blockId, columns) -> blockIdString(blockId) + ": " + columns.size())
+        .collect(Collectors.joining(", "));
+  }
+
+  protected <R> Stream<R> mapGroupingByBlock(
+      List<DataColumnSlotAndIdentifier> responses,
+      BiFunction<SlotAndBlockRoot, List<DataColumnSlotAndIdentifier>, R> mapper) {
+    SortedMap<SlotAndBlockRoot, List<DataColumnSlotAndIdentifier>> responsesByBlock =
+        new TreeMap<>(
+            responses.stream()
+                .collect(Collectors.groupingBy(AbstractDasResponseLogger::blockIdFromColumnId)));
+    return responsesByBlock.entrySet().stream()
+        .map(entry -> mapper.apply(entry.getKey(), entry.getValue()));
+  }
+
+  protected String blockResponsesToString(List<DataColumnSlotAndIdentifier> responses) {
+    return StringifyUtil.columnIndexesToString(
+        responses.stream().map(it -> it.columnIndex().intValue()).toList(), columnCount);
   }
 
   private static String blockIdString(SlotAndBlockRoot blockId) {
-    return "#"
-        + blockId.getSlot()
-        + " (0x"
-        + LogFormatter.formatAbbreviatedHashRoot(blockId.getBlockRoot())
-        + ")";
+    if (blockId.getSlot().equals(UNKNOWN_SLOT)) {
+      return blockId.getBlockRoot().toHexString();
+    } else {
+      return "#"
+          + blockId.getSlot()
+          + " (0x"
+          + LogFormatter.formatAbbreviatedHashRoot(blockId.getBlockRoot())
+          + ")";
+    }
   }
 
-  private static String msAgoString(long curTime, List<? extends Timestamped<?>> events) {
-    long firstMillisAgo =
-        curTime - events.stream().min(Comparator.comparing(Timestamped::time)).orElseThrow().time();
-    long lastMillisAgo =
-        curTime - events.stream().max(Comparator.comparing(Timestamped::time)).orElseThrow().time();
-    return (lastMillisAgo == firstMillisAgo
-        ? lastMillisAgo + "ms"
-        : lastMillisAgo + "ms-" + firstMillisAgo + "ms");
-  }
-
-  private static SlotAndBlockRoot blockIdFromResponse(
-      Timestamped<DataColumnSlotAndIdentifier> response) {
-    return new SlotAndBlockRoot(response.value().slot(), response.value().blockRoot());
+  private static SlotAndBlockRoot blockIdFromColumnId(DataColumnSlotAndIdentifier columnId) {
+    return new SlotAndBlockRoot(columnId.slot(), columnId.blockRoot());
   }
 }

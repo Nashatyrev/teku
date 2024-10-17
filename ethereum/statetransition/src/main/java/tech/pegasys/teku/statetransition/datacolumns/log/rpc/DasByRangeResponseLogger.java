@@ -17,7 +17,11 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
+
+import java.util.List;
+import java.util.Optional;
 
 class DasByRangeResponseLogger
     extends AbstractDasResponseLogger<DasReqRespLogger.ByRangeRequest> {
@@ -25,17 +29,35 @@ class DasByRangeResponseLogger
       TimeProvider timeProvider,
       Direction direction,
       LoggingPeerId peerId,
-      DasReqRespLogger.ByRangeRequest request,
-      Logger logger,
-      Level logLevel) {
+      DasReqRespLogger.ByRangeRequest request) {
     super(
         timeProvider,
-        "data_column_sidecars_by_range",
         direction,
         peerId,
-        request,
-        logger,
-        logLevel);
+        request);
+  }
+
+  @Override
+  protected void responseComplete(
+      List<Timestamped<DataColumnSlotAndIdentifier>> responseSummaries,
+      Optional<Throwable> result) {
+
+    List<DataColumnSlotAndIdentifier> responseSummariesUnboxed =
+        responseSummaries.stream().map(Timestamped::value).toList();
+    long curTime = timeProvider.getTimeInMillis().longValue();
+
+    getLogger()
+        .debug(
+            "ReqResp {} {}, columns: {}/{} in {} ms{}, peer {}: request: {}, response: {}",
+            direction,
+            "data_column_sidecars_by_range",
+            responseSummaries.size(),
+            requestedMaxCount(),
+            curTime - requestTime,
+            result.isEmpty() ? "" : " with ERROR",
+            peerId,
+            requestToString(responseSummariesUnboxed),
+            responseString(responseSummariesUnboxed, result));
   }
 
   @Override
@@ -43,13 +65,7 @@ class DasByRangeResponseLogger
     return request.slotCount() * request.columnIndexes().size();
   }
 
-  @Override
-  protected String maxOrNot() {
-    return " max";
-  }
-
-  @Override
-  protected String requestToString() {
+  private String requestToString(List<DataColumnSlotAndIdentifier> responses) {
     return "[startSlot = "
         + request.startSlot()
         + ", count = "

@@ -52,14 +52,8 @@ public class StringifyUtil {
         BitSet bitSet = new BitSet(maxColumns);
         indexes.forEach(bitSet::set);
         return lenStr
-            + "["
-            + sortAndJoin(sortedIndexes.subList(0, 4))
-            + ",...("
-            + (indexes.size() - 8)
-            + " more)..., "
-            + sortAndJoin(sortedIndexes.subList(sortedIndexes.size() - 4, sortedIndexes.size()))
-            + "], bitset: "
-            + Bytes.of(bitSet.toByteArray());
+            + "[bitmap: "
+            + Bytes.of(bitSet.toByteArray()) + "]";
       }
     }
   }

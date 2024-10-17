@@ -44,8 +44,6 @@ abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
   protected final TRequest request;
   private final Function<TResponse, TResponseSummary> responseSummarizer;
   protected final long requestTime;
-  private final Logger logger;
-  private final Level logLevel;
 
   private final List<Timestamped<TResponseSummary>> responseSummaries = new ArrayList<>();
   private volatile boolean done = false;
@@ -55,61 +53,53 @@ abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
       Direction direction,
       LoggingPeerId peerId,
       TRequest request,
-      Function<TResponse, TResponseSummary> responseSummarizer,
-      Logger logger,
-      Level logLevel) {
+      Function<TResponse, TResponseSummary> responseSummarizer) {
     this.timeProvider = timeProvider;
     this.direction = direction;
     this.peerId = peerId;
     this.request = request;
     this.responseSummarizer = responseSummarizer;
     this.requestTime = timeProvider.getTimeInMillis().longValue();
-    this.logger = logger;
-    this.logLevel = logLevel;
   }
 
-  protected Logger getLogger() {
-    return logger;
-  }
-
-  protected Level getLogLevel() {
-    return logLevel;
-  }
+  protected abstract Logger getLogger();
 
   protected abstract void responseComplete(
       List<Timestamped<TResponseSummary>> responseSummaries, Optional<Throwable> result);
 
-  protected void reportExtraEventAfterDone(String eventDescr) {
-    getLogger().log(logLevel, "ERROR: extra event after response done: " + eventDescr);
-  }
-
   @Override
   public synchronized void onNextItem(TResponse responseItem) {
-    TResponseSummary responseSummary = responseSummarizer.apply(responseItem);
-    if (done) {
-      getLogger().debug("onNextItem: " + responseSummary);
-      return;
+    if (getLogger().isDebugEnabled()) {
+      TResponseSummary responseSummary = responseSummarizer.apply(responseItem);
+      if (done) {
+        getLogger().debug("ERROR: Extra onNextItem: " + responseSummary);
+        return;
+      }
+      responseSummaries.add(
+          new Timestamped<>(timeProvider.getTimeInMillis().longValue(), responseSummary));
     }
-    responseSummaries.add(
-        new Timestamped<>(timeProvider.getTimeInMillis().longValue(), responseSummary));
   }
 
   @Override
   public void onComplete() {
-    if (done) {
-      getLogger().debug("onComplete");
-      return;
+    if (getLogger().isDebugEnabled()) {
+      if (done) {
+        getLogger().debug("ERROR: Extra onComplete");
+        return;
+      }
+      finalize(Optional.empty());
     }
-    finalize(Optional.empty());
   }
 
   @Override
   public void onError(Throwable error) {
-    if (done) {
-      getLogger().debug("onError: " + error);
-      return;
+    if (getLogger().isDebugEnabled()) {
+      if (done) {
+        getLogger().debug("ERROR: Extra onError: " + error);
+        return;
+      }
+      finalize(Optional.ofNullable(error));
     }
-    finalize(Optional.ofNullable(error));
   }
 
   private void finalize(Optional<Throwable> result) {

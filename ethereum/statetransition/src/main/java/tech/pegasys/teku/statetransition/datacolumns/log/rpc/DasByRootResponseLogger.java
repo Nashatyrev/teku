@@ -15,13 +15,16 @@ package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.logging.LogFormatter;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
 
 class DasByRootResponseLogger
@@ -31,17 +34,35 @@ class DasByRootResponseLogger
       TimeProvider timeProvider,
       Direction direction,
       LoggingPeerId peerId,
-      List<DataColumnIdentifier> dataColumnIdentifiers,
-      Logger logger,
-      Level logLevel) {
+      List<DataColumnIdentifier> dataColumnIdentifiers) {
     super(
         timeProvider,
-        "data_column_sidecars_by_root",
         direction,
         peerId,
-        dataColumnIdentifiers,
-        logger,
-        logLevel);
+        dataColumnIdentifiers);
+  }
+
+  @Override
+  protected void responseComplete(
+      List<Timestamped<DataColumnSlotAndIdentifier>> responseSummaries,
+      Optional<Throwable> result) {
+
+    List<DataColumnSlotAndIdentifier> responseSummariesUnboxed =
+        responseSummaries.stream().map(Timestamped::value).toList();
+    long curTime = timeProvider.getTimeInMillis().longValue();
+
+    getLogger()
+        .debug(
+            "ReqResp {} {}, columns: {}/{} in {} ms{}, peer {}: request: {}, response: {}",
+            direction,
+            "data_column_sidecars_by_root",
+            responseSummaries.size(),
+            requestedMaxCount(),
+            curTime - requestTime,
+            result.isEmpty() ? "" : " with ERROR",
+            peerId,
+            requestToString(responseSummariesUnboxed),
+            responseString(responseSummariesUnboxed, result));
   }
 
   @Override
@@ -49,25 +70,16 @@ class DasByRootResponseLogger
     return request.size();
   }
 
-  @Override
-  protected String maxOrNot() {
-    return "";
-  }
+  protected String requestToString(List<DataColumnSlotAndIdentifier> responses) {
+    Map<Bytes32, UInt64> blockRootToSlot = responses.stream().collect(Collectors.toMap(DataColumnSlotAndIdentifier::blockRoot, DataColumnSlotAndIdentifier::slot, (s1, s2) -> s1));
+    List<DataColumnSlotAndIdentifier> idsWithMaybeSlot = request.stream()
+        .map(
+            it ->
+                new DataColumnSlotAndIdentifier(
+                    blockRootToSlot.getOrDefault(it.getBlockRoot(), UNKNOWN_SLOT),
+                    it.getBlockRoot(),
+                    it.getIndex())).toList();
 
-  @Override
-  protected String requestToString() {
-    Map<Bytes32, List<DataColumnIdentifier>> columnIdsByBlock =
-        request.stream().collect(Collectors.groupingBy(DataColumnIdentifier::getBlockRoot));
-    String columns =
-        columnIdsByBlock.entrySet().stream()
-            .map(
-                e ->
-                    "(0x"
-                        + LogFormatter.formatAbbreviatedHashRoot(e.getKey())
-                        + ") colIdxs: "
-                        + StringifyUtil.toIntRangeString(
-                            e.getValue().stream().map(it -> it.getIndex().intValue()).toList()))
-            .collect(Collectors.joining(", "));
-    return request.size() + " columns: " + columns;
+    return columnIdsToString(idsWithMaybeSlot);
   }
 }
