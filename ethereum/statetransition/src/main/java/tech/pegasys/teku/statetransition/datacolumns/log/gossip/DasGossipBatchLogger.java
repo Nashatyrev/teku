@@ -45,7 +45,7 @@ public class DasGossipBatchLogger implements DasGossipLogger {
     asyncRunner.runWithFixedDelay(
         this::logBatchedEvents,
         Duration.ofSeconds(1),
-        err -> LOG.debug("DasGossipBatchLogger error: {}", err.toString()));
+        err -> LOG.info("DasGossipBatchLogger error: {}", err.toString()));
   }
 
   interface Event {
