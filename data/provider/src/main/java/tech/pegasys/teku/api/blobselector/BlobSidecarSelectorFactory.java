@@ -23,7 +23,7 @@ import tech.pegasys.teku.api.AbstractSelectorFactory;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecMilestone;
+import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
@@ -184,9 +184,8 @@ public class BlobSidecarSelectorFactory extends AbstractSelectorFactory<BlobSide
 
   private SafeFuture<Optional<List<BlobSidecar>>> getBlobSidecars(
       final SlotAndBlockRoot slotAndBlockRoot, final List<UInt64> indices) {
-    if (spec.atSlot(slotAndBlockRoot.getSlot())
-        .getMilestone()
-        .isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
+    if (spec.isFeatureActivatedAtEpoch(
+        SpecFeature.EIP7594, spec.computeEpochAtSlot(slotAndBlockRoot.getSlot()))) {
       return blobSidecarReconstructionProvider
           .reconstructBlobSidecars(slotAndBlockRoot, indices)
           .thenApply(Optional::of);
@@ -196,7 +195,7 @@ public class BlobSidecarSelectorFactory extends AbstractSelectorFactory<BlobSide
 
   private SafeFuture<Optional<List<BlobSidecar>>> getBlobSidecars(
       final UInt64 slot, final List<UInt64> indices) {
-    if (spec.atSlot(slot).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
+    if (spec.isFeatureActivatedAtEpoch(SpecFeature.EIP7594, spec.computeEpochAtSlot(slot))) {
       return blobSidecarReconstructionProvider
           .reconstructBlobSidecars(slot, indices)
           .thenApply(Optional::of);

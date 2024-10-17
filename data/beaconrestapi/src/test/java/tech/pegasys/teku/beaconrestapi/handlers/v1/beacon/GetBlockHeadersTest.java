@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.api.migrated.BlockHeadersResponse;
 import tech.pegasys.teku.beaconrestapi.AbstractMigratedBeaconHandlerWithChainDataProviderTest;
@@ -70,7 +69,6 @@ class GetBlockHeadersTest extends AbstractMigratedBeaconHandlerWithChainDataProv
   }
 
   @Test
-  @Disabled("TODO: Fix fixtures, random was changed")
   void metadata_shouldHandle200() throws IOException {
     final List<BlockAndMetaData> headers =
         List.of(generateBlockHeaderData(), generateBlockHeaderData());

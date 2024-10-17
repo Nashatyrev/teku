@@ -1,10 +1,10 @@
 {
-  "title" : "BlockContentsEip7594",
+  "title" : "BlockContentsElectra",
   "type" : "object",
   "required" : [ "block", "kzg_proofs", "blobs" ],
   "properties" : {
     "block" : {
-      "$ref" : "#/components/schemas/BeaconBlockEip7594"
+      "$ref" : "#/components/schemas/BeaconBlockElectra"
     },
     "kzg_proofs" : {
       "type" : "array",

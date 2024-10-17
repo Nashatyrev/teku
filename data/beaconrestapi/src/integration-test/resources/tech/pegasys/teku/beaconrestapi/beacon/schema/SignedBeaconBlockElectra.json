@@ -1,10 +1,10 @@
 {
-  "title" : "SignedBeaconBlockEip7594",
+  "title" : "SignedBeaconBlockElectra",
   "type" : "object",
   "required" : [ "message", "signature" ],
   "properties" : {
     "message" : {
-      "$ref" : "#/components/schemas/BeaconBlockEip7594"
+      "$ref" : "#/components/schemas/BeaconBlockElectra"
     },
     "signature" : {
       "type" : "string",

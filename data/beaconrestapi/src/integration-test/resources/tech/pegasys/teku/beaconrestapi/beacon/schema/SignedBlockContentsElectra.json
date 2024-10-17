@@ -1,10 +1,10 @@
 {
-  "title" : "SignedBlockContentsEip7594",
+  "title" : "SignedBlockContentsElectra",
   "type" : "object",
   "required" : [ "signed_block", "kzg_proofs", "blobs" ],
   "properties" : {
     "signed_block" : {
-      "$ref" : "#/components/schemas/SignedBeaconBlockEip7594"
+      "$ref" : "#/components/schemas/SignedBeaconBlockElectra"
     },
     "kzg_proofs" : {
       "type" : "array",

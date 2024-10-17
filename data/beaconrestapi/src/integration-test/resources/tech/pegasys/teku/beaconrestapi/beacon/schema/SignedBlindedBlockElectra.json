@@ -1,10 +1,10 @@
 {
-  "title" : "SignedBlindedBlockEip7594",
+  "title" : "SignedBlindedBlockElectra",
   "type" : "object",
   "required" : [ "message", "signature" ],
   "properties" : {
     "message" : {
-      "$ref" : "#/components/schemas/BlindedBlockEip7594"
+      "$ref" : "#/components/schemas/BlindedBlockElectra"
     },
     "signature" : {
       "type" : "string",

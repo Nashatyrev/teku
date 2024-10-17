@@ -48,6 +48,7 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsAltair;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsBellatrix;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsCapella;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 
 public class SszTestExecutor<T extends SszData> implements TestExecutor {
@@ -207,10 +208,9 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
                   schemas ->
                       SchemaDefinitionsElectra.required(schemas).getConsolidationRequestSchema()))
           .put(
-              "ssz_static/PendingBalanceDeposit",
+              "ssz_static/PendingDeposit",
               new SszTestExecutor<>(
-                  schemas ->
-                      SchemaDefinitionsElectra.required(schemas).getPendingBalanceDepositSchema()))
+                  schemas -> SchemaDefinitionsElectra.required(schemas).getPendingDepositSchema()))
           .put(
               "ssz_static/PendingConsolidation",
               new SszTestExecutor<>(
@@ -231,11 +231,11 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
               "ssz_static/DataColumnSidecar",
               new SszTestExecutor<>(
                   schemas ->
-                      SchemaDefinitionsElectra.required(schemas).getDataColumnSidecarSchema()))
+                      SchemaDefinitionsEip7594.required(schemas).getDataColumnSidecarSchema()))
           .put(
               "ssz_static/MatrixEntry",
               new SszTestExecutor<>(
-                  schemas -> SchemaDefinitionsElectra.required(schemas).getMatrixEntrySchema()))
+                  schemas -> SchemaDefinitionsEip7594.required(schemas).getMatrixEntrySchema()))
 
           // Legacy Schemas (Not yet migrated to SchemaDefinitions)
           .put(
