@@ -45,7 +45,7 @@ public class DasGossipBatchLogger implements DasGossipLogger {
     asyncRunner.runWithFixedDelay(
         this::logBatchedEvents,
         Duration.ofSeconds(1),
-        err -> LOG.debug("DasGossipBatchLogger error: {}", err.toString()));
+        err -> LOG.info("DasGossipBatchLogger error: {}", err.toString()));
   }
 
   interface Event {
@@ -184,26 +184,38 @@ public class DasGossipBatchLogger implements DasGossipLogger {
         + " ago";
   }
 
+  private boolean needToLogEvent(boolean isSevereEvent) {
+    return LOG.isDebugEnabled() || (isSevereEvent && LOG.isInfoEnabled());
+  }
+
   @Override
   public synchronized void onReceive(
       DataColumnSidecar sidecar, InternalValidationResult validationResult) {
-    events.add(
-        new ReceiveEvent(timeProvider.getTimeInMillis().longValue(), sidecar, validationResult));
+    if (needToLogEvent(validationResult.isReject())) {
+      events.add(
+          new ReceiveEvent(timeProvider.getTimeInMillis().longValue(), sidecar, validationResult));
+    }
   }
 
   @Override
   public synchronized void onPublish(DataColumnSidecar sidecar, Optional<Throwable> result) {
-    events.add(new PublishEvent(timeProvider.getTimeInMillis().longValue(), sidecar, result));
+    if (needToLogEvent(result.isPresent())) {
+      events.add(new PublishEvent(timeProvider.getTimeInMillis().longValue(), sidecar, result));
+    }
   }
 
   @Override
   public void onDataColumnSubnetSubscribe(int subnetId) {
-    events.add(new SubscribeEvent(timeProvider.getTimeInMillis().longValue(), subnetId));
+    if (needToLogEvent(false)) {
+      events.add(new SubscribeEvent(timeProvider.getTimeInMillis().longValue(), subnetId));
+    }
   }
 
   @Override
   public void onDataColumnSubnetUnsubscribe(int subnetId) {
-    events.add(new UnsubscribeEvent(timeProvider.getTimeInMillis().longValue(), subnetId));
+    if (needToLogEvent(false)) {
+      events.add(new UnsubscribeEvent(timeProvider.getTimeInMillis().longValue(), subnetId));
+    }
   }
 
   private static <TEvent extends ColumnEvent>

@@ -21,8 +21,6 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.statetransition.datacolumns.log.gossip.DasGossipLogger;
 
 public class DataColumnSidecarGossipManager implements GossipManager {
-  private static final Logger LOG = LogManager.getLogger();
-
   private final DataColumnSidecarSubnetSubscriptions subnetSubscriptions;
   private final DasGossipLogger dasGossipLogger;
 
@@ -47,7 +45,6 @@ public class DataColumnSidecarGossipManager implements GossipManager {
   }
 
   public void unsubscribeFromSubnetId(final int subnetId) {
-    LOG.trace("Unsubscribing to subnet ID {}", subnetId);
     subnetSubscriptions.unsubscribeFromSubnetId(subnetId);
     dasGossipLogger.onDataColumnSubnetUnsubscribe(subnetId);
   }
