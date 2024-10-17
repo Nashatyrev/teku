@@ -51,9 +51,7 @@ public class StringifyUtil {
         List<Integer> sortedIndexes = indexes.stream().sorted().toList();
         BitSet bitSet = new BitSet(maxColumns);
         indexes.forEach(bitSet::set);
-        return lenStr
-            + "[bitmap: "
-            + Bytes.of(bitSet.toByteArray()) + "]";
+        return lenStr + "[bitmap: " + Bytes.of(bitSet.toByteArray()) + "]";
       }
     }
   }

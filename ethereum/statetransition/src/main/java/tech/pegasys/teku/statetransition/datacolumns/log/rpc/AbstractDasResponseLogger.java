@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
-import java.nio.channels.ClosedChannelException;
 import java.util.List;
 import java.util.Optional;
 import java.util.SortedMap;
@@ -21,9 +20,6 @@ import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
-import com.google.common.base.Throwables;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.logging.LogFormatter;
@@ -44,16 +40,8 @@ abstract class AbstractDasResponseLogger<TRequest>
   private final int maxResponseLongStringLength = 512;
 
   public AbstractDasResponseLogger(
-      TimeProvider timeProvider,
-      Direction direction,
-      LoggingPeerId peerId,
-      TRequest request) {
-    super(
-        timeProvider,
-        direction,
-        peerId,
-        request,
-        DataColumnSlotAndIdentifier::fromDataColumn);
+      TimeProvider timeProvider, Direction direction, LoggingPeerId peerId, TRequest request) {
+    super(timeProvider, direction, peerId, request, DataColumnSlotAndIdentifier::fromDataColumn);
   }
 
   protected abstract int requestedMaxCount();

@@ -32,7 +32,8 @@ public class LoggingBatchDataColumnsByRangeReqResp implements BatchDataColumnsBy
   }
 
   @Override
-  public AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRange(UInt256 nodeId, UInt64 startSlot, int slotCount, List<UInt64> columnIndexes) {
+  public AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRange(
+      UInt256 nodeId, UInt64 startSlot, int slotCount, List<UInt64> columnIndexes) {
     ReqRespResponseLogger<DataColumnSidecar> responseLogger =
         logger
             .getDataColumnSidecarsByRangeLogger()

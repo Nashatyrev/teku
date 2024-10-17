@@ -19,8 +19,7 @@ import tech.pegasys.teku.networking.eth2.rpc.core.RpcException;
 import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespResponseLogger;
 
 public record LoggingResponseCallback<T>(
-    ResponseCallback<T> callback, ReqRespResponseLogger<T> logger)
-    implements ResponseCallback<T> {
+    ResponseCallback<T> callback, ReqRespResponseLogger<T> logger) implements ResponseCallback<T> {
 
   @Override
   public SafeFuture<Void> respond(T data) {

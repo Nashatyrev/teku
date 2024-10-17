@@ -13,14 +13,10 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.List;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-
-import java.util.List;
 
 class DasReqRespLoggerImpl implements DasReqRespLogger {
 
@@ -33,46 +29,33 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
             public ReqRespResponseLogger<DataColumnSidecar> onInboundRequest(
                 LoggingPeerId fromPeer, List<DataColumnIdentifier> request) {
               return new DasByRootResponseLogger(
-                  timeProvider,
-                  AbstractResponseLogger.Direction.INBOUND,
-                  fromPeer,
-                  request);
+                  timeProvider, AbstractResponseLogger.Direction.INBOUND, fromPeer, request);
             }
 
             @Override
             public ReqRespResponseLogger<DataColumnSidecar> onOutboundRequest(
                 LoggingPeerId toPeer, List<DataColumnIdentifier> request) {
               return new DasByRootResponseLogger(
-                  timeProvider,
-                  AbstractResponseLogger.Direction.OUTBOUND,
-                  toPeer,
-                  request);
+                  timeProvider, AbstractResponseLogger.Direction.OUTBOUND, toPeer, request);
             }
           };
 
-  private final ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar>
-      byRangeMethodLogger =
-          new ReqRespMethodLogger<>() {
-            @Override
-            public ReqRespResponseLogger<DataColumnSidecar> onInboundRequest(
-                LoggingPeerId fromPeer, ByRangeRequest request) {
-              return new DasByRangeResponseLogger(
-                  timeProvider,
-                  AbstractResponseLogger.Direction.INBOUND,
-                  fromPeer,
-                  request);
-            }
+  private final ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar> byRangeMethodLogger =
+      new ReqRespMethodLogger<>() {
+        @Override
+        public ReqRespResponseLogger<DataColumnSidecar> onInboundRequest(
+            LoggingPeerId fromPeer, ByRangeRequest request) {
+          return new DasByRangeResponseLogger(
+              timeProvider, AbstractResponseLogger.Direction.INBOUND, fromPeer, request);
+        }
 
-            @Override
-            public ReqRespResponseLogger<DataColumnSidecar> onOutboundRequest(
-                LoggingPeerId toPeer, ByRangeRequest request) {
-              return new DasByRangeResponseLogger(
-                  timeProvider,
-                  AbstractResponseLogger.Direction.OUTBOUND,
-                  toPeer,
-                  request);
-            }
-          };
+        @Override
+        public ReqRespResponseLogger<DataColumnSidecar> onOutboundRequest(
+            LoggingPeerId toPeer, ByRangeRequest request) {
+          return new DasByRangeResponseLogger(
+              timeProvider, AbstractResponseLogger.Direction.OUTBOUND, toPeer, request);
+        }
+      };
 
   public DasReqRespLoggerImpl(TimeProvider timeProvider) {
     this.timeProvider = timeProvider;

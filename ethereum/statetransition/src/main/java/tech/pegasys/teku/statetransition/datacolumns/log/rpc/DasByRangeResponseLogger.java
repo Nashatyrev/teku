@@ -13,28 +13,20 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.Logger;
+import java.util.List;
+import java.util.Optional;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
 
-import java.util.List;
-import java.util.Optional;
-
-class DasByRangeResponseLogger
-    extends AbstractDasResponseLogger<DasReqRespLogger.ByRangeRequest> {
+class DasByRangeResponseLogger extends AbstractDasResponseLogger<DasReqRespLogger.ByRangeRequest> {
   public DasByRangeResponseLogger(
       TimeProvider timeProvider,
       Direction direction,
       LoggingPeerId peerId,
       DasReqRespLogger.ByRangeRequest request) {
-    super(
-        timeProvider,
-        direction,
-        peerId,
-        request);
+    super(timeProvider, direction, peerId, request);
   }
 
   @Override
