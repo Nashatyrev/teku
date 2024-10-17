@@ -16,10 +16,10 @@ package tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.networking.eth2.rpc.core.ResponseCallback;
 import tech.pegasys.teku.networking.eth2.rpc.core.RpcException;
-import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespMethodLogger;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespResponseLogger;
 
 public record LoggingResponseCallback<T>(
-    ResponseCallback<T> callback, ReqRespMethodLogger.ResponseLogger<T> logger)
+    ResponseCallback<T> callback, ReqRespResponseLogger<T> logger)
     implements ResponseCallback<T> {
 
   @Override

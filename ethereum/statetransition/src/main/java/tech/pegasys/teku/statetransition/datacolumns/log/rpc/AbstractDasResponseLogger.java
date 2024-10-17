@@ -37,7 +37,7 @@ abstract class AbstractDasResponseLogger<TRequest>
       TimeProvider timeProvider,
       String methodName,
       Direction direction,
-      ReqRespMethodLogger.PeerId peerId,
+      LoggingPeerId peerId,
       TRequest request,
       Logger logger,
       Level logLevel) {

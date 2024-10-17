@@ -18,8 +18,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessage;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
+
+import java.util.List;
 
 class DasReqRespLoggerImpl implements DasReqRespLogger {
 
@@ -27,12 +28,12 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
   private final Logger logger = LogManager.getLogger(DasReqRespLogger.class);
   private final Level logLevel = Level.DEBUG;
 
-  ReqRespMethodLogger<DataColumnSidecarsByRootRequestMessage, DataColumnSidecar>
+  ReqRespMethodLogger<List<DataColumnIdentifier>, DataColumnSidecar>
       byRootMethodLogger =
           new ReqRespMethodLogger<>() {
             @Override
-            public ResponseLogger<DataColumnSidecar> onInboundRequest(
-                PeerId fromPeer, DataColumnSidecarsByRootRequestMessage request) {
+            public ReqRespResponseLogger<DataColumnSidecar> onInboundRequest(
+                LoggingPeerId fromPeer, List<DataColumnIdentifier> request) {
               return new DasByRootResponseLogger(
                   timeProvider,
                   AbstractResponseLogger.Direction.INBOUND,
@@ -43,8 +44,8 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
             }
 
             @Override
-            public ResponseLogger<DataColumnSidecar> onOutboundRequest(
-                PeerId toPeer, DataColumnSidecarsByRootRequestMessage request) {
+            public ReqRespResponseLogger<DataColumnSidecar> onOutboundRequest(
+                LoggingPeerId toPeer, List<DataColumnIdentifier> request) {
               return new DasByRootResponseLogger(
                   timeProvider,
                   AbstractResponseLogger.Direction.OUTBOUND,
@@ -55,12 +56,12 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
             }
           };
 
-  ReqRespMethodLogger<DataColumnSidecarsByRangeRequestMessage, DataColumnSidecar>
+  ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar>
       byRangeMethodLogger =
           new ReqRespMethodLogger<>() {
             @Override
-            public ResponseLogger<DataColumnSidecar> onInboundRequest(
-                PeerId fromPeer, DataColumnSidecarsByRangeRequestMessage request) {
+            public ReqRespResponseLogger<DataColumnSidecar> onInboundRequest(
+                LoggingPeerId fromPeer, ByRangeRequest request) {
               return new DasByRangeResponseLogger(
                   timeProvider,
                   AbstractResponseLogger.Direction.INBOUND,
@@ -71,8 +72,8 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
             }
 
             @Override
-            public ResponseLogger<DataColumnSidecar> onOutboundRequest(
-                PeerId toPeer, DataColumnSidecarsByRangeRequestMessage request) {
+            public ReqRespResponseLogger<DataColumnSidecar> onOutboundRequest(
+                LoggingPeerId toPeer, ByRangeRequest request) {
               return new DasByRangeResponseLogger(
                   timeProvider,
                   AbstractResponseLogger.Direction.OUTBOUND,
@@ -88,15 +89,15 @@ class DasReqRespLoggerImpl implements DasReqRespLogger {
   }
 
   @Override
-  public ReqRespMethodLogger<DataColumnSidecarsByRootRequestMessage, DataColumnSidecar>
+  public ReqRespMethodLogger<List<DataColumnIdentifier>, DataColumnSidecar>
       getDataColumnSidecarsByRootLogger() {
-    return isLoggingEnabled() ? byRootMethodLogger : ReqRespMethodLogger.noop();
+    return isLoggingEnabled() ? byRootMethodLogger : new NoopReqRespMethodLogger<>();
   }
 
   @Override
-  public ReqRespMethodLogger<DataColumnSidecarsByRangeRequestMessage, DataColumnSidecar>
+  public ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar>
       getDataColumnSidecarsByRangeLogger() {
-    return isLoggingEnabled() ? byRangeMethodLogger : ReqRespMethodLogger.noop();
+    return isLoggingEnabled() ? byRangeMethodLogger : new NoopReqRespMethodLogger<>();
   }
 
   private boolean isLoggingEnabled() {

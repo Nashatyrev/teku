@@ -16,29 +16,31 @@ package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 import java.util.List;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.statetransition.datacolumns.retriever.BatchDataColumnsByRootReqResp;
+import tech.pegasys.teku.statetransition.datacolumns.retriever.BatchDataColumnsByRangeReqResp;
 
-public class LoggingBatchDataColumnsByRootReqResp implements BatchDataColumnsByRootReqResp {
-  private final BatchDataColumnsByRootReqResp delegate;
+public class LoggingBatchDataColumnsByRangeReqResp implements BatchDataColumnsByRangeReqResp {
+
+  private final BatchDataColumnsByRangeReqResp delegate;
   private final DasReqRespLogger logger;
 
-  public LoggingBatchDataColumnsByRootReqResp(
-      BatchDataColumnsByRootReqResp delegate, DasReqRespLogger logger) {
+  public LoggingBatchDataColumnsByRangeReqResp(
+      BatchDataColumnsByRangeReqResp delegate, DasReqRespLogger logger) {
     this.delegate = delegate;
     this.logger = logger;
   }
 
   @Override
-  public AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRoot(
-      UInt256 nodeId, List<DataColumnIdentifier> columnIdentifiers) {
+  public AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRange(UInt256 nodeId, UInt64 startSlot, int slotCount, List<UInt64> columnIndexes) {
     ReqRespResponseLogger<DataColumnSidecar> responseLogger =
         logger
-            .getDataColumnSidecarsByRootLogger()
-            .onOutboundRequest(LoggingPeerId.fromNodeId(nodeId), columnIdentifiers);
+            .getDataColumnSidecarsByRangeLogger()
+            .onOutboundRequest(
+                LoggingPeerId.fromNodeId(nodeId),
+                new DasReqRespLogger.ByRangeRequest(startSlot, slotCount, columnIndexes));
     return delegate
-        .requestDataColumnSidecarsByRoot(nodeId, columnIdentifiers)
+        .requestDataColumnSidecarsByRange(nodeId, startSlot, slotCount, columnIndexes)
         .peek(responseLogger.asAsyncStreamVisitor());
   }
 

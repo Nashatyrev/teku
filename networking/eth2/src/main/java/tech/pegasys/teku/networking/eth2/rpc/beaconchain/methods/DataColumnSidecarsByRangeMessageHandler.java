@@ -47,7 +47,8 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSi
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
-import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespMethodLogger;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.LoggingPeerId;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespResponseLogger;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 /**
@@ -101,13 +102,14 @@ public class DataColumnSidecarsByRangeMessageHandler
     final UInt64 endSlot = message.getMaxSlot();
     final List<UInt64> columns = message.getColumns();
 
-    ReqRespMethodLogger.ResponseLogger<DataColumnSidecar> responseLogger =
+    ReqRespResponseLogger<DataColumnSidecar> responseLogger =
         dasLogger
             .getDataColumnSidecarsByRangeLogger()
             .onInboundRequest(
-                ReqRespMethodLogger.PeerId.fromPeerAndNodeId(
+                LoggingPeerId.fromPeerAndNodeId(
                     peer.getId().toBase58(), peer.getDiscoveryNodeId().orElseThrow()),
-                message);
+                new DasReqRespLogger.ByRangeRequest(
+                    message.getStartSlot(), message.getCount().intValue(), message.getColumns()));
     LoggingResponseCallback<DataColumnSidecar> loggingCallback =
         new LoggingResponseCallback<>(responseCallback, responseLogger);
 

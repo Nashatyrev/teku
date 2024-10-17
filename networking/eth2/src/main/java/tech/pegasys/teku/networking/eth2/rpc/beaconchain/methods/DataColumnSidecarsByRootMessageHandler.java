@@ -42,7 +42,8 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIde
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessage;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
 import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
-import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespMethodLogger;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.LoggingPeerId;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.ReqRespResponseLogger;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 /**
@@ -111,13 +112,13 @@ public class DataColumnSidecarsByRootMessageHandler
 
     long requestId = REQUEST_ID_COUNTER.getAndIncrement();
 
-    ReqRespMethodLogger.ResponseLogger<DataColumnSidecar> responseLogger =
+    ReqRespResponseLogger<DataColumnSidecar> responseLogger =
         dasLogger
             .getDataColumnSidecarsByRootLogger()
             .onInboundRequest(
-                ReqRespMethodLogger.PeerId.fromPeerAndNodeId(
+                LoggingPeerId.fromPeerAndNodeId(
                     peer.getId().toBase58(), peer.getDiscoveryNodeId().orElseThrow()),
-                message);
+                message.asList());
 
     LoggingResponseCallback<DataColumnSidecar> loggingCallback =
         new LoggingResponseCallback<>(responseCallback, responseLogger);

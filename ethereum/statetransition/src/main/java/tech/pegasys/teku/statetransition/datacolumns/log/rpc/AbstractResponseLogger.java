@@ -23,7 +23,7 @@ import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 
 abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
-    implements ReqRespMethodLogger.ResponseLogger<TResponse> {
+    implements ReqRespResponseLogger<TResponse> {
   protected static final Logger LOG = LogManager.getLogger(DasReqRespLogger.class);
 
   enum Direction {
@@ -40,7 +40,7 @@ abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
 
   protected final TimeProvider timeProvider;
   protected final Direction direction;
-  protected final ReqRespMethodLogger.PeerId peerId;
+  protected final LoggingPeerId peerId;
   protected final TRequest request;
   private final Function<TResponse, TResponseSummary> responseSummarizer;
   protected final long requestTime;
@@ -53,7 +53,7 @@ abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
   public AbstractResponseLogger(
       TimeProvider timeProvider,
       Direction direction,
-      ReqRespMethodLogger.PeerId peerId,
+      LoggingPeerId peerId,
       TRequest request,
       Function<TResponse, TResponseSummary> responseSummarizer,
       Logger logger,

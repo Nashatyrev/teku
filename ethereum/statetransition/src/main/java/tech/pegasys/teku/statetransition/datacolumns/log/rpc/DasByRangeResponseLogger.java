@@ -17,16 +17,15 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
 
 class DasByRangeResponseLogger
-    extends AbstractDasResponseLogger<DataColumnSidecarsByRangeRequestMessage> {
+    extends AbstractDasResponseLogger<DasReqRespLogger.ByRangeRequest> {
   public DasByRangeResponseLogger(
       TimeProvider timeProvider,
       Direction direction,
-      ReqRespMethodLogger.PeerId peerId,
-      DataColumnSidecarsByRangeRequestMessage dataColumnIdentifiers,
+      LoggingPeerId peerId,
+      DasReqRespLogger.ByRangeRequest request,
       Logger logger,
       Level logLevel) {
     super(
@@ -34,7 +33,7 @@ class DasByRangeResponseLogger
         "data_column_sidecars_by_range",
         direction,
         peerId,
-        dataColumnIdentifiers,
+        request,
         logger,
         logLevel);
   }
@@ -42,12 +41,12 @@ class DasByRangeResponseLogger
   @Override
   protected String requestToString() {
     return "[startSlot = "
-        + request.getStartSlot()
+        + request.startSlot()
         + ", count = "
-        + request.getCount()
+        + request.slotCount()
         + ", columns = "
         + StringifyUtil.toIntRangeString(
-            request.getColumns().stream().map(UInt64::intValue).toList())
+            request.columnIndexes().stream().map(UInt64::intValue).toList())
         + "]";
   }
 }

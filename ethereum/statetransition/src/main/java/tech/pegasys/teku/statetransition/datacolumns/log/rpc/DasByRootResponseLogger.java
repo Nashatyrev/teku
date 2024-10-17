@@ -22,16 +22,16 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.logging.LogFormatter;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessage;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
 
 class DasByRootResponseLogger
-    extends AbstractDasResponseLogger<DataColumnSidecarsByRootRequestMessage> {
+    extends AbstractDasResponseLogger<List<DataColumnIdentifier>> {
+
   public DasByRootResponseLogger(
       TimeProvider timeProvider,
       Direction direction,
-      ReqRespMethodLogger.PeerId peerId,
-      DataColumnSidecarsByRootRequestMessage dataColumnIdentifiers,
+      LoggingPeerId peerId,
+      List<DataColumnIdentifier> dataColumnIdentifiers,
       Logger logger,
       Level logLevel) {
     super(

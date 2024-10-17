@@ -13,12 +13,15 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
+import java.util.List;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessage;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
 public interface DasReqRespLogger {
+
+  record ByRangeRequest(UInt64 startSlot, int slotCount, List<UInt64> columnIndexes) {}
 
   static DasReqRespLogger create(TimeProvider timeProvider) {
     return new DasReqRespLoggerImpl(timeProvider);
@@ -27,21 +30,20 @@ public interface DasReqRespLogger {
   DasReqRespLogger NOOP =
       new DasReqRespLogger() {
         @Override
-        public ReqRespMethodLogger<DataColumnSidecarsByRootRequestMessage, DataColumnSidecar>
+        public ReqRespMethodLogger<List<DataColumnIdentifier>, DataColumnSidecar>
             getDataColumnSidecarsByRootLogger() {
-          return ReqRespMethodLogger.noop();
+          return new NoopReqRespMethodLogger<>();
         }
 
         @Override
-        public ReqRespMethodLogger<DataColumnSidecarsByRangeRequestMessage, DataColumnSidecar>
+        public ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar>
             getDataColumnSidecarsByRangeLogger() {
-          return ReqRespMethodLogger.noop();
+          return new NoopReqRespMethodLogger<>();
         }
       };
 
-  ReqRespMethodLogger<DataColumnSidecarsByRootRequestMessage, DataColumnSidecar>
+  ReqRespMethodLogger<List<DataColumnIdentifier>, DataColumnSidecar>
       getDataColumnSidecarsByRootLogger();
 
-  ReqRespMethodLogger<DataColumnSidecarsByRangeRequestMessage, DataColumnSidecar>
-      getDataColumnSidecarsByRangeLogger();
+  ReqRespMethodLogger<ByRangeRequest, DataColumnSidecar> getDataColumnSidecarsByRangeLogger();
 }
