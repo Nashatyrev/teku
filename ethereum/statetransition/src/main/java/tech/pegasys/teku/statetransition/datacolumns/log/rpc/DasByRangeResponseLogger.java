@@ -48,7 +48,7 @@ class DasByRangeResponseLogger extends AbstractDasResponseLogger<DasReqRespLogge
             curTime - requestTime,
             result.isEmpty() ? "" : " with ERROR",
             peerId,
-            requestToString(responseSummariesUnboxed),
+            requestToString(),
             responseString(responseSummariesUnboxed, result));
   }
 
@@ -57,7 +57,7 @@ class DasByRangeResponseLogger extends AbstractDasResponseLogger<DasReqRespLogge
     return request.slotCount() * request.columnIndexes().size();
   }
 
-  private String requestToString(List<DataColumnSlotAndIdentifier> responses) {
+  private String requestToString() {
     return "[startSlot = "
         + request.startSlot()
         + ", count = "

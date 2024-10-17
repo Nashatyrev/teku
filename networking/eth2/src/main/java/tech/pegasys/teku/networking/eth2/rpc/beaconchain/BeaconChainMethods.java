@@ -90,7 +90,6 @@ public class BeaconChainMethods {
       dataColumnSidecarsByRange;
   private final Eth2RpcMethod<EmptyMessage, MetadataMessage> getMetadata;
   private final Eth2RpcMethod<PingMessage, PingMessage> ping;
-  private final DasReqRespLogger dasLogger;
 
   private final Collection<RpcMethod<?, ?, ?>> allMethods;
 
@@ -108,8 +107,7 @@ public class BeaconChainMethods {
       final Optional<Eth2RpcMethod<DataColumnSidecarsByRangeRequestMessage, DataColumnSidecar>>
           dataColumnSidecarsByRange,
       final Eth2RpcMethod<EmptyMessage, MetadataMessage> getMetadata,
-      final Eth2RpcMethod<PingMessage, PingMessage> ping,
-      final DasReqRespLogger dasLogger) {
+      final Eth2RpcMethod<PingMessage, PingMessage> ping) {
     this.status = status;
     this.goodBye = goodBye;
     this.beaconBlocksByRoot = beaconBlocksByRoot;
@@ -120,7 +118,6 @@ public class BeaconChainMethods {
     this.dataColumnSidecarsByRange = dataColumnSidecarsByRange;
     this.getMetadata = getMetadata;
     this.ping = ping;
-    this.dasLogger = dasLogger;
     this.allMethods =
         new ArrayList<>(
             List.of(status, goodBye, beaconBlocksByRoot, beaconBlocksByRange, getMetadata, ping));
@@ -191,8 +188,7 @@ public class BeaconChainMethods {
             recentChainData,
             dasLogger),
         createMetadata(spec, asyncRunner, metadataMessagesFactory, peerLookup, rpcEncoding),
-        createPing(spec, asyncRunner, metadataMessagesFactory, peerLookup, rpcEncoding),
-        dasLogger);
+        createPing(spec, asyncRunner, metadataMessagesFactory, peerLookup, rpcEncoding));
   }
 
   private static Eth2RpcMethod<StatusMessage, StatusMessage> createStatus(

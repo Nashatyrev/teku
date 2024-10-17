@@ -48,7 +48,6 @@ public class StringifyUtil {
             + ranges.stream().map(Objects::toString).collect(Collectors.joining(","))
             + "]";
       } else {
-        List<Integer> sortedIndexes = indexes.stream().sorted().toList();
         BitSet bitSet = new BitSet(maxColumns);
         indexes.forEach(bitSet::set);
         return lenStr + "[bitmap: " + Bytes.of(bitSet.toByteArray()) + "]";

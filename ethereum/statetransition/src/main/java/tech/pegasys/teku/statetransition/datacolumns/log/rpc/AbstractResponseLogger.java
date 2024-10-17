@@ -15,6 +15,7 @@ package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
@@ -23,7 +24,6 @@ import tech.pegasys.teku.infrastructure.time.TimeProvider;
 
 abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
     implements ReqRespResponseLogger<TResponse> {
-  protected static final Logger LOG = LogManager.getLogger(DasReqRespLogger.class);
 
   enum Direction {
     INBOUND,
@@ -31,7 +31,7 @@ abstract class AbstractResponseLogger<TRequest, TResponse, TResponseSummary>
 
     @Override
     public String toString() {
-      return name().toLowerCase();
+      return name().toLowerCase(Locale.US);
     }
   }
 

@@ -56,8 +56,6 @@ public class DataColumnSidecarsByRootMessageHandler
         DataColumnSidecarsByRootRequestMessage, DataColumnSidecar> {
 
   private static final Logger LOG = LogManager.getLogger();
-  private static final Logger LOG_DAS = LogManager.getLogger("das-nyota");
-  private static final AtomicLong REQUEST_ID_COUNTER = new AtomicLong();
 
   private final Spec spec;
   private final CombinedChainDataClient combinedChainDataClient;
@@ -109,8 +107,6 @@ public class DataColumnSidecarsByRootMessageHandler
       final Eth2Peer peer,
       final DataColumnSidecarsByRootRequestMessage message,
       final ResponseCallback<DataColumnSidecar> responseCallback) {
-
-    long requestId = REQUEST_ID_COUNTER.getAndIncrement();
 
     ReqRespResponseLogger<DataColumnSidecar> responseLogger =
         dasLogger
