@@ -88,6 +88,8 @@ import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.datacolumns.log.gossip.DasGossipLogger;
+import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.store.KeyValueStore;
 
@@ -134,6 +136,8 @@ public class Eth2P2PNetworkBuilder {
   protected StatusMessageFactory statusMessageFactory;
   protected KZG kzg;
   protected boolean recordMessageArrival;
+  private DasGossipLogger dasGossipLogger;
+  private DasReqRespLogger dasReqRespLogger;
 
   protected Eth2P2PNetworkBuilder() {}
 
@@ -183,7 +187,8 @@ public class Eth2P2PNetworkBuilder {
             spec,
             kzg,
             discoveryNodeIdExtractor,
-            dasTotalCustodySubnetCount);
+            dasTotalCustodySubnetCount,
+            dasReqRespLogger);
     final Collection<RpcMethod<?, ?, ?>> eth2RpcMethods =
         eth2PeerManager.getBeaconChainMethods().all();
     rpcMethods.addAll(eth2RpcMethods);
@@ -331,7 +336,8 @@ public class Eth2P2PNetworkBuilder {
           gossipedSignedContributionAndProofProcessor,
           gossipedSyncCommitteeMessageProcessor,
           gossipedSignedBlsToExecutionChangeProcessor,
-          dataColumnSidecarOperationProcessor);
+          dataColumnSidecarOperationProcessor,
+          dasGossipLogger);
     };
   }
 
@@ -650,6 +656,16 @@ public class Eth2P2PNetworkBuilder {
 
   public Eth2P2PNetworkBuilder recordMessageArrival(final boolean recordMessageArrival) {
     this.recordMessageArrival = recordMessageArrival;
+    return this;
+  }
+
+  public Eth2P2PNetworkBuilder gossipDasLogger(DasGossipLogger dasGossipLogger) {
+    this.dasGossipLogger = dasGossipLogger;
+    return this;
+  }
+
+  public Eth2P2PNetworkBuilder reqRespDasLogger(final DasReqRespLogger dasReqRespLogger) {
+    this.dasReqRespLogger = dasReqRespLogger;
     return this;
   }
 }

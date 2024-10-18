@@ -13,14 +13,31 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.stream.Collector;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-/**
- * Contains fundamental terminal (reduce or collect) stream methods All other terminal methods are
- * expressed my means of those methods
- */
-public interface BaseAsyncStreamReduce<T> {
+class VisitorHandler<T> extends AbstractDelegatingStreamHandler<T, T> {
+  private final AsyncStreamVisitor<T> visitor;
 
-  <A, R> SafeFuture<R> collect(Collector<T, A, R> collector);
+  public VisitorHandler(AsyncStreamHandler<T> delegate, AsyncStreamVisitor<T> visitor) {
+    super(delegate);
+    this.visitor = visitor;
+  }
+
+  @Override
+  public void onComplete() {
+    visitor.onComplete();
+    delegate.onComplete();
+  }
+
+  @Override
+  public void onError(Throwable t) {
+    visitor.onError(t);
+    delegate.onError(t);
+  }
+
+  @Override
+  public SafeFuture<Boolean> onNext(T t) {
+    visitor.onNext(t);
+    return delegate.onNext(t);
+  }
 }

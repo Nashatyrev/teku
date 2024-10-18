@@ -11,19 +11,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.infrastructure.async.stream;
+package tech.pegasys.teku.statetransition.datacolumns.log.gossip;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+public interface SubnetGossipLogger<TMessage> extends GossipLogger<TMessage> {
 
-  abstract void iterate(AsyncStreamHandler<T> callback);
+  void onDataColumnSubnetSubscribe(int subnetId);
 
-  @Override
-  public <R> AsyncIterator<R> transform(AsyncStreamTransformer<T, R> transformer) {
-    return new TransformAsyncIterator<>(this, transformer);
-  }
-
-  @Override
-  public void consume(AsyncStreamHandler<T> consumer) {
-    iterate(consumer);
-  }
+  void onDataColumnSubnetUnsubscribe(int subnetId);
 }

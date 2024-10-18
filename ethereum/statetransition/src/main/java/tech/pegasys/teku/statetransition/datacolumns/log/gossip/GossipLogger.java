@@ -11,19 +11,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.infrastructure.async.stream;
+package tech.pegasys.teku.statetransition.datacolumns.log.gossip;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+import java.util.Optional;
+import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
 
-  abstract void iterate(AsyncStreamHandler<T> callback);
+public interface GossipLogger<TMessage> {
 
-  @Override
-  public <R> AsyncIterator<R> transform(AsyncStreamTransformer<T, R> transformer) {
-    return new TransformAsyncIterator<>(this, transformer);
-  }
+  void onReceive(TMessage message, InternalValidationResult validationResult);
 
-  @Override
-  public void consume(AsyncStreamHandler<T> consumer) {
-    iterate(consumer);
-  }
+  void onPublish(TMessage message, Optional<Throwable> result);
 }

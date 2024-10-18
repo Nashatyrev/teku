@@ -13,38 +13,31 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.stream.Collector;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-class AsyncIteratorCollector<T, A, R> implements AsyncStreamHandler<T> {
-  private final A accumulator;
-  private final Collector<T, A, R> collector;
+class SliceStreamHandler<T> extends AbstractDelegatingStreamHandler<T, T> {
 
-  private final SafeFuture<R> promise = new SafeFuture<>();
+  private final AsyncStreamSlicer<T> slicer;
 
-  public AsyncIteratorCollector(Collector<T, A, R> collector) {
-    this.collector = collector;
-    this.accumulator = collector.supplier().get();
+  protected SliceStreamHandler(AsyncStreamHandler<T> delegate, AsyncStreamSlicer<T> slicer) {
+    super(delegate);
+    this.slicer = slicer;
   }
 
   @Override
   public SafeFuture<Boolean> onNext(T t) {
-    collector.accumulator().accept(accumulator, t);
-    return TRUE_FUTURE;
-  }
-
-  @Override
-  public void onComplete() {
-    R result = collector.finisher().apply(accumulator);
-    promise.complete(result);
-  }
-
-  @Override
-  public void onError(Throwable t) {
-    promise.completeExceptionally(t);
-  }
-
-  public SafeFuture<R> getPromise() {
-    return promise;
+    AsyncStreamSlicer.SliceResult sliceResult = slicer.slice(t);
+    return switch (sliceResult) {
+      case CONTINUE -> delegate.onNext(t);
+      case SKIP_AND_STOP -> {
+        delegate.onComplete();
+        yield FALSE_FUTURE;
+      }
+      case INCLUDE_AND_STOP -> {
+        SafeFuture<Boolean> ret = delegate.onNext(t).thenApply(__ -> false);
+        delegate.onComplete();
+        yield ret;
+      }
+    };
   }
 }

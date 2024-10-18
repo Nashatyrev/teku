@@ -13,17 +13,18 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+class TransformAsyncIterator<S, T> extends AsyncIterator<T> {
+  private final AsyncIterator<S> delegateIterator;
+  private final AsyncStreamTransformer<S, T> streamTransformer;
 
-  abstract void iterate(AsyncStreamHandler<T> callback);
-
-  @Override
-  public <R> AsyncIterator<R> transform(AsyncStreamTransformer<T, R> transformer) {
-    return new TransformAsyncIterator<>(this, transformer);
+  public TransformAsyncIterator(
+      AsyncIterator<S> delegateIterator, AsyncStreamTransformer<S, T> streamTransformer) {
+    this.delegateIterator = delegateIterator;
+    this.streamTransformer = streamTransformer;
   }
 
   @Override
-  public void consume(AsyncStreamHandler<T> consumer) {
-    iterate(consumer);
+  public void iterate(AsyncStreamHandler<T> callback) {
+    delegateIterator.iterate(streamTransformer.process(callback));
   }
 }

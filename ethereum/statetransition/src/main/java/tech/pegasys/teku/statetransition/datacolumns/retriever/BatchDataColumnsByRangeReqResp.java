@@ -11,19 +11,18 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.infrastructure.async.stream;
+package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+import java.util.List;
+import org.apache.tuweni.units.bigints.UInt256;
+import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 
-  abstract void iterate(AsyncStreamHandler<T> callback);
+public interface BatchDataColumnsByRangeReqResp {
 
-  @Override
-  public <R> AsyncIterator<R> transform(AsyncStreamTransformer<T, R> transformer) {
-    return new TransformAsyncIterator<>(this, transformer);
-  }
+  AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRange(
+      UInt256 nodeId, UInt64 startSlot, int slotCount, List<UInt64> columnIndexes);
 
-  @Override
-  public void consume(AsyncStreamHandler<T> consumer) {
-    iterate(consumer);
-  }
+  int getCurrentRequestLimit(UInt256 nodeId);
 }

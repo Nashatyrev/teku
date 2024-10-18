@@ -13,24 +13,16 @@
 
 package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import org.apache.tuweni.units.bigints.UInt256;
+import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 
-public class DasPeerCustodyCountSupplierStub implements DasPeerCustodyCountSupplier {
-  private final int defaultCount;
-  private final Map<UInt256, Integer> customCounts = new HashMap<>();
+public interface BatchDataColumnsByRootReqResp {
 
-  public DasPeerCustodyCountSupplierStub(int defaultCount) {
-    this.defaultCount = defaultCount;
-  }
+  AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRoot(
+      UInt256 nodeId, List<DataColumnIdentifier> columnIdentifiers);
 
-  @Override
-  public int getCustodyCountForPeer(UInt256 nodeId) {
-    return customCounts.getOrDefault(nodeId, defaultCount);
-  }
-
-  public void setCustomCount(UInt256 nodeId, int count) {
-    customCounts.put(nodeId, count);
-  }
+  int getCurrentRequestLimit(UInt256 nodeId);
 }
