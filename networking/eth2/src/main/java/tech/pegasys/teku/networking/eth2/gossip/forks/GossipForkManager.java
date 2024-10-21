@@ -355,10 +355,9 @@ public class GossipForkManager {
       checkState(
           !forksByActivationEpoch.containsKey(activationEpoch),
           "Can not schedule two forks to activate at the same epoch");
-      // TODO: we are by epoch here, all good, but we are not sure which main fork is it
+      // TODO: Refactor, we are by epoch here, all good, but we are not sure which main fork is it
       // topics are by hard fork digests so we need to continue tracking it
       // but it would be good if it is separately
-      // TODO: some hacky solution for today with TODO normal code
       forksByActivationEpoch.put(activationEpoch, forkSubscriptions);
       return this;
     }

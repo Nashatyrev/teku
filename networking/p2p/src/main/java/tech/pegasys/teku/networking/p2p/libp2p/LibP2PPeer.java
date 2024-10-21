@@ -146,6 +146,7 @@ public class LibP2PPeer implements Peer {
       SafeFuture.of(connection.close())
           .finish(
               () ->
+                  // TODO: LOG.trace in prod
                   LOG.info(
                       "Disconnected forcibly {} because {} from {}",
                       locallyInitiated ? "locally" : "remotely",
@@ -178,6 +179,7 @@ public class LibP2PPeer implements Peer {
   @Override
   public SafeFuture<Void> disconnectCleanly(final DisconnectReason reason) {
     if (connected.getAndSet(false)) {
+      // TODO: LOG.trace in prod
       LOG.info("Disconnecting cleanly because {} from {}", reason, connection.remoteAddress());
       connected.set(false);
       disconnectReason = Optional.of(reason);

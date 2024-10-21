@@ -81,7 +81,8 @@ public class PeerSubnetSubscriptions {
             .getConfig()
             .getOptionalEip7594Config()
             .map(Eip7594::getDataColumnSidecarSubnetCount)
-            .orElse(0);
+            // SszBitvectorSchema.create will throw with 0
+            .orElse(1);
 
     final PeerSubnetSubscriptions subscriptions =
         builder(currentSchemaDefinitions, SszBitvectorSchema.create(dataColumnSidecarSubnetCount))

@@ -69,6 +69,7 @@ public interface BlobSidecarManager extends AvailabilityCheckerFactory<BlobSidec
 
   boolean isAvailabilityRequiredAtSlot(UInt64 slot);
 
+  @Override
   AvailabilityChecker<BlobSidecar> createAvailabilityChecker(SignedBeaconBlock block);
 
   DataAndValidationResult<BlobSidecar> createAvailabilityCheckerAndValidateImmediately(

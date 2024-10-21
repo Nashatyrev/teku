@@ -718,7 +718,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
         sszKZGCommitment,
         new SszKZGProof(blobAndProof.proof()),
         signedBeaconBlockHeader,
-        miscHelpersDeneb.computeKzgCommitmentInclusionProof(
+        miscHelpersDeneb.computeBlobKzgCommitmentInclusionProof(
             blobIdentifier.getIndex(), beaconBlockBodyDeneb));
   }
 

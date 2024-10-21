@@ -162,6 +162,14 @@ public class Eth2NetworkOptions {
   private UInt64 denebForkEpoch;
 
   @Option(
+      names = {"--Xnetwork-electra-fork-epoch"},
+      hidden = true,
+      paramLabel = "<epoch>",
+      description = "Override the electra fork activation epoch.",
+      arity = "1")
+  private UInt64 electraForkEpoch;
+
+  @Option(
       names = {"--Xnetwork-das-fork-epoch"},
       hidden = true,
       paramLabel = "<epoch>",
@@ -338,6 +346,9 @@ public class Eth2NetworkOptions {
     }
     if (denebForkEpoch != null) {
       builder.denebForkEpoch(denebForkEpoch);
+    }
+    if (electraForkEpoch != null) {
+      builder.electraForkEpoch(electraForkEpoch);
     }
     if (eip7594ForkEpoch != null) {
       builder.eip7594ForkEpoch(eip7594ForkEpoch);

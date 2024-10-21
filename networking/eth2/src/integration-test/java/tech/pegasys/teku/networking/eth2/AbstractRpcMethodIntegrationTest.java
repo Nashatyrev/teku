@@ -81,7 +81,7 @@ public abstract class AbstractRpcMethodIntegrationTest {
         nextSpec = Optional.of(TestSpecFactory.createMinimalWithDenebForkEpoch(nextSpecEpoch));
       }
       case DENEB -> {
-        checkState(nextSpecMilestone.equals(SpecMilestone.ELECTRA), "next spec should be eip7594");
+        checkState(nextSpecMilestone.equals(SpecMilestone.ELECTRA), "next spec should be electra");
         nextSpec = Optional.of(TestSpecFactory.createMinimalWithElectraForkEpoch(nextSpecEpoch));
       }
       case ELECTRA -> throw new RuntimeException("Base spec is already latest supported milestone");

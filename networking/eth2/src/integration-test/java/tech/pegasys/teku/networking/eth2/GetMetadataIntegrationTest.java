@@ -33,6 +33,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.vers
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageEip7594;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.phase0.MetadataMessagePhase0;
 
+// TODO: Eip7594 correct testing
 public class GetMetadataIntegrationTest extends AbstractRpcMethodIntegrationTest {
 
   @ParameterizedTest(name = "{0}")

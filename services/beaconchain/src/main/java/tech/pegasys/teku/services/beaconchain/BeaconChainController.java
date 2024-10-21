@@ -314,6 +314,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   protected volatile GossipValidationHelper gossipValidationHelper;
   protected volatile KZG kzg;
   protected volatile BlobSidecarManager blobSidecarManager;
+  protected volatile BlobSidecarGossipValidator blobSidecarValidator;
   protected volatile DataColumnSidecarManager dataColumnSidecarManager;
   //  protected volatile DataColumnSidecarCustody dataColumnSidecarCustody;
   protected volatile LateInitDataColumnSidecarCustody dataColumnSidecarCustody =
@@ -624,7 +625,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
           LimitedMap.createSynchronizedLRU(500);
       final MiscHelpersDeneb miscHelpers =
           MiscHelpersDeneb.required(spec.forMilestone(SpecMilestone.DENEB).miscHelpers());
-      final BlobSidecarGossipValidator blobSidecarValidator =
+      this.blobSidecarValidator =
           BlobSidecarGossipValidator.create(
               spec, invalidBlockRoots, gossipValidationHelper, miscHelpers, kzg);
       final BlobSidecarManagerImpl blobSidecarManagerImpl =
@@ -841,9 +842,18 @@ public class BeaconChainController extends Service implements BeaconChainControl
     if (spec.isMilestoneSupported(SpecMilestone.DENEB)) {
       final BlockImportChannel blockImportChannel =
           eventChannels.getPublisher(BlockImportChannel.class, beaconAsyncRunner);
+      final BlobSidecarGossipChannel blobSidecarGossipChannel =
+          eventChannels.getPublisher(BlobSidecarGossipChannel.class);
       final BlockBlobSidecarsTrackersPoolImpl pool =
           poolFactory.createPoolForBlockBlobSidecarsTrackers(
-              blockImportChannel, spec, timeProvider, beaconAsyncRunner, recentChainData);
+              blockImportChannel,
+              spec,
+              timeProvider,
+              beaconAsyncRunner,
+              recentChainData,
+              executionLayer,
+              () -> blobSidecarValidator,
+              blobSidecarGossipChannel::publishBlobSidecar);
       eventChannels.subscribe(FinalizedCheckpointChannel.class, pool);
       blockBlobSidecarsTrackersPool = pool;
 
@@ -1061,7 +1071,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
   protected void initEth1DataCache() {
     LOG.debug("BeaconChainController.initEth1DataCache");
-    eth1DataCache = new Eth1DataCache(metricsSystem, new Eth1VotingPeriod(spec));
+    eth1DataCache = new Eth1DataCache(spec, metricsSystem, new Eth1VotingPeriod(spec));
   }
 
   public void initDepositProvider() {
