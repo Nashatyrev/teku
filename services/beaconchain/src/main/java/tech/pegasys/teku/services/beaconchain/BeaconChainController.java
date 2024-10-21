@@ -625,7 +625,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
           LimitedMap.createSynchronizedLRU(500);
       final MiscHelpersDeneb miscHelpers =
           MiscHelpersDeneb.required(spec.forMilestone(SpecMilestone.DENEB).miscHelpers());
-      this.blobSidecarValidator =
+      blobSidecarValidator =
           BlobSidecarGossipValidator.create(
               spec, invalidBlockRoots, gossipValidationHelper, miscHelpers, kzg);
       final BlobSidecarManagerImpl blobSidecarManagerImpl =
@@ -1413,7 +1413,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     blsToExecutionChangePool.subscribeOperationAdded(
         new LocalOperationAcceptedFilter<>(p2pNetwork::publishSignedBlsToExecutionChange));
 
-    nodeId =
+    this.nodeId =
         p2pNetwork
             .getDiscoveryNodeId()
             .orElseThrow(() -> new InvalidConfigurationException("NodeID is required"));
