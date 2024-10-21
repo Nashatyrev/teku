@@ -13,13 +13,13 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import io.prometheus.client.Histogram.Timer;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.infrastructure.metrics.SettableHistogram;
+import tech.pegasys.teku.infrastructure.metrics.MetricsHistogram;
+import tech.pegasys.teku.infrastructure.metrics.MetricsHistogram.Timer;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -34,7 +34,7 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   private final Subscribers<ValidDataColumnSidecarsListener> validDataColumnSidecarsSubscribers =
       Subscribers.create(true);
   private final DasGossipLogger dasGossipLogger;
-  private final SettableHistogram histogram;
+  private final MetricsHistogram histogram;
 
   public DataColumnSidecarManagerImpl(
       DataColumnSidecarGossipValidator validator,
@@ -43,7 +43,7 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
     this.validator = validator;
     this.dasGossipLogger = dasGossipLogger;
     this.histogram =
-        new SettableHistogram(
+        new MetricsHistogram(
             metricsSystem,
             TekuMetricCategory.BEACON,
             "data_column_sidecar_gossip_verification_seconds",
