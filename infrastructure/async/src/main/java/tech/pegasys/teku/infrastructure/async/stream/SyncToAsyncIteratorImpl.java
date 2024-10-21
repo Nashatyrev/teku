@@ -19,14 +19,14 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 class SyncToAsyncIteratorImpl<T> extends AsyncIterator<T> {
 
   private final Iterator<T> iterator;
-  private AsyncIteratorCallback<T> callback;
+  private AsyncStreamHandler<T> callback;
 
   SyncToAsyncIteratorImpl(final Iterator<T> iterator) {
     this.iterator = iterator;
   }
 
   @Override
-  public void iterate(final AsyncIteratorCallback<T> callback) {
+  public void iterate(final AsyncStreamHandler<T> callback) {
     synchronized (this) {
       if (this.callback != null) {
         throw new IllegalStateException("This one-shot iterator has been used already");
@@ -43,10 +43,10 @@ class SyncToAsyncIteratorImpl<T> extends AsyncIterator<T> {
           callback.onComplete();
           break;
         }
-        final T next = iterator.next();
-        final SafeFuture<Boolean> shouldContinueFut = callback.onNext(next);
+        T next = iterator.next();
+        SafeFuture<Boolean> shouldContinueFut = callback.onNext(next);
         if (shouldContinueFut.isCompletedNormally()) {
-          final Boolean shouldContinue = shouldContinueFut.getImmediately();
+          Boolean shouldContinue = shouldContinueFut.getImmediately();
           if (!shouldContinue) {
             callback.onComplete();
             break;

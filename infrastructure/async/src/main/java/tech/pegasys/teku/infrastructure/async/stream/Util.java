@@ -13,17 +13,12 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+import java.util.function.BinaryOperator;
 
-  abstract void iterate(AsyncStreamHandler<T> callback);
-
-  @Override
-  public <R> AsyncIterator<R> transform(final AsyncStreamTransformer<T, R> transformer) {
-    return new TransformAsyncIterator<>(this, transformer);
-  }
-
-  @Override
-  public void consume(final AsyncStreamHandler<T> consumer) {
-    iterate(consumer);
+class Util {
+  static <C> BinaryOperator<C> noCallBinaryOperator() {
+    return (c, c2) -> {
+      throw new UnsupportedOperationException("Shouldn't be called");
+    };
   }
 }

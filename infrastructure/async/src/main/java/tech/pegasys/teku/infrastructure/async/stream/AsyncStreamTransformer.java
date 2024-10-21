@@ -13,21 +13,7 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-abstract class AbstractDelegatingIteratorCallback<S, T> implements AsyncIteratorCallback<T> {
+public interface AsyncStreamTransformer<TSource, TTarget> {
 
-  protected final AsyncIteratorCallback<S> delegate;
-
-  protected AbstractDelegatingIteratorCallback(final AsyncIteratorCallback<S> delegate) {
-    this.delegate = delegate;
-  }
-
-  @Override
-  public void onComplete() {
-    delegate.onComplete();
-  }
-
-  @Override
-  public void onError(final Throwable t) {
-    delegate.onError(t);
-  }
+  AsyncStreamHandler<TSource> process(AsyncStreamHandler<TTarget> downstreamHandler);
 }

@@ -13,26 +13,11 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.function.Function;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
+public interface AsyncStreamVisitor<T> {
 
-class MapIteratorCallback<T, S> extends AbstractDelegatingIteratorCallback<T, S> {
+  void onNext(T t);
 
-  private final Function<S, T> mapper;
+  void onComplete();
 
-  protected MapIteratorCallback(
-      final AsyncIteratorCallback<T> delegate, final Function<S, T> mapper) {
-    super(delegate);
-    this.mapper = mapper;
-  }
-
-  @Override
-  public SafeFuture<Boolean> onNext(final S s) {
-    try {
-      return delegate.onNext(mapper.apply(s));
-    } catch (Exception e) {
-      delegate.onError(e);
-      return FALSE_FUTURE;
-    }
-  }
+  void onError(Throwable t);
 }

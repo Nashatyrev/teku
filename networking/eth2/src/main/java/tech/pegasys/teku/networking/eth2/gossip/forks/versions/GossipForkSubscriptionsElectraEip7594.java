@@ -33,6 +33,7 @@ import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedCo
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.ValidatableSyncCommitteeMessage;
 import tech.pegasys.teku.spec.datastructures.state.Fork;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
+import tech.pegasys.teku.statetransition.datacolumns.log.gossip.DasGossipLogger;
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
@@ -43,6 +44,7 @@ public class GossipForkSubscriptionsElectraEip7594 extends GossipForkSubscriptio
   private final UInt64 eip7594ActivationEpoch;
   private final UInt64 eip7594EndEpoch;
   private DataColumnSidecarGossipManager dataColumnSidecarGossipManager;
+  public DasGossipLogger dasGossipLogger;
 
   public GossipForkSubscriptionsElectraEip7594(
       final Fork fork,
@@ -67,7 +69,8 @@ public class GossipForkSubscriptionsElectraEip7594 extends GossipForkSubscriptio
       final OperationProcessor<SignedBlsToExecutionChange>
           signedBlsToExecutionChangeOperationProcessor,
       final DebugDataDumper debugDataDumper,
-      final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor) {
+      final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor,
+      final DasGossipLogger dasGossipLogger) {
     super(
         fork,
         spec,
@@ -89,6 +92,7 @@ public class GossipForkSubscriptionsElectraEip7594 extends GossipForkSubscriptio
     this.dataColumnSidecarOperationProcessor = dataColumnSidecarOperationProcessor;
     this.eip7594ActivationEpoch = eip7594ActivationEpoch;
     this.eip7594EndEpoch = eip7594EndEpoch;
+    this.dasGossipLogger = dasGossipLogger;
   }
 
   @Override
@@ -117,7 +121,7 @@ public class GossipForkSubscriptionsElectraEip7594 extends GossipForkSubscriptio
             endEpoch);
 
     this.dataColumnSidecarGossipManager =
-        new DataColumnSidecarGossipManager(dataColumnSidecarSubnetSubscriptions);
+        new DataColumnSidecarGossipManager(dataColumnSidecarSubnetSubscriptions, dasGossipLogger);
 
     addGossipManager(dataColumnSidecarGossipManager);
   }

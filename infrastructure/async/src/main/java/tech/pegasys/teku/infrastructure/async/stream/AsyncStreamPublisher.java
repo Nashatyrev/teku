@@ -13,25 +13,4 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.function.Predicate;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
-
-class FilteringIteratorCallback<T> extends AbstractDelegatingIteratorCallback<T, T> {
-
-  private final Predicate<T> filter;
-
-  protected FilteringIteratorCallback(
-      final AsyncIteratorCallback<T> delegate, final Predicate<T> filter) {
-    super(delegate);
-    this.filter = filter;
-  }
-
-  @Override
-  public SafeFuture<Boolean> onNext(final T t) {
-    if (filter.test(t)) {
-      return delegate.onNext(t);
-    } else {
-      return TRUE_FUTURE;
-    }
-  }
-}
+public interface AsyncStreamPublisher<T> extends AsyncStreamHandler<T>, AsyncStream<T> {}

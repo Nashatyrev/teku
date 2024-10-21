@@ -13,17 +13,16 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
-  abstract void iterate(AsyncStreamHandler<T> callback);
+/**
+ * FIFO queue analogous to {@link java.util.concurrent.BlockingQueue} which returns {@link
+ * SafeFuture} element promise from {@link #take()} instead of blocking when no elements available
+ * in the queue.
+ */
+interface AsyncQueue<T> {
 
-  @Override
-  public <R> AsyncIterator<R> transform(final AsyncStreamTransformer<T, R> transformer) {
-    return new TransformAsyncIterator<>(this, transformer);
-  }
+  void put(T item);
 
-  @Override
-  public void consume(final AsyncStreamHandler<T> consumer) {
-    iterate(consumer);
-  }
+  SafeFuture<T> take();
 }

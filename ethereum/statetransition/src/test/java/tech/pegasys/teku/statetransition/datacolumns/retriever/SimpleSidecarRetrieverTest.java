@@ -23,6 +23,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
@@ -57,8 +58,8 @@ public class SimpleSidecarRetrieverTest {
   final int columnCount = config.getNumberOfColumns();
   final KZG kzg = KZG.getInstance(false);
 
-  final DasPeerCustodyCountSupplier custodyCountSupplier =
-      DasPeerCustodyCountSupplier.createStub(config.getCustodyRequirement());
+  final DasPeerCustodyCountSupplierStub custodyCountSupplier =
+      new DasPeerCustodyCountSupplierStub(config.getCustodyRequirement());
 
   final Duration retrieverRound = Duration.ofSeconds(1);
   final SimpleSidecarRetriever simpleSidecarRetriever =
@@ -71,10 +72,10 @@ public class SimpleSidecarRetrieverTest {
           stubAsyncRunner,
           retrieverRound);
 
-  UInt64 columnId = UInt64.valueOf(1);
+  UInt64 columnIndex = UInt64.valueOf(1);
 
-  Iterator<UInt256> custodyNodeIds = craftNodeIdsCustodyOf(columnId).iterator();
-  Iterator<UInt256> nonCustodyNodeIds = craftNodeIdsNotCustodyOf(columnId).iterator();
+  Iterator<UInt256> custodyNodeIds = craftNodeIdsCustodyOf(columnIndex).iterator();
+  Iterator<UInt256> nonCustodyNodeIds = craftNodeIdsNotCustodyOf(columnIndex).iterator();
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
@@ -129,9 +130,9 @@ public class SimpleSidecarRetrieverTest {
     BeaconBlock block = blockResolver.addBlock(10, 1);
     List<DataColumnSidecar> sidecars =
         miscHelpers.constructDataColumnSidecars(createSigned(block), blobs, kzg);
-    DataColumnSidecar sidecar0 = sidecars.get(columnId.intValue());
+    DataColumnSidecar sidecar0 = sidecars.get(columnIndex.intValue());
 
-    DataColumnSlotAndIdentifier id0 = createId(block, columnId.intValue());
+    DataColumnSlotAndIdentifier id0 = createId(block, columnIndex.intValue());
 
     testPeerManager.connectPeer(custodyPeerMissingData);
     testPeerManager.connectPeer(nonCustodyPeer);
@@ -180,7 +181,7 @@ public class SimpleSidecarRetrieverTest {
     allPeers.forEach(testPeerManager::connectPeer);
 
     DataColumnSlotAndIdentifier id0 =
-        new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, columnId);
+        new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, columnIndex);
     SafeFuture<DataColumnSidecar> resp0 = simpleSidecarRetriever.retrieve(id0);
 
     advanceTimeGradually(retrieverRound);
@@ -215,7 +216,7 @@ public class SimpleSidecarRetrieverTest {
     testPeerManager.connectPeer(custodyPeer);
 
     DataColumnSlotAndIdentifier id0 =
-        new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, columnId);
+        new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, columnIndex);
     SafeFuture<DataColumnSidecar> resp0_0 = simpleSidecarRetriever.retrieve(id0);
 
     advanceTimeGradually(retrieverRound);
@@ -230,5 +231,69 @@ public class SimpleSidecarRetrieverTest {
     assertThat(custodyPeer.getRequests()).hasSize(2);
     advanceTimeGradually(retrieverRound);
     assertThat(custodyPeer.getRequests()).hasSize(2);
+  }
+
+  @Test
+  void performanceTest() {
+    List<TestPeer> testNodes =
+        craftNodeIds()
+            .map(
+                nodeId ->
+                    new TestPeer(stubAsyncRunner, nodeId, Duration.ofMillis(100))
+                        .currentRequestLimit(1000))
+            .limit(128)
+            .peek(node -> custodyCountSupplier.setCustomCount(node.getNodeId(), columnCount))
+            .peek(testPeerManager::connectPeer)
+            .toList();
+
+    List<DataColumnSlotAndIdentifier> columnIds =
+        IntStream.range(0, Integer.MAX_VALUE)
+            .mapToObj(UInt64::valueOf)
+            .flatMap(
+                slot ->
+                    IntStream.range(0, columnCount)
+                        .mapToObj(UInt64::valueOf)
+                        .map(colIdx -> new DataColumnSlotAndIdentifier(slot, Bytes32.ZERO, colIdx)))
+            .limit(100_000)
+            .toList();
+
+    List<SafeFuture<DataColumnSidecar>> sidecarFutures =
+        columnIds.stream().map(simpleSidecarRetriever::retrieve).toList();
+
+    Assertions.assertTimeout(Duration.ofSeconds(10), () -> advanceTimeGradually(retrieverRound));
+  }
+
+  @Test
+  @SuppressWarnings("FutureReturnValueIgnored")
+  void shouldTrackCustodyCountChangesForPeers() {
+    Duration responseLatency = Duration.ofDays(1); // complete responses manually
+    TestPeer peer =
+        new TestPeer(stubAsyncRunner, custodyNodeIds.next(), responseLatency)
+            .currentRequestLimit(1000);
+    testPeerManager.connectPeer(peer);
+
+    List<DataColumnSlotAndIdentifier> colIds =
+        IntStream.range(0, columnCount)
+            .mapToObj(UInt64::valueOf)
+            .map(colIdx -> new DataColumnSlotAndIdentifier(UInt64.ONE, Bytes32.ZERO, colIdx))
+            .toList();
+
+    colIds.forEach(simpleSidecarRetriever::retrieve);
+
+    int peerCustodyCount = custodyCountSupplier.getCustodyCountForPeer(peer.getNodeId());
+
+    advanceTimeGradually(retrieverRound);
+    assertThat(peer.getRequests()).hasSize(peerCustodyCount);
+
+    int newPeerCustodyCount = peerCustodyCount + 1;
+    custodyCountSupplier.setCustomCount(peer.getNodeId(), newPeerCustodyCount);
+
+    advanceTimeGradually(retrieverRound);
+    assertThat(peer.getRequests()).hasSize(newPeerCustodyCount);
+
+    custodyCountSupplier.setCustomCount(peer.getNodeId(), columnCount);
+
+    advanceTimeGradually(retrieverRound);
+    assertThat(peer.getRequests()).hasSize(columnCount);
   }
 }

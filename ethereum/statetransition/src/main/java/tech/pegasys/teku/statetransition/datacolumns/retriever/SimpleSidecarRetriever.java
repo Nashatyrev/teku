@@ -17,12 +17,14 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -32,6 +34,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.collections.cache.Cache;
+import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
@@ -75,7 +79,7 @@ public class SimpleSidecarRetriever
     this.custodyCountSupplier = custodyCountSupplier;
     this.asyncRunner = asyncRunner;
     this.roundPeriod = roundPeriod;
-    this.reqResp = new DataColumnReqRespImpl(peerManager, reqResp);
+    this.reqResp = reqResp;
     peerManager.addPeerListener(this);
     this.maxRequestCount =
         Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig())
@@ -180,7 +184,7 @@ public class SimpleSidecarRetriever
     final long activeRequestCount =
         pendingRequests.values().stream().filter(r -> r.activeRpcRequest != null).count();
     LOG.info(
-        "[nyota] SimpleSidecarRetriever.nextRound: completed: {}, errored: {},  total pending: {}, active pending: {}, new pending: {}, number of custody peers: {}",
+        "[nyota] SimpleSidecarRetriever.nextRound: completed: {}, errored: {},  total pending: {}, active pending: {}, new active: {}, number of custody peers: {}",
         retrieveCounter,
         errorCounter,
         pendingRequests.size(),
@@ -274,14 +278,24 @@ public class SimpleSidecarRetriever
 
   private class ConnectedPeer {
     final UInt256 nodeId;
+    final Cache<CacheKey, Set<UInt64>> custodyIndexesCache = LRUCache.create(2);
+
+    private record CacheKey(SpecVersion specVersion, int custodyCount) {}
 
     public ConnectedPeer(final UInt256 nodeId) {
       this.nodeId = nodeId;
     }
 
-    private List<UInt64> getNodeCustodyIndexes(final SpecVersion specVersion) {
-      return MiscHelpersEip7594.required(specVersion.miscHelpers())
-          .computeCustodyColumnIndexes(nodeId, custodyCountSupplier.getCustodyCountForPeer(nodeId));
+    private Set<UInt64> calcNodeCustodyIndexes(final CacheKey cacheKey) {
+      return new HashSet<>(
+          MiscHelpersEip7594.required(cacheKey.specVersion().miscHelpers())
+              .computeCustodyColumnIndexes(nodeId, cacheKey.custodyCount()));
+    }
+
+    private Set<UInt64> getNodeCustodyIndexes(final SpecVersion specVersion) {
+      return custodyIndexesCache.get(
+          new CacheKey(specVersion, custodyCountSupplier.getCustodyCountForPeer(nodeId)),
+          this::calcNodeCustodyIndexes);
     }
 
     public boolean isCustodyFor(final DataColumnSlotAndIdentifier columnId) {

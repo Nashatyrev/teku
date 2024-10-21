@@ -13,14 +13,19 @@
 
 package tech.pegasys.teku.infrastructure.async.stream;
 
-import java.util.stream.Collector;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
+class TransformAsyncIterator<S, T> extends AsyncIterator<T> {
+  private final AsyncIterator<S> delegateIterator;
+  private final AsyncStreamTransformer<S, T> streamTransformer;
 
-/**
- * Contains fundamental terminal (reduce or collect) stream methods All other terminal methods are
- * expressed my means of those methods
- */
-public interface BaseAsyncStreamReduce<T> {
+  public TransformAsyncIterator(
+      final AsyncIterator<S> delegateIterator,
+      final AsyncStreamTransformer<S, T> streamTransformer) {
+    this.delegateIterator = delegateIterator;
+    this.streamTransformer = streamTransformer;
+  }
 
-  <A, R> SafeFuture<R> collect(Collector<T, A, R> collector);
+  @Override
+  public void iterate(final AsyncStreamHandler<T> callback) {
+    delegateIterator.iterate(streamTransformer.process(callback));
+  }
 }

@@ -49,29 +49,20 @@ public class StringifyUtil {
             + ranges.stream().map(Objects::toString).collect(Collectors.joining(","))
             + "]";
       } else {
-        final List<Integer> sortedIndexes = indexes.stream().sorted().toList();
-        final BitSet bitSet = new BitSet(maxColumns);
+        BitSet bitSet = new BitSet(maxColumns);
         indexes.forEach(bitSet::set);
-        return lenStr
-            + "["
-            + sortAndJoin(sortedIndexes.subList(0, 4))
-            + ",...("
-            + (indexes.size() - 8)
-            + " more)..., "
-            + sortAndJoin(sortedIndexes.subList(sortedIndexes.size() - 4, sortedIndexes.size()))
-            + "], bitset: "
-            + Bytes.of(bitSet.toByteArray());
+        return lenStr + "[bitmap: " + Bytes.of(bitSet.toByteArray()) + "]";
       }
     }
   }
 
+  public static String toIntRangeStringWithSize(final Collection<Integer> ints) {
+    return "(size: " + ints.size() + ") " + toIntRangeString(ints);
+  }
+
   public static String toIntRangeString(final Collection<Integer> ints) {
-    final List<IntRange> ranges = reduceToIntRanges(ints);
-    return "(size: "
-        + ints.size()
-        + ") ["
-        + ranges.stream().map(Objects::toString).collect(Collectors.joining(","))
-        + "]";
+    List<IntRange> ranges = reduceToIntRanges(ints);
+    return "[" + ranges.stream().map(Objects::toString).collect(Collectors.joining(",")) + "]";
   }
 
   private record IntRange(int first, int last) {

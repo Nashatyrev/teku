@@ -11,19 +11,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.infrastructure.async.stream;
+package tech.pegasys.teku.statetransition.datacolumns.log.rpc;
 
-abstract class AsyncIterator<T> implements AsyncStream<T> {
+public interface ReqRespMethodLogger<TRequest, TResponse> {
 
-  abstract void iterate(AsyncStreamHandler<T> callback);
+  ReqRespResponseLogger<TResponse> onInboundRequest(LoggingPeerId fromPeer, TRequest request);
 
-  @Override
-  public <R> AsyncIterator<R> transform(final AsyncStreamTransformer<T, R> transformer) {
-    return new TransformAsyncIterator<>(this, transformer);
-  }
-
-  @Override
-  public void consume(final AsyncStreamHandler<T> consumer) {
-    iterate(consumer);
-  }
+  ReqRespResponseLogger<TResponse> onOutboundRequest(LoggingPeerId toPeer, TRequest request);
 }
