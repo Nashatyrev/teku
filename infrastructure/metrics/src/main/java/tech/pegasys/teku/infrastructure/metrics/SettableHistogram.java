@@ -16,7 +16,6 @@ package tech.pegasys.teku.infrastructure.metrics;
 import io.prometheus.client.Collector;
 import io.prometheus.client.Histogram;
 import io.prometheus.client.Histogram.Timer;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import org.apache.logging.log4j.LogManager;
@@ -46,7 +45,6 @@ public class SettableHistogram {
         Histogram.build()
             .name(category.getName().toLowerCase(Locale.ROOT) + "_" + name)
             .help(help)
-            .labelNames(Arrays.stream(buckets).mapToObj(String::valueOf).toArray(String[]::new))
             .buckets(buckets.length > 0 ? buckets : DEFAULT_BUCKETS)
             .register();
     if (metricsSystem instanceof PrometheusMetricsSystem) {
@@ -59,8 +57,37 @@ public class SettableHistogram {
     }
   }
 
-  public Timer startTimer() {
-    return histogram.startTimer();
+  public SettableHistogram(
+      final MetricsSystem metricsSystem,
+      final MetricCategory category,
+      String name,
+      String help,
+      String[] labelNames,
+      double... buckets) {
+    this.name = name;
+    this.histogram =
+        Histogram.build()
+            .name(category.getName().toLowerCase(Locale.ROOT) + "_" + name)
+            .help(help)
+            .labelNames(labelNames)
+            .buckets(buckets.length > 0 ? buckets : DEFAULT_BUCKETS)
+            .register();
+    if (metricsSystem instanceof PrometheusMetricsSystem) {
+      try {
+        ((PrometheusMetricsSystem) metricsSystem)
+            .addCollector(category, () -> histogramToCollector(category, this.name));
+      } catch (Exception e) {
+        LOG.error("Failed to add collector to PrometheusMetricsSystem", e);
+      }
+    }
+  }
+
+  public Timer startTimer(String... labelValues) {
+    if (labelValues.length > 0) {
+      return histogram.labels(labelValues).startTimer();
+    } else {
+      return histogram.startTimer();
+    }
   }
 
   protected Collector histogramToCollector(final MetricCategory metricCategory, final String name) {
