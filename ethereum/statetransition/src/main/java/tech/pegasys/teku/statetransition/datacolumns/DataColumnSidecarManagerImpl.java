@@ -13,17 +13,15 @@
 
 package tech.pegasys.teku.statetransition.datacolumns;
 
-import java.util.List;
+import io.prometheus.client.Histogram.Timer;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.infrastructure.metrics.MetricsHistogram;
+import tech.pegasys.teku.infrastructure.metrics.SettableHistogram;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
-import tech.pegasys.teku.infrastructure.time.SystemTimeProvider;
-import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.statetransition.datacolumns.log.gossip.DasGossipLogger;
@@ -36,35 +34,41 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   private final Subscribers<ValidDataColumnSidecarsListener> validDataColumnSidecarsSubscribers =
       Subscribers.create(true);
   private final DasGossipLogger dasGossipLogger;
-    private final MetricsHistogram histogram;
+  private final SettableHistogram histogram;
 
   public DataColumnSidecarManagerImpl(
-      DataColumnSidecarGossipValidator validator, DasGossipLogger dasGossipLogger, MetricsSystem metricsSystem) {
+      DataColumnSidecarGossipValidator validator,
+      DasGossipLogger dasGossipLogger,
+      MetricsSystem metricsSystem) {
     this.validator = validator;
     this.dasGossipLogger = dasGossipLogger;
-      this.histogram =
-              MetricsHistogram.create(
-                      TekuMetricCategory.BEACON,
-                      metricsSystem,
-                      "data_column_sidecar_gossip_verification_seconds_bucket",
-                      "Full runtime of data column sidecars gossip verification",
-                      3,
-                      List.of());
+    this.histogram =
+        new SettableHistogram(
+            metricsSystem,
+            TekuMetricCategory.BEACON,
+            "data_column_sidecar_gossip_verification_seconds",
+            "Full runtime of data column sidecars gossip verification");
   }
 
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
-    return validator
-        .validate(dataColumnSidecar)
-        .thenPeek(
-            res -> {
-              dasGossipLogger.onReceive(dataColumnSidecar, res);
-              if (res.isAccept()) {
-                validDataColumnSidecarsSubscribers.forEach(
-                    listener -> listener.onNewValidSidecar(dataColumnSidecar));
-              }
-            });
+    SafeFuture<InternalValidationResult> validation;
+    try (Timer ignored = histogram.startTimer()) {
+      validation = validator.validate(dataColumnSidecar);
+    } catch (final Throwable t) {
+      LOG.error("Failed to validate data column sidecar", t);
+      return SafeFuture.completedFuture(InternalValidationResult.reject("error"));
+    }
+
+    return validation.thenPeek(
+        res -> {
+          dasGossipLogger.onReceive(dataColumnSidecar, res);
+          if (res.isAccept()) {
+            validDataColumnSidecarsSubscribers.forEach(
+                listener -> listener.onNewValidSidecar(dataColumnSidecar));
+          }
+        });
   }
 
   @Override

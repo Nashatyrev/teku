@@ -27,6 +27,7 @@ dependencies {
 
   implementation testFixtures(project(':infrastructure:metrics'))
 
+  implementation 'io.prometheus:simpleclient'
   implementation 'org.apache.tuweni:tuweni-units'
   implementation 'org.hyperledger.besu.internal:metrics-core'
 
