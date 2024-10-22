@@ -19,7 +19,7 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockContainer;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 
 public class BlockFactoryEip7594 extends BlockFactoryDeneb {
   private final KZG kzg;
@@ -32,7 +32,7 @@ public class BlockFactoryEip7594 extends BlockFactoryDeneb {
 
   @Override
   public List<DataColumnSidecar> createDataColumnSidecars(
-      final SignedBlockContainer blockContainer, List<Blob> blobs) {
+      final SignedBlockContainer blockContainer, final List<Blob> blobs) {
     final MiscHelpersEip7594 miscHelpersEip7594 =
         MiscHelpersEip7594.required(spec.atSlot(blockContainer.getSlot()).miscHelpers());
     return miscHelpersEip7594.constructDataColumnSidecars(

@@ -216,8 +216,8 @@ public class BlobSidecarsAvailabilityCheckerTest {
 
     final Optional<Throwable> cause =
         switch (batchFailure) {
-          case BLOB_SIDECAR_VALIDATION_EXCEPTION, IS_DATA_AVAILABLE_EXCEPTION -> Optional.of(
-              new RuntimeException("oops"));
+          case BLOB_SIDECAR_VALIDATION_EXCEPTION, IS_DATA_AVAILABLE_EXCEPTION ->
+              Optional.of(new RuntimeException("oops"));
           default -> Optional.empty();
         };
 
@@ -230,14 +230,14 @@ public class BlobSidecarsAvailabilityCheckerTest {
     assertThat(blobSidecarsAvailabilityChecker.initiateDataAvailabilityCheck()).isTrue();
 
     switch (batchFailure) {
-        // blobsidecar validation check failure for the initial set
-      case BLOB_SIDECAR_VALIDATION_EXCEPTION -> throwWhenValidatingBlobSidecarsBatchAgainstBlock(
-          blobSidecarsInitial, cause.get());
-        // mock kzg availability check failure for the initial set
-      case IS_DATA_AVAILABLE_EXCEPTION -> whenDataAvailability(blobSidecarsInitial)
-          .thenThrow(cause.get());
-      case IS_DATA_AVAILABLE_RETURN_FALSE -> whenDataAvailability(blobSidecarsInitial)
-          .thenReturn(false);
+      // blobsidecar validation check failure for the initial set
+      case BLOB_SIDECAR_VALIDATION_EXCEPTION ->
+          throwWhenValidatingBlobSidecarsBatchAgainstBlock(blobSidecarsInitial, cause.get());
+      // mock kzg availability check failure for the initial set
+      case IS_DATA_AVAILABLE_EXCEPTION ->
+          whenDataAvailability(blobSidecarsInitial).thenThrow(cause.get());
+      case IS_DATA_AVAILABLE_RETURN_FALSE ->
+          whenDataAvailability(blobSidecarsInitial).thenReturn(false);
     }
 
     asyncRunner.executeDueActions();
@@ -252,8 +252,8 @@ public class BlobSidecarsAvailabilityCheckerTest {
 
     final Optional<Throwable> cause =
         switch (batchFailure) {
-          case BLOB_SIDECAR_VALIDATION_EXCEPTION, IS_DATA_AVAILABLE_EXCEPTION -> Optional.of(
-              new RuntimeException("oops"));
+          case BLOB_SIDECAR_VALIDATION_EXCEPTION, IS_DATA_AVAILABLE_EXCEPTION ->
+              Optional.of(new RuntimeException("oops"));
           default -> Optional.empty();
         };
 
@@ -272,14 +272,14 @@ public class BlobSidecarsAvailabilityCheckerTest {
     asyncRunner.executeDueActions();
 
     switch (batchFailure) {
-        // blobsidecar validation check failure for the additional set
-      case BLOB_SIDECAR_VALIDATION_EXCEPTION -> throwWhenValidatingBlobSidecarsBatchAgainstBlock(
-          blobSidecarsAdditional, cause.get());
-        // mock kzg availability check failure for the additional set
-      case IS_DATA_AVAILABLE_EXCEPTION -> whenDataAvailability(blobSidecarsAdditional)
-          .thenThrow(cause.get());
-      case IS_DATA_AVAILABLE_RETURN_FALSE -> whenDataAvailability(blobSidecarsAdditional)
-          .thenReturn(false);
+      // blobsidecar validation check failure for the additional set
+      case BLOB_SIDECAR_VALIDATION_EXCEPTION ->
+          throwWhenValidatingBlobSidecarsBatchAgainstBlock(blobSidecarsAdditional, cause.get());
+      // mock kzg availability check failure for the additional set
+      case IS_DATA_AVAILABLE_EXCEPTION ->
+          whenDataAvailability(blobSidecarsAdditional).thenThrow(cause.get());
+      case IS_DATA_AVAILABLE_RETURN_FALSE ->
+          whenDataAvailability(blobSidecarsAdditional).thenReturn(false);
     }
 
     // let the tracker complete with all blobSidecars
@@ -455,7 +455,7 @@ public class BlobSidecarsAvailabilityCheckerTest {
   }
 
   private void assertAvailable(
-      SafeFuture<DataAndValidationResult<BlobSidecar>> availabilityOrValidityCheck) {
+      final SafeFuture<DataAndValidationResult<BlobSidecar>> availabilityOrValidityCheck) {
     assertThat(availabilityOrValidityCheck)
         .isCompletedWithValueMatching(result -> !result.isFailure(), "is not failure")
         .isCompletedWithValueMatching(DataAndValidationResult::isValid, "is valid")

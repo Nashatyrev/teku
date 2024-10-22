@@ -25,15 +25,15 @@ public class LoggingBatchDataColumnsByRootReqResp implements BatchDataColumnsByR
   private final DasReqRespLogger logger;
 
   public LoggingBatchDataColumnsByRootReqResp(
-      BatchDataColumnsByRootReqResp delegate, DasReqRespLogger logger) {
+      final BatchDataColumnsByRootReqResp delegate, final DasReqRespLogger logger) {
     this.delegate = delegate;
     this.logger = logger;
   }
 
   @Override
   public AsyncStream<DataColumnSidecar> requestDataColumnSidecarsByRoot(
-      UInt256 nodeId, List<DataColumnIdentifier> columnIdentifiers) {
-    ReqRespResponseLogger<DataColumnSidecar> responseLogger =
+      final UInt256 nodeId, final List<DataColumnIdentifier> columnIdentifiers) {
+    final ReqRespResponseLogger<DataColumnSidecar> responseLogger =
         logger
             .getDataColumnSidecarsByRootLogger()
             .onOutboundRequest(LoggingPeerId.fromNodeId(nodeId), columnIdentifiers);
@@ -43,7 +43,7 @@ public class LoggingBatchDataColumnsByRootReqResp implements BatchDataColumnsByR
   }
 
   @Override
-  public int getCurrentRequestLimit(UInt256 nodeId) {
+  public int getCurrentRequestLimit(final UInt256 nodeId) {
     return delegate.getCurrentRequestLimit(nodeId);
   }
 }

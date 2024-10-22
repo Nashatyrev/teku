@@ -23,7 +23,7 @@ public interface DasReqRespLogger {
 
   record ByRangeRequest(UInt64 startSlot, int slotCount, List<UInt64> columnIndexes) {}
 
-  static DasReqRespLogger create(TimeProvider timeProvider) {
+  static DasReqRespLogger create(final TimeProvider timeProvider) {
     return new DasReqRespLoggerImpl(timeProvider);
   }
 

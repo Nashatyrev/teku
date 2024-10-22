@@ -14,6 +14,7 @@
 package tech.pegasys.teku.networking.eth2;
 
 import static com.google.common.base.Preconditions.checkNotNull;
+import static tech.pegasys.teku.networking.p2p.gossip.config.GossipConfig.DEFAULT_FLOOD_PUBLISH_ENABLED;
 
 import java.time.Duration;
 import java.util.OptionalInt;
@@ -28,7 +29,7 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfig;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.logic.common.helpers.MathHelpers;
 
 public class P2PConfig {
@@ -84,7 +85,7 @@ public class P2PConfig {
       final int batchVerifyQueueCapacity,
       final int batchVerifyMaxBatchSize,
       final boolean batchVerifyStrictThreadLimitEnabled,
-      boolean allTopicsFilterEnabled) {
+      final boolean allTopicsFilterEnabled) {
     this.spec = spec;
     this.networkConfig = networkConfig;
     this.discoveryConfig = discoveryConfig;
@@ -136,8 +137,8 @@ public class P2PConfig {
     return subscribeAllSubnetsEnabled;
   }
 
-  public int getTotalCustodySubnetCount(SpecVersion specVersion) {
-    SpecConfigEip7594 configEip7594 = SpecConfigEip7594.required(specVersion.getConfig());
+  public int getTotalCustodySubnetCount(final SpecVersion specVersion) {
+    Eip7594 configEip7594 = Eip7594.required(specVersion.getConfig());
     int minCustodyRequirement = configEip7594.getCustodyRequirement();
     int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
     return Integer.min(
@@ -187,7 +188,7 @@ public class P2PConfig {
 
     private Spec spec;
     private Boolean isGossipScoringEnabled = DEFAULT_GOSSIP_SCORING_ENABLED;
-    private GossipEncoding gossipEncoding = GossipEncoding.SSZ_SNAPPY;
+    private final GossipEncoding gossipEncoding = GossipEncoding.SSZ_SNAPPY;
     private Integer targetSubnetSubscriberCount = DEFAULT_P2P_TARGET_SUBNET_SUBSCRIBER_COUNT;
     private Boolean subscribeAllSubnetsEnabled = DEFAULT_SUBSCRIBE_ALL_SUBNETS_ENABLED;
     private Boolean subscribeAllCustodySubnetsEnabled = DEFAULT_SUBSCRIBE_ALL_SUBNETS_ENABLED;
@@ -196,11 +197,12 @@ public class P2PConfig {
     private Integer peerRateLimit = DEFAULT_PEER_RATE_LIMIT;
     private Integer peerRequestLimit = DEFAULT_PEER_REQUEST_LIMIT;
     private int batchVerifyMaxThreads = DEFAULT_BATCH_VERIFY_MAX_THREADS;
-    private int batchVerifyQueueCapacity = DEFAULT_BATCH_VERIFY_QUEUE_CAPACITY;
+    private OptionalInt batchVerifyQueueCapacity = OptionalInt.empty();
     private int batchVerifyMaxBatchSize = DEFAULT_BATCH_VERIFY_MAX_BATCH_SIZE;
     private boolean batchVerifyStrictThreadLimitEnabled =
         DEFAULT_BATCH_VERIFY_STRICT_THREAD_LIMIT_ENABLED;
     private boolean allTopicsFilterEnabled = DEFAULT_PEER_ALL_TOPIC_FILTER_ENABLED;
+    private boolean isFloodPublishEnabled = DEFAULT_FLOOD_PUBLISH_ENABLED;
 
     private Builder() {}
 
@@ -223,11 +225,15 @@ public class P2PConfig {
             builder.seenTTL(
                 Duration.ofSeconds(
                     (long) specConfig.getSecondsPerSlot() * specConfig.getSlotsPerEpoch() * 2));
+            builder.floodPublishEnabled(isFloodPublishEnabled);
           });
 
       final NetworkConfig networkConfig = this.networkConfig.build();
       discoveryConfig.listenUdpPortDefault(networkConfig.getListenPort());
+      discoveryConfig.listenUdpPortIpv6Default(networkConfig.getListenPortIpv6());
       discoveryConfig.advertisedUdpPortDefault(OptionalInt.of(networkConfig.getAdvertisedPort()));
+      discoveryConfig.advertisedUdpPortIpv6Default(
+          OptionalInt.of(networkConfig.getAdvertisedPortIpv6()));
 
       if (subscribeAllCustodySubnetsEnabled) {
         dasExtraCustodySubnetCount = Integer.MAX_VALUE;
@@ -246,7 +252,7 @@ public class P2PConfig {
           peerRateLimit,
           peerRequestLimit,
           batchVerifyMaxThreads,
-          batchVerifyQueueCapacity,
+          batchVerifyQueueCapacity.orElse(DEFAULT_BATCH_VERIFY_QUEUE_CAPACITY),
           batchVerifyMaxBatchSize,
           batchVerifyStrictThreadLimitEnabled,
           allTopicsFilterEnabled);
@@ -299,7 +305,7 @@ public class P2PConfig {
       return this;
     }
 
-    public Builder dasExtraCustodySubnetCount(int dasExtraCustodySubnetCount) {
+    public Builder dasExtraCustodySubnetCount(final int dasExtraCustodySubnetCount) {
       this.dasExtraCustodySubnetCount = dasExtraCustodySubnetCount;
       return this;
     }
@@ -331,6 +337,11 @@ public class P2PConfig {
       return this;
     }
 
+    public Builder isFloodPublishEnabled(final boolean floodPublishEnabled) {
+      this.isFloodPublishEnabled = floodPublishEnabled;
+      return this;
+    }
+
     public Builder batchVerifyMaxThreads(final int batchVerifyMaxThreads) {
       if (batchVerifyMaxThreads < 0) {
         throw new InvalidConfigurationException(
@@ -340,12 +351,19 @@ public class P2PConfig {
       return this;
     }
 
+    public Builder batchVerifyQueueCapacityIfDefault(final int batchVerifyQueueCapacity) {
+      if (this.batchVerifyQueueCapacity.isEmpty()) {
+        return this.batchVerifyQueueCapacity(batchVerifyQueueCapacity);
+      }
+      return this;
+    }
+
     public Builder batchVerifyQueueCapacity(final int batchVerifyQueueCapacity) {
       if (batchVerifyQueueCapacity < 0) {
         throw new InvalidConfigurationException(
             String.format("Invalid batchVerifyQueueCapacity: %d", batchVerifyQueueCapacity));
       }
-      this.batchVerifyQueueCapacity = batchVerifyQueueCapacity;
+      this.batchVerifyQueueCapacity = OptionalInt.of(batchVerifyQueueCapacity);
       return this;
     }
 

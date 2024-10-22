@@ -14,7 +14,8 @@
 package tech.pegasys.teku.validator.coordinator;
 
 import com.google.common.base.Suppliers;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -38,7 +39,8 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 
 public class MilestoneBasedBlockFactory implements BlockFactory {
 
-  private final Map<SpecMilestone, BlockFactory> registeredFactories = new HashMap<>();
+  private final Map<SpecMilestone, BlockFactory> registeredFactories =
+      new EnumMap<>(SpecMilestone.class);
 
   private final Spec spec;
 
@@ -50,17 +52,13 @@ public class MilestoneBasedBlockFactory implements BlockFactory {
     // Not needed for all milestones
     final Supplier<BlockFactoryDeneb> blockFactoryDenebSupplier =
         Suppliers.memoize(() -> new BlockFactoryDeneb(spec, operationSelector));
-    final Supplier<BlockFactoryEip7594> blockFactoryEip7594Supplier =
-        Suppliers.memoize(() -> new BlockFactoryEip7594(spec, operationSelector, kzg));
 
     // Populate forks factories
     spec.getEnabledMilestones()
         .forEach(
             forkAndSpecMilestone -> {
               final SpecMilestone milestone = forkAndSpecMilestone.getSpecMilestone();
-              if (milestone.isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
-                registeredFactories.put(milestone, blockFactoryEip7594Supplier.get());
-              } else if (milestone.equals(SpecMilestone.DENEB)) {
+              if (milestone.equals(SpecMilestone.DENEB)) {
                 registeredFactories.put(milestone, blockFactoryDenebSupplier.get());
               } else {
                 registeredFactories.put(milestone, blockFactoryPhase0);
@@ -74,7 +72,6 @@ public class MilestoneBasedBlockFactory implements BlockFactory {
       final UInt64 proposalSlot,
       final BLSSignature randaoReveal,
       final Optional<Bytes32> optionalGraffiti,
-      final Optional<Boolean> requestedBlinded,
       final Optional<UInt64> requestedBuilderBoostFactor,
       final BlockProductionPerformance blockProductionPerformance) {
     final SpecMilestone milestone = getMilestone(proposalSlot);
@@ -85,7 +82,6 @@ public class MilestoneBasedBlockFactory implements BlockFactory {
             proposalSlot,
             randaoReveal,
             optionalGraffiti,
-            requestedBlinded,
             requestedBuilderBoostFactor,
             blockProductionPerformance);
   }
@@ -103,7 +99,7 @@ public class MilestoneBasedBlockFactory implements BlockFactory {
   @Override
   public List<BlobSidecar> createBlobSidecars(
       final SignedBlockContainer blockContainer,
-      BlockPublishingPerformance blockPublishingPerformance) {
+      final BlockPublishingPerformance blockPublishingPerformance) {
     final SpecMilestone milestone = getMilestone(blockContainer.getSlot());
     return registeredFactories
         .get(milestone)
@@ -112,9 +108,8 @@ public class MilestoneBasedBlockFactory implements BlockFactory {
 
   @Override
   public List<DataColumnSidecar> createDataColumnSidecars(
-      final SignedBlockContainer blockContainer, List<Blob> blobs) {
-    final SpecMilestone milestone = getMilestone(blockContainer.getSlot());
-    return registeredFactories.get(milestone).createDataColumnSidecars(blockContainer, blobs);
+      final SignedBlockContainer blockContainer, final List<Blob> blobs) {
+    return Collections.emptyList();
   }
 
   private SpecMilestone getMilestone(final UInt64 slot) {

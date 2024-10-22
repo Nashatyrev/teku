@@ -27,26 +27,79 @@ import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.phase0.Be
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.phase0.BeaconBlockBodySchemaPhase0;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.phase0.MetadataMessageSchemaPhase0;
+import tech.pegasys.teku.spec.datastructures.operations.AggregateAndProof.AggregateAndProofSchema;
+import tech.pegasys.teku.spec.datastructures.operations.Attestation;
+import tech.pegasys.teku.spec.datastructures.operations.AttestationSchema;
+import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashingSchema;
+import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestationSchema;
+import tech.pegasys.teku.spec.datastructures.operations.SignedAggregateAndProof.SignedAggregateAndProofSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.phase0.BeaconStateSchemaPhase0;
+import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
+import tech.pegasys.teku.spec.schemas.registry.SchemaTypes;
 
 public class SchemaDefinitionsPhase0 extends AbstractSchemaDefinitions {
+  private final IndexedAttestationSchema indexedAttestationSchema;
+  private final AttesterSlashingSchema attesterSlashingSchema;
+  private final AttestationSchema<Attestation> attestationSchema;
+  private final SignedAggregateAndProofSchema signedAggregateAndProofSchema;
+  private final AggregateAndProofSchema aggregateAndProofSchema;
   private final BeaconStateSchemaPhase0 beaconStateSchema;
   private final BeaconBlockBodySchemaPhase0 beaconBlockBodySchema;
   private final MetadataMessageSchemaPhase0 metadataMessageSchema;
   private final BeaconBlockSchema beaconBlockSchema;
   private final SignedBeaconBlockSchema signedBeaconBlockSchema;
 
-  public SchemaDefinitionsPhase0(final SpecConfig specConfig) {
-    super(specConfig);
+  public SchemaDefinitionsPhase0(final SchemaRegistry schemaRegistry) {
+    super(schemaRegistry);
+    final SpecConfig specConfig = schemaRegistry.getSpecConfig();
+    this.indexedAttestationSchema = schemaRegistry.get(SchemaTypes.INDEXED_ATTESTATION_SCHEMA);
+    this.attesterSlashingSchema = schemaRegistry.get(SchemaTypes.ATTESTER_SLASHING_SCHEMA);
+
+    this.attestationSchema = schemaRegistry.get(SchemaTypes.ATTESTATION_SCHEMA);
+    this.aggregateAndProofSchema = new AggregateAndProofSchema(attestationSchema);
+    this.signedAggregateAndProofSchema = new SignedAggregateAndProofSchema(aggregateAndProofSchema);
     this.beaconStateSchema = BeaconStateSchemaPhase0.create(specConfig);
     this.beaconBlockBodySchema =
         BeaconBlockBodySchemaPhase0.create(
-            specConfig, getAttesterSlashingSchema(), "BeaconBlockBodyPhase0");
+            specConfig,
+            getMaxValidatorPerAttestation(specConfig),
+            "BeaconBlockBodyPhase0",
+            schemaRegistry);
     this.metadataMessageSchema = new MetadataMessageSchemaPhase0(specConfig.getNetworkingConfig());
     beaconBlockSchema = new BeaconBlockSchema(beaconBlockBodySchema, "BeaconBlockPhase0");
     signedBeaconBlockSchema =
         new SignedBeaconBlockSchema(beaconBlockSchema, "SignedBeaconBlockPhase0");
+  }
+
+  @Override
+  long getMaxValidatorPerAttestation(final SpecConfig specConfig) {
+    return specConfig.getMaxValidatorsPerCommittee();
+  }
+
+  @Override
+  public SignedAggregateAndProofSchema getSignedAggregateAndProofSchema() {
+    return signedAggregateAndProofSchema;
+  }
+
+  @Override
+  public AggregateAndProofSchema getAggregateAndProofSchema() {
+    return aggregateAndProofSchema;
+  }
+
+  @Override
+  public AttestationSchema<Attestation> getAttestationSchema() {
+    return attestationSchema;
+  }
+
+  @Override
+  public IndexedAttestationSchema getIndexedAttestationSchema() {
+    return indexedAttestationSchema;
+  }
+
+  @Override
+  public AttesterSlashingSchema getAttesterSlashingSchema() {
+    return attesterSlashingSchema;
   }
 
   @Override

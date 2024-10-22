@@ -22,7 +22,7 @@ import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 public class LateInitDataColumnSidecarCustody implements DataColumnSidecarByRootCustody {
   private DataColumnSidecarByRootCustody delegate = null;
 
-  public void init(DataColumnSidecarByRootCustody delegate) {
+  public void init(final DataColumnSidecarByRootCustody delegate) {
     if (this.delegate != null) {
       throw new IllegalStateException("Delegate was initialized already");
     }
@@ -31,7 +31,7 @@ public class LateInitDataColumnSidecarCustody implements DataColumnSidecarByRoot
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
-      DataColumnSlotAndIdentifier columnId) {
+      final DataColumnSlotAndIdentifier columnId) {
     if (delegate == null) {
       throw new IllegalStateException("Delegate was not initialized");
     }
@@ -40,7 +40,7 @@ public class LateInitDataColumnSidecarCustody implements DataColumnSidecarByRoot
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecarByRoot(
-      DataColumnIdentifier columnId) {
+      final DataColumnIdentifier columnId) {
     if (delegate == null) {
       throw new IllegalStateException("Delegate was not initialized");
     }

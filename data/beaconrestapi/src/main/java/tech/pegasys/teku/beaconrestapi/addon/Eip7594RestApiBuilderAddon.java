@@ -36,7 +36,7 @@ public class Eip7594RestApiBuilderAddon implements RestApiBuilderAddon {
 
   @Override
   public boolean isEnabled() {
-    return spec.isMilestoneSupported(SpecMilestone.EIP7594);
+    return spec.isMilestoneSupported(SpecMilestone.ELECTRA);
   }
 
   @Override

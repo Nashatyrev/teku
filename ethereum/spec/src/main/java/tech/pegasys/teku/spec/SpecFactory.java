@@ -17,7 +17,7 @@ import static tech.pegasys.teku.spec.SpecMilestone.ALTAIR;
 import static tech.pegasys.teku.spec.SpecMilestone.BELLATRIX;
 import static tech.pegasys.teku.spec.SpecMilestone.CAPELLA;
 import static tech.pegasys.teku.spec.SpecMilestone.DENEB;
-import static tech.pegasys.teku.spec.SpecMilestone.EIP7594;
+import static tech.pegasys.teku.spec.SpecMilestone.ELECTRA;
 import static tech.pegasys.teku.spec.SpecMilestone.PHASE0;
 import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 
@@ -28,13 +28,13 @@ import tech.pegasys.teku.spec.config.SpecConfigAltair;
 import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
 import tech.pegasys.teku.spec.config.SpecConfigCapella;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.SpecConfigElectra;
 import tech.pegasys.teku.spec.config.SpecConfigLoader;
 import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
 
 public class SpecFactory {
 
-  public static Spec create(String configName) {
+  public static Spec create(final String configName) {
     return create(configName, __ -> {});
   }
 
@@ -58,15 +58,15 @@ public class SpecFactory {
             .orElse(FAR_FUTURE_EPOCH);
     final UInt64 denebForkEpoch =
         config.toVersionDeneb().map(SpecConfigDeneb::getDenebForkEpoch).orElse(FAR_FUTURE_EPOCH);
-    final UInt64 eip7594ForkEpoch =
+    final UInt64 electraForkEpoch =
         config
-            .toVersionEip7594()
-            .map(SpecConfigEip7594::getEip7594ForkEpoch)
+            .toVersionElectra()
+            .map(SpecConfigElectra::getElectraForkEpoch)
             .orElse(FAR_FUTURE_EPOCH);
     final SpecMilestone highestMilestoneSupported;
 
-    if (!eip7594ForkEpoch.equals(FAR_FUTURE_EPOCH)) {
-      highestMilestoneSupported = EIP7594;
+    if (!electraForkEpoch.equals(FAR_FUTURE_EPOCH)) {
+      highestMilestoneSupported = ELECTRA;
     } else if (!denebForkEpoch.equals(FAR_FUTURE_EPOCH)) {
       highestMilestoneSupported = DENEB;
     } else if (!capellaForkEpoch.equals(FAR_FUTURE_EPOCH)) {

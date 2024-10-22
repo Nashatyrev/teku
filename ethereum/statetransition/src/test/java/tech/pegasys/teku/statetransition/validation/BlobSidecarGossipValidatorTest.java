@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.statetransition.validation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.clearInvocations;
@@ -44,7 +45,7 @@ import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportRe
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
-@TestSpecContext(milestone = {SpecMilestone.DENEB, SpecMilestone.EIP7594})
+@TestSpecContext(milestone = {SpecMilestone.DENEB, SpecMilestone.ELECTRA})
 public class BlobSidecarGossipValidatorTest {
   private final Map<Bytes32, BlockImportResult> invalidBlocks = new HashMap<>();
   private final GossipValidationHelper gossipValidationHelper = mock(GossipValidationHelper.class);
@@ -272,6 +273,16 @@ public class BlobSidecarGossipValidatorTest {
   void shouldTrackValidInfoSet() {
     SafeFutureAssert.assertThatSafeFuture(blobSidecarValidator.validate(blobSidecar))
         .isCompletedWithValueMatching(InternalValidationResult::isAccept);
+
+    SafeFutureAssert.assertThatSafeFuture(blobSidecarValidator.validate(blobSidecar))
+        .isCompletedWithValueMatching(InternalValidationResult::isIgnore);
+  }
+
+  @TestTemplate
+  void shouldMarkForEquivocation() {
+    assertThat(blobSidecarValidator.markForEquivocation(blobSidecar)).isTrue();
+
+    assertThat(blobSidecarValidator.markForEquivocation(blobSidecar)).isFalse();
 
     SafeFutureAssert.assertThatSafeFuture(blobSidecarValidator.validate(blobSidecar))
         .isCompletedWithValueMatching(InternalValidationResult::isIgnore);

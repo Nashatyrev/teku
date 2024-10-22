@@ -74,7 +74,7 @@ public class GetDataColumnSidecars extends RestApiEndpoint {
   }
 
   @Override
-  public void handleRequest(RestApiRequest request) throws JsonProcessingException {
+  public void handleRequest(final RestApiRequest request) throws JsonProcessingException {
     final List<UInt64> indices = request.getQueryParameterList(DATA_COLUMN_INDICES_PARAMETER);
     final SafeFuture<Optional<List<DataColumnSidecar>>> future =
         chainDataProvider.getDataColumnSidecars(
@@ -91,7 +91,7 @@ public class GetDataColumnSidecars extends RestApiEndpoint {
   private static SerializableTypeDefinition<List<DataColumnSidecar>> getResponseType(
       final SchemaDefinitionCache schemaCache) {
     final DeserializableTypeDefinition<DataColumnSidecar> dataColumnSidecarType =
-        SchemaDefinitionsEip7594.required(schemaCache.getSchemaDefinition(SpecMilestone.EIP7594))
+        SchemaDefinitionsEip7594.required(schemaCache.getSchemaDefinition(SpecMilestone.ELECTRA))
             .getDataColumnSidecarSchema()
             .getJsonTypeDefinition();
     return SerializableTypeDefinition.<List<DataColumnSidecar>>object()

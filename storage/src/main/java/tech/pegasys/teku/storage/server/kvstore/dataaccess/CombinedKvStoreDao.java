@@ -278,6 +278,11 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
   }
 
   @Override
+  public Optional<UInt64> getEarliestFinalizedStateSlot() {
+    return stateStorageLogic.getEarliestAvailableFinalizedStateSlot(db, schema);
+  }
+
+  @Override
   public Optional<SignedBeaconBlock> getLatestFinalizedBlockAtSlot(final UInt64 slot) {
     return db.getFloorEntry(schema.getColumnFinalizedBlocksBySlot(), slot)
         .map(ColumnEntry::getValue);
@@ -338,16 +343,12 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
 
   @Override
   public Optional<Bytes> getBlobSidecar(final SlotAndBlockRootAndBlobIndex key) {
-    return db.get(
-        schema.getColumnBlobSidecarBySlotRootBlobIndex(),
-        new SlotAndBlockRootAndBlobIndex(key.getSlot(), key.getBlockRoot(), key.getBlobIndex()));
+    return db.get(schema.getColumnBlobSidecarBySlotRootBlobIndex(), key);
   }
 
   @Override
   public Optional<Bytes> getNonCanonicalBlobSidecar(final SlotAndBlockRootAndBlobIndex key) {
-    return db.get(
-        schema.getColumnNonCanonicalBlobSidecarBySlotRootBlobIndex(),
-        new SlotAndBlockRootAndBlobIndex(key.getSlot(), key.getBlockRoot(), key.getBlobIndex()));
+    return db.get(schema.getColumnNonCanonicalBlobSidecarBySlotRootBlobIndex(), key);
   }
 
   @MustBeClosed
@@ -535,7 +536,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
   @Override
   @MustBeClosed
   public Stream<DataColumnSlotAndIdentifier> streamDataColumnIdentifiers(
-      UInt64 startSlot, UInt64 endSlot) {
+      final UInt64 startSlot, final UInt64 endSlot) {
     return db.streamKeys(
         schema.getColumnSidecarByColumnSlotAndIdentifier(),
         new DataColumnSlotAndIdentifier(startSlot, MIN_BLOCK_ROOT, UInt64.ZERO),
@@ -544,7 +545,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
 
   @Override
   public List<DataColumnSlotAndIdentifier> getDataColumnIdentifiers(
-      SlotAndBlockRoot slotAndBlockRoot) {
+      final SlotAndBlockRoot slotAndBlockRoot) {
     try (final Stream<DataColumnSlotAndIdentifier> columnSlotAndIdentifierStream =
         db.streamKeys(
             schema.getColumnSidecarByColumnSlotAndIdentifier(),
@@ -571,7 +572,9 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
     private final FinalizedStateUpdater<S> stateStorageUpdater;
 
     V4CombinedUpdater(
-        final KvStoreAccessor db, final S schema, FinalizedStateUpdater<S> stateStorageUpdater) {
+        final KvStoreAccessor db,
+        final S schema,
+        final FinalizedStateUpdater<S> stateStorageUpdater) {
       this.transaction = db.startTransaction();
       this.db = db;
       this.schema = schema;
@@ -604,7 +607,7 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
     }
 
     @Override
-    public void setWeakSubjectivityCheckpoint(Checkpoint checkpoint) {
+    public void setWeakSubjectivityCheckpoint(final Checkpoint checkpoint) {
       transaction.put(schema.getVariableWeakSubjectivityCheckpoint(), checkpoint);
     }
 
@@ -762,13 +765,23 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
     }
 
     @Override
-    public void addReconstructedFinalizedState(Bytes32 blockRoot, BeaconState state) {
+    public void deleteFinalizedState(final UInt64 slot) {
+      stateStorageUpdater.deleteFinalizedState(transaction, schema, slot);
+    }
+
+    @Override
+    public void addReconstructedFinalizedState(final Bytes32 blockRoot, final BeaconState state) {
       stateStorageUpdater.addReconstructedFinalizedState(db, transaction, schema, state);
     }
 
     @Override
     public void addFinalizedStateRoot(final Bytes32 stateRoot, final UInt64 slot) {
       transaction.put(schema.getColumnSlotsByFinalizedStateRoot(), stateRoot, slot);
+    }
+
+    @Override
+    public void deleteFinalizedStateRoot(final Bytes32 stateRoot) {
+      transaction.delete(schema.getColumnSlotsByFinalizedStateRoot(), stateRoot);
     }
 
     @Override

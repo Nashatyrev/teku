@@ -18,15 +18,16 @@ import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.BiConsumer;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.config.DelegatingSpecConfigElectra;
 import tech.pegasys.teku.spec.config.SpecConfig;
-import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594Impl;
+import tech.pegasys.teku.spec.config.SpecConfigElectra;
+import tech.pegasys.teku.spec.config.features.Eip7594Impl;
 
-public class Eip7594Builder implements ForkConfigBuilder<SpecConfigDeneb, SpecConfigEip7594> {
+public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, SpecConfigElectra> {
 
   private Bytes4 eip7594ForkVersion;
   private UInt64 eip7594ForkEpoch;
@@ -43,20 +44,21 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
   Eip7594Builder() {}
 
   @Override
-  public SpecConfigEip7594 build(final SpecConfigDeneb specConfig) {
-    return new SpecConfigEip7594Impl(
-        specConfig,
-        eip7594ForkVersion,
-        eip7594ForkEpoch,
-        fieldElementsPerCell,
-        fieldElementsPerExtBlob,
-        kzgCommitmentsInclusionProofDepth,
-        numberOfColumns,
-        dataColumnSidecarSubnetCount,
-        custodyRequirement,
-        samplesPerSlot,
-        minEpochsForDataColumnSidecarsRequests,
-        maxRequestDataColumnSidecars);
+  public SpecConfigElectra build(final SpecConfigElectra specConfig) {
+    final Eip7594Impl eip7594 =
+        new Eip7594Impl(
+            eip7594ForkVersion,
+            eip7594ForkEpoch,
+            fieldElementsPerCell,
+            fieldElementsPerExtBlob,
+            kzgCommitmentsInclusionProofDepth,
+            numberOfColumns,
+            dataColumnSidecarSubnetCount,
+            custodyRequirement,
+            samplesPerSlot,
+            minEpochsForDataColumnSidecarsRequests,
+            maxRequestDataColumnSidecars);
+    return new DelegatingSpecConfigElectra(specConfig, Optional.of(eip7594));
   }
 
   public Eip7594Builder eip7594ForkEpoch(final UInt64 eip7594ForkEpoch) {

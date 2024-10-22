@@ -43,7 +43,7 @@ public class SpecConfigLoaderTest {
   public void shouldLoadAllKnownNetworks(final Eth2Network network) throws Exception {
     final SpecConfig config = SpecConfigLoader.loadConfigStrict(network.configName());
     // testing latest SpecConfig ensures all fields will be asserted on
-    assertAllFieldsSet(config, SpecConfigEip7594.class);
+    assertAllFieldsSet(config, SpecConfigElectra.class);
   }
 
   /**
@@ -55,7 +55,7 @@ public class SpecConfigLoaderTest {
    * sufficient.
    */
   @ParameterizedTest(name = "{0}")
-  @ValueSource(strings = {"prater", "mainnet"})
+  @ValueSource(strings = {"holesky", "mainnet"})
   public void shouldMaintainConfigNameBackwardsCompatibility(final String name) {
     final SpecConfig config = SpecConfigLoader.loadConfig(name);
     assertThat(config.getRawConfig().get("CONFIG_NAME")).isEqualTo(name);
@@ -75,7 +75,7 @@ public class SpecConfigLoaderTest {
   }
 
   @Test
-  public void shouldLoadMainnetFromFile(@TempDir Path tempDir) throws Exception {
+  public void shouldLoadMainnetFromFile(@TempDir final Path tempDir) throws Exception {
     try (final InputStream inputStream = getMainnetConfigAsStream()) {
       final Path file = tempDir.resolve("mainnet.yml");
       writeStreamToFile(inputStream, file);
@@ -96,7 +96,8 @@ public class SpecConfigLoaderTest {
   }
 
   @Test
-  public void shouldHandleInvalidPresetValue_wrongType(@TempDir Path tempDir) throws Exception {
+  public void shouldHandleInvalidPresetValue_wrongType(@TempDir final Path tempDir)
+      throws Exception {
     try (final InputStream inputStream = loadInvalidFile("invalidPreset_wrongType.yaml")) {
       final Path file = tempDir.resolve("invalid.yml");
       writeStreamToFile(inputStream, file);
@@ -112,7 +113,8 @@ public class SpecConfigLoaderTest {
   }
 
   @Test
-  public void shouldHandleInvalidPresetValue_unknownPreset(@TempDir Path tempDir) throws Exception {
+  public void shouldHandleInvalidPresetValue_unknownPreset(@TempDir final Path tempDir)
+      throws Exception {
     try (final InputStream inputStream = loadInvalidFile("invalidPreset_unknown.yaml")) {
       final Path file = tempDir.resolve("invalid.yml");
       writeStreamToFile(inputStream, file);

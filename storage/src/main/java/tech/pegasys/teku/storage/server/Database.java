@@ -42,6 +42,7 @@ import tech.pegasys.teku.storage.api.StorageUpdate;
 import tech.pegasys.teku.storage.api.UpdateResult;
 import tech.pegasys.teku.storage.api.WeakSubjectivityState;
 import tech.pegasys.teku.storage.api.WeakSubjectivityUpdate;
+import tech.pegasys.teku.storage.archive.DataArchiveWriter;
 
 public interface Database extends AutoCloseable {
 
@@ -74,12 +75,17 @@ public interface Database extends AutoCloseable {
    * of pruneLimit is to softly cap DB operation time.
    *
    * @param lastSlotToPrune inclusive, not reached if limit happens first
-   * @param pruneLimit soft BlobSidecars (not slots) limit
+   * @param pruneLimit maximum number of slots to prune.
+   * @param archiveWriter write BlobSidecars to archive when pruning.
    * @return true if number of pruned blobs reached the pruneLimit, false otherwise
    */
-  boolean pruneOldestBlobSidecars(UInt64 lastSlotToPrune, int pruneLimit);
+  boolean pruneOldestBlobSidecars(
+      UInt64 lastSlotToPrune,
+      int pruneLimit,
+      final DataArchiveWriter<List<BlobSidecar>> archiveWriter);
 
-  boolean pruneOldestNonCanonicalBlobSidecars(UInt64 lastSlotToPrune, int pruneLimit);
+  boolean pruneOldestNonCanonicalBlobSidecars(
+      UInt64 lastSlotToPrune, int pruneLimit, DataArchiveWriter<List<BlobSidecar>> archiveWriter);
 
   @MustBeClosed
   Stream<SlotAndBlockRootAndBlobIndex> streamBlobSidecarKeys(UInt64 startSlot, UInt64 endSlot);
@@ -215,8 +221,6 @@ public interface Database extends AutoCloseable {
 
   long getNonCanonicalBlobSidecarColumnCount();
 
-  void migrate();
-
   Optional<Checkpoint> getAnchor();
 
   Optional<Checkpoint> getJustifiedCheckpoint();
@@ -238,6 +242,9 @@ public interface Database extends AutoCloseable {
    * @return actual last pruned slot
    */
   UInt64 pruneFinalizedBlocks(UInt64 lastSlotToPrune, int pruneLimit);
+
+  Optional<UInt64> pruneFinalizedStates(
+      Optional<UInt64> lastPrunedSlot, UInt64 lastSlotToPruneStateFor, long pruneLimit);
 
   // Sidecars
   Optional<UInt64> getFirstCustodyIncompleteSlot();

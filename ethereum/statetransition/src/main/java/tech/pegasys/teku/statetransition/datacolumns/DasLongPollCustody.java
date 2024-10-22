@@ -41,16 +41,17 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   @VisibleForTesting final PendingRequests pendingRequests = new PendingRequests();
 
   public DasLongPollCustody(
-      UpdatableDataColumnSidecarCustody delegate,
-      AsyncRunner asyncRunner,
-      Duration waitPeriodForCurrentSlot) {
+      final UpdatableDataColumnSidecarCustody delegate,
+      final AsyncRunner asyncRunner,
+      final Duration waitPeriodForCurrentSlot) {
     this.delegate = delegate;
     this.asyncRunner = asyncRunner;
     this.waitPeriodForCurrentSlot = waitPeriodForCurrentSlot;
   }
 
   @Override
-  public SafeFuture<Void> onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar) {
+  public SafeFuture<Void> onNewValidatedDataColumnSidecar(
+      final DataColumnSidecar dataColumnSidecar) {
     return delegate
         .onNewValidatedDataColumnSidecar(dataColumnSidecar)
         .thenRun(
@@ -66,9 +67,9 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
 
   @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
-      DataColumnSlotAndIdentifier columnId) {
-    SafeFuture<Optional<DataColumnSidecar>> pendingFuture = addPendingRequest(columnId);
-    SafeFuture<Optional<DataColumnSidecar>> existingFuture =
+      final DataColumnSlotAndIdentifier columnId) {
+    final SafeFuture<Optional<DataColumnSidecar>> pendingFuture = addPendingRequest(columnId);
+    final SafeFuture<Optional<DataColumnSidecar>> existingFuture =
         delegate.getCustodyDataColumnSidecar(columnId);
     return anyNonEmpty(pendingFuture, existingFuture);
   }
@@ -86,7 +87,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   }
 
   @Override
-  public void onSlot(UInt64 slot) {
+  public void onSlot(final UInt64 slot) {
     asyncRunner
         .runAfterDelay(
             () -> pendingRequests.setNoWaitSlot(slot.increment()), waitPeriodForCurrentSlot)
@@ -94,7 +95,7 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   }
 
   private static <T> SafeFuture<Optional<T>> anyNonEmpty(
-      SafeFuture<Optional<T>> future1, SafeFuture<Optional<T>> future2) {
+      final SafeFuture<Optional<T>> future1, final SafeFuture<Optional<T>> future2) {
     return SafeFuture.anyOf(future1, future2)
         .thenCompose(
             __ -> {
@@ -142,15 +143,15 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
 
     synchronized List<SafeFuture<Optional<DataColumnSidecar>>> remove(
         final DataColumnSlotAndIdentifier columnId) {
-      List<SafeFuture<Optional<DataColumnSidecar>>> ret = requests.remove(columnId);
+      final List<SafeFuture<Optional<DataColumnSidecar>>> ret = requests.remove(columnId);
       return ret == null ? Collections.emptyList() : ret;
     }
 
-    void setNoWaitSlot(UInt64 tillSlotExclusive) {
+    void setNoWaitSlot(final UInt64 tillSlotExclusive) {
       final List<SafeFuture<Optional<DataColumnSidecar>>> toCancel;
       synchronized (this) {
         this.noWaitSlot = tillSlotExclusive;
-        SortedMap<DataColumnSlotAndIdentifier, List<SafeFuture<Optional<DataColumnSidecar>>>>
+        final SortedMap<DataColumnSlotAndIdentifier, List<SafeFuture<Optional<DataColumnSidecar>>>>
             toRemove =
                 requests.headMap(
                     DataColumnSlotAndIdentifier.minimalComparableForSlot(tillSlotExclusive));

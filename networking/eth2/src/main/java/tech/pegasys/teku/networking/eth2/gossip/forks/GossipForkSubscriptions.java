@@ -40,7 +40,7 @@ public interface GossipForkSubscriptions {
 
   void publishBlock(SignedBeaconBlock block);
 
-  default void publishBlobSidecar(BlobSidecar blobSidecar) {
+  default void publishBlobSidecar(final BlobSidecar blobSidecar) {
     // since Deneb
   }
 
@@ -48,11 +48,11 @@ public interface GossipForkSubscriptions {
 
   void unsubscribeFromAttestationSubnetId(int subnetId);
 
-  default void publishSyncCommitteeMessage(ValidatableSyncCommitteeMessage message) {
+  default void publishSyncCommitteeMessage(final ValidatableSyncCommitteeMessage message) {
     // since Altair
   }
 
-  default void publishSyncCommitteeContribution(SignedContributionAndProof message) {
+  default void publishSyncCommitteeContribution(final SignedContributionAndProof message) {
     // since Altair
   }
 
@@ -62,25 +62,25 @@ public interface GossipForkSubscriptions {
 
   void publishVoluntaryExit(SignedVoluntaryExit message);
 
-  default void subscribeToSyncCommitteeSubnet(int subnetId) {
+  default void subscribeToSyncCommitteeSubnet(final int subnetId) {
     // since Altair
   }
 
-  default void unsubscribeFromSyncCommitteeSubnet(int subnetId) {
+  default void unsubscribeFromSyncCommitteeSubnet(final int subnetId) {
     // since Altair
   }
 
-  default void publishSignedBlsToExecutionChangeMessage(SignedBlsToExecutionChange message) {}
+  default void publishSignedBlsToExecutionChangeMessage(final SignedBlsToExecutionChange message) {}
 
-  default void publishDataColumnSidecar(DataColumnSidecar blobSidecar) {
+  default void publishDataColumnSidecar(final DataColumnSidecar blobSidecar) {
     // since EIP7594
   }
 
-  default void subscribeToDataColumnSidecarSubnet(int subnetId) {
+  default void subscribeToDataColumnSidecarSubnet(final int subnetId) {
     // since EIP7594
   }
 
-  default void unsubscribeFromDataColumnSidecarSubnet(int subnetId) {
+  default void unsubscribeFromDataColumnSidecarSubnet(final int subnetId) {
     // since EIP7594
   }
 }

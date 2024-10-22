@@ -21,6 +21,7 @@ import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.networking.p2p.peer.Peer;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 
 public abstract class AbstractDataColumnSidecarValidator {
 
@@ -45,8 +46,7 @@ public abstract class AbstractDataColumnSidecarValidator {
 
   private boolean verifyDataColumnSidecarKzgProof(final DataColumnSidecar dataColumnSidecar) {
     try {
-      return spec.atSlot(dataColumnSidecar.getSlot())
-          .miscHelpers()
+      return MiscHelpersEip7594.required(spec.atSlot(dataColumnSidecar.getSlot()).miscHelpers())
           .verifyDataColumnSidecarKzgProof(kzg, dataColumnSidecar);
     } catch (final Exception ex) {
       LOG.debug(
@@ -65,8 +65,7 @@ public abstract class AbstractDataColumnSidecarValidator {
 
   private boolean verifyDataColumnSidecarInclusionProof(final DataColumnSidecar dataColumnSidecar) {
     try {
-      return spec.atSlot(dataColumnSidecar.getSlot())
-          .miscHelpers()
+      return MiscHelpersEip7594.required(spec.atSlot(dataColumnSidecar.getSlot()).miscHelpers())
           .verifyDataColumnSidecarInclusionProof(dataColumnSidecar);
     } catch (final Exception ex) {
       LOG.debug(

@@ -43,7 +43,7 @@ public class DataColumnIdentifier extends Container2<DataColumnIdentifier, SszBy
 
   public static final DataColumnIdentifierSchema SSZ_SCHEMA = new DataColumnIdentifierSchema();
 
-  public static DataColumnIdentifier createFromSidecar(DataColumnSidecar sidecar) {
+  public static DataColumnIdentifier createFromSidecar(final DataColumnSidecar sidecar) {
     return new DataColumnIdentifier(sidecar.getBlockRoot(), sidecar.getIndex());
   }
 

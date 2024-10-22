@@ -42,7 +42,7 @@ public class DataColumnSidecarAvailabilityCheckerBenchmarkTest extends KZGAbstra
       mock(DataAvailabilitySampler.class);
   private static final int ROUNDS = 10;
 
-  private final Spec spec = TestSpecFactory.createMinimalEip7594();
+  private final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
 
   @Test
@@ -61,9 +61,9 @@ public class DataColumnSidecarAvailabilityCheckerBenchmarkTest extends KZGAbstra
         dataStructureUtil.randomSignedBeaconBlockWithCommitments(
             blobKzgCommitmentsSchema.createFromElements(kzgCommitments));
     final List<DataColumnSidecar> dataColumnSidecars =
-        spec.forMilestone(SpecMilestone.EIP7594)
+        spec.forMilestone(SpecMilestone.ELECTRA)
             .miscHelpers()
-            .toVersionEip7594()
+            .getEip7594Helpers()
             .orElseThrow()
             .constructDataColumnSidecars(signedBeaconBlock, blobs, getKzg());
 

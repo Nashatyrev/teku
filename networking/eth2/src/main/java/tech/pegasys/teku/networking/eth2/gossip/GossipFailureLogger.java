@@ -38,7 +38,7 @@ public class GossipFailureLogger {
   }
 
   public synchronized void logWithSuppression(
-      final Throwable error, final UInt64 slot, String details) {
+      final Throwable error, final UInt64 slot, final String details) {
     final String appendDetails = details.isEmpty() ? "" : ": " + details;
     final Throwable rootCause = Throwables.getRootCause(error);
 

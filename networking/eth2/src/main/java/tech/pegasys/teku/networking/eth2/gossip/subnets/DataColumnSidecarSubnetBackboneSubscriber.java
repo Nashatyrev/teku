@@ -33,7 +33,10 @@ public class DataColumnSidecarSubnetBackboneSubscriber implements SlotEventsChan
   private UInt64 lastEpoch = UInt64.MAX_VALUE;
 
   public DataColumnSidecarSubnetBackboneSubscriber(
-      final Spec spec, final Eth2P2PNetwork eth2P2PNetwork, UInt256 nodeId, int totalSubnetCount) {
+      final Spec spec,
+      final Eth2P2PNetwork eth2P2PNetwork,
+      final UInt256 nodeId,
+      final int totalSubnetCount) {
     this.spec = spec;
     this.eth2P2PNetwork = eth2P2PNetwork;
     this.nodeId = nodeId;
@@ -62,7 +65,7 @@ public class DataColumnSidecarSubnetBackboneSubscriber implements SlotEventsChan
   private void onEpoch(final UInt64 epoch) {
     spec.atEpoch(epoch)
         .miscHelpers()
-        .toVersionEip7594()
+        .getEip7594Helpers()
         .ifPresent(
             eip7594Spec -> {
               List<UInt64> subnets =

@@ -17,14 +17,17 @@ import static com.google.common.base.Preconditions.checkState;
 import static tech.pegasys.teku.infrastructure.time.TimeUtilities.millisToSeconds;
 import static tech.pegasys.teku.infrastructure.time.TimeUtilities.secondsToMillis;
 import static tech.pegasys.teku.spec.SpecMilestone.DENEB;
-import static tech.pegasys.teku.spec.SpecMilestone.EIP7594;
+import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -47,11 +50,10 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.cache.IndexedAttestationCache;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfigDeneb;
-import tech.pegasys.teku.spec.config.NetworkingSpecConfigEip7594;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigAltair;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigEip7594;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.constants.Domain;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
@@ -104,14 +106,16 @@ import tech.pegasys.teku.spec.logic.common.util.LightClientUtil;
 import tech.pegasys.teku.spec.logic.common.util.SyncCommitteeUtil;
 import tech.pegasys.teku.spec.logic.versions.bellatrix.block.OptimisticExecutionPayloadExecutor;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
+import tech.pegasys.teku.spec.schemas.registry.SchemaRegistryBuilder;
 
 public class Spec {
   private final Map<SpecMilestone, SpecVersion> specVersions;
   private final ForkSchedule forkSchedule;
   private final StateTransition stateTransition;
 
-  private Spec(Map<SpecMilestone, SpecVersion> specVersions, final ForkSchedule forkSchedule) {
-    Preconditions.checkArgument(specVersions != null && specVersions.size() > 0);
+  private Spec(
+      final Map<SpecMilestone, SpecVersion> specVersions, final ForkSchedule forkSchedule) {
+    Preconditions.checkArgument(specVersions != null && !specVersions.isEmpty());
     Preconditions.checkArgument(forkSchedule != null);
     this.specVersions = specVersions;
     this.forkSchedule = forkSchedule;
@@ -121,11 +125,12 @@ public class Spec {
   }
 
   static Spec create(final SpecConfig config, final SpecMilestone highestMilestoneSupported) {
-    final Map<SpecMilestone, SpecVersion> specVersions = new HashMap<>();
+    final Map<SpecMilestone, SpecVersion> specVersions = new EnumMap<>(SpecMilestone.class);
     final ForkSchedule.Builder forkScheduleBuilder = ForkSchedule.builder();
+    final SchemaRegistryBuilder schemaRegistryBuilder = SchemaRegistryBuilder.create();
 
     for (SpecMilestone milestone : SpecMilestone.getMilestonesUpTo(highestMilestoneSupported)) {
-      SpecVersion.create(milestone, config)
+      SpecVersion.create(milestone, config, schemaRegistryBuilder)
           .ifPresent(
               milestoneSpec -> {
                 forkScheduleBuilder.addNextMilestone(milestoneSpec);
@@ -219,16 +224,6 @@ public class Spec {
         .map(specConfig -> (NetworkingSpecConfigDeneb) specConfig.getNetworkingConfig());
   }
 
-  /**
-   * Networking config with EIP7594 constants. Use {@link SpecConfigEip7594#required(SpecConfig)}
-   * when you are sure that EIP7594 is available, otherwise use this method
-   */
-  public Optional<NetworkingSpecConfigEip7594> getNetworkingConfigEip7594() {
-    return Optional.ofNullable(forMilestone(EIP7594))
-        .map(SpecVersion::getConfig)
-        .map(specConfig -> (NetworkingSpecConfigEip7594) specConfig.getNetworkingConfig());
-  }
-
   public SchemaDefinitions getGenesisSchemaDefinitions() {
     return getGenesisSpec().getSchemaDefinitions();
   }
@@ -243,6 +238,10 @@ public class Spec {
    */
   public List<ForkAndSpecMilestone> getEnabledMilestones() {
     return forkSchedule.getActiveMilestones();
+  }
+
+  public List<SpecFeature> getEnabledFeatures() {
+    return Arrays.stream(SpecFeature.values()).filter(this::isFeatureScheduled).toList();
   }
 
   /**
@@ -308,7 +307,7 @@ public class Spec {
   public BeaconState initializeBeaconStateFromEth1(
       final Bytes32 eth1BlockHash,
       final UInt64 eth1Timestamp,
-      final List<? extends Deposit> deposits,
+      final List<Deposit> deposits,
       final Optional<ExecutionPayloadHeader> payloadHeader) {
     final GenesisGenerator genesisGenerator = createGenesisGenerator();
     genesisGenerator.updateCandidateState(eth1BlockHash, eth1Timestamp, deposits);
@@ -423,7 +422,7 @@ public class Spec {
   public DataColumnSidecar deserializeSidecar(final Bytes serializedSidecar, final UInt64 slot) {
     return atSlot(slot)
         .getSchemaDefinitions()
-        .toVersionEip7594()
+        .getOptionalSchemaDefinitionsEip7594()
         .orElseThrow(
             () ->
                 new RuntimeException("EIP7594 milestone is required to deserialize column sidecar"))
@@ -526,9 +525,9 @@ public class Spec {
   }
 
   public boolean verifyProposerSlashingSignature(
-      BeaconState state,
-      ProposerSlashing proposerSlashing,
-      BLSSignatureVerifier signatureVerifier) {
+      final BeaconState state,
+      final ProposerSlashing proposerSlashing,
+      final BLSSignatureVerifier signatureVerifier) {
     final UInt64 epoch = getProposerSlashingEpoch(proposerSlashing);
     return atEpoch(epoch)
         .operationSignatureVerifier()
@@ -537,18 +536,20 @@ public class Spec {
   }
 
   public boolean verifyVoluntaryExitSignature(
-      BeaconState state, SignedVoluntaryExit signedExit, BLSSignatureVerifier signatureVerifier) {
+      final BeaconState state,
+      final SignedVoluntaryExit signedExit,
+      final BLSSignatureVerifier signatureVerifier) {
     final UInt64 epoch = signedExit.getMessage().getEpoch();
     return atEpoch(epoch)
         .operationSignatureVerifier()
         .verifyVoluntaryExitSignature(state, signedExit, signatureVerifier);
   }
 
-  public Bytes32 getPreviousDutyDependentRoot(BeaconState state) {
+  public Bytes32 getPreviousDutyDependentRoot(final BeaconState state) {
     return atState(state).getBeaconStateUtil().getPreviousDutyDependentRoot(state);
   }
 
-  public Bytes32 getCurrentDutyDependentRoot(BeaconState state) {
+  public Bytes32 getCurrentDutyDependentRoot(final BeaconState state) {
     return atState(state).getBeaconStateUtil().getCurrentDutyDependentRoot(state);
   }
 
@@ -574,13 +575,14 @@ public class Spec {
   }
 
   // ForkChoice utils
-  public UInt64 getCurrentSlot(UInt64 currentTime, UInt64 genesisTime) {
+  public UInt64 getCurrentSlot(final UInt64 currentTime, final UInt64 genesisTime) {
     return atTime(genesisTime, currentTime)
         .getForkChoiceUtil()
         .getCurrentSlot(currentTime, genesisTime);
   }
 
-  public UInt64 getCurrentSlotForMillis(UInt64 currentTimeMillis, UInt64 genesisTimeMillis) {
+  public UInt64 getCurrentSlotForMillis(
+      final UInt64 currentTimeMillis, final UInt64 genesisTimeMillis) {
     return atTimeMillis(genesisTimeMillis, currentTimeMillis)
         .getForkChoiceUtil()
         .getCurrentSlotForMillis(currentTimeMillis, genesisTimeMillis);
@@ -715,7 +717,7 @@ public class Spec {
             blockSlot, blockParentRoot, store, forkChoiceStrategy);
   }
 
-  public BeaconState processSlots(BeaconState preState, UInt64 slot)
+  public BeaconState processSlots(final BeaconState preState, final UInt64 slot)
       throws SlotProcessingException, EpochProcessingException {
     return stateTransition.processSlots(preState, slot);
   }
@@ -776,7 +778,11 @@ public class Spec {
   }
 
   public Optional<List<Withdrawal>> getExpectedWithdrawals(final BeaconState state) {
-    return atState(state).getBlockProcessor().getExpectedWithdrawals(state);
+    if (!atState(state).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.CAPELLA)) {
+      return Optional.empty();
+    }
+    return Optional.of(
+        atState(state).getBlockProcessor().getExpectedWithdrawals(state).getWithdrawalList());
   }
 
   // Block Processor Utils
@@ -837,7 +843,7 @@ public class Spec {
   }
 
   public boolean isEnoughVotesToUpdateEth1Data(
-      BeaconState state, Eth1Data eth1Data, final int additionalVotes) {
+      final BeaconState state, final Eth1Data eth1Data, final int additionalVotes) {
     final BlockProcessor blockProcessor = atState(state).getBlockProcessor();
     final long existingVotes = blockProcessor.getVoteCount(state, eth1Data);
     return blockProcessor.isEnoughVotesToUpdateEth1Data(existingVotes + additionalVotes);
@@ -851,11 +857,11 @@ public class Spec {
     return atEpoch(epoch).beaconStateAccessors().getActiveValidatorIndices(state, epoch);
   }
 
-  public UInt64 getTotalActiveBalance(BeaconState state) {
+  public UInt64 getTotalActiveBalance(final BeaconState state) {
     return atState(state).beaconStateAccessors().getTotalActiveBalance(state);
   }
 
-  public UInt64 getProposerBoostAmount(BeaconState state) {
+  public UInt64 getProposerBoostAmount(final BeaconState state) {
     return atState(state).beaconStateAccessors().getProposerBoostAmount(state);
   }
 
@@ -863,8 +869,13 @@ public class Spec {
     return atState(state).beaconStateAccessors().getPreviousEpochAttestationCapacity(state);
   }
 
-  public IntList getBeaconCommittee(BeaconState state, UInt64 slot, UInt64 index) {
+  public IntList getBeaconCommittee(
+      final BeaconState state, final UInt64 slot, final UInt64 index) {
     return atState(state).beaconStateAccessors().getBeaconCommittee(state, slot, index);
+  }
+
+  public Int2IntMap getBeaconCommitteesSize(final BeaconState state, final UInt64 slot) {
+    return atState(state).beaconStateAccessors().getBeaconCommitteesSize(state, slot);
   }
 
   public Optional<BLSPublicKey> getValidatorPubKey(
@@ -883,11 +894,11 @@ public class Spec {
   }
 
   public Optional<CommitteeAssignment> getCommitteeAssignment(
-      BeaconState state, UInt64 epoch, int validatorIndex) {
+      final BeaconState state, final UInt64 epoch, final int validatorIndex) {
     return atEpoch(epoch).getValidatorsUtil().getCommitteeAssignment(state, epoch, validatorIndex);
   }
 
-  public Map<Integer, CommitteeAssignment> getValidatorIndexToCommitteeAssignmentMap(
+  public Int2ObjectMap<CommitteeAssignment> getValidatorIndexToCommitteeAssignmentMap(
       final BeaconState state, final UInt64 epoch) {
     return atEpoch(epoch)
         .getValidatorsUtil()
@@ -896,7 +907,9 @@ public class Spec {
 
   // Attestation helpers
   public IntList getAttestingIndices(final BeaconState state, final Attestation attestation) {
-    return atState(state).getAttestationUtil().getAttestingIndices(state, attestation);
+    return atSlot(attestation.getData().getSlot())
+        .getAttestationUtil()
+        .getAttestingIndices(state, attestation);
   }
 
   public AttestationData getGenericAttestationData(
@@ -910,9 +923,9 @@ public class Spec {
   }
 
   public SafeFuture<AttestationProcessingResult> isValidIndexedAttestation(
-      BeaconState state,
-      ValidatableAttestation attestation,
-      AsyncBLSSignatureVerifier blsSignatureVerifier) {
+      final BeaconState state,
+      final ValidatableAttestation attestation,
+      final AsyncBLSSignatureVerifier blsSignatureVerifier) {
     final UInt64 slot = attestation.getData().getSlot();
     return atSlot(slot)
         .getAttestationUtil()
@@ -957,16 +970,20 @@ public class Spec {
   }
 
   public Optional<Integer> getNumberOfDataColumns() {
-    return getSpecConfigEip7594().map(SpecConfigEip7594::getNumberOfColumns);
+    return getFeatureConfigEip7594().map(Eip7594::getNumberOfColumns);
+  }
+
+  public Optional<Integer> getNumberOfDataColumnSubnets() {
+    return getFeatureConfigEip7594().map(Eip7594::getDataColumnSidecarSubnetCount);
   }
 
   public boolean isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
       final ReadOnlyStore store, final UInt64 epoch) {
-    if (!forkSchedule.getSpecMilestoneAtEpoch(epoch).isGreaterThanOrEqualTo(EIP7594)) {
+    if (!isFeatureActivatedAtEpoch(SpecFeature.EIP7594, epoch)) {
       return false;
     }
     final SpecConfig config = atEpoch(epoch).getConfig();
-    final SpecConfigEip7594 specConfigEip7594 = SpecConfigEip7594.required(config);
+    final Eip7594 specConfigEip7594 = Eip7594.required(config);
     return getCurrentEpoch(store)
         .minusMinZero(epoch)
         .isLessThanOrEqualTo(specConfigEip7594.getMinEpochsForDataColumnSidecarsRequests());
@@ -974,7 +991,7 @@ public class Spec {
 
   public UInt64 computeSubnetForDataColumnSidecar(final DataColumnSidecar dataColumnSidecar) {
     final SpecConfig config = atSlot(dataColumnSidecar.getSlot()).getConfig();
-    final SpecConfigEip7594 specConfigEip7594 = SpecConfigEip7594.required(config);
+    final Eip7594 specConfigEip7594 = Eip7594.required(config);
     return dataColumnSidecar.getIndex().mod(specConfigEip7594.getDataColumnSidecarSubnetCount());
   }
 
@@ -982,6 +999,35 @@ public class Spec {
     return getSpecConfigDeneb()
         .map(SpecConfigDeneb::getDenebForkEpoch)
         .map(this::computeStartSlotAtEpoch);
+  }
+
+  // Electra Utils
+  public boolean isFormerDepositMechanismDisabled(final BeaconState state) {
+    return atState(state).miscHelpers().isFormerDepositMechanismDisabled(state);
+  }
+
+  public boolean isFeatureScheduled(final SpecFeature feature) {
+    return switch (feature) {
+      case EIP7594 ->
+          this.getFeatureConfigEip7594()
+              .map(eip7594 -> eip7594.getEip7594FeatureEpoch().isLessThan(FAR_FUTURE_EPOCH))
+              .orElse(false);
+      default -> false;
+    };
+  }
+
+  public boolean isFeatureActivated(final SpecFeature feature, final ReadOnlyStore store) {
+    return isFeatureActivatedAtEpoch(feature, getCurrentEpoch(store));
+  }
+
+  public boolean isFeatureActivatedAtEpoch(final SpecFeature feature, final UInt64 epoch) {
+    return switch (feature) {
+      case EIP7594 ->
+          this.getFeatureConfigEip7594()
+              .map(eip7594 -> epoch.isGreaterThanOrEqualTo(eip7594.getEip7594FeatureEpoch()))
+              .orElse(false);
+      default -> false;
+    };
   }
 
   // Deneb private helpers
@@ -998,12 +1044,12 @@ public class Spec {
   }
 
   // EIP7594 private helpers
-  private Optional<SpecConfigEip7594> getSpecConfigEip7594() {
+  private Optional<Eip7594> getFeatureConfigEip7594() {
     final SpecMilestone highestSupportedMilestone =
         getForkSchedule().getHighestSupportedMilestone();
     return Optional.ofNullable(forMilestone(highestSupportedMilestone))
         .map(SpecVersion::getConfig)
-        .flatMap(SpecConfig::toVersionEip7594);
+        .flatMap(SpecConfig::getOptionalEip7594Config);
   }
 
   // Private helpers

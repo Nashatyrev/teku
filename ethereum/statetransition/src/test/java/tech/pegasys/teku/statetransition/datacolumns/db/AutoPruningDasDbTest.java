@@ -28,7 +28,7 @@ import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalcula
 
 @SuppressWarnings("FutureReturnValueIgnored")
 public class AutoPruningDasDbTest {
-  final Spec spec = TestSpecFactory.createMinimalEip7594();
+  final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
   final DasCustodyStand das = DasCustodyStand.builder(spec).build();
   final int custodyPeriodSlots = 10;
   final int custodyPeriodMarginSlots = 2;
@@ -39,7 +39,7 @@ public class AutoPruningDasDbTest {
       new AutoPruningDasDb(
           das.db, minCustodyPeriodSlotCalculator, custodyPeriodMarginSlots, prunePeriodSlots);
 
-  private DataColumnSidecar createSidecar(int slot, int index) {
+  private DataColumnSidecar createSidecar(final int slot, final int index) {
     SignedBeaconBlock block = das.createBlockWithBlobs(slot);
     return das.createSidecar(block, index);
   }

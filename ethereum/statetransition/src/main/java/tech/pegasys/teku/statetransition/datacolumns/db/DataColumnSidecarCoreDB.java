@@ -30,7 +30,7 @@ interface DataColumnSidecarCoreDB {
   SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(UInt64 slot);
 
   default SafeFuture<List<DataColumnSlotAndIdentifier>> getColumnIdentifiers(
-      SlotAndBlockRoot blockId) {
+      final SlotAndBlockRoot blockId) {
     return getColumnIdentifiers(blockId.getSlot())
         .thenApply(
             ids ->

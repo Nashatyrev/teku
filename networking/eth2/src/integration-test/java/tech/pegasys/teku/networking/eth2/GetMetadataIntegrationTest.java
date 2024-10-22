@@ -33,6 +33,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.vers
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageEip7594;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.phase0.MetadataMessagePhase0;
 
+// TODO: Eip7594 correct testing
 public class GetMetadataIntegrationTest extends AbstractRpcMethodIntegrationTest {
 
   @ParameterizedTest(name = "{0}")
@@ -155,7 +156,7 @@ public class GetMetadataIntegrationTest extends AbstractRpcMethodIntegrationTest
     final MetadataMessage metadata = safeJoin(res);
     assertThat(metadata).isInstanceOf(expectedType);
     // There will be update of custody_subnet_count in this case
-    assumeThat(nextMilestone == SpecMilestone.EIP7594 && nextSpecEnabledRemotely).isFalse();
+    assumeThat(nextMilestone == SpecMilestone.ELECTRA && nextSpecEnabledRemotely).isFalse();
     assertThat(metadata.getSeqNumber()).isEqualTo(UInt64.ZERO);
   }
 
@@ -163,7 +164,7 @@ public class GetMetadataIntegrationTest extends AbstractRpcMethodIntegrationTest
     return switch (milestone) {
       case PHASE0 -> MetadataMessagePhase0.class;
       case ALTAIR, BELLATRIX, CAPELLA, DENEB -> MetadataMessageAltair.class;
-      case EIP7594 -> MetadataMessageEip7594.class;
+      case ELECTRA -> MetadataMessageEip7594.class;
     };
   }
 }

@@ -78,6 +78,7 @@ import tech.pegasys.teku.statetransition.attestation.DeferredAttestations;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.block.BlockImportPerformance;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
+import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.statetransition.validation.AttestationStateSelector;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
@@ -113,6 +114,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
   private final LabelledMetric<Counter> getProposerHeadSelectedCounter;
 
+  private final DebugDataDumper debugDataDumper;
+
   public ForkChoice(
       final Spec spec,
       final EventThread forkChoiceExecutor,
@@ -124,6 +127,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       final TickProcessor tickProcessor,
       final MergeTransitionBlockValidator transitionBlockValidator,
       final boolean forkChoiceLateBlockReorgEnabled,
+      final DebugDataDumper debugDataDumper,
       final MetricsSystem metricsSystem) {
     this.spec = spec;
     this.forkChoiceExecutor = forkChoiceExecutor;
@@ -139,6 +143,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     this.forkChoiceLateBlockReorgEnabled = forkChoiceLateBlockReorgEnabled;
     this.lastProcessHeadSlot.set(UInt64.ZERO);
     LOG.debug("forkChoiceLateBlockReorgEnabled is set to {}", forkChoiceLateBlockReorgEnabled);
+    this.debugDataDumper = debugDataDumper;
     getProposerHeadSelectedCounter =
         metricsSystem.createLabelledCounter(
             TekuMetricCategory.BEACON,
@@ -169,6 +174,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
         new TickProcessor(spec, recentChainData),
         transitionBlockValidator,
         false,
+        DebugDataDumper.NOOP,
         metricsSystem);
   }
 
@@ -283,8 +289,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
   public void onAttesterSlashing(
       final AttesterSlashing slashing,
-      InternalValidationResult validationStatus,
-      boolean fromNetwork) {
+      final InternalValidationResult validationStatus,
+      final boolean fromNetwork) {
     if (!validationStatus.isAccept()) {
       return;
     }
@@ -297,7 +303,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
         .ifExceptionGetsHereRaiseABug();
   }
 
-  public void subscribeToOptimisticHeadChangesAndUpdate(OptimisticHeadSubscriber subscriber) {
+  public void subscribeToOptimisticHeadChangesAndUpdate(final OptimisticHeadSubscriber subscriber) {
     optimisticSyncSubscribers.subscribe(subscriber);
     getOptimisticSyncing().ifPresent(subscriber::onOptimisticHeadChanged);
   }
@@ -436,7 +442,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
         IndexedAttestationCache.capturing();
 
     final AvailabilityChecker<?> availabilityChecker;
-    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.EIP7594)) {
+    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
       LOG.info("Created availabilityChecker for slot {}", block.getSlot());
       availabilityChecker = dasSamplerManager.createAvailabilityChecker(block);
     } else {
@@ -509,6 +515,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             });
   }
 
+  @SuppressWarnings("unchecked")
   private BlockImportResult importBlockAndState(
       final SignedBeaconBlock block,
       final BeaconState blockSlotState,
@@ -552,18 +559,20 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     }
 
     switch (dataAndValidationResult.validationResult()) {
-      case VALID, NOT_REQUIRED -> LOG.debug(
-          "sidecars validation result: {}", dataAndValidationResult::toLogString);
+      case VALID, NOT_REQUIRED ->
+          LOG.debug("sidecars validation result: {}", dataAndValidationResult::toLogString);
       case NOT_AVAILABLE -> {
         LOG.debug("sidecars validation result: {}", dataAndValidationResult::toLogString);
         return BlockImportResult.failedDataAvailabilityCheckNotAvailable(
             dataAndValidationResult.cause());
       }
       case INVALID -> {
-        LOG.error("blobSidecars validation result: {}", dataAndValidationResult::toLogString);
+        LOG.error("sidecars validation result: {}", dataAndValidationResult::toLogString);
+        debugDataDumper.saveInvalidSidecars(dataAndValidationResult.data(), block);
         return BlockImportResult.failedDataAvailabilityCheckInvalid(
             dataAndValidationResult.cause());
       }
+      default -> {}
     }
 
     final ForkChoiceStrategy forkChoiceStrategy = getForkChoiceStrategy();
@@ -703,7 +712,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             earliestAvailabilityWindowSlotBeforeBlock.max(earliestAffectedSlot));
   }
 
-  private UInt64 getMillisIntoSlot(StoreTransaction transaction, UInt64 millisPerSlot) {
+  private UInt64 getMillisIntoSlot(final StoreTransaction transaction, final UInt64 millisPerSlot) {
     return transaction
         .getTimeInMillis()
         .minus(secondsToMillis(transaction.getGenesisTime()))
@@ -781,6 +790,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     if (result.getFailureReason() == FailureReason.BLOCK_IS_FROM_FUTURE) {
       return;
     }
+    debugDataDumper.saveInvalidBlock(
+        block, result.getFailureReason().name(), result.getFailureCause());
     P2P_LOG.onInvalidBlock(
         block.getSlot(),
         block.getRoot(),

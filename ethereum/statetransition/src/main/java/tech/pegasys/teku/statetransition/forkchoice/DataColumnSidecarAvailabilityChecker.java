@@ -66,13 +66,14 @@ public class DataColumnSidecarAvailabilityChecker
         LOG.info(
             "Availability check for slot {} NOT_REQUIRED, kzg commitments empty", block.getSlot());
       }
-      default -> dataAvailabilitySampler
-          .checkDataAvailability(block.getSlot(), block.getRoot(), block.getParentRoot())
-          .finish(
-              dataColumnSidecars ->
-                  validationResult.complete(validateImmediately(dataColumnSidecars)),
-              throwable ->
-                  validationResult.complete(DataAndValidationResult.notAvailable(throwable)));
+      default ->
+          dataAvailabilitySampler
+              .checkDataAvailability(block.getSlot(), block.getRoot(), block.getParentRoot())
+              .finish(
+                  dataColumnSidecars ->
+                      validationResult.complete(validateImmediately(dataColumnSidecars)),
+                  throwable ->
+                      validationResult.complete(DataAndValidationResult.notAvailable(throwable)));
     }
     return true;
   }
@@ -84,7 +85,7 @@ public class DataColumnSidecarAvailabilityChecker
 
   @Override
   public DataAndValidationResult<DataColumnSidecar> validateImmediately(
-      List<DataColumnSidecar> dataColumnSidecars) {
+      final List<DataColumnSidecar> dataColumnSidecars) {
     if (dataColumnSidecars.isEmpty()) {
       return DataAndValidationResult.validResult(dataColumnSidecars);
     }
@@ -95,7 +96,7 @@ public class DataColumnSidecarAvailabilityChecker
                 dataColumnSidecar ->
                     spec.atSlot(dataColumnSidecar.getSlot())
                         .miscHelpers()
-                        .toVersionEip7594()
+                        .getEip7594Helpers()
                         .map(
                             miscHelpersEip7594 ->
                                 miscHelpersEip7594.verifyDataColumnSidecarKzgProof(

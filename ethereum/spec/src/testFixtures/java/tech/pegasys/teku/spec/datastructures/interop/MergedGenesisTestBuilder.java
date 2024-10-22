@@ -63,12 +63,16 @@ public class MergedGenesisTestBuilder {
                 .stateRoot(header.getStateRoot())
                 .feeRecipient(new Bytes20(header.getCoinbase()))
                 .parentHash(header.getParentHash())
+                .transactionsRoot(headerSchema.getHeaderOfDefaultPayload().getTransactionsRoot())
+                // New in Capella
                 .withdrawalsRoot(
                     () ->
                         headerSchema
                             .getHeaderOfDefaultPayload()
                             .getOptionalWithdrawalsRoot()
                             .orElseThrow())
-                .transactionsRoot(headerSchema.getHeaderOfDefaultPayload().getTransactionsRoot()));
+                // New in Deneb
+                .blobGasUsed(() -> UInt64.ZERO)
+                .excessBlobGas(() -> UInt64.ZERO));
   }
 }

@@ -18,23 +18,27 @@ import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
-import tech.pegasys.teku.networking.eth2.gossip.topics.OperationMilestoneValidator;
+import tech.pegasys.teku.networking.eth2.gossip.topics.OperationEpochValidator;
 import tech.pegasys.teku.networking.eth2.gossip.topics.OperationProcessor;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecarSchema;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
+import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
 public class DataColumnSidecarTopicHandler {
 
-  public static Eth2TopicHandler<?> createHandler(
+  public static Eth2TopicHandler<DataColumnSidecar> createHandler(
       final RecentChainData recentChainData,
       final AsyncRunner asyncRunner,
       final OperationProcessor<DataColumnSidecar> operationProcessor,
       final GossipEncoding gossipEncoding,
+      final DebugDataDumper debugDataDumper,
       final ForkInfo forkInfo,
+      final UInt64 startEpoch,
+      final UInt64 endEpoch,
       final String topicName,
       final DataColumnSidecarSchema dataColumnSidecarSchema,
       final int subnetId) {
@@ -48,10 +52,11 @@ public class DataColumnSidecarTopicHandler {
         gossipEncoding,
         forkInfo.getForkDigest(spec),
         topicName,
-        new OperationMilestoneValidator<>(
-            spec, forkInfo.getFork(), message -> spec.computeEpochAtSlot(message.getSlot())),
+        new OperationEpochValidator<>(
+            startEpoch, endEpoch, message -> spec.computeEpochAtSlot(message.getSlot())),
         dataColumnSidecarSchema,
-        spec.getNetworkingConfig());
+        spec.getNetworkingConfig(),
+        debugDataDumper);
   }
 
   private record TopicSubnetIdAwareOperationProcessor(

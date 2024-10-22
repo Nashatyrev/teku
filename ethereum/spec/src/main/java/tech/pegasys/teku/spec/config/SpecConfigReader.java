@@ -49,6 +49,7 @@ import tech.pegasys.teku.spec.config.builder.BellatrixBuilder;
 import tech.pegasys.teku.spec.config.builder.CapellaBuilder;
 import tech.pegasys.teku.spec.config.builder.DenebBuilder;
 import tech.pegasys.teku.spec.config.builder.Eip7594Builder;
+import tech.pegasys.teku.spec.config.builder.ElectraBuilder;
 import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
 
 public class SpecConfigReader {
@@ -114,7 +115,7 @@ public class SpecConfigReader {
     return configBuilder.build();
   }
 
-  public SpecConfig build(Consumer<SpecConfigBuilder> modifier) {
+  public SpecConfig build(final Consumer<SpecConfigBuilder> modifier) {
     modifier.accept(configBuilder);
     return build();
   }
@@ -197,7 +198,17 @@ public class SpecConfigReader {
               unprocessedConfig.remove(constantKey);
             });
 
-    // Process EIP7594 config
+    // Process electra config
+    streamConfigSetters(ElectraBuilder.class)
+        .forEach(
+            setter -> {
+              final String constantKey = camelToSnakeCase(setter.getName());
+              final Object rawValue = unprocessedConfig.get(constantKey);
+              invokeSetter(setter, configBuilder::electraBuilder, constantKey, rawValue);
+              unprocessedConfig.remove(constantKey);
+            });
+
+    // Process EIP7594 feature config
     streamConfigSetters(Eip7594Builder.class)
         .forEach(
             setter -> {
@@ -222,7 +233,7 @@ public class SpecConfigReader {
       if (!ignoreUnknownConfigItems) {
         throw new IllegalArgumentException("Detected unknown spec config entries: " + unknownKeys);
       } else {
-        LOG.info("Ignoring unknown items in network configuration: {}", unknownKeys);
+        LOG.warn("Ignoring unknown items in network configuration: {}", unknownKeys);
       }
     }
   }
@@ -244,7 +255,7 @@ public class SpecConfigReader {
     }
   }
 
-  private Stream<Method> streamConfigSetters(Class<?> builderClass) {
+  private Stream<Method> streamConfigSetters(final Class<?> builderClass) {
     // Ignore any setters that aren't for individual config entries
     final Set<String> ignoredSetters = Set.of("rawConfig");
 
@@ -325,7 +336,7 @@ public class SpecConfigReader {
   }
 
   private interface BuilderSupplier<TBuilder> {
-    static <T> BuilderSupplier<T> fromBuilder(T builder) {
+    static <T> BuilderSupplier<T> fromBuilder(final T builder) {
       return (consumer) -> consumer.accept(builder);
     }
 

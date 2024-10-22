@@ -51,33 +51,44 @@ public class NodeManager {
   }
 
   public static NodeManager create(
-      final Spec spec, Eth2P2PNetworkFactory networkFactory, final List<BLSKeyPair> validatorKeys)
+      final Spec spec,
+      final Eth2P2PNetworkFactory networkFactory,
+      final List<BLSKeyPair> validatorKeys)
       throws Exception {
     return create(spec, networkFactory, validatorKeys, c -> {});
   }
 
   @Deprecated
   public static NodeManager create(
-      Eth2P2PNetworkFactory networkFactory,
+      final Eth2P2PNetworkFactory networkFactory,
       final List<BLSKeyPair> validatorKeys,
-      Consumer<Eth2P2PNetworkBuilder> configureNetwork)
+      final Consumer<Eth2P2PNetworkBuilder> configureNetwork)
       throws Exception {
     return create(DEFAULT_SPEC, networkFactory, validatorKeys, configureNetwork);
   }
 
   public static NodeManager create(
       final Spec spec,
-      Eth2P2PNetworkFactory networkFactory,
+      final Eth2P2PNetworkFactory networkFactory,
       final List<BLSKeyPair> validatorKeys,
-      Consumer<Eth2P2PNetworkBuilder> configureNetwork)
+      final Consumer<Eth2P2PNetworkBuilder> configureNetwork)
+      throws Exception {
+    final RecentChainData storageClient = MemoryOnlyRecentChainData.create(spec);
+    final BeaconChainUtil chainUtil = BeaconChainUtil.create(spec, storageClient, validatorKeys);
+    chainUtil.initializeStorage();
+    return create(spec, networkFactory, configureNetwork, storageClient, chainUtil);
+  }
+
+  public static NodeManager create(
+      final Spec spec,
+      final Eth2P2PNetworkFactory networkFactory,
+      final Consumer<Eth2P2PNetworkBuilder> configureNetwork,
+      final RecentChainData storageClient,
+      final BeaconChainUtil chainUtil)
       throws Exception {
     final EventChannels eventChannels =
         EventChannels.createSyncChannels(
             ChannelExceptionHandler.THROWING_HANDLER, new NoOpMetricsSystem());
-    final RecentChainData storageClient = MemoryOnlyRecentChainData.create(spec);
-
-    final BeaconChainUtil chainUtil = BeaconChainUtil.create(spec, storageClient, validatorKeys);
-    chainUtil.initializeStorage();
 
     final Eth2P2PNetworkBuilder networkBuilder =
         networkFactory
@@ -97,7 +108,7 @@ public class NodeManager {
 
   public SafeFuture<Peer> connect(final NodeManager peer) {
     final PeerAddress peerAddress =
-        eth2P2PNetwork.createPeerAddress(peer.network().getNodeAddress());
+        eth2P2PNetwork.createPeerAddress(peer.network().getNodeAddresses().get(0));
     return eth2P2PNetwork.connect(peerAddress);
   }
 

@@ -14,7 +14,7 @@
 package tech.pegasys.teku.validator.coordinator.publisher;
 
 import com.google.common.base.Suppliers;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.Map;
 import java.util.function.Supplier;
 import tech.pegasys.teku.ethereum.performance.trackers.BlockPublishingPerformance;
@@ -36,7 +36,8 @@ import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 public class MilestoneBasedBlockPublisher implements BlockPublisher {
 
   private final Spec spec;
-  private final Map<SpecMilestone, BlockPublisher> registeredPublishers = new HashMap<>();
+  private final Map<SpecMilestone, BlockPublisher> registeredPublishers =
+      new EnumMap<>(SpecMilestone.class);
 
   public MilestoneBasedBlockPublisher(
       final Spec spec,
@@ -81,7 +82,7 @@ public class MilestoneBasedBlockPublisher implements BlockPublisher {
         .forEach(
             forkAndSpecMilestone -> {
               final SpecMilestone milestone = forkAndSpecMilestone.getSpecMilestone();
-              if (milestone.equals(SpecMilestone.EIP7594)) {
+              if (milestone.equals(SpecMilestone.ELECTRA)) {
                 registeredPublishers.put(
                     milestone, blockAndDataColumnSidecarsPublisherSupplier.get());
               } else if (milestone.equals(SpecMilestone.DENEB)) {
@@ -96,7 +97,7 @@ public class MilestoneBasedBlockPublisher implements BlockPublisher {
   public SafeFuture<SendSignedBlockResult> sendSignedBlock(
       final SignedBlockContainer blockContainer,
       final BroadcastValidationLevel broadcastValidationLevel,
-      BlockPublishingPerformance blockPublishingPerformance) {
+      final BlockPublishingPerformance blockPublishingPerformance) {
     final SpecMilestone blockMilestone = spec.atSlot(blockContainer.getSlot()).getMilestone();
     return registeredPublishers
         .get(blockMilestone)

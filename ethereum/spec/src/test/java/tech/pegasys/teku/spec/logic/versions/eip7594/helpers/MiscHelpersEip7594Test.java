@@ -47,25 +47,27 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
+import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
 
   private final Spec spec =
-      TestSpecFactory.createMinimalEip7594(
+      TestSpecFactory.createMinimalElectraEip7594(
           builder ->
               builder.eip7594Builder(
                   eip7594Builder -> eip7594Builder.numberOfColumns(128).samplesPerSlot(16)));
   private final Predicates predicates = new Predicates(spec.getGenesisSpecConfig());
-  private final SchemaDefinitionsEip7594 schemaDefinitionsEip7594 =
-      SchemaDefinitionsEip7594.required(spec.getGenesisSchemaDefinitions());
+  private final SchemaDefinitionsElectra schemaDefinitionsElectra =
+      SchemaDefinitionsElectra.required(spec.getGenesisSchemaDefinitions());
   private final MiscHelpersEip7594 miscHelpersEip7594 =
       new MiscHelpersEip7594(
-          spec.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
+          spec.getGenesisSpecConfig().getOptionalEip7594Config().orElseThrow(),
           predicates,
-          schemaDefinitionsEip7594);
+          schemaDefinitionsElectra);
 
   @ParameterizedTest(name = "{0} allowed failure(s)")
   @MethodSource("getExtendedSampleCountFixtures")
@@ -143,16 +145,18 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
         .thenReturn(true);
     final MiscHelpersEip7594 miscHelpersEip7594WithMockPredicates =
         new MiscHelpersEip7594(
-            spec.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
+            spec.getGenesisSpecConfig().getOptionalEip7594Config().orElseThrow(),
             predicatesMock,
-            schemaDefinitionsEip7594);
+            schemaDefinitionsElectra);
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
     final DataColumnSidecar dataColumnSidecar =
-        schemaDefinitionsEip7594
+        SchemaDefinitionsEip7594.required(schemaDefinitionsElectra)
             .getDataColumnSidecarSchema()
             .create(
                 UInt64.ZERO,
-                schemaDefinitionsEip7594.getDataColumnSchema().create(List.of()),
+                SchemaDefinitionsEip7594.required(schemaDefinitionsElectra)
+                    .getDataColumnSchema()
+                    .create(List.of()),
                 List.of(),
                 List.of(),
                 dataStructureUtil.randomSignedBeaconBlockHeader(),
@@ -167,7 +171,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
                 dataColumnSidecar.getSszKZGCommitments().hashTreeRoot(),
                 dataColumnSidecar.getKzgCommitmentsInclusionProof(),
                 spec.getGenesisSpecConfig()
-                    .toVersionEip7594()
+                    .getOptionalEip7594Config()
                     .orElseThrow()
                     .getKzgCommitmentsInclusionProofDepth()
                     .intValue(),
@@ -182,21 +186,23 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
 
   @Test
   public void emptyInclusionProofFromRealNetwork_shouldFailValidation() {
-    final Spec specMainnet = TestSpecFactory.createMainnetEip7594();
+    final Spec specMainnet = TestSpecFactory.createMainnetElectraEip7594();
     final Predicates predicatesMainnet = new Predicates(specMainnet.getGenesisSpecConfig());
-    final SchemaDefinitionsEip7594 schemaDefinitionsEip7594Mainnet =
-        SchemaDefinitionsEip7594.required(specMainnet.getGenesisSchemaDefinitions());
+    final SchemaDefinitionsElectra schemaDefinitionsElectraMainnet =
+        SchemaDefinitionsElectra.required(specMainnet.getGenesisSchemaDefinitions());
     final MiscHelpersEip7594 miscHelpersEip7594Mainnet =
         new MiscHelpersEip7594(
-            specMainnet.getGenesisSpecConfig().toVersionEip7594().orElseThrow(),
+            specMainnet.getGenesisSpecConfig().getOptionalEip7594Config().orElseThrow(),
             predicatesMainnet,
-            schemaDefinitionsEip7594Mainnet);
+            schemaDefinitionsElectraMainnet);
     final DataColumnSidecar dataColumnSidecar =
-        schemaDefinitionsEip7594Mainnet
+        SchemaDefinitionsEip7594.required(schemaDefinitionsElectraMainnet)
             .getDataColumnSidecarSchema()
             .create(
                 UInt64.ZERO,
-                schemaDefinitionsEip7594Mainnet.getDataColumnSchema().create(List.of()),
+                SchemaDefinitionsEip7594.required(schemaDefinitionsElectraMainnet)
+                    .getDataColumnSchema()
+                    .create(List.of()),
                 List.of(),
                 List.of(),
                 new SignedBeaconBlockHeader(

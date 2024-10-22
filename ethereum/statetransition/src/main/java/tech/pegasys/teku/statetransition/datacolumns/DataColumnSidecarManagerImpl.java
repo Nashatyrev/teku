@@ -30,14 +30,14 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   private final DasGossipLogger dasGossipLogger;
 
   public DataColumnSidecarManagerImpl(
-      DataColumnSidecarGossipValidator validator, DasGossipLogger dasGossipLogger) {
+      final DataColumnSidecarGossipValidator validator, final DasGossipLogger dasGossipLogger) {
     this.validator = validator;
     this.dasGossipLogger = dasGossipLogger;
   }
 
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
-      DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
+      final DataColumnSidecar dataColumnSidecar, final Optional<UInt64> arrivalTimestamp) {
     return validator
         .validate(dataColumnSidecar)
         .thenPeek(
@@ -51,12 +51,13 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   }
 
   @Override
-  public void onDataColumnSidecarPublish(DataColumnSidecar sidecar) {
+  public void onDataColumnSidecarPublish(final DataColumnSidecar sidecar) {
     validDataColumnSidecarsSubscribers.forEach(l -> l.onNewValidSidecar(sidecar));
   }
 
   @Override
-  public void subscribeToValidDataColumnSidecars(ValidDataColumnSidecarsListener sidecarsListener) {
+  public void subscribeToValidDataColumnSidecars(
+      final ValidDataColumnSidecarsListener sidecarsListener) {
     validDataColumnSidecarsSubscribers.subscribe(sidecarsListener);
   }
 }

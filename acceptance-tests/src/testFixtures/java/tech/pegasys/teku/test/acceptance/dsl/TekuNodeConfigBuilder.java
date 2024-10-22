@@ -15,10 +15,10 @@ package tech.pegasys.teku.test.acceptance.dsl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static tech.pegasys.teku.test.acceptance.dsl.Node.DATA_PATH;
-import static tech.pegasys.teku.test.acceptance.dsl.Node.JSON_PROVIDER;
 import static tech.pegasys.teku.test.acceptance.dsl.Node.JWT_SECRET_FILE_PATH;
 import static tech.pegasys.teku.test.acceptance.dsl.Node.METRICS_PORT;
 import static tech.pegasys.teku.test.acceptance.dsl.Node.NETWORK_FILE_PATH;
+import static tech.pegasys.teku.test.acceptance.dsl.Node.OBJECT_MAPPER;
 import static tech.pegasys.teku.test.acceptance.dsl.Node.P2P_PORT;
 import static tech.pegasys.teku.test.acceptance.dsl.Node.PRIVATE_KEY_FILE_PATH;
 import static tech.pegasys.teku.test.acceptance.dsl.Node.REST_API_PORT;
@@ -55,6 +55,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networks.Eth2NetworkConfiguration;
@@ -145,6 +146,30 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
+  public TekuNodeConfigBuilder withDenebEpoch(final UInt64 denebForkEpoch) {
+    mustBe(NodeType.BEACON_NODE);
+    LOG.debug("Xnetwork-deneb-fork-epoch={}", denebForkEpoch);
+    configMap.put("Xnetwork-deneb-fork-epoch", denebForkEpoch.toString());
+    specConfigModifier =
+        specConfigModifier.andThen(
+            specConfigBuilder ->
+                specConfigBuilder.denebBuilder(
+                    denebBuilder -> denebBuilder.denebForkEpoch(denebForkEpoch)));
+    return this;
+  }
+
+  public TekuNodeConfigBuilder withElectraEpoch(final UInt64 electraForkEpoch) {
+    mustBe(NodeType.BEACON_NODE);
+    LOG.debug("Xnetwork-electra-fork-epoch={}", electraForkEpoch);
+    configMap.put("Xnetwork-electra-fork-epoch", electraForkEpoch.toString());
+    specConfigModifier =
+        specConfigModifier.andThen(
+            specConfigBuilder ->
+                specConfigBuilder.electraBuilder(
+                    electraBuilder -> electraBuilder.electraForkEpoch(electraForkEpoch)));
+    return this;
+  }
+
   public TekuNodeConfigBuilder withTrustedSetupFromClasspath(final String trustedSetup)
       throws Exception {
     mustBe(NodeType.BEACON_NODE);
@@ -171,29 +196,32 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
-  public TekuNodeConfigBuilder withDenebEpoch(final UInt64 denebForkEpoch) {
-
+  public TekuNodeConfigBuilder withTerminalBlockHash(final String terminalBlockHash) {
     mustBe(NodeType.BEACON_NODE);
-    LOG.debug("Xnetwork-deneb-fork-epoch={}", denebForkEpoch);
-    configMap.put("Xnetwork-deneb-fork-epoch", denebForkEpoch.toString());
+
+    LOG.debug("Xnetwork-terminal-block-hash-override={}", terminalBlockHash);
+    configMap.put("Xnetwork-terminal-block-hash-override", terminalBlockHash);
+
     specConfigModifier =
         specConfigModifier.andThen(
             specConfigBuilder ->
-                specConfigBuilder.denebBuilder(
-                    denebBuilder -> denebBuilder.denebForkEpoch(denebForkEpoch)));
+                specConfigBuilder.bellatrixBuilder(
+                    bellatrixBuilder ->
+                        bellatrixBuilder.terminalBlockHash(
+                            Bytes32.fromHexString(terminalBlockHash))));
     return this;
   }
 
-  public TekuNodeConfigBuilder withEip7594Epoch(final UInt64 eip7594ForkEpoch) {
+  public TekuNodeConfigBuilder withEip7594Epoch(final UInt64 eip7594Epoch) {
 
     mustBe(NodeType.BEACON_NODE);
-    LOG.debug("Xnetwork-das-fork-epoch={}", eip7594ForkEpoch);
-    configMap.put("Xnetwork-das-fork-epoch", eip7594ForkEpoch.toString());
+    LOG.debug("Xnetwork-das-fork-epoch={}", eip7594Epoch);
+    configMap.put("Xnetwork-das-fork-epoch", eip7594Epoch.toString());
     specConfigModifier =
         specConfigModifier.andThen(
             specConfigBuilder ->
                 specConfigBuilder.eip7594Builder(
-                    eip7594Builder -> eip7594Builder.eip7594ForkEpoch(eip7594ForkEpoch)));
+                    eip7594Builder -> eip7594Builder.eip7594ForkEpoch(eip7594Epoch)));
     return this;
   }
 
@@ -335,7 +363,7 @@ public class TekuNodeConfigBuilder {
   }
 
   public TekuNodeConfigBuilder withWritableKeystorePath(
-      ValidatorKeystores keystores, Path tempDir) {
+      final ValidatorKeystores keystores, final Path tempDir) {
     LOG.debug("Xinterop-enabled=false");
     configMap.put("Xinterop-enabled", false);
     final String keysFolder = "/" + keystores.getKeysDirectoryName();
@@ -402,6 +430,12 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
+  public TekuNodeConfigBuilder withSubscribeAllSubnetsEnabled() {
+    LOG.debug("p2p-subscribe-all-subnets-enabled=true");
+    configMap.put("p2p-subscribe-all-subnets-enabled", true);
+    return this;
+  }
+
   public TekuNodeConfigBuilder withDepositsFrom(final BesuNode eth1Node) {
     mustBe(NodeType.BEACON_NODE);
     configMap.put("Xinterop-enabled", false);
@@ -451,7 +485,7 @@ public class TekuNodeConfigBuilder {
       sentryNodesConfigFile.deleteOnExit();
 
       try (FileWriter fw = new FileWriter(sentryNodesConfigFile, StandardCharsets.UTF_8)) {
-        fw.write(sentryNodesConfig.toJson(JSON_PROVIDER));
+        fw.write(sentryNodesConfig.toJson(OBJECT_MAPPER));
       }
     } catch (IOException e) {
       throw new RuntimeException("Error creating sentry nodes configuration file", e);
@@ -495,11 +529,23 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
+  public TekuNodeConfigBuilder withExternalSignerPublicKeys(final String publicKeysList) {
+    LOG.debug("validators-external-signer-public-keys={}", publicKeysList);
+    configMap.put("validators-external-signer-public-keys", publicKeysList);
+    return this;
+  }
+
   public TekuNodeConfigBuilder withValidatorProposerDefaultFeeRecipient(
       final String validatorProposerDefaultFeeRecipient) {
     LOG.debug("validators-proposer-default-fee-recipient={}", validatorProposerDefaultFeeRecipient);
     configMap.put(
         "validators-proposer-default-fee-recipient", validatorProposerDefaultFeeRecipient);
+    return this;
+  }
+
+  public TekuNodeConfigBuilder withBeaconNodeSszBlocksEnabled(final boolean enabled) {
+    LOG.debug("beacon-node-ssz-blocks-enabled={}", enabled);
+    configMap.put("beacon-node-ssz-blocks-enabled", enabled);
     return this;
   }
 
@@ -526,7 +572,7 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
-  public TekuNodeConfigBuilder withGenesisTime(int time) {
+  public TekuNodeConfigBuilder withGenesisTime(final int time) {
     mustBe(NodeType.BEACON_NODE);
     LOG.debug("Xinterop-genesis-time={}", time);
     configMap.put("Xinterop-genesis-time", time);
@@ -539,7 +585,7 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
-  private TekuNodeConfigBuilder withPrivateKey(PrivKey privKey) throws IOException {
+  private TekuNodeConfigBuilder withPrivateKey(final PrivKey privKey) throws IOException {
     mustBe(NodeType.BEACON_NODE);
     this.maybePrivKey = Optional.ofNullable(privKey);
     this.maybePeerId = maybePrivKey.map(privateKey -> PeerId.fromPubKey(privateKey.publicKey()));

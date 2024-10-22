@@ -24,7 +24,7 @@ public class DataColumnSidecarGossipManager implements GossipManager {
 
   public DataColumnSidecarGossipManager(
       final DataColumnSidecarSubnetSubscriptions dataColumnSidecarSubnetSubscriptions,
-      DasGossipLogger dasGossipLogger) {
+      final DasGossipLogger dasGossipLogger) {
     subnetSubscriptions = dataColumnSidecarSubnetSubscriptions;
     this.dasGossipLogger = dasGossipLogger;
   }

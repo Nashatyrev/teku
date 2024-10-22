@@ -138,7 +138,7 @@ public class RespondingEth2Peer implements Eth2Peer {
   }
 
   public void setBlockRequestFilter(
-      Function<List<SignedBeaconBlock>, List<SignedBeaconBlock>> filter) {
+      final Function<List<SignedBeaconBlock>, List<SignedBeaconBlock>> filter) {
     this.blockRequestFilter = filter;
   }
 
@@ -162,7 +162,7 @@ public class RespondingEth2Peer implements Eth2Peer {
   }
 
   @Override
-  public void subscribeMetadataUpdates(PeerMetadataUpdateSubscriber subscriber) {}
+  public void subscribeMetadataUpdates(final PeerMetadataUpdateSubscriber subscriber) {}
 
   @Override
   public PeerStatus getStatus() {
@@ -433,7 +433,7 @@ public class RespondingEth2Peer implements Eth2Peer {
     return SafeFuture.COMPLETE;
   }
 
-  private void disconnect(Optional<DisconnectReason> reason, boolean locallyInitiated) {
+  private void disconnect(final Optional<DisconnectReason> reason, final boolean locallyInitiated) {
     disconnected = true;
     disconnectSubscribers.forEach(s -> s.onDisconnected(reason, locallyInitiated));
   }

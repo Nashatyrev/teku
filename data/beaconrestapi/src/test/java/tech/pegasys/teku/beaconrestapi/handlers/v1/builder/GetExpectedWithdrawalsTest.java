@@ -19,15 +19,17 @@ import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_BAD_REQUE
 import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_INTERNAL_SERVER_ERROR;
 import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_NOT_FOUND;
 import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_NOT_IMPLEMENTED;
+import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_NO_CONTENT;
 import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_OK;
+import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_SERVICE_UNAVAILABLE;
 import static tech.pegasys.teku.infrastructure.restapi.MetadataTestUtil.getResponseStringFromMetadata;
+import static tech.pegasys.teku.infrastructure.restapi.MetadataTestUtil.verifyMetadataEmptyResponse;
 import static tech.pegasys.teku.infrastructure.restapi.MetadataTestUtil.verifyMetadataErrorResponse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.beaconrestapi.AbstractMigratedBeaconHandlerWithChainDataProviderTest;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
@@ -68,7 +70,6 @@ class GetExpectedWithdrawalsTest extends AbstractMigratedBeaconHandlerWithChainD
   }
 
   @Test
-  @Disabled("TODO: Fix fixtures, random was changed")
   void metadata_shouldHandle200() throws IOException {
     final BeaconBlockBodyCapella beaconBlock =
         BeaconBlockBodyCapella.required(dataStructureUtil.randomBeaconBlock(1).getBody());
@@ -81,5 +82,15 @@ class GetExpectedWithdrawalsTest extends AbstractMigratedBeaconHandlerWithChainD
             Resources.getResource(GetExpectedWithdrawalsTest.class, "getExpectedWithdrawals.json"),
             UTF_8);
     assertThat(data).isEqualTo(expected);
+  }
+
+  @Test
+  void metadata_shouldHandle204() {
+    verifyMetadataEmptyResponse(handler, SC_NO_CONTENT);
+  }
+
+  @Test
+  void metadata_shouldHandle503() throws JsonProcessingException {
+    verifyMetadataErrorResponse(handler, SC_SERVICE_UNAVAILABLE);
   }
 }
