@@ -37,9 +37,9 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   private final MetricsHistogram histogram;
 
   public DataColumnSidecarManagerImpl(
-      DataColumnSidecarGossipValidator validator,
-      DasGossipLogger dasGossipLogger,
-      MetricsSystem metricsSystem) {
+      final DataColumnSidecarGossipValidator validator,
+      final DasGossipLogger dasGossipLogger,
+      final MetricsSystem metricsSystem) {
     this.validator = validator;
     this.dasGossipLogger = dasGossipLogger;
     this.histogram =
@@ -53,11 +53,12 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
   @Override
   public SafeFuture<InternalValidationResult> onDataColumnSidecarGossip(
       DataColumnSidecar dataColumnSidecar, Optional<UInt64> arrivalTimestamp) {
-    SafeFuture<InternalValidationResult> validation;
+    final SafeFuture<InternalValidationResult> validation;
     try (Timer ignored = histogram.startTimer()) {
       validation = validator.validate(dataColumnSidecar);
     } catch (final Throwable t) {
-      LOG.error("Failed to validate data column sidecar", t);
+      LOG.error(
+          "Failed to validate data column sidecar {}", dataColumnSidecar::toLogString, () -> t);
       return SafeFuture.completedFuture(InternalValidationResult.reject("error"));
     }
 
