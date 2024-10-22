@@ -33,6 +33,7 @@ dependencies {
   testImplementation testFixtures(project(':ethereum:weaksubjectivity'))
   testImplementation testFixtures(project(':infrastructure:async'))
   testImplementation testFixtures(project(':infrastructure:bls'))
+  testImplementation testFixtures(project(':infrastructure:metrics'))
   testImplementation testFixtures(project(':infrastructure:time'))
   testImplementation testFixtures(project(':infrastructure:kzg'))
   testImplementation testFixtures(project(':storage'))
