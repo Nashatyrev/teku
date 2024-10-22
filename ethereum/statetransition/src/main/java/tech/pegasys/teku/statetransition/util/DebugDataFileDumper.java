@@ -33,6 +33,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 
 public class DebugDataFileDumper implements DebugDataDumper {
@@ -44,6 +45,8 @@ public class DebugDataFileDumper implements DebugDataDumper {
   private static final String REJECTED_SUB_DIR = "rejected";
   private static final String INVALID_BLOCK_DIR = "invalid_blocks";
   private static final String INVALID_BLOB_SIDECARS_DIR = "invalid_blob_sidecars";
+  // TODO: dump other
+  private static final String INVALID_DATA_COLUMN_SIDECARS_DIR = "invalid_blob_sidecars";
 
   private boolean enabled;
   private final Path directory;
@@ -141,9 +144,8 @@ public class DebugDataFileDumper implements DebugDataDumper {
   }
 
   @Override
-  public void saveInvalidBlobSidecars(
-      final List<BlobSidecar> blobSidecars, final SignedBeaconBlock block) {
-    if (!enabled) {
+  public void saveInvalidSidecars(final List<?> sidecars, final SignedBeaconBlock block) {
+    if (!enabled || sidecars.isEmpty()) {
       return;
     }
     final String kzgCommitmentsFileName =
@@ -153,18 +155,39 @@ public class DebugDataFileDumper implements DebugDataDumper {
         "kzg commitments",
         Path.of(INVALID_BLOB_SIDECARS_DIR).resolve(kzgCommitmentsFileName),
         block.getMessage().getBody().getOptionalBlobKzgCommitments().orElseThrow().sszSerialize());
-    blobSidecars.forEach(
-        blobSidecar -> {
-          final UInt64 slot = blobSidecar.getSlot();
-          final Bytes32 blockRoot = blobSidecar.getBlockRoot();
-          final UInt64 index = blobSidecar.getIndex();
-          final String fileName =
-              String.format("%s_%s_%s.ssz", slot, blockRoot.toUnprefixedHexString(), index);
-          saveBytesToFile(
-              "blob sidecar",
-              Path.of(INVALID_BLOB_SIDECARS_DIR).resolve(fileName),
-              blobSidecar.sszSerialize());
-        });
+    switch (sidecars.getFirst()) {
+      case BlobSidecar __ -> {
+        sidecars.forEach(
+            sidecar -> {
+              final BlobSidecar blobSidecar = (BlobSidecar) sidecar;
+              final UInt64 slot = blobSidecar.getSlot();
+              final Bytes32 blockRoot = blobSidecar.getBlockRoot();
+              final UInt64 index = blobSidecar.getIndex();
+              final String fileName =
+                  String.format("%s_%s_%s.ssz", slot, blockRoot.toUnprefixedHexString(), index);
+              saveBytesToFile(
+                  "blob sidecar",
+                  Path.of(INVALID_BLOB_SIDECARS_DIR).resolve(fileName),
+                  blobSidecar.sszSerialize());
+            });
+      }
+      case DataColumnSidecar __ -> {
+        sidecars.forEach(
+            sidecar -> {
+              final DataColumnSidecar blobSidecar = (DataColumnSidecar) sidecar;
+              final UInt64 slot = blobSidecar.getSlot();
+              final Bytes32 blockRoot = blobSidecar.getBlockRoot();
+              final UInt64 index = blobSidecar.getIndex();
+              final String fileName =
+                  String.format("%s_%s_%s.ssz", slot, blockRoot.toUnprefixedHexString(), index);
+              saveBytesToFile(
+                  "data column sidecar",
+                  Path.of(INVALID_DATA_COLUMN_SIDECARS_DIR).resolve(fileName),
+                  blobSidecar.sszSerialize());
+            });
+      }
+      default -> throw new RuntimeException("Unknown sidecar type: " + sidecars.getFirst());
+    }
   }
 
   @VisibleForTesting

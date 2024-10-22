@@ -272,7 +272,7 @@ class ForkChoiceTest {
     verify(blobSidecarManager).createAvailabilityChecker(blockAndState.getBlock());
     verify(blobSidecarsAvailabilityChecker).initiateDataAvailabilityCheck();
     verify(blobSidecarsAvailabilityChecker).getAvailabilityCheckResult();
-    verify(debugDataDumper).saveInvalidBlobSidecars(blobSidecars, blockAndState.getBlock());
+    verify(debugDataDumper).saveInvalidSidecars(blobSidecars, blockAndState.getBlock());
   }
 
   @Test
