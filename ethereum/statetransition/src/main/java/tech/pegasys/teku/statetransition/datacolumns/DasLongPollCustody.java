@@ -14,22 +14,30 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import com.google.common.annotations.VisibleForTesting;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
@@ -74,8 +82,54 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   }
 
   @Override
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> sampleColumns(
+      SlotAndBlockRoot blockId, List<UInt64> columnIndexes) {
+
+    List<DataColumnSlotAndIdentifier> columnIds =
+        columnIndexes.stream()
+            .map(
+                columnIndex ->
+                    new DataColumnSlotAndIdentifier(
+                        blockId.getSlot(), blockId.getBlockRoot(), columnIndex))
+            .toList();
+    List<SafeFuture<Optional<DataColumnSlotAndIdentifier>>> existingColumnFutures =
+        Stream.generate(() -> new SafeFuture<Optional<DataColumnSlotAndIdentifier>>())
+            .limit(columnIndexes.size())
+            .toList();
+    List<SafeFuture<Optional<DataColumnSlotAndIdentifier>>> pendingReuests =
+        columnIds.stream().map(this::addPendingColumnIdRequest).toList();
+
+    delegate
+        .sampleColumns(blockId, columnIndexes)
+        .thenAccept(
+            existingColumnIds -> {
+              Set<DataColumnSlotAndIdentifier> existingColumnIdSet =
+                  new HashSet<>(existingColumnIds);
+              for (int i = 0; i < columnIndexes.size(); i++) {
+                DataColumnSlotAndIdentifier expectedId = columnIds.get(i);
+                if (existingColumnIdSet.contains(expectedId)) {
+                  existingColumnFutures.get(i).complete(Optional.of(expectedId));
+                } else {
+                  existingColumnFutures.get(i).complete(Optional.empty());
+                }
+              }
+            })
+        .ifExceptionGetsHereRaiseABug();
+
+    return SafeFuture.collectAll(
+            IntStream.range(0, columnIndexes.size())
+                .mapToObj(i -> anyNonEmpty(existingColumnFutures.get(i), pendingReuests.get(i))))
+        .thenApply(listOfOptionals -> listOfOptionals.stream().flatMap(Optional::stream).toList());
+  }
+
+  @Override
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return delegate.retrieveMissingColumns();
+  }
+
+  private SafeFuture<Optional<DataColumnSlotAndIdentifier>> addPendingColumnIdRequest(
+      final DataColumnSlotAndIdentifier columnId) {
+    return addPendingRequest(columnId).thenApply(maybeColumn -> maybeColumn.map(__ -> columnId));
   }
 
   private SafeFuture<Optional<DataColumnSidecar>> addPendingRequest(

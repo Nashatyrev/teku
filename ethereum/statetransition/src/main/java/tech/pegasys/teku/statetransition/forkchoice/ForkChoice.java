@@ -97,7 +97,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
   private final ForkChoiceStateProvider forkChoiceStateProvider;
   private final RecentChainData recentChainData;
   private final BlobSidecarManager blobSidecarManager;
-  private final AvailabilityCheckerFactory<DataColumnSidecar> dasSamplerManager;
+  private final AvailabilityCheckerFactory<UInt64> dasSamplerManager;
   private final ForkChoiceNotifier forkChoiceNotifier;
   private final MergeTransitionBlockValidator transitionBlockValidator;
   private final AttestationStateSelector attestationStateSelector;
@@ -118,7 +118,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       final EventThread forkChoiceExecutor,
       final RecentChainData recentChainData,
       final BlobSidecarManager blobSidecarManager,
-      final AvailabilityCheckerFactory<DataColumnSidecar> dasSamplerManager,
+      final AvailabilityCheckerFactory<UInt64> dasSamplerManager,
       final ForkChoiceNotifier forkChoiceNotifier,
       final ForkChoiceStateProvider forkChoiceStateProvider,
       final TickProcessor tickProcessor,
