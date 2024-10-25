@@ -85,6 +85,8 @@ public class ColumnIdCachingDasDbTest {
     SafeFuture<Void> addCompleteFuture = columnIdCachingDb.addSidecar(createSidecar(777, 77));
     stubAsync.advanceTimeGraduallyUntilAllDone(ofSeconds(1));
 
+    assertThat(res1)
+        .isCompleted(); // no assumptions on result: cache may or may not pick up latest changes
     assertThat(addCompleteFuture).isCompleted();
     long reads0 = db.getDbReadCounter().get();
     assertThat(reads0).isGreaterThan(0);
