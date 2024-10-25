@@ -240,14 +240,6 @@ public class GossipForkManager {
         GossipForkSubscriptions::publishSignedBlsToExecutionChangeMessage);
   }
 
-  public synchronized void publishDataColumnSidecarMessage(final DataColumnSidecar message) {
-    publishMessage(
-        message.getSlot(),
-        message,
-        "data column sidecar message",
-        GossipForkSubscriptions::publishDataColumnSidecar);
-  }
-
   private <T> void publishMessage(
       final UInt64 slot,
       final T message,

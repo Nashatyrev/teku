@@ -16,6 +16,7 @@ package tech.pegasys.teku.statetransition.datacolumns;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -28,6 +29,7 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
@@ -191,6 +193,11 @@ public class DataColumnSidecarCustodyImpl
   }
 
   private SafeFuture<SlotCustody> retrieveSlotCustody(final UInt64 slot) {
+    if (!spec.isFeatureActivatedAtEpoch(SpecFeature.EIP7594, spec.computeEpochAtSlot(slot))) {
+      return SafeFuture.completedFuture(
+          new SlotCustody(
+              slot, Optional.empty(), Collections.emptyList(), Collections.emptyList()));
+    }
     final SafeFuture<Optional<Bytes32>> maybeCanonicalBlockRoot = getBlockRootIfHaveBlobs(slot);
     final List<UInt64> requiredColumns = getCustodyColumnsForSlot(slot);
     final SafeFuture<List<DataColumnSlotAndIdentifier>> existingColumns =
