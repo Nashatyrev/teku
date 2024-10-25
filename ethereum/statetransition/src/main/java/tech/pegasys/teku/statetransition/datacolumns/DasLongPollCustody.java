@@ -90,11 +90,6 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
     return delegate.retrieveMissingColumns();
   }
 
-  private SafeFuture<Optional<DataColumnSlotAndIdentifier>> addPendingColumnIdRequest(
-      final DataColumnSlotAndIdentifier columnId) {
-    return addPendingRequest(columnId).thenApply(maybeColumn -> maybeColumn.map(__ -> columnId));
-  }
-
   private SafeFuture<Optional<DataColumnSidecar>> addPendingRequest(
       final DataColumnSlotAndIdentifier columnId) {
     final SafeFuture<Optional<DataColumnSidecar>> promise = new SafeFuture<>();
