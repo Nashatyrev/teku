@@ -20,19 +20,16 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
 import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
 
-public class DataColumnSidecarAvailabilityChecker
-    implements AvailabilityChecker<UInt64> {
+public class DataColumnSidecarAvailabilityChecker implements AvailabilityChecker<UInt64> {
   private static final Logger LOG = LogManager.getLogger("das-nyota");
 
   private final DataAvailabilitySampler dataAvailabilitySampler;
-  private final SafeFuture<DataAndValidationResult<UInt64>> validationResult =
-      new SafeFuture<>();
+  private final SafeFuture<DataAndValidationResult<UInt64>> validationResult = new SafeFuture<>();
   final KZG kzg;
   final Spec spec;
 
@@ -85,6 +82,6 @@ public class DataColumnSidecarAvailabilityChecker
 
   @Override
   public DataAndValidationResult<UInt64> validateImmediately(List<UInt64> dataColumnSidecars) {
-      return DataAndValidationResult.validResult(dataColumnSidecars);
+    return DataAndValidationResult.validResult(dataColumnSidecars);
   }
 }

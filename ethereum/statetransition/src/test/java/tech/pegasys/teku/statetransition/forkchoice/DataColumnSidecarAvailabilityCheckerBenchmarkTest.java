@@ -13,26 +13,13 @@
 
 package tech.pegasys.teku.statetransition.forkchoice;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.IntStream;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZGAbstractBenchmark;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobKzgCommitmentsSchema;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
-import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
-import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.datacolumns.DataAvailabilitySampler;
 
@@ -47,39 +34,40 @@ public class DataColumnSidecarAvailabilityCheckerBenchmarkTest extends KZGAbstra
 
   @Test
   public void benchmarkValidateImmediately() {
-//    final List<Blob> blobs =
-//        IntStream.range(0, 6).mapToObj(__ -> dataStructureUtil.randomValidBlob()).toList();
-//    final List<SszKZGCommitment> kzgCommitments =
-//        blobs.stream()
-//            .map(blob -> getKzg().blobToKzgCommitment(blob.getBytes()))
-//            .map(SszKZGCommitment::new)
-//            .toList();
-//    final BlobKzgCommitmentsSchema blobKzgCommitmentsSchema =
-//        SchemaDefinitionsDeneb.required(spec.atSlot(UInt64.ONE).getSchemaDefinitions())
-//            .getBlobKzgCommitmentsSchema();
-//    final SignedBeaconBlock signedBeaconBlock =
-//        dataStructureUtil.randomSignedBeaconBlockWithCommitments(
-//            blobKzgCommitmentsSchema.createFromElements(kzgCommitments));
-//    final List<DataColumnSidecar> dataColumnSidecars =
-//        spec.forMilestone(SpecMilestone.EIP7594)
-//            .miscHelpers()
-//            .toVersionEip7594()
-//            .orElseThrow()
-//            .constructDataColumnSidecars(signedBeaconBlock, blobs, getKzg());
-//
-//    final List<Integer> validationTimes = new ArrayList<>();
-//    for (int i = 0; i < ROUNDS; i++) {
-//      final long start = System.currentTimeMillis();
-//      final DataColumnSidecarAvailabilityChecker dataColumnSidecarAvailabilityChecker =
-//          new DataColumnSidecarAvailabilityChecker(
-//              dataAvailabilitySampler, getKzg(), spec, signedBeaconBlock);
-//      final DataAndValidationResult<DataColumnSidecar> dataColumnSidecarDataAndValidationResult =
-//          dataColumnSidecarAvailabilityChecker.validateImmediately(dataColumnSidecars);
-//      assertThat(dataColumnSidecarDataAndValidationResult.isValid()).isTrue();
-//      final long end = System.currentTimeMillis();
-//      validationTimes.add((int) (end - start));
-//    }
-//
-//    printStats(validationTimes);
+    //    final List<Blob> blobs =
+    //        IntStream.range(0, 6).mapToObj(__ -> dataStructureUtil.randomValidBlob()).toList();
+    //    final List<SszKZGCommitment> kzgCommitments =
+    //        blobs.stream()
+    //            .map(blob -> getKzg().blobToKzgCommitment(blob.getBytes()))
+    //            .map(SszKZGCommitment::new)
+    //            .toList();
+    //    final BlobKzgCommitmentsSchema blobKzgCommitmentsSchema =
+    //        SchemaDefinitionsDeneb.required(spec.atSlot(UInt64.ONE).getSchemaDefinitions())
+    //            .getBlobKzgCommitmentsSchema();
+    //    final SignedBeaconBlock signedBeaconBlock =
+    //        dataStructureUtil.randomSignedBeaconBlockWithCommitments(
+    //            blobKzgCommitmentsSchema.createFromElements(kzgCommitments));
+    //    final List<DataColumnSidecar> dataColumnSidecars =
+    //        spec.forMilestone(SpecMilestone.EIP7594)
+    //            .miscHelpers()
+    //            .toVersionEip7594()
+    //            .orElseThrow()
+    //            .constructDataColumnSidecars(signedBeaconBlock, blobs, getKzg());
+    //
+    //    final List<Integer> validationTimes = new ArrayList<>();
+    //    for (int i = 0; i < ROUNDS; i++) {
+    //      final long start = System.currentTimeMillis();
+    //      final DataColumnSidecarAvailabilityChecker dataColumnSidecarAvailabilityChecker =
+    //          new DataColumnSidecarAvailabilityChecker(
+    //              dataAvailabilitySampler, getKzg(), spec, signedBeaconBlock);
+    //      final DataAndValidationResult<DataColumnSidecar>
+    // dataColumnSidecarDataAndValidationResult =
+    //          dataColumnSidecarAvailabilityChecker.validateImmediately(dataColumnSidecars);
+    //      assertThat(dataColumnSidecarDataAndValidationResult.isValid()).isTrue();
+    //      final long end = System.currentTimeMillis();
+    //      validationTimes.add((int) (end - start));
+    //    }
+    //
+    //    printStats(validationTimes);
   }
 }

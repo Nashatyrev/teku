@@ -20,7 +20,6 @@ import java.util.List;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayloadHeader;
 import tech.pegasys.teku.spec.datastructures.execution.NewPayloadRequest;
 import tech.pegasys.teku.spec.logic.versions.bellatrix.block.OptimisticExecutionPayloadExecutor;
@@ -59,8 +58,7 @@ public interface AvailabilityChecker<Data> {
         }
 
         @Override
-        public DataAndValidationResult<UInt64> validateImmediately(
-            final List<UInt64> dataList) {
+        public DataAndValidationResult<UInt64> validateImmediately(final List<UInt64> dataList) {
           return notRequired();
         }
       };
