@@ -32,8 +32,8 @@ public interface DataColumnSidecarByRootCustody extends DataColumnSidecarCustody
         }
 
         @Override
-        public SafeFuture<List<DataColumnSlotAndIdentifier>> sampleColumns(SlotAndBlockRoot blockId) {
-          return SafeFuture.completedFuture(List.of());
+        public SafeFuture<Boolean> hasCustodyDataColumnSidecar(DataColumnSlotAndIdentifier columnId) {
+          return SafeFuture.completedFuture(false);
         }
 
         @Override

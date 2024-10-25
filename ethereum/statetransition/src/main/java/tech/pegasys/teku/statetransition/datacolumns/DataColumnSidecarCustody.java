@@ -32,14 +32,14 @@ public interface DataColumnSidecarCustody {
         }
 
         @Override
-        public SafeFuture<List<DataColumnSlotAndIdentifier>> sampleColumns(
-            SlotAndBlockRoot blockId) {
-          return SafeFuture.completedFuture(List.of());
+        public SafeFuture<Boolean> hasCustodyDataColumnSidecar(DataColumnSlotAndIdentifier columnId) {
+          return SafeFuture.completedFuture(false);
         }
       };
 
   SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       DataColumnSlotAndIdentifier columnId);
 
-  SafeFuture<List<DataColumnSlotAndIdentifier>> sampleColumns(SlotAndBlockRoot blockId, List<UInt64> columnIndexes);
+  SafeFuture<Boolean> hasCustodyDataColumnSidecar(
+      DataColumnSlotAndIdentifier columnId);
 }

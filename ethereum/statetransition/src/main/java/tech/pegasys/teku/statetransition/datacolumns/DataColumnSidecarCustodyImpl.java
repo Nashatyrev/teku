@@ -149,8 +149,9 @@ public class DataColumnSidecarCustodyImpl
   }
 
   @Override
-  public SafeFuture<List<DataColumnSlotAndIdentifier>> sampleColumns(SlotAndBlockRoot blockId) {
-    return db.getColumnIdentifiers(blockId);
+  public SafeFuture<Boolean> hasCustodyDataColumnSidecar(DataColumnSlotAndIdentifier columnId) {
+    return db.getColumnIdentifiers(new SlotAndBlockRoot(columnId.slot(), columnId.blockRoot()))
+        .thenApply(ids -> ids.contains(columnId));
   }
 
   @Override

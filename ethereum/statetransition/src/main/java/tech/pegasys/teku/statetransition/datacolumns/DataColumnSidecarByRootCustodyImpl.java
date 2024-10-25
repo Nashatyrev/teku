@@ -89,8 +89,8 @@ public class DataColumnSidecarByRootCustodyImpl
   }
 
   @Override
-  public SafeFuture<List<DataColumnSlotAndIdentifier>> sampleColumns(SlotAndBlockRoot blockId) {
-    return custody.sampleColumns(blockId);
+  public SafeFuture<Boolean> hasCustodyDataColumnSidecar(DataColumnSlotAndIdentifier columnId) {
+    return custody.hasCustodyDataColumnSidecar(columnId);
   }
 
   private static class ColumnSlotCache {

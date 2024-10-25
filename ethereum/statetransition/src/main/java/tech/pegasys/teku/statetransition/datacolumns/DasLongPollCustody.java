@@ -82,44 +82,15 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   }
 
   @Override
-  public SafeFuture<List<DataColumnSlotAndIdentifier>> sampleColumns(
-      SlotAndBlockRoot blockId, List<UInt64> columnIndexes) {
-
-    List<DataColumnSlotAndIdentifier> columnIds =
-        columnIndexes.stream()
-            .map(
-                columnIndex ->
-                    new DataColumnSlotAndIdentifier(
-                        blockId.getSlot(), blockId.getBlockRoot(), columnIndex))
-            .toList();
-    List<SafeFuture<Optional<DataColumnSlotAndIdentifier>>> existingColumnFutures =
-        Stream.generate(() -> new SafeFuture<Optional<DataColumnSlotAndIdentifier>>())
-            .limit(columnIndexes.size())
-            .toList();
-    List<SafeFuture<Optional<DataColumnSlotAndIdentifier>>> pendingReuests =
-        columnIds.stream().map(this::addPendingColumnIdRequest).toList();
-
-    delegate
-        .sampleColumns(blockId, columnIndexes)
-        .thenAccept(
-            existingColumnIds -> {
-              Set<DataColumnSlotAndIdentifier> existingColumnIdSet =
-                  new HashSet<>(existingColumnIds);
-              for (int i = 0; i < columnIndexes.size(); i++) {
-                DataColumnSlotAndIdentifier expectedId = columnIds.get(i);
-                if (existingColumnIdSet.contains(expectedId)) {
-                  existingColumnFutures.get(i).complete(Optional.of(expectedId));
-                } else {
-                  existingColumnFutures.get(i).complete(Optional.empty());
-                }
-              }
-            })
-        .ifExceptionGetsHereRaiseABug();
-
-    return SafeFuture.collectAll(
-            IntStream.range(0, columnIndexes.size())
-                .mapToObj(i -> anyNonEmpty(existingColumnFutures.get(i), pendingReuests.get(i))))
-        .thenApply(listOfOptionals -> listOfOptionals.stream().flatMap(Optional::stream).toList());
+  public SafeFuture<Boolean> hasCustodyDataColumnSidecar(DataColumnSlotAndIdentifier columnId) {
+    SafeFuture<Optional<Boolean>> pendingFuture =
+        addPendingRequest(columnId).thenApply(maybeSidecar -> maybeSidecar.map(__ -> true));
+    SafeFuture<Optional<Boolean>> existingFuture =
+        delegate
+            .hasCustodyDataColumnSidecar(columnId)
+            .thenApply(doesExist -> doesExist ? Optional.empty() : Optional.of(true));
+    return anyNonEmpty(pendingFuture, existingFuture)
+        .thenApply(maybeResult -> maybeResult.orElse(false));
   }
 
   @Override

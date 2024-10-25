@@ -15,6 +15,7 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -93,18 +94,17 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
         .toList();
   }
 
-  private record ColumnIdAndMaybeSidecar(
-      DataColumnSlotAndIdentifier id, Optional<DataColumnSidecar> maybeSidecar) {}
+  private SafeFuture<Optional<DataColumnSlotAndIdentifier>> checkColumnInCustody(
+      DataColumnSlotAndIdentifier columnIdentifier) {
+    return custody
+        .hasCustodyDataColumnSidecar(columnIdentifier)
+        .thenApply(hasColumn -> hasColumn ? Optional.of(columnIdentifier) : Optional.empty());
+  }
 
-  private SafeFuture<List<ColumnIdAndMaybeSidecar>> maybeGetColumnsFromCustody(
-      List<DataColumnSlotAndIdentifier> columnIdentifiers) {
-    return SafeFuture.collectAll(
-        columnIdentifiers.stream()
-            .map(
-                id ->
-                    custody
-                        .getCustodyDataColumnSidecar(id)
-                        .thenApply(maybeSidecar -> new ColumnIdAndMaybeSidecar(id, maybeSidecar))));
+  private SafeFuture<List<DataColumnSlotAndIdentifier>> maybeHasColumnsInCustody(
+      Collection<DataColumnSlotAndIdentifier> columnIdentifiers) {
+    return SafeFuture.collectAll(columnIdentifiers.stream().map(this::checkColumnInCustody))
+        .thenApply(list -> list.stream().flatMap(Optional::stream).toList());
   }
 
   @Override
@@ -121,7 +121,7 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
         blockRoot);
 
     SafeFuture<List<DataColumnSlotAndIdentifier>> columnsInCustodyFuture =
-        db.getColumnIdentifiers(new SlotAndBlockRoot(slot, blockRoot));
+        maybeHasColumnsInCustody(requiredColumnIdentifiers);
 
     return columnsInCustodyFuture.thenCompose(
         columnsInCustodyList -> {
@@ -164,7 +164,10 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
                       });
 
           return columnsRetrievedFuture.thenApply(
-              __ -> requiredColumnIdentifiers.stream().map(DataColumnSlotAndIdentifier::columnIndex).toList());
+              __ ->
+                  requiredColumnIdentifiers.stream()
+                      .map(DataColumnSlotAndIdentifier::columnIndex)
+                      .toList());
         });
   }
 
