@@ -84,7 +84,7 @@ public abstract class AbstractNode implements Node {
         StartupLogConfig.builder()
             .network(network)
             .storageMode(storageMode)
-            .hardwareInfo(new SystemInfo().getHardware())
+//            .hardwareInfo(new SystemInfo().getHardware())
             .beaconChainRestApiEnabled(beaconChainRestApiConfig.isRestApiEnabled())
             .beaconChainRestApiInterface(beaconChainRestApiConfig.getRestApiInterface())
             .beaconChainRestApiPort(beaconChainRestApiConfig.getRestApiPort())

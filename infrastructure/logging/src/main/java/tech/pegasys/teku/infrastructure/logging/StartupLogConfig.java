@@ -50,8 +50,13 @@ public class StartupLogConfig {
     this.storageMode = storageMode;
 
     this.maxHeapSize = normalizeSize(Runtime.getRuntime().maxMemory());
-    this.memory = normalizeSize(hardwareInfo.getMemory().getTotal());
-    this.cpuCores = hardwareInfo.getProcessor().getLogicalProcessorCount();
+    if (hardwareInfo == null) {
+      this.memory = normalizeSize(4L * 1024 * 1024 * 1024);
+      this.cpuCores = 1;
+    } else {
+      this.memory = normalizeSize(hardwareInfo.getMemory().getTotal());
+      this.cpuCores = hardwareInfo.getProcessor().getLogicalProcessorCount();
+    }
 
     this.beaconChainRestApiEnabled = beaconChainRestApiEnabled;
     this.beaconChainRestApiInterface = beaconChainRestApiInterface;
