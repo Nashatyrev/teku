@@ -417,7 +417,12 @@ public class BeaconChainController extends Service implements BeaconChainControl
             syncService.start(),
             SafeFuture.fromRunnable(
                 () -> terminalPowBlockMonitor.ifPresent(TerminalPowBlockMonitor::start)),
-            SafeFuture.fromRunnable(() -> dasCustodySync.start()))
+            SafeFuture.fromRunnable(
+                () -> {
+                  if (dasCustodySync != null) {
+                    dasCustodySync.start();
+                  }
+                }))
         .finish(
             error -> {
               Throwable rootCause = Throwables.getRootCause(error);
