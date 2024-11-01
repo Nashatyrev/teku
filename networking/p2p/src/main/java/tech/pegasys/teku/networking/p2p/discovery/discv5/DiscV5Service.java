@@ -56,7 +56,8 @@ public class DiscV5Service extends Service implements DiscoveryService {
   public static final NodeRecordConverter DEFAULT_NODE_RECORD_CONVERTER = new NodeRecordConverter();
 
   public static DiscoverySystemBuilder createDefaultDiscoverySystemBuilder() {
-    return new DiscoverySystemBuilder();
+    return new DiscoverySystemBuilder()
+        .discoveryServers(); // disable discovery server
   }
 
   private final AsyncRunner asyncRunner;
