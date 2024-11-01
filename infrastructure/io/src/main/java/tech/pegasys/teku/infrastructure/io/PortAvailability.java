@@ -48,6 +48,7 @@ public class PortAvailability {
       datagramSocket.bind(new InetSocketAddress(port));
       return true;
     } catch (IOException ex) {
+      LOG.info("Port availability failed:", ex);
       LOG.trace(String.format("failed to open port %d for UDP", port), ex);
     }
     return false;
