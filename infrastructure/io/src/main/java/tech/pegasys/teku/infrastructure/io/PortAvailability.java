@@ -45,7 +45,7 @@ public class PortAvailability {
     }
     try (final DatagramSocket datagramSocket = new DatagramSocket(null)) {
 //      datagramSocket.setReuseAddress(true);
-//      datagramSocket.bind(new InetSocketAddress(port));
+      datagramSocket.bind(new InetSocketAddress(port));
       return true;
     } catch (IOException ex) {
       LOG.info("Port availability failed:", ex);
