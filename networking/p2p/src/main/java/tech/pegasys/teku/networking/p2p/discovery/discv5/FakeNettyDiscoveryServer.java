@@ -69,7 +69,7 @@ public class FakeNettyDiscoveryServer implements NettyDiscoveryServer {
               public void initChannel(NioDatagramChannel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
                 pipeline
-                    .addFirst(new LoggingHandler(LogLevel.TRACE))
+                    .addFirst(new LoggingHandler(LogLevel.DEBUG))
                     .addLast(new DatagramToEnvelope())
                     .addLast(new IncomingMessageSink(incomingSink));
 
@@ -79,7 +79,8 @@ public class FakeNettyDiscoveryServer implements NettyDiscoveryServer {
               }
             });
 
-    final ChannelFuture bindFuture = b.connect("127.0.0.1", 37777);
+//    final ChannelFuture bindFuture = b.connect("127.0.0.1", 37777);
+    final ChannelFuture bindFuture = b.bind(listenAddress);
     bindFuture.addListener(
         result -> {
           if (!result.isSuccess()) {

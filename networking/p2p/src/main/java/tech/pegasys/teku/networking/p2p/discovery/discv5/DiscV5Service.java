@@ -113,7 +113,7 @@ public class DiscV5Service extends Service implements DiscoveryService {
                 discoConfig.areSiteLocalAddressesEnabled()
                     ? AddressAccessPolicy.ALLOW_ALL
                     : address -> !address.getAddress().isSiteLocalAddress())
-            .discoveryServer(new FakeNettyDiscoveryServer(new InetSocketAddress(listenAddress, listenUdpPort)))
+//            .discoveryServer(new FakeNettyDiscoveryServer(new InetSocketAddress(listenAddress, listenUdpPort)))
             .build();
     this.kvStore = kvStore;
     metricsSystem.createIntegerGauge(
