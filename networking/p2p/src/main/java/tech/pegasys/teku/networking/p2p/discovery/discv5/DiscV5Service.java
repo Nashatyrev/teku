@@ -15,6 +15,7 @@ package tech.pegasys.teku.networking.p2p.discovery.discv5;
 
 import static java.util.Collections.emptyList;
 
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
@@ -56,8 +57,7 @@ public class DiscV5Service extends Service implements DiscoveryService {
   public static final NodeRecordConverter DEFAULT_NODE_RECORD_CONVERTER = new NodeRecordConverter();
 
   public static DiscoverySystemBuilder createDefaultDiscoverySystemBuilder() {
-    return new DiscoverySystemBuilder()
-        .discoveryServers(); // disable discovery server
+    return new DiscoverySystemBuilder();
   }
 
   private final AsyncRunner asyncRunner;
@@ -113,6 +113,7 @@ public class DiscV5Service extends Service implements DiscoveryService {
                 discoConfig.areSiteLocalAddressesEnabled()
                     ? AddressAccessPolicy.ALLOW_ALL
                     : address -> !address.getAddress().isSiteLocalAddress())
+            .discoveryServer(new FakeNettyDiscoveryServer(new InetSocketAddress(listenAddress, listenUdpPort)))
             .build();
     this.kvStore = kvStore;
     metricsSystem.createIntegerGauge(
