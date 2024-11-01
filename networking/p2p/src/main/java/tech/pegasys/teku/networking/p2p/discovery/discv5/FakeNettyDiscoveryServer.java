@@ -26,9 +26,10 @@ import reactor.core.publisher.ReplayProcessor;
 
 // The same as discovery NettyDiscoveryServerImpl but instead of bind() it makes connect() to a fake address
 // So effectively this is not a server but rather a client socket
+@SuppressWarnings("FutureReturnValueIgnored")
 public class FakeNettyDiscoveryServer implements NettyDiscoveryServer {
   private static final Logger LOG =
-      LogManager.getLogger(org.ethereum.beacon.discovery.network.NettyDiscoveryServerImpl.class);
+      LogManager.getLogger(FakeNettyDiscoveryServer.class);
   private static final int RECREATION_TIMEOUT = 5000;
 
   private final ReplayProcessor<Envelope> incomingPackets = ReplayProcessor.cacheLast();
