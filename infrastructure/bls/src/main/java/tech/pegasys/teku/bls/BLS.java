@@ -28,6 +28,7 @@ import tech.pegasys.teku.bls.impl.BlsException;
 import tech.pegasys.teku.bls.impl.PublicKey;
 import tech.pegasys.teku.bls.impl.PublicKeyMessagePair;
 import tech.pegasys.teku.bls.impl.blst.BlstLoader;
+import tech.pegasys.teku.bls.impl.fake.FakeBLS12381;
 
 /**
  * Implements the standard BLS functions used in Eth2 as defined in
@@ -44,7 +45,8 @@ public class BLS {
   private static BLS12381 blsImpl;
 
   static {
-    resetBlsImplementation();
+    //    resetBlsImplementation();
+    setBlsImplementation(new FakeBLS12381());
   }
 
   public static void setBlsImplementation(BLS12381 blsImpl) {
