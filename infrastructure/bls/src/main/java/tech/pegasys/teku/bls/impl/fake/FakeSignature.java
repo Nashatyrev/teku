@@ -48,7 +48,7 @@ public class FakeSignature implements Signature {
 
   @Override
   public boolean isInfinity() {
-    return false;
+    return isInfinity;
   }
 
   @Override
