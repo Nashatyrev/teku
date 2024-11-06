@@ -33,7 +33,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
@@ -116,8 +115,11 @@ public class DataColumnSidecarCustodyImpl
   }
 
   private List<UInt64> getCustodyColumnsForEpoch(UInt64 epoch) {
-    return MiscHelpersEip7594.required(spec.atEpoch(epoch).miscHelpers())
-        .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount);
+    return spec.atEpoch(epoch)
+        .miscHelpers()
+        .toVersionEip7594()
+        .map(misc -> misc.computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount))
+        .orElse(List.of());
   }
 
   @Override
