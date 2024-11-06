@@ -1,3 +1,16 @@
+/*
+ * Copyright Consensys Software Inc., 2024
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tech.pegasys.teku.networking.p2p.discovery.discv5;
 
 import io.netty.bootstrap.Bootstrap;
@@ -23,13 +36,12 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.ReplayProcessor;
 
-
-// The same as discovery NettyDiscoveryServerImpl but instead of bind() it makes connect() to a fake address
+// The same as discovery NettyDiscoveryServerImpl but instead of bind() it makes connect() to a fake
+// address
 // So effectively this is not a server but rather a client socket
 @SuppressWarnings("FutureReturnValueIgnored")
 public class FakeNettyDiscoveryServer implements NettyDiscoveryServer {
-  private static final Logger LOG =
-      LogManager.getLogger(FakeNettyDiscoveryServer.class);
+  private static final Logger LOG = LogManager.getLogger(FakeNettyDiscoveryServer.class);
   private static final int RECREATION_TIMEOUT = 5000;
 
   private final ReplayProcessor<Envelope> incomingPackets = ReplayProcessor.cacheLast();
@@ -40,8 +52,7 @@ public class FakeNettyDiscoveryServer implements NettyDiscoveryServer {
   private Channel channel;
   private NioEventLoopGroup nioGroup;
 
-  public FakeNettyDiscoveryServer(
-      final InetSocketAddress listenAddress) {
+  public FakeNettyDiscoveryServer(final InetSocketAddress listenAddress) {
     this.listenAddress = listenAddress;
     this.trafficReadLimit = 250000;
   }
@@ -79,7 +90,7 @@ public class FakeNettyDiscoveryServer implements NettyDiscoveryServer {
               }
             });
 
-//    final ChannelFuture bindFuture = b.connect("127.0.0.1", 37777);
+    //    final ChannelFuture bindFuture = b.connect("127.0.0.1", 37777);
     final ChannelFuture bindFuture = b.bind(listenAddress);
     bindFuture.addListener(
         result -> {
