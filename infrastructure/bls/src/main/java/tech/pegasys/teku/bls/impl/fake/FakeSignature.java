@@ -21,11 +21,19 @@ import tech.pegasys.teku.bls.impl.Signature;
 
 public class FakeSignature implements Signature {
 
-  public FakeSignature() {}
+  public static final FakeSignature ANY_SIGNATURE = new FakeSignature(false);
+  public static final FakeSignature INF_SIGNATURE = new FakeSignature(true);
+
+  private final boolean isInfinity;
+
+  private FakeSignature(boolean isInfinity) {
+    this.isInfinity = isInfinity;
+  }
 
   @Override
   public Bytes toBytesCompressed() {
-    return FakeBLS12381.RANDOM_SIGNATURE.toBytesCompressed();
+    return (isInfinity ? FakeBLS12381.INFINITY_SIGNATURE : FakeBLS12381.RANDOM_SIGNATURE)
+        .toBytesCompressed();
   }
 
   @Override

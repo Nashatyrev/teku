@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.bls.impl.fake;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import org.apache.tuweni.bytes.Bytes;
@@ -32,6 +33,7 @@ public class FakeBLS12381 implements BLS12381 {
   private static final BatchSemiAggregate FAKE_AGGREGATE = new BatchSemiAggregate() {};
 
   static final Signature RANDOM_SIGNATURE = DELEGATE.randomSignature(0);
+  static final Signature INFINITY_SIGNATURE = DELEGATE.aggregateSignatures(Collections.emptyList());
 
   @Override
   public KeyPair generateKeyPair(Random random) {
@@ -47,7 +49,11 @@ public class FakeBLS12381 implements BLS12381 {
 
   @Override
   public Signature signatureFromCompressed(Bytes compressedSignatureBytes) {
-    return new FakeSignature();
+    if (compressedSignatureBytes.equals(INFINITY_SIGNATURE.toBytesCompressed())) {
+      return FakeSignature.INF_SIGNATURE;
+    } else {
+      return FakeSignature.ANY_SIGNATURE;
+    }
   }
 
   @Override
@@ -63,7 +69,7 @@ public class FakeBLS12381 implements BLS12381 {
   @Override
   public Signature aggregateSignatures(List<? extends Signature> signatures)
       throws IllegalArgumentException {
-    return new FakeSignature();
+    return signatures.isEmpty() ? FakeSignature.INF_SIGNATURE : FakeSignature.ANY_SIGNATURE;
   }
 
   @Override

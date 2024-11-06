@@ -39,12 +39,12 @@ public class FakeSecretKey implements SecretKey {
 
   @Override
   public Signature sign(Bytes message) {
-    return new FakeSignature();
+    return FakeSignature.ANY_SIGNATURE;
   }
 
   @Override
   public Signature sign(Bytes message, String dst) {
-    return new FakeSignature();
+    return FakeSignature.ANY_SIGNATURE;
   }
 
   @Override
