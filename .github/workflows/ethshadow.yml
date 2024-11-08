@@ -69,6 +69,7 @@ jobs:
           ethshadow .github/ethshadow/sanity-test.yaml
       - name: Check Ethshadow
         run: |
+# TODO: check similar to Teku
           block_received_lines=$(cat ./data/shadow/hosts/node*/lighthouse.*.stderr | grep "New block received" | wc -l)
           echo "block_received_lines=$block_received_lines"
           test $block_received_lines -gt 200
