@@ -347,9 +347,13 @@ public class GossipForkManager {
 
     public Builder fork(final GossipForkSubscriptions forkSubscriptions) {
       final UInt64 activationEpoch = forkSubscriptions.getActivationEpoch();
-      checkState(
-          !forksByActivationEpoch.containsKey(activationEpoch),
-          "Can not schedule two forks to activate at the same epoch");
+      final GossipForkSubscriptions removed = forksByActivationEpoch.remove(activationEpoch);
+      if (removed != null) {
+        LOG.info(
+            "Fork {} removed for gossip schedule as {} starts at the same epoch",
+            removed,
+            forkSubscriptions);
+      }
       // TODO: Refactor, we are by epoch here, all good, but we are not sure which main fork is it
       // topics are by hard fork digests so we need to continue tracking it
       // but it would be good if it is separately

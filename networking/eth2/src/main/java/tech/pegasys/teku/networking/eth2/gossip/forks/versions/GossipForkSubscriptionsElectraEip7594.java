@@ -102,6 +102,7 @@ public class GossipForkSubscriptionsElectraEip7594 extends GossipForkSubscriptio
 
   @Override
   protected void addGossipManagers(final ForkInfo forkInfo) {
+    super.addGossipManagers(forkInfo);
     addDataColumnSidecarGossipManager(forkInfo, eip7594ActivationEpoch, eip7594EndEpoch);
   }
 
