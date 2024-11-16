@@ -15,6 +15,7 @@ package tech.pegasys.teku;
 
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.security.SecureRandom;
 import java.security.Security;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -33,8 +34,11 @@ public final class Teku {
     Security.addProvider(new BouncyCastleProvider());
   }
 
+  @SuppressWarnings("DoNotCreateSecureRandomDirectly")
   public static void main(String[] args) {
     Thread.setDefaultUncaughtExceptionHandler(new TekuDefaultExceptionHandler());
+
+    System.out.println("#### New SecureRandom: " + new SecureRandom().nextInt());
 
     try {
       Optional<Node> maybeNode = Teku.startFromCLIArgs(args);
