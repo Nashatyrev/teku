@@ -39,6 +39,8 @@ public final class Teku {
     Thread.setDefaultUncaughtExceptionHandler(new TekuDefaultExceptionHandler());
 
     System.out.println("#### New SecureRandom: " + new SecureRandom().nextInt());
+    System.out.println("#### New SecureRandom: " + new SecureRandom().nextInt());
+    System.out.println("#### New SecureRandom: " + new SecureRandom().nextInt());
 
     try {
       Optional<Node> maybeNode = Teku.startFromCLIArgs(args);
