@@ -13,6 +13,8 @@
 
 package tech.pegasys.teku;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
@@ -35,12 +37,13 @@ public final class Teku {
   }
 
   @SuppressWarnings("DoNotCreateSecureRandomDirectly")
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     Thread.setDefaultUncaughtExceptionHandler(new TekuDefaultExceptionHandler());
 
     System.out.println("#### New SecureRandom: " + new SecureRandom().nextInt());
     System.out.println("#### New SecureRandom: " + new SecureRandom().nextInt());
     System.out.println("#### New SecureRandom: " + new SecureRandom().nextInt());
+    System.out.println(File.createTempFile("qqq", "aaa"));
 
     try {
       Optional<Node> maybeNode = Teku.startFromCLIArgs(args);
