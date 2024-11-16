@@ -46,6 +46,7 @@ public class LibP2PPrivateKeyLoader implements LibP2PNetwork.PrivateKeyProvider 
     return KeyKt.unmarshalPrivateKey(privKeyBytes.toArrayUnsafe());
   }
 
+  @SuppressWarnings("DoNotCreateSecureRandomDirectly")
   private Bytes generateAndSaveNewPrivateKey(final KeyValueStore<String, Bytes> keyValueStore) {
     final Bytes privateKey;
     final Optional<Bytes> generatedKeyBytes = keyValueStore.get(GENERATED_NODE_KEY_KEY);
