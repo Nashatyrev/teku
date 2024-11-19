@@ -32,6 +32,7 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
@@ -148,6 +149,13 @@ public class DataColumnSidecarCustodyImpl
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecar(
       final DataColumnSlotAndIdentifier columnId) {
     return db.getSidecar(columnId);
+  }
+
+  @Override
+  public SafeFuture<Boolean> hasCustodyDataColumnSidecar(
+      final DataColumnSlotAndIdentifier columnId) {
+    return db.getColumnIdentifiers(new SlotAndBlockRoot(columnId.slot(), columnId.blockRoot()))
+        .thenApply(ids -> ids.contains(columnId));
   }
 
   @Override

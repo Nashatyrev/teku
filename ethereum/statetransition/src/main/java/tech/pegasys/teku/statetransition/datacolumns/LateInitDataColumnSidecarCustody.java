@@ -39,6 +39,12 @@ public class LateInitDataColumnSidecarCustody implements DataColumnSidecarByRoot
   }
 
   @Override
+  public SafeFuture<Boolean> hasCustodyDataColumnSidecar(
+      final DataColumnSlotAndIdentifier columnId) {
+    return delegate.hasCustodyDataColumnSidecar(columnId);
+  }
+
+  @Override
   public SafeFuture<Optional<DataColumnSidecar>> getCustodyDataColumnSidecarByRoot(
       final DataColumnIdentifier columnId) {
     if (delegate == null) {

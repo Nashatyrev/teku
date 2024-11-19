@@ -16,15 +16,21 @@ package tech.pegasys.teku.statetransition.datacolumns.db;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.function.Consumer;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalculator;
 
 public class DataColumnSidecarDbAccessorBuilder {
+
+  // is roughly 600Kb (cache entry for one slot is about 60 bytes)
+  private static final int DEFAULT_COLUMN_ID_CACHE_MAX_SLOT_COUNT = 10 * 1024;
 
   private final DataColumnSidecarDB db;
   private Spec spec;
   private MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator;
   private final AutoPruneDbBuilder autoPruneDbBuilder = new AutoPruneDbBuilder();
+  private int columnIdCacheMaxSlotCount = DEFAULT_COLUMN_ID_CACHE_MAX_SLOT_COUNT;
 
   DataColumnSidecarDbAccessorBuilder(final DataColumnSidecarDB db) {
     this.db = db;
@@ -41,14 +47,30 @@ public class DataColumnSidecarDbAccessorBuilder {
     return this;
   }
 
+  public DataColumnSidecarDbAccessorBuilder columnIdCacheMaxSlotCount(
+      final int columnIdCacheMaxSlotCount) {
+    this.columnIdCacheMaxSlotCount = columnIdCacheMaxSlotCount;
+    return this;
+  }
+
   public DataColumnSidecarDbAccessorBuilder withAutoPrune(
       final Consumer<AutoPruneDbBuilder> builderConsumer) {
     builderConsumer.accept(this.autoPruneDbBuilder);
     return this;
   }
 
+  private int getNumberOfColumnsForSlot(final UInt64 slot) {
+    return spec.atSlot(slot)
+        .getConfig()
+        .getOptionalEip7594Config()
+        .map(Eip7594::getNumberOfColumns)
+        .orElse(0);
+  }
+
   public DataColumnSidecarDbAccessor build() {
-    return autoPruneDbBuilder.build(db);
+    ColumnIdCachingDasDb columnIdCachingDasDb =
+        new ColumnIdCachingDasDb(db, this::getNumberOfColumnsForSlot, columnIdCacheMaxSlotCount);
+    return autoPruneDbBuilder.build(columnIdCachingDasDb);
   }
 
   MinCustodyPeriodSlotCalculator getMinCustodyPeriodSlotCalculator() {

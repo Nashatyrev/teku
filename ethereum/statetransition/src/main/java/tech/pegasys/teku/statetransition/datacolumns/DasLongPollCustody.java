@@ -75,6 +75,19 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   }
 
   @Override
+  public SafeFuture<Boolean> hasCustodyDataColumnSidecar(
+      final DataColumnSlotAndIdentifier columnId) {
+    SafeFuture<Optional<Boolean>> pendingFuture =
+        addPendingRequest(columnId).thenApply(maybeSidecar -> maybeSidecar.map(__ -> true));
+    SafeFuture<Optional<Boolean>> existingFuture =
+        delegate
+            .hasCustodyDataColumnSidecar(columnId)
+            .thenApply(doesExist -> doesExist ? Optional.of(true) : Optional.empty());
+    return anyNonEmpty(pendingFuture, existingFuture)
+        .thenApply(maybeResult -> maybeResult.orElse(false));
+  }
+
+  @Override
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return delegate.retrieveMissingColumns();
   }
