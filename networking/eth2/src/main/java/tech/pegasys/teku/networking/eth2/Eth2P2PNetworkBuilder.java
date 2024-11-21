@@ -356,7 +356,7 @@ public class Eth2P2PNetworkBuilder {
               gossipedSyncCommitteeMessageProcessor,
               gossipedSignedBlsToExecutionChangeProcessor,
               debugDataDumper);
-      case ELECTRA ->
+      case ELECTRA, FULU ->
           new GossipForkSubscriptionsElectra(
               forkAndSpecMilestone.getFork(),
               spec,

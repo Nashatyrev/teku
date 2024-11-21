@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.spec.config.features;
 
-import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 
@@ -28,9 +27,6 @@ public interface Eip7594 {
                     "Expected spec config with EIP7594 feature but got: "
                         + specConfig.getClass().getSimpleName()));
   }
-
-  /** Should be ignored on soft-fork */
-  Bytes4 getEip7594ForkVersion();
 
   UInt64 getEip7594FeatureEpoch();
 

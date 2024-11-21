@@ -24,6 +24,7 @@ import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
 import tech.pegasys.teku.spec.config.SpecConfigCapella;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.config.SpecConfigLoader;
 import tech.pegasys.teku.spec.networks.Eth2Network;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistryBuilder;
@@ -80,6 +81,12 @@ class SpecVersionTest {
                 SpecConfigElectra.required(minimalConfig), schemaRegistryBuilder);
         actualVersion =
             SpecVersion.create(SpecMilestone.ELECTRA, minimalConfig, schemaRegistryBuilder);
+      }
+      case FULU -> {
+        expectedVersion =
+            SpecVersion.createFulu(SpecConfigFulu.required(minimalConfig), schemaRegistryBuilder);
+        actualVersion =
+            SpecVersion.create(SpecMilestone.FULU, minimalConfig, schemaRegistryBuilder);
       }
     }
 

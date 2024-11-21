@@ -25,10 +25,13 @@ import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
 import tech.pegasys.teku.spec.config.SpecConfigCapella;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.config.SpecConfigLoader;
 import tech.pegasys.teku.spec.networks.Eth2Network;
 
 public class SpecMilestoneTest {
+  private final SpecConfigFulu fuluSpecConfig =
+      SpecConfigFulu.required(SpecConfigLoader.loadConfig(Eth2Network.MINIMAL.configName()));
   private final SpecConfigElectra electraSpecConfig =
       SpecConfigElectra.required(SpecConfigLoader.loadConfig(Eth2Network.MINIMAL.configName()));
   private final SpecConfigDeneb denebSpecConfig =
@@ -244,6 +247,12 @@ public class SpecMilestoneTest {
   }
 
   @Test
+  public void getForkVersion_fulu() {
+    final Bytes4 expected = fuluSpecConfig.getFuluForkVersion();
+    assertThat(SpecMilestone.getForkVersion(fuluSpecConfig, SpecMilestone.FULU)).contains(expected);
+  }
+
+  @Test
   public void getForkEpoch_phase0() {
     final UInt64 expected = UInt64.ZERO;
     assertThat(SpecMilestone.getForkEpoch(altairSpecConfig, SpecMilestone.PHASE0))
@@ -282,6 +291,12 @@ public class SpecMilestoneTest {
     final UInt64 expected = electraSpecConfig.getElectraForkEpoch();
     assertThat(SpecMilestone.getForkEpoch(electraSpecConfig, SpecMilestone.ELECTRA))
         .contains(expected);
+  }
+
+  @Test
+  public void getForkEpoch_fulu() {
+    final UInt64 expected = fuluSpecConfig.getFuluForkEpoch();
+    assertThat(SpecMilestone.getForkEpoch(fuluSpecConfig, SpecMilestone.FULU)).contains(expected);
   }
 
   @Test

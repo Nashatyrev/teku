@@ -32,6 +32,8 @@ public enum Version {
       case CAPELLA -> capella;
       case DENEB -> deneb;
       case ELECTRA -> electra;
+      // TODO: when it's compatible with Dora switch to fulu
+      case FULU -> electra;
     };
   }
 }

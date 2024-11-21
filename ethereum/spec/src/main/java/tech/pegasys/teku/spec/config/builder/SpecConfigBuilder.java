@@ -28,7 +28,7 @@ import tech.pegasys.teku.ethereum.execution.types.Eth1Address;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
-import tech.pegasys.teku.spec.config.SpecConfigElectra;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.config.SpecConfigPhase0;
 
 @SuppressWarnings({"UnusedReturnValue", "unused"})
@@ -131,13 +131,14 @@ public class SpecConfigBuilder {
   private Integer reorgParentWeightThreshold = 160;
 
   private UInt64 maxPerEpochActivationExitChurnLimit = UInt64.valueOf(256000000000L);
-  private final BuilderChain<SpecConfig, SpecConfigElectra> builderChain =
+  private final BuilderChain<SpecConfig, SpecConfigFulu> builderChain =
       BuilderChain.create(new AltairBuilder())
           .appendBuilder(new BellatrixBuilder())
           .appendBuilder(new CapellaBuilder())
           .appendBuilder(new DenebBuilder())
           .appendBuilder(new ElectraBuilder())
-          .appendBuilder(new Eip7594Builder());
+          .appendBuilder(new Eip7594Builder())
+          .appendBuilder(new FuluBuilder());
 
   public SpecConfig build() {
     builderChain.addOverridableItemsToRawConfig(
@@ -744,6 +745,11 @@ public class SpecConfigBuilder {
 
   public SpecConfigBuilder eip7594Builder(final Consumer<Eip7594Builder> consumer) {
     builderChain.withBuilder(Eip7594Builder.class, consumer);
+    return this;
+  }
+
+  public SpecConfigBuilder fuluBuilder(final Consumer<FuluBuilder> consumer) {
+    builderChain.withBuilder(FuluBuilder.class, consumer);
     return this;
   }
 }

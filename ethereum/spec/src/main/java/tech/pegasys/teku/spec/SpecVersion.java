@@ -22,6 +22,7 @@ import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
 import tech.pegasys.teku.spec.config.SpecConfigCapella;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.logic.DelegatingSpecLogic;
 import tech.pegasys.teku.spec.logic.SpecLogic;
 import tech.pegasys.teku.spec.logic.versions.altair.SpecLogicAltair;
@@ -29,6 +30,7 @@ import tech.pegasys.teku.spec.logic.versions.bellatrix.SpecLogicBellatrix;
 import tech.pegasys.teku.spec.logic.versions.capella.SpecLogicCapella;
 import tech.pegasys.teku.spec.logic.versions.deneb.SpecLogicDeneb;
 import tech.pegasys.teku.spec.logic.versions.electra.SpecLogicElectra;
+import tech.pegasys.teku.spec.logic.versions.fulu.SpecLogicFulu;
 import tech.pegasys.teku.spec.logic.versions.phase0.SpecLogicPhase0;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsAltair;
@@ -86,6 +88,10 @@ public class SpecVersion extends DelegatingSpecLogic {
           specConfig
               .toVersionElectra()
               .map(specConfigElectra -> createElectra(specConfigElectra, schemaRegistryBuilder));
+      case FULU ->
+          specConfig
+              .toVersionFulu()
+              .map(specConfigFulu -> createFulu(specConfigFulu, schemaRegistryBuilder));
     };
   }
 
@@ -153,6 +159,21 @@ public class SpecVersion extends DelegatingSpecLogic {
     final SpecLogicElectra specLogic =
         SpecLogicElectra.create(specConfig, schemaDefinitions, SYSTEM_TIME_PROVIDER);
     return new SpecVersion(SpecMilestone.ELECTRA, specConfig, schemaDefinitions, specLogic);
+  }
+
+  static SpecVersion createFulu(
+      final SpecConfigFulu specConfig, final SchemaRegistryBuilder schemaRegistryBuilder) {
+    final SchemaRegistry schemaRegistry =
+        schemaRegistryBuilder.build(SpecMilestone.FULU, specConfig);
+    final SchemaDefinitionsElectra schemaDefinitions =
+        new SchemaDefinitionsElectra(
+            schemaRegistry,
+            specConfig
+                .getOptionalEip7594Config()
+                .map(__ -> new SchemaDefinitionsEip7594(schemaRegistry)));
+    final SpecLogicFulu specLogic =
+        SpecLogicFulu.create(specConfig, schemaDefinitions, SYSTEM_TIME_PROVIDER);
+    return new SpecVersion(SpecMilestone.FULU, specConfig, schemaDefinitions, specLogic);
   }
 
   public SpecMilestone getMilestone() {

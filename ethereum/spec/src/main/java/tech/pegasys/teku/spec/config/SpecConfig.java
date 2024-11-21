@@ -188,4 +188,8 @@ public interface SpecConfig extends NetworkingSpecConfig, FeatureSpecConfig {
   default Optional<SpecConfigElectra> toVersionElectra() {
     return Optional.empty();
   }
+
+  default Optional<SpecConfigFulu> toVersionFulu() {
+    return Optional.empty();
+  }
 }

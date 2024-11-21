@@ -20,7 +20,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.DelegatingSpecConfigElectra;
 import tech.pegasys.teku.spec.config.SpecConfig;
@@ -29,7 +28,6 @@ import tech.pegasys.teku.spec.config.features.Eip7594Impl;
 
 public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, SpecConfigElectra> {
 
-  private Bytes4 eip7594ForkVersion;
   private UInt64 eip7594ForkEpoch;
   private UInt64 fieldElementsPerCell;
   private UInt64 fieldElementsPerExtBlob;
@@ -47,7 +45,6 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
   public SpecConfigElectra build(final SpecConfigElectra specConfig) {
     final Eip7594Impl eip7594 =
         new Eip7594Impl(
-            eip7594ForkVersion,
             eip7594ForkEpoch,
             fieldElementsPerCell,
             fieldElementsPerExtBlob,
@@ -64,12 +61,6 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
   public Eip7594Builder eip7594ForkEpoch(final UInt64 eip7594ForkEpoch) {
     checkNotNull(eip7594ForkEpoch);
     this.eip7594ForkEpoch = eip7594ForkEpoch;
-    return this;
-  }
-
-  public Eip7594Builder eip7594ForkVersion(final Bytes4 eip7594ForkVersion) {
-    checkNotNull(eip7594ForkVersion);
-    this.eip7594ForkVersion = eip7594ForkVersion;
     return this;
   }
 
@@ -130,7 +121,6 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
   public void validate() {
     if (eip7594ForkEpoch == null) {
       eip7594ForkEpoch = SpecConfig.FAR_FUTURE_EPOCH;
-      eip7594ForkVersion = SpecBuilderUtil.PLACEHOLDER_FORK_VERSION;
     }
 
     // Fill default zeros if fork is unsupported
@@ -146,7 +136,6 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
     final Map<String, Object> constants = new HashMap<>();
 
     constants.put("eip7594ForkEpoch", eip7594ForkEpoch);
-    constants.put("eip7594ForkVersion", eip7594ForkVersion);
     constants.put("numberOfColumns", numberOfColumns);
     constants.put("dataColumnSidecarSubnetCount", dataColumnSidecarSubnetCount);
     constants.put("custodyRequirement", custodyRequirement);

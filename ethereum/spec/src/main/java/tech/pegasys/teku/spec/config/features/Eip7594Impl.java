@@ -14,11 +14,9 @@
 package tech.pegasys.teku.spec.config.features;
 
 import java.util.Objects;
-import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public class Eip7594Impl implements Eip7594 {
-  private final Bytes4 eip7594ForkVersion;
   private final UInt64 eip7594ForkEpoch;
 
   private final int numberOfColumns;
@@ -32,7 +30,6 @@ public class Eip7594Impl implements Eip7594 {
   private final int maxRequestDataColumnSidecars;
 
   public Eip7594Impl(
-      final Bytes4 eip7594ForkVersion,
       final UInt64 eip7594ForkEpoch,
       final UInt64 fieldElementsPerCell,
       final UInt64 fieldElementsPerExtBlob,
@@ -43,7 +40,6 @@ public class Eip7594Impl implements Eip7594 {
       final int samplesPerSlot,
       final int minEpochsForDataColumnSidecarsRequests,
       final int maxRequestDataColumnSidecars) {
-    this.eip7594ForkVersion = eip7594ForkVersion;
     this.eip7594ForkEpoch = eip7594ForkEpoch;
     this.fieldElementsPerCell = fieldElementsPerCell;
     this.fieldElementsPerExtBlob = fieldElementsPerExtBlob;
@@ -54,11 +50,6 @@ public class Eip7594Impl implements Eip7594 {
     this.samplesPerSlot = samplesPerSlot;
     this.minEpochsForDataColumnSidecarsRequests = minEpochsForDataColumnSidecarsRequests;
     this.maxRequestDataColumnSidecars = maxRequestDataColumnSidecars;
-  }
-
-  @Override
-  public Bytes4 getEip7594ForkVersion() {
-    return eip7594ForkVersion;
   }
 
   @Override
@@ -120,8 +111,7 @@ public class Eip7594Impl implements Eip7594 {
       return false;
     }
     final Eip7594Impl that = (Eip7594Impl) o;
-    return Objects.equals(eip7594ForkVersion, that.eip7594ForkVersion)
-        && Objects.equals(eip7594ForkEpoch, that.eip7594ForkEpoch)
+    return Objects.equals(eip7594ForkEpoch, that.eip7594ForkEpoch)
         && Objects.equals(fieldElementsPerCell, that.fieldElementsPerCell)
         && Objects.equals(fieldElementsPerExtBlob, that.fieldElementsPerExtBlob)
         && Objects.equals(kzgCommitmentsInclusionProofDepth, that.kzgCommitmentsInclusionProofDepth)
@@ -135,7 +125,6 @@ public class Eip7594Impl implements Eip7594 {
   @Override
   public int hashCode() {
     return Objects.hash(
-        eip7594ForkVersion,
         eip7594ForkEpoch,
         numberOfColumns,
         dataColumnSidecarSubnetCount,

@@ -475,7 +475,7 @@ public class Eth2P2PNetworkFactory {
                 syncCommitteeMessageProcessor,
                 signedBlsToExecutionChangeProcessor,
                 debugDataDumper);
-        case ELECTRA ->
+        case ELECTRA, FULU ->
             new GossipForkSubscriptionsElectra(
                 forkAndSpecMilestone.getFork(),
                 spec,
