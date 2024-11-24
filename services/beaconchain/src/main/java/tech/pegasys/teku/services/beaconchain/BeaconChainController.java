@@ -100,6 +100,7 @@ import tech.pegasys.teku.service.serviceutils.layout.DataDirLayout;
 import tech.pegasys.teku.services.executionlayer.ExecutionLayerBlockManagerFactory;
 import tech.pegasys.teku.services.timer.TimerService;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
@@ -654,7 +655,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   private void initDasSamplerManager() {
-    if (spec.isMilestoneSupported(SpecMilestone.ELECTRA)) {
+    if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
       LOG.info("Activated DAS Sampler Manager for EIP7594");
       this.dasSamplerManager = new DasSamplerManager(() -> dataAvailabilitySampler, kzg, spec);
     } else {
@@ -664,7 +665,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDataColumnSidecarManager() {
-    if (spec.isMilestoneSupported(SpecMilestone.ELECTRA)) {
+    if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
       final DataColumnSidecarGossipValidator dataColumnSidecarGossipValidator =
           DataColumnSidecarGossipValidator.create(
               spec,
@@ -685,9 +686,10 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDasCustody() {
-    if (!spec.isMilestoneSupported(SpecMilestone.ELECTRA)) {
+    if (!spec.isFeatureScheduled(SpecFeature.EIP7594)) {
       return;
     }
+    LOG.info("Activating DAS Custody for EIP7594");
     Eip7594 configEip7594 = Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
     MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator =
         MinCustodyPeriodSlotCalculator.createFromSpec(spec);
@@ -1141,7 +1143,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDataColumnSidecarSubnetBackboneSubscriber() {
-    if (!spec.isMilestoneSupported(SpecMilestone.ELECTRA)) {
+    if (!spec.isFeatureScheduled(SpecFeature.EIP7594)) {
       return;
     }
     LOG.debug("BeaconChainController.initDataColumnSidecarSubnetBackboneSubscriber");
@@ -1209,7 +1211,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
       blobSidecarGossipChannel = BlobSidecarGossipChannel.NOOP;
     }
     final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel;
-    if (spec.isMilestoneSupported(SpecMilestone.ELECTRA)) {
+    if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
       dataColumnSidecarGossipChannel =
           eventChannels.getPublisher(DataColumnSidecarGossipChannel.class);
     } else {

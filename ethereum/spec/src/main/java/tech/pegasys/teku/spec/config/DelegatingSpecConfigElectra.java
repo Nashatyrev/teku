@@ -44,7 +44,7 @@ public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
 
   @Override
   public Optional<Eip7594> getOptionalEip7594Config() {
-    return eip7594;
+    return specConfigElectra.getOptionalEip7594Config().or(() -> eip7594);
   }
 
   @Override

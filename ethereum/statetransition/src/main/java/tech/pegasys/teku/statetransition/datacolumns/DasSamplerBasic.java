@@ -29,7 +29,7 @@ import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecMilestone;
+import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
@@ -171,9 +171,8 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   }
 
   private boolean isEIP7594(final BeaconBlock block) {
-    return spec.atSlot(block.getSlot())
-        .getMilestone()
-        .isGreaterThanOrEqualTo(SpecMilestone.ELECTRA);
+    return spec.isFeatureActivatedAtEpoch(
+        SpecFeature.EIP7594, spec.computeEpochAtSlot(block.getSlot()));
   }
 
   private boolean hasBlobs(final BeaconBlock block) {
