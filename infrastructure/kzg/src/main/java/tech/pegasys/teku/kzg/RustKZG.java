@@ -34,7 +34,9 @@ final class RustKZG implements KZG {
   private static final Logger LOG = LogManager.getLogger();
   private static final int NUMBER_OF_THREADS = 1;
 
+  @SuppressWarnings("NonFinalStaticField")
   private static RustKZG instance;
+
   private LibEthKZG library;
   private boolean initialized;
 

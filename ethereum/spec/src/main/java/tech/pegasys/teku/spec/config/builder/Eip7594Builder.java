@@ -23,6 +23,7 @@ import java.util.function.BiConsumer;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.DelegatingSpecConfigElectra;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigAndParent;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
 import tech.pegasys.teku.spec.config.features.Eip7594Impl;
 
@@ -42,7 +43,8 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
   Eip7594Builder() {}
 
   @Override
-  public SpecConfigElectra build(final SpecConfigElectra specConfig) {
+  public SpecConfigAndParent<SpecConfigElectra> build(
+      final SpecConfigAndParent<SpecConfigElectra> specConfigAndParent) {
     final Eip7594Impl eip7594 =
         new Eip7594Impl(
             eip7594ForkEpoch,
@@ -55,7 +57,8 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
             samplesPerSlot,
             minEpochsForDataColumnSidecarsRequests,
             maxRequestDataColumnSidecars);
-    return new DelegatingSpecConfigElectra(specConfig, Optional.of(eip7594));
+    return SpecConfigAndParent.of(
+        new DelegatingSpecConfigElectra(specConfigAndParent.specConfig(), Optional.of(eip7594)));
   }
 
   public Eip7594Builder eip7594ForkEpoch(final UInt64 eip7594ForkEpoch) {

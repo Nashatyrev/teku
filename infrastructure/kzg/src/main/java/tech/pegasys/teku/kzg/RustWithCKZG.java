@@ -24,6 +24,7 @@ import org.apache.tuweni.bytes.Bytes;
  */
 final class RustWithCKZG implements KZG {
 
+  @SuppressWarnings("NonFinalStaticField")
   private static RustWithCKZG instance;
 
   private final CKZG4844 ckzg4844Delegate;

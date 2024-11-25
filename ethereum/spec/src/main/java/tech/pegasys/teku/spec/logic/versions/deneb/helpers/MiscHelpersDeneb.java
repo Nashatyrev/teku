@@ -213,6 +213,7 @@ public class MiscHelpersDeneb extends MiscHelpersCapella {
     return Optional.of(this);
   }
 
+  @Override
   public int getBlobKzgCommitmentsCount(final SignedBeaconBlock signedBeaconBlock) {
     return signedBeaconBlock
         .getMessage()

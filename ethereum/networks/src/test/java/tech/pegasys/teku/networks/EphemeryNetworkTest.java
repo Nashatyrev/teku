@@ -31,9 +31,11 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecFactory;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigAndParent;
 import tech.pegasys.teku.spec.config.SpecConfigLoader;
 import tech.pegasys.teku.spec.config.SpecConfigReader;
 import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
+import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 
 public class EphemeryNetworkTest {
   private static final long GENESIS_CHAINID = 39438135;
@@ -50,7 +52,7 @@ public class EphemeryNetworkTest {
   private long expectedChainId;
   private long periodSinceGenesis;
   private final SpecConfigReader reader = new SpecConfigReader();
-  private SpecConfig configFile;
+  private SpecConfigAndParent<? extends SpecConfig> configFile;
   private SpecConfig config;
 
   @BeforeEach
@@ -65,7 +67,7 @@ public class EphemeryNetworkTest {
 
   @Test
   public void testUpdateConfig() {
-    when(config.getRawConfig()).thenReturn(configFile.getRawConfig());
+    when(config.getRawConfig()).thenReturn(configFile.specConfig().getRawConfig());
     when(builder.rawConfig(config.getRawConfig())).thenReturn(builder);
     when(builder.depositChainId(expectedChainId)).thenReturn(builder);
     when(builder.depositNetworkId(expectedChainId)).thenReturn(builder);
@@ -142,7 +144,7 @@ public class EphemeryNetworkTest {
 
     final long expectedMinGenesisTime = MIN_GENESIS_TIME + (ONE_PERIOD * PERIOD_IN_SECONDS);
 
-    when(config.getRawConfig()).thenReturn(configFile.getRawConfig());
+    when(config.getRawConfig()).thenReturn(configFile.specConfig().getRawConfig());
     when(builder.rawConfig(config.getRawConfig())).thenReturn(builder);
     when(builder.depositChainId(genesisChainidAfterFirstPeriod)).thenReturn(builder);
     when(builder.depositNetworkId(genesisChainidAfterFirstPeriod)).thenReturn(builder);
@@ -168,7 +170,7 @@ public class EphemeryNetworkTest {
 
     final long expectedMinGenesisTime = MIN_GENESIS_TIME + MANY_PERIOD * PERIOD_IN_SECONDS;
 
-    when(config.getRawConfig()).thenReturn(configFile.getRawConfig());
+    when(config.getRawConfig()).thenReturn(configFile.specConfig().getRawConfig());
     when(builder.rawConfig(config.getRawConfig())).thenReturn(builder);
     when(builder.depositChainId(genesisChainIdAfter1000Period)).thenReturn(builder);
     when(builder.depositNetworkId(genesisChainIdAfter1000Period)).thenReturn(builder);
@@ -185,6 +187,20 @@ public class EphemeryNetworkTest {
     assertThat(genesisChainIdAfter1000Period).isGreaterThan(GENESIS_CHAINID);
     assertThat(CURRENT_TIMESTAMP + expectedMinGenesisTime)
         .isGreaterThan(genesisChainIdAfter1000Period + PERIOD_IN_SECONDS);
+  }
+
+  @Test
+  void checkEphemeryMaxSlot() {
+    final Spec spec =
+        getSpec(phase0Builder -> phase0Builder.minGenesisTime(UInt64.valueOf(MIN_GENESIS_TIME)));
+    final long timeBeforeNextPeriod = MIN_GENESIS_TIME + PERIOD_IN_SECONDS - 1;
+    final MiscHelpers miscHelpers = new MiscHelpers(spec.getGenesisSpecConfig());
+    assertThat(
+            miscHelpers
+                .computeSlotAtTime(
+                    UInt64.valueOf(MIN_GENESIS_TIME), UInt64.valueOf(timeBeforeNextPeriod))
+                .longValue())
+        .isEqualTo(EphemeryNetwork.MAX_EPHEMERY_SLOT);
   }
 
   @Test
@@ -240,7 +256,8 @@ public class EphemeryNetworkTest {
   }
 
   private Spec getSpec(final Consumer<SpecConfigBuilder> consumer) {
-    final SpecConfig config = SpecConfigLoader.loadConfig("ephemery", consumer);
+    final SpecConfigAndParent<? extends SpecConfig> config =
+        SpecConfigLoader.loadConfig("ephemery", consumer);
     return SpecFactory.create(config);
   }
 }

@@ -84,6 +84,7 @@ public class SyncingNodeManager {
   private final BlockGossipChannel blockGossipChannel;
 
   private SyncingNodeManager(
+      final AsyncRunner asyncRunner,
       final EventChannels eventChannels,
       final RecentChainData recentChainData,
       final BeaconChainUtil chainUtil,
@@ -94,7 +95,7 @@ public class SyncingNodeManager {
     this.chainUtil = chainUtil;
     this.eth2P2PNetwork = eth2P2PNetwork;
     this.syncService = syncService;
-    this.blockGossipChannel = eventChannels.getPublisher(BlockGossipChannel.class);
+    this.blockGossipChannel = eventChannels.getPublisher(BlockGossipChannel.class, asyncRunner);
   }
 
   @SuppressWarnings("FutureReturnValueIgnored")
@@ -145,6 +146,7 @@ public class SyncingNodeManager {
 
     final BlockImporter blockImporter =
         new BlockImporter(
+            asyncRunner,
             spec,
             receivedBlockEventsChannelPublisher,
             recentChainData,
@@ -215,7 +217,7 @@ public class SyncingNodeManager {
     syncService.start().join();
 
     return new SyncingNodeManager(
-        eventChannels, recentChainData, chainUtil, eth2P2PNetwork, syncService);
+        asyncRunner, eventChannels, recentChainData, chainUtil, eth2P2PNetwork, syncService);
   }
 
   public SafeFuture<Peer> connect(final SyncingNodeManager peer) {
@@ -250,6 +252,6 @@ public class SyncingNodeManager {
   }
 
   public void gossipBlock(final SignedBeaconBlock block) {
-    blockGossipChannel.publishBlock(block);
+    blockGossipChannel.publishBlock(block).ifExceptionGetsHereRaiseABug();
   }
 }

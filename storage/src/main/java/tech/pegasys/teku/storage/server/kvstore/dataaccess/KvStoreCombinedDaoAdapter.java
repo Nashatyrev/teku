@@ -624,6 +624,16 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     }
 
     @Override
+    public void setEarliestBlockSlot(final UInt64 slot) {
+      finalizedUpdater.setEarliestBlockSlot(slot);
+    }
+
+    @Override
+    public void deleteEarliestBlockSlot() {
+      finalizedUpdater.deleteEarliestBlockSlot();
+    }
+
+    @Override
     public void setFirstCustodyIncompleteSlot(final UInt64 slot) {
       finalizedUpdater.setFirstCustodyIncompleteSlot(slot);
     }

@@ -82,6 +82,7 @@ public interface BlobSidecarManager extends AvailabilityCheckerFactory<BlobSidec
   enum RemoteOrigin {
     RPC,
     GOSSIP,
-    LOCAL_EL
+    LOCAL_EL,
+    LOCAL_PROPOSAL
   }
 }

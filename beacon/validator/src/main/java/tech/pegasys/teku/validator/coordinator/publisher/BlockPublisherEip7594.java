@@ -15,59 +15,57 @@ package tech.pegasys.teku.validator.coordinator.publisher;
 
 import java.util.List;
 import tech.pegasys.teku.ethereum.performance.trackers.BlockPublishingPerformance;
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.networking.eth2.gossip.BlockGossipChannel;
 import tech.pegasys.teku.networking.eth2.gossip.DataColumnSidecarGossipChannel;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.datastructures.validator.BroadcastValidationLevel;
 import tech.pegasys.teku.statetransition.block.BlockImportChannel;
-import tech.pegasys.teku.statetransition.block.BlockImportChannel.BlockImportAndBroadcastValidationResults;
 import tech.pegasys.teku.validator.coordinator.BlockFactory;
 import tech.pegasys.teku.validator.coordinator.DutyMetrics;
 import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 
-public class BlockPublisherEip7594 extends AbstractBlockPublisher {
+public class BlockPublisherEip7594 extends BlockPublisherPhase0 {
 
-  private final BlockGossipChannel blockGossipChannel;
   private final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel;
 
   public BlockPublisherEip7594(
+      final AsyncRunner asyncRunner,
       final BlockFactory blockFactory,
       final BlockImportChannel blockImportChannel,
       final BlockGossipChannel blockGossipChannel,
       final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel,
       final PerformanceTracker performanceTracker,
-      final DutyMetrics dutyMetrics) {
-    super(blockFactory, blockImportChannel, performanceTracker, dutyMetrics);
-    this.blockGossipChannel = blockGossipChannel;
+      final DutyMetrics dutyMetrics,
+      final boolean gossipBlobsAfterBlock) {
+    super(
+        asyncRunner,
+        blockFactory,
+        blockGossipChannel,
+        blockImportChannel,
+        performanceTracker,
+        dutyMetrics,
+        gossipBlobsAfterBlock);
     this.dataColumnSidecarGossipChannel = dataColumnSidecarGossipChannel;
   }
 
   @Override
-  SafeFuture<BlockImportAndBroadcastValidationResults> importBlockAndBlobSidecars(
-      final SignedBeaconBlock block,
+  void importBlobSidecars(
       final List<BlobSidecar> blobSidecars,
-      final BroadcastValidationLevel broadcastValidationLevel,
       final BlockPublishingPerformance blockPublishingPerformance) {
     // TODO: DataColumnSidecars pool fill up
-    return blockImportChannel
-        .importBlock(block, broadcastValidationLevel)
-        .thenPeek(__ -> blockPublishingPerformance.blockImportCompleted());
   }
 
   @Override
-  void publishBlockAndBlobSidecars(
-      final SignedBeaconBlock block,
+  void publishBlobSidecars(
       final List<BlobSidecar> blobSidecars,
+      final SignedBeaconBlock block,
       final BlockPublishingPerformance blockPublishingPerformance) {
-    blockGossipChannel.publishBlock(block);
     List<Blob> blobs = blobSidecars.stream().map(BlobSidecar::getBlob).toList();
     final List<DataColumnSidecar> dataColumnSidecars =
         blockFactory.createDataColumnSidecars(block, blobs);
     dataColumnSidecarGossipChannel.publishDataColumnSidecars(dataColumnSidecars);
-    blockPublishingPerformance.blockAndBlobSidecarsPublishingInitiated();
   }
 }

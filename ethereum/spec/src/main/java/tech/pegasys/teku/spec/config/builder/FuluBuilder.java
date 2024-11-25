@@ -22,6 +22,7 @@ import java.util.function.BiConsumer;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigAndParent;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
 import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.config.SpecConfigFuluImpl;
@@ -34,8 +35,10 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
   FuluBuilder() {}
 
   @Override
-  public SpecConfigFulu build(final SpecConfigElectra specConfig) {
-    return new SpecConfigFuluImpl(specConfig, fuluForkVersion, fuluForkEpoch);
+  public SpecConfigAndParent<SpecConfigFulu> build(
+      final SpecConfigAndParent<SpecConfigElectra> specConfigAndParent) {
+    return SpecConfigAndParent.of(
+        new SpecConfigFuluImpl(specConfigAndParent.specConfig(), fuluForkVersion, fuluForkEpoch));
   }
 
   public FuluBuilder fuluForkEpoch(final UInt64 fuluForkEpoch) {

@@ -26,9 +26,9 @@ plugins {
   id 'com.github.ben-manes.versions' version '0.51.0'
   id 'com.github.jk1.dependency-license-report' version '2.9'
   id 'io.spring.dependency-management' version '1.1.6'
-  id 'net.ltgt.errorprone' version '4.0.1' apply false
+  id 'net.ltgt.errorprone' version '4.1.0' apply false
   id 'de.undercouch.download' version '5.6.0'
-  id 'org.ajoberstar.grgit' version '5.2.2'
+  id 'org.ajoberstar.grgit' version '5.3.0'
 }
 
 rootProject.version = calculatePublishVersion()
@@ -251,20 +251,24 @@ allprojects {
       check('ExperimentalCliOptionMustBeCorrectlyDisplayed', net.ltgt.gradle.errorprone.CheckSeverity.OFF)
 
       // These are experimental checks that we want enabled
-      check('MissingBraces', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('InsecureCryptoUsage', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('WildcardImport', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('ClassName', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
       check('DeduplicateConstants', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('FieldCanBeFinal', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('InitializeInline', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('InsecureCryptoUsage', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('InterfaceWithOnlyStatics', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('MethodInputParametersMustBeFinal', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('MissingBraces', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('NonFinalStaticField', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('PackageLocation', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
       check('RedundantOverride', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
       check('RedundantThrows', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('StringFormatWithLiteral', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('TruthContainsExactlyElementsInUsage', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
       check('UnnecessarilyFullyQualified', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('InitializeInline', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('ClassName', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('InterfaceWithOnlyStatics', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('PackageLocation', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('MethodInputParametersMustBeFinal', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-      check('FieldCanBeFinal', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
-
+      check('UnnecessaryTestMethodPrefix', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('UseCorrectAssertInTests', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
+      check('WildcardImport', net.ltgt.gradle.errorprone.CheckSeverity.WARN)
     }
     options.encoding = 'UTF-8'
 
@@ -570,11 +574,11 @@ task autocomplete(type: JavaExec) {
 }
 
 installDist {
-  dependsOn checkLicense, autocomplete
+  dependsOn checkLicense, startScripts, autocomplete
 }
 
 distTar {
-  dependsOn checkLicense, autocomplete
+  dependsOn checkLicense, startScripts, autocomplete
   doFirst {
     delete fileTree(dir: 'build/distributions', include: '*.tar.gz')
   }
@@ -587,7 +591,7 @@ distTar {
 }
 
 distZip {
-  dependsOn checkLicense, autocomplete
+  dependsOn checkLicense, startScripts, autocomplete
   doFirst {
     delete fileTree(dir: 'build/distributions', include: '*.zip')
   }
@@ -598,6 +602,8 @@ distZip {
 }
 
 startScripts {
+
+  unixStartScriptGenerator.template = resources.text.fromFile("${projectDir}/teku/src/main/scripts/unixStartScript.txt")
 
   def shortenWindowsClasspath = { line ->
     line = line.replaceAll(/^set CLASSPATH=.*$/, "set CLASSPATH=%APP_HOME%/lib/*")

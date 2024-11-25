@@ -43,7 +43,7 @@ public class MergedGenesisTestBuilder {
             genesisConfigOptions,
             MiningParameters.MINING_DISABLED,
             badBlockManager,
-            true,
+            false,
             metricsSystem);
     final GenesisState genesisState = GenesisState.fromConfig(configFile, protocolSchedule);
     final Block genesisBlock = genesisState.getBlock();

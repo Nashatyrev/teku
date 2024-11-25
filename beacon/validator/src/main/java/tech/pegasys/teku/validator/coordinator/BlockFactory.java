@@ -42,8 +42,7 @@ public interface BlockFactory {
   SafeFuture<SignedBeaconBlock> unblindSignedBlockIfBlinded(
       SignedBeaconBlock maybeBlindedBlock, BlockPublishingPerformance blockPublishingPerformance);
 
-  List<BlobSidecar> createBlobSidecars(
-      SignedBlockContainer blockContainer, BlockPublishingPerformance blockPublishingPerformance);
+  List<BlobSidecar> createBlobSidecars(SignedBlockContainer blockContainer);
 
   List<DataColumnSidecar> createDataColumnSidecars(
       SignedBlockContainer blockContainer, List<Blob> blobs);

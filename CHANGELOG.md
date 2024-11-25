@@ -9,7 +9,7 @@
 ### Breaking Changes
 
 ### Additions and Improvements
-- Clean up old beacon states when switching from ARCHIVE to PRUNE or MINIMAL data storage mode
+- improve block publishing performance, especially relevant with locally produced blocks
 
 ### Bug Fixes
- - Fixed a block production issue for Validator Client (24.10.0 to 24.10.2 teku VC), where required headers were not provided for JSON payloads. Default SSZ block production was unaffected. The required header is in the beacon-api spec but was not updated in all places for the VC.
+- Added a startup script for unix systems to ensure that when jemalloc is installed the script sets the LD_PRELOAD environment variable to the use the jemalloc library

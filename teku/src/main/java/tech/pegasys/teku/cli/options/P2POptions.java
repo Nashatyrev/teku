@@ -302,6 +302,17 @@ public class P2POptions {
   private Integer peerRateLimit = P2PConfig.DEFAULT_PEER_RATE_LIMIT;
 
   @Option(
+      names = {"--Xp2p-gossip-blobs-after-block-enabled"},
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description =
+          "Enables experimental behaviour in which blobs are gossiped after the block has been gossiped to at least one peer.",
+      hidden = true,
+      arity = "0..1",
+      fallbackValue = "true")
+  private boolean gossipBlobsAfterBlockEnabled = P2PConfig.DEFAULT_GOSSIP_BLOBS_AFTER_BLOCK_ENABLED;
+
+  @Option(
       names = {"--Xpeer-all-topics-filter-enabled"},
       paramLabel = "<BOOLEAN>",
       showDefaultValue = Visibility.ALWAYS,
@@ -380,14 +391,15 @@ public class P2POptions {
   // More about flood publishing
   // https://github.com/libp2p/specs/blob/master/pubsub/gossipsub/gossipsub-v1.1.md#flood-publishing
   @Option(
-      names = {"--Xp2p-flood-publish-enabled"},
-      paramLabel = "<BOOLEAN>",
+      names = {"--Xp2p-flood-max-message-size-threshold"},
+      paramLabel = "<NUMBER>",
       showDefaultValue = Visibility.ALWAYS,
-      description = "Enables gossip 'floodPublish' feature",
+      description = "Maximum size (in bytes) of a message that will be flood published",
       arity = "0..1",
       hidden = true,
       fallbackValue = "true")
-  private boolean floodPublishEnabled = GossipConfig.DEFAULT_FLOOD_PUBLISH_ENABLED;
+  private int floodPublishMaxMessageSizeThreshold =
+      GossipConfig.DEFAULT_FLOOD_PUBLISH_MAX_MESSAGE_SIZE_THRESHOLD;
 
   @Option(
       names = {"--Xdas-extra-custody-subnet-count"},
@@ -439,7 +451,8 @@ public class P2POptions {
                   .peerRateLimit(peerRateLimit)
                   .allTopicsFilterEnabled(allTopicsFilterEnabled)
                   .peerRequestLimit(peerRequestLimit)
-                  .isFloodPublishEnabled(floodPublishEnabled)
+                  .floodPublishMaxMessageSizeThreshold(floodPublishMaxMessageSizeThreshold)
+                  .gossipBlobsAfterBlockEnabled(gossipBlobsAfterBlockEnabled)
                   .dasExtraCustodySubnetCount(dasExtraCustodySubnetCount)
                   .dasLossySamplerEnabled(dasLossySamplerEnabled);
               batchVerifyQueueCapacity.ifPresent(b::batchVerifyQueueCapacity);

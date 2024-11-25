@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.logging.log4j.LogManager;
@@ -66,9 +65,6 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.collections.LimitedMap;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.networking.eth2.gossip.BlobSidecarGossipChannel;
-import tech.pegasys.teku.networking.eth2.gossip.BlockGossipChannel;
-import tech.pegasys.teku.networking.eth2.gossip.DataColumnSidecarGossipChannel;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.AttestationTopicSubscriber;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.SyncCommitteeSubscriptionManager;
 import tech.pegasys.teku.spec.Spec;
@@ -94,8 +90,6 @@ import tech.pegasys.teku.spec.datastructures.validator.SubnetSubscription;
 import tech.pegasys.teku.spec.logic.common.util.SyncCommitteeUtil;
 import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
 import tech.pegasys.teku.statetransition.attestation.AttestationManager;
-import tech.pegasys.teku.statetransition.blobs.BlockBlobSidecarsTrackersPool;
-import tech.pegasys.teku.statetransition.block.BlockImportChannel;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceTrigger;
 import tech.pegasys.teku.statetransition.forkchoice.ProposersDataManager;
 import tech.pegasys.teku.statetransition.synccommittee.SyncCommitteeContributionPool;
@@ -110,7 +104,6 @@ import tech.pegasys.teku.validator.api.ValidatorApiChannel;
 import tech.pegasys.teku.validator.coordinator.duties.AttesterDutiesGenerator;
 import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 import tech.pegasys.teku.validator.coordinator.publisher.BlockPublisher;
-import tech.pegasys.teku.validator.coordinator.publisher.MilestoneBasedBlockPublisher;
 
 public class ValidatorApiHandler implements ValidatorApiChannel {
 
@@ -123,8 +116,8 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
    */
   private static final int DUTY_EPOCH_TOLERANCE = 1;
 
-  private final Map<UInt64, Bytes32> createdBlockRootsBySlotCache =
-      LimitedMap.createSynchronizedLRU(2);
+  private final Map<UInt64, SafeFuture<Optional<BlockContainerAndMetaData>>>
+      localBlockProductionBySlotCache = LimitedMap.createSynchronizedLRU(2);
 
   private final BlockProductionAndPublishingPerformanceFactory
       blockProductionAndPublishingPerformanceFactory;
@@ -157,11 +150,6 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
       final CombinedChainDataClient combinedChainDataClient,
       final SyncStateProvider syncStateProvider,
       final BlockFactory blockFactory,
-      final BlockImportChannel blockImportChannel,
-      final BlockGossipChannel blockGossipChannel,
-      final BlockBlobSidecarsTrackersPool blockBlobSidecarsTrackersPool,
-      final BlobSidecarGossipChannel blobSidecarGossipChannel,
-      final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel,
       final AggregatingAttestationPool attestationPool,
       final AttestationManager attestationManager,
       final AttestationTopicSubscriber attestationTopicSubscriber,
@@ -175,7 +163,8 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
       final SyncCommitteeContributionPool syncCommitteeContributionPool,
       final SyncCommitteeSubscriptionManager syncCommitteeSubscriptionManager,
       final BlockProductionAndPublishingPerformanceFactory
-          blockProductionAndPublishingPerformanceFactory) {
+          blockProductionAndPublishingPerformanceFactory,
+      final BlockPublisher blockPublisher) {
     this.blockProductionAndPublishingPerformanceFactory =
         blockProductionAndPublishingPerformanceFactory;
     this.chainDataProvider = chainDataProvider;
@@ -196,17 +185,7 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
     this.syncCommitteeContributionPool = syncCommitteeContributionPool;
     this.syncCommitteeSubscriptionManager = syncCommitteeSubscriptionManager;
     this.proposersDataManager = proposersDataManager;
-    this.blockPublisher =
-        new MilestoneBasedBlockPublisher(
-            spec,
-            blockFactory,
-            blockImportChannel,
-            blockGossipChannel,
-            blockBlobSidecarsTrackersPool,
-            blobSidecarGossipChannel,
-            dataColumnSidecarGossipChannel,
-            performanceTracker,
-            dutyMetrics);
+    this.blockPublisher = blockPublisher;
     this.attesterDutiesGenerator = new AttesterDutiesGenerator(spec);
   }
 
@@ -333,8 +312,31 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
                                         StateValidatorData::getStatus))));
   }
 
+  /**
+   * Block would be produced only once per slot. Any additional calls to this method for the same
+   * slot would return the same {@link SafeFuture} as the first one. The only exception is when the
+   * block production fails. In this case, the next call would attempt to produce the block again.
+   */
   @Override
   public SafeFuture<Optional<BlockContainerAndMetaData>> createUnsignedBlock(
+      final UInt64 slot,
+      final BLSSignature randaoReveal,
+      final Optional<Bytes32> graffiti,
+      final Optional<UInt64> requestedBuilderBoostFactor) {
+    return localBlockProductionBySlotCache
+        .computeIfAbsent(
+            slot,
+            __ ->
+                createUnsignedBlockInternal(
+                    slot, randaoReveal, graffiti, requestedBuilderBoostFactor))
+        .whenException(
+            __ -> {
+              // allow further block production attempts for this slot
+              localBlockProductionBySlotCache.remove(slot);
+            });
+  }
+
+  public SafeFuture<Optional<BlockContainerAndMetaData>> createUnsignedBlockInternal(
       final UInt64 slot,
       final BLSSignature randaoReveal,
       final Optional<Bytes32> graffiti,
@@ -392,12 +394,7 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
             graffiti,
             requestedBuilderBoostFactor,
             blockProductionPerformance)
-        .thenApply(
-            block -> {
-              final Bytes32 blockRoot = block.blockContainer().getBlock().getRoot();
-              createdBlockRootsBySlotCache.put(slot, blockRoot);
-              return Optional.of(block);
-            });
+        .thenApply(Optional::of);
   }
 
   @Override
@@ -869,11 +866,21 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
     return proposerSlots;
   }
 
-  private boolean isLocallyCreatedBlock(final SignedBlockContainer blockContainer) {
-    final Bytes32 blockRoot = blockContainer.getSignedBlock().getMessage().getRoot();
-    final Bytes32 locallyCreatedBlockRoot =
-        createdBlockRootsBySlotCache.get(blockContainer.getSlot());
-    return Objects.equals(blockRoot, locallyCreatedBlockRoot);
+  private boolean isLocallyCreatedBlock(final SignedBlockContainer signedBlockContainer) {
+    final SafeFuture<Optional<BlockContainerAndMetaData>> localBlockProduction =
+        localBlockProductionBySlotCache.get(signedBlockContainer.getSlot());
+    if (localBlockProduction == null || !localBlockProduction.isCompletedNormally()) {
+      return false;
+    }
+    return localBlockProduction
+        .getImmediately()
+        .map(
+            blockContainerAndMetaData ->
+                blockContainerAndMetaData
+                    .blockContainer()
+                    .getRoot()
+                    .equals(signedBlockContainer.getRoot()))
+        .orElse(false);
   }
 
   @Override

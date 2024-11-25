@@ -124,6 +124,7 @@ import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportRe
 import tech.pegasys.teku.spec.logic.common.util.BlockRewardCalculatorUtil;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.networks.Eth2Network;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.statetransition.EpochCachePrimer;
 import tech.pegasys.teku.statetransition.LocalOperationAcceptedFilter;
@@ -249,6 +250,7 @@ import tech.pegasys.teku.validator.coordinator.performance.NoOpPerformanceTracke
 import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 import tech.pegasys.teku.validator.coordinator.performance.SyncCommitteePerformanceTracker;
 import tech.pegasys.teku.validator.coordinator.performance.ValidatorPerformanceMetrics;
+import tech.pegasys.teku.validator.coordinator.publisher.MilestoneBasedBlockPublisher;
 import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityCalculator;
 import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 
@@ -262,6 +264,7 @@ import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 public class BeaconChainController extends Service implements BeaconChainControllerFacade {
 
   private static final Logger LOG = LogManager.getLogger();
+  private final EphemerySlotValidationService ephemerySlotValidationService;
 
   protected static final String KEY_VALUE_STORE_SUBDIRECTORY = "kvstore";
 
@@ -391,6 +394,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             "type");
     this.dasGossipLogger = new DasGossipBatchLogger(operationPoolAsyncRunner, timeProvider);
     this.dasReqRespLogger = DasReqRespLogger.create(timeProvider);
+    this.ephemerySlotValidationService = new EphemerySlotValidationService();
   }
 
   @Override
@@ -420,6 +424,12 @@ public class BeaconChainController extends Service implements BeaconChainControl
         blobSidecar ->
             recentBlobSidecarsFetcher.cancelRecentBlobSidecarRequest(
                 new BlobIdentifier(blobSidecar.getBlockRoot(), blobSidecar.getIndex())));
+
+    final Optional<Eth2Network> network = beaconConfig.eth2NetworkConfig().getEth2Network();
+    if (network.isPresent() && network.get() == Eth2Network.EPHEMERY) {
+      LOG.debug("BeaconChainController: subscribing to slot events");
+      eventChannels.subscribe(SlotEventsChannel.class, ephemerySlotValidationService);
+    }
     SafeFuture.allOfFailFast(
             attestationManager.start(),
             p2pNetwork.start(),
@@ -458,6 +468,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             attestationManager.stop(),
             p2pNetwork.stop(),
             timerService.stop(),
+            ephemerySlotValidationService.doStop(),
             SafeFuture.fromRunnable(
                 () -> terminalPowBlockMonitor.ifPresent(TerminalPowBlockMonitor::stop)))
         .thenRun(forkChoiceExecutor::stop);
@@ -856,7 +867,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
       final BlockImportChannel blockImportChannel =
           eventChannels.getPublisher(BlockImportChannel.class, beaconAsyncRunner);
       final BlobSidecarGossipChannel blobSidecarGossipChannel =
-          eventChannels.getPublisher(BlobSidecarGossipChannel.class);
+          eventChannels.getPublisher(BlobSidecarGossipChannel.class, beaconAsyncRunner);
       final BlockBlobSidecarsTrackersPoolImpl pool =
           poolFactory.createPoolForBlockBlobSidecarsTrackers(
               blockImportChannel,
@@ -1203,10 +1214,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
     final BlockImportChannel blockImportChannel =
         eventChannels.getPublisher(BlockImportChannel.class, beaconAsyncRunner);
     final BlockGossipChannel blockGossipChannel =
-        eventChannels.getPublisher(BlockGossipChannel.class);
+        eventChannels.getPublisher(BlockGossipChannel.class, beaconAsyncRunner);
     final BlobSidecarGossipChannel blobSidecarGossipChannel;
     if (spec.isMilestoneSupported(SpecMilestone.DENEB)) {
-      blobSidecarGossipChannel = eventChannels.getPublisher(BlobSidecarGossipChannel.class);
+      blobSidecarGossipChannel =
+          eventChannels.getPublisher(BlobSidecarGossipChannel.class, beaconAsyncRunner);
     } else {
       blobSidecarGossipChannel = BlobSidecarGossipChannel.NOOP;
     }
@@ -1228,6 +1240,23 @@ public class BeaconChainController extends Service implements BeaconChainControl
             beaconConfig.getMetricsConfig().getBlockPublishingPerformanceWarningLocalThreshold(),
             beaconConfig.getMetricsConfig().getBlockPublishingPerformanceWarningBuilderThreshold());
 
+    final DutyMetrics dutyMetrics =
+        DutyMetrics.create(metricsSystem, timeProvider, recentChainData, spec);
+
+    final MilestoneBasedBlockPublisher blockPublisher =
+        new MilestoneBasedBlockPublisher(
+            beaconAsyncRunner,
+            spec,
+            blockFactory,
+            blockImportChannel,
+            blockGossipChannel,
+            blockBlobSidecarsTrackersPool,
+            blobSidecarGossipChannel,
+            dataColumnSidecarGossipChannel,
+            performanceTracker,
+            dutyMetrics,
+            beaconConfig.p2pConfig().isGossipBlobsAfterBlockEnabled());
+
     final ValidatorApiHandler validatorApiHandler =
         new ValidatorApiHandler(
             new ChainDataProvider(
@@ -1241,16 +1270,11 @@ public class BeaconChainController extends Service implements BeaconChainControl
             combinedChainDataClient,
             syncService,
             blockFactory,
-            blockImportChannel,
-            blockGossipChannel,
-            blockBlobSidecarsTrackersPool,
-            blobSidecarGossipChannel,
-            dataColumnSidecarGossipChannel,
             attestationPool,
             attestationManager,
             attestationTopicSubscriber,
             activeValidatorTracker,
-            DutyMetrics.create(metricsSystem, timeProvider, recentChainData, spec),
+            dutyMetrics,
             performanceTracker,
             spec,
             forkChoiceTrigger,
@@ -1258,7 +1282,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
             syncCommitteeMessagePool,
             syncCommitteeContributionPool,
             syncCommitteeSubscriptionManager,
-            blockProductionPerformanceFactory);
+            blockProductionPerformanceFactory,
+            blockPublisher);
     eventChannels
         .subscribe(SlotEventsChannel.class, activeValidatorTracker)
         .subscribe(ExecutionClientEventsChannel.class, executionClientVersionProvider)
@@ -1497,6 +1522,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
     LOG.debug("BeaconChainController.initBlockImporter()");
     blockImporter =
         new BlockImporter(
+            beaconAsyncRunner,
             spec,
             receivedBlockEventsChannelPublisher,
             recentChainData,

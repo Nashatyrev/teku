@@ -275,6 +275,10 @@ public interface KvStoreCombinedDao extends AutoCloseable {
 
     void setEarliestBlobSidecarSlot(UInt64 slot);
 
+    void setEarliestBlockSlot(UInt64 slot);
+
+    void deleteEarliestBlockSlot();
+
     void setFirstCustodyIncompleteSlot(UInt64 slot);
 
     void setFirstSamplerIncompleteSlot(UInt64 slot);

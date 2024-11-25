@@ -45,7 +45,6 @@ import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -328,8 +327,7 @@ public class BeaconChainMethods {
         RpcContextCodec.forkDigest(spec, recentChainData, ForkDigestPayloadContext.BLOB_SIDECAR);
 
     final BlobSidecarsByRootMessageHandler blobSidecarsByRootHandler =
-        new BlobSidecarsByRootMessageHandler(
-            spec, getSpecConfigDeneb(spec), metricsSystem, combinedChainDataClient);
+        new BlobSidecarsByRootMessageHandler(spec, metricsSystem, combinedChainDataClient);
     final BlobSidecarsByRootRequestMessageSchema blobSidecarsByRootRequestMessageSchema =
         SchemaDefinitionsDeneb.required(
                 spec.forMilestone(SpecMilestone.DENEB).getSchemaDefinitions())
@@ -370,8 +368,7 @@ public class BeaconChainMethods {
         RpcContextCodec.forkDigest(spec, recentChainData, ForkDigestPayloadContext.BLOB_SIDECAR);
 
     final BlobSidecarsByRangeMessageHandler blobSidecarsByRangeHandler =
-        new BlobSidecarsByRangeMessageHandler(
-            spec, getSpecConfigDeneb(spec), metricsSystem, combinedChainDataClient);
+        new BlobSidecarsByRangeMessageHandler(spec, metricsSystem, combinedChainDataClient);
 
     return Optional.of(
         new SingleProtocolEth2RpcMethod<>(
@@ -583,10 +580,6 @@ public class BeaconChainMethods {
         statusHandler,
         peerLookup,
         spec.getNetworkingConfig());
-  }
-
-  private static SpecConfigDeneb getSpecConfigDeneb(final Spec spec) {
-    return SpecConfigDeneb.required(spec.forMilestone(SpecMilestone.DENEB).getConfig());
   }
 
   private static Eip7594 getSpecConfigEip7594(final Spec spec) {
