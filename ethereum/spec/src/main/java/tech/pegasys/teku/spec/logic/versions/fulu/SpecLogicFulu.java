@@ -15,7 +15,7 @@ package tech.pegasys.teku.spec.logic.versions.fulu;
 
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
-import tech.pegasys.teku.spec.config.SpecConfigElectra;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.ExecutionRequestsDataCodec;
 import tech.pegasys.teku.spec.logic.common.AbstractSpecLogic;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
@@ -38,7 +38,6 @@ import tech.pegasys.teku.spec.logic.versions.capella.operations.validation.Opera
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.deneb.util.ForkChoiceUtilDeneb;
 import tech.pegasys.teku.spec.logic.versions.electra.block.BlockProcessorElectra;
-import tech.pegasys.teku.spec.logic.versions.electra.forktransition.ElectraStateUpgrade;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.BeaconStateAccessorsElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.BeaconStateMutatorsElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
@@ -47,6 +46,7 @@ import tech.pegasys.teku.spec.logic.versions.electra.operations.validation.Attes
 import tech.pegasys.teku.spec.logic.versions.electra.operations.validation.VoluntaryExitValidatorElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.statetransition.epoch.EpochProcessorElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.util.AttestationUtilElectra;
+import tech.pegasys.teku.spec.logic.versions.fulu.forktransition.FuluStateUpgrade;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 
 public class SpecLogicFulu extends AbstractSpecLogic {
@@ -71,7 +71,7 @@ public class SpecLogicFulu extends AbstractSpecLogic {
       final BlindBlockUtil blindBlockUtil,
       final SyncCommitteeUtil syncCommitteeUtil,
       final LightClientUtil lightClientUtil,
-      final ElectraStateUpgrade stateUpgrade) {
+      final FuluStateUpgrade stateUpgrade) {
     super(
         predicates,
         miscHelpers,
@@ -94,7 +94,7 @@ public class SpecLogicFulu extends AbstractSpecLogic {
   }
 
   public static SpecLogicFulu create(
-      final SpecConfigElectra config,
+      final SpecConfigFulu config,
       final SchemaDefinitionsElectra schemaDefinitions,
       final TimeProvider timeProvider) {
     // Helpers
@@ -180,9 +180,7 @@ public class SpecLogicFulu extends AbstractSpecLogic {
     final BlindBlockUtilBellatrix blindBlockUtil = new BlindBlockUtilBellatrix(schemaDefinitions);
 
     // State upgrade
-    final ElectraStateUpgrade stateUpgrade =
-        new ElectraStateUpgrade(
-            config, schemaDefinitions, beaconStateAccessors, beaconStateMutators);
+    final FuluStateUpgrade stateUpgrade = new FuluStateUpgrade(config, beaconStateAccessors);
 
     return new SpecLogicFulu(
         predicates,

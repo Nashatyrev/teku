@@ -48,10 +48,11 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
   private Integer maxConsolidationRequestsPerPayload;
   private Integer maxPendingPartialsPerWithdrawalsSweep;
   private Integer maxPendingDepositsPerEpoch;
-  private Integer maxBlobsPerBlockElectra;
-  private Integer targetBlobsPerBlockElectra;
-  private Integer maxRequestBlobSidecarsElectra;
-  private Integer blobSidecarSubnetCountElectra;
+  // FIXME: remove hardcode, missed in Kurtosis config
+  private Integer maxBlobsPerBlockElectra = 6;
+  private Integer targetBlobsPerBlockElectra = 3;
+  private Integer maxRequestBlobSidecarsElectra = 768;
+  private Integer blobSidecarSubnetCountElectra = 6;
 
   ElectraBuilder() {}
 

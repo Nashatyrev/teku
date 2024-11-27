@@ -58,7 +58,8 @@ public class Eip7594Builder implements ForkConfigBuilder<SpecConfigElectra, Spec
             minEpochsForDataColumnSidecarsRequests,
             maxRequestDataColumnSidecars);
     return SpecConfigAndParent.of(
-        new DelegatingSpecConfigElectra(specConfigAndParent.specConfig(), Optional.of(eip7594)));
+        new DelegatingSpecConfigElectra(specConfigAndParent.specConfig(), Optional.of(eip7594)),
+        specConfigAndParent);
   }
 
   public Eip7594Builder eip7594ForkEpoch(final UInt64 eip7594ForkEpoch) {

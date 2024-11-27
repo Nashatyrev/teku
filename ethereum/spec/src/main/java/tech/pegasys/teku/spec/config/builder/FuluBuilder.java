@@ -38,7 +38,8 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
   public SpecConfigAndParent<SpecConfigFulu> build(
       final SpecConfigAndParent<SpecConfigElectra> specConfigAndParent) {
     return SpecConfigAndParent.of(
-        new SpecConfigFuluImpl(specConfigAndParent.specConfig(), fuluForkVersion, fuluForkEpoch));
+        new SpecConfigFuluImpl(specConfigAndParent.specConfig(), fuluForkVersion, fuluForkEpoch),
+        specConfigAndParent);
   }
 
   public FuluBuilder fuluForkEpoch(final UInt64 fuluForkEpoch) {

@@ -17,6 +17,7 @@ import java.util.Objects;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.SpecMilestone;
 
 public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements SpecConfigFulu {
 
@@ -40,6 +41,11 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
   @Override
   public UInt64 getFuluForkEpoch() {
     return fuluForkEpoch;
+  }
+
+  @Override
+  public SpecMilestone getMilestone() {
+    return SpecMilestone.FULU;
   }
 
   @Override
