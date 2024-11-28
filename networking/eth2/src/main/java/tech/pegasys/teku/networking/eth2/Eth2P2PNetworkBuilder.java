@@ -90,6 +90,7 @@ import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.ValidatableSyncCommitteeMessage;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
+import tech.pegasys.teku.spec.datastructures.state.Fork;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
@@ -239,16 +240,17 @@ public class Eth2P2PNetworkBuilder {
         .forEach(gossipForkManagerBuilder::fork);
     // TODO: fix ELECTRA and EIP7594 hardcode
     if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
+      final UInt64 activationEpoch =
+          Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig())
+              .getEip7594FeatureEpoch();
+      final Fork fork = spec.getForkSchedule().getFork(activationEpoch);
       spec.getEnabledFeatures().stream()
           .map(
               specFeature ->
                   createFeatureSubscriptions(
                       spec.getEnabledMilestones().stream()
                           .filter(
-                              forkAndSpecMilestone ->
-                                  forkAndSpecMilestone
-                                      .getSpecMilestone()
-                                      .equals(SpecMilestone.ELECTRA))
+                              forkAndSpecMilestone -> forkAndSpecMilestone.getFork().equals(fork))
                           .findFirst()
                           .orElseThrow(),
                       specFeature,
