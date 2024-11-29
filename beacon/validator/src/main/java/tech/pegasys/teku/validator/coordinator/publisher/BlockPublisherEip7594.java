@@ -25,7 +25,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.statetransition.block.BlockImportChannel;
 import tech.pegasys.teku.validator.coordinator.BlockFactory;
 import tech.pegasys.teku.validator.coordinator.DutyMetrics;
-import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 
 public class BlockPublisherEip7594 extends BlockPublisherPhase0 {
 
@@ -37,7 +36,6 @@ public class BlockPublisherEip7594 extends BlockPublisherPhase0 {
       final BlockImportChannel blockImportChannel,
       final BlockGossipChannel blockGossipChannel,
       final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel,
-      final PerformanceTracker performanceTracker,
       final DutyMetrics dutyMetrics,
       final boolean gossipBlobsAfterBlock) {
     super(
@@ -45,7 +43,6 @@ public class BlockPublisherEip7594 extends BlockPublisherPhase0 {
         blockFactory,
         blockGossipChannel,
         blockImportChannel,
-        performanceTracker,
         dutyMetrics,
         gossipBlobsAfterBlock);
     this.dataColumnSidecarGossipChannel = dataColumnSidecarGossipChannel;

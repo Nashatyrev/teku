@@ -32,7 +32,6 @@ import tech.pegasys.teku.statetransition.block.BlockImportChannel;
 import tech.pegasys.teku.validator.api.SendSignedBlockResult;
 import tech.pegasys.teku.validator.coordinator.BlockFactory;
 import tech.pegasys.teku.validator.coordinator.DutyMetrics;
-import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 
 public class MilestoneBasedBlockPublisher implements BlockPublisher {
 
@@ -49,7 +48,6 @@ public class MilestoneBasedBlockPublisher implements BlockPublisher {
       final BlockBlobSidecarsTrackersPool blockBlobSidecarsTrackersPool,
       final BlobSidecarGossipChannel blobSidecarGossipChannel,
       final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel,
-      final PerformanceTracker performanceTracker,
       final DutyMetrics dutyMetrics,
       final boolean gossipBlobsAfterBlock) {
     this.spec = spec;
@@ -59,7 +57,6 @@ public class MilestoneBasedBlockPublisher implements BlockPublisher {
             blockFactory,
             blockGossipChannel,
             blockImportChannel,
-            performanceTracker,
             dutyMetrics,
             gossipBlobsAfterBlock);
 
@@ -74,7 +71,6 @@ public class MilestoneBasedBlockPublisher implements BlockPublisher {
                     blockGossipChannel,
                     blockBlobSidecarsTrackersPool,
                     blobSidecarGossipChannel,
-                    performanceTracker,
                     dutyMetrics,
                     gossipBlobsAfterBlock));
     final Supplier<BlockPublisherEip7594> blockAndDataColumnSidecarsPublisherSupplier =
@@ -86,7 +82,6 @@ public class MilestoneBasedBlockPublisher implements BlockPublisher {
                     blockImportChannel,
                     blockGossipChannel,
                     dataColumnSidecarGossipChannel,
-                    performanceTracker,
                     dutyMetrics,
                     gossipBlobsAfterBlock));
 

@@ -45,7 +45,6 @@ import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator.Broa
 import tech.pegasys.teku.validator.api.SendSignedBlockResult;
 import tech.pegasys.teku.validator.coordinator.BlockFactory;
 import tech.pegasys.teku.validator.coordinator.DutyMetrics;
-import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 
 public class AbstractBlockPublisherTest {
   private final StubAsyncRunner asyncRunner = new StubAsyncRunner();
@@ -54,7 +53,6 @@ public class AbstractBlockPublisherTest {
   private final BlockFactory blockFactory = mock(BlockFactory.class);
   private final BlockGossipChannel blockGossipChannel = mock(BlockGossipChannel.class);
   private final BlockImportChannel blockImportChannel = mock(BlockImportChannel.class);
-  private final PerformanceTracker performanceTracker = mock(PerformanceTracker.class);
   private final DutyMetrics dutyMetrics = mock(DutyMetrics.class);
 
   private final AbstractBlockPublisher blockPublisher =
@@ -64,7 +62,6 @@ public class AbstractBlockPublisherTest {
               blockFactory,
               blockGossipChannel,
               blockImportChannel,
-              performanceTracker,
               dutyMetrics,
               false));
 
@@ -197,7 +194,6 @@ public class AbstractBlockPublisherTest {
                 blockFactory,
                 blockGossipChannel,
                 blockImportChannel,
-                performanceTracker,
                 dutyMetrics,
                 true));
 
@@ -277,7 +273,6 @@ public class AbstractBlockPublisherTest {
         final BlockFactory blockFactory,
         final BlockGossipChannel blockGossipChannel,
         final BlockImportChannel blockImportChannel,
-        final PerformanceTracker performanceTracker,
         final DutyMetrics dutyMetrics,
         final boolean gossipBlobsAfterBlock) {
       super(
@@ -285,7 +280,6 @@ public class AbstractBlockPublisherTest {
           blockFactory,
           blockGossipChannel,
           blockImportChannel,
-          performanceTracker,
           dutyMetrics,
           gossipBlobsAfterBlock);
     }
