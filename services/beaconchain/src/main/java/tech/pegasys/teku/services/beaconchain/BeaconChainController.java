@@ -250,7 +250,8 @@ import tech.pegasys.teku.validator.coordinator.performance.NoOpPerformanceTracke
 import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 import tech.pegasys.teku.validator.coordinator.performance.SyncCommitteePerformanceTracker;
 import tech.pegasys.teku.validator.coordinator.performance.ValidatorPerformanceMetrics;
-import tech.pegasys.teku.validator.coordinator.publisher.MilestoneBasedBlockPublisher;
+import tech.pegasys.teku.validator.coordinator.publisher.BlockPublisher;
+import tech.pegasys.teku.validator.coordinator.publisher.MilestoneAndFeatureBasedBlockPublisher;
 import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityCalculator;
 import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 
@@ -1243,8 +1244,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
     final DutyMetrics dutyMetrics =
         DutyMetrics.create(metricsSystem, timeProvider, recentChainData, spec);
 
-    final MilestoneBasedBlockPublisher blockPublisher =
-        new MilestoneBasedBlockPublisher(
+    final BlockPublisher blockPublisher =
+        new MilestoneAndFeatureBasedBlockPublisher(
             beaconAsyncRunner,
             spec,
             blockFactory,
