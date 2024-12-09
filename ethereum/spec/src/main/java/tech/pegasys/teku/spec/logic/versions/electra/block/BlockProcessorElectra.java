@@ -23,6 +23,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
@@ -520,6 +521,20 @@ public class BlockProcessorElectra extends BlockProcessorDeneb {
       return;
     }
 
+    // Verify the source has been active long enough
+    if (currentEpoch.isLessThan(
+        sourceValidator.getActivationEpoch().plus(specConfig.getShardCommitteePeriod()))) {
+      LOG.debug("process_consolidation_request: source has not been active long enough");
+      return;
+    }
+    // Verify the source has no pending withdrawals in the queue
+    if (beaconStateAccessorsElectra
+        .getPendingBalanceToWithdraw(state, sourceValidatorIndex)
+        .isGreaterThan(ZERO)) {
+      LOG.debug("process_consolidation_request: source has pending withdrawals in the queue");
+      return;
+    }
+
     // Initiate source validator exit and append pending consolidation
     final UInt64 exitEpoch =
         beaconStateMutatorsElectra.computeConsolidationEpochAndUpdateChurn(
@@ -711,16 +726,25 @@ public class BlockProcessorElectra extends BlockProcessorDeneb {
       final BeaconState state,
       final UInt64 slot,
       final SszBitlist aggregationBits) {
-    int participantsCount = 0;
+    int committeeOffset = 0;
     for (final UInt64 committeeIndex : committeeIndices) {
       if (committeeIndex.isGreaterThanOrEqualTo(committeeCountPerSlot)) {
         return Optional.of(AttestationInvalidReason.COMMITTEE_INDEX_TOO_HIGH);
       }
       final IntList committee =
           beaconStateAccessorsElectra.getBeaconCommittee(state, slot, committeeIndex);
-      participantsCount += committee.size();
+      final int currentCommitteeOffset = committeeOffset;
+      final boolean committeeHasAtLeastOneAttester =
+          IntStream.range(0, committee.size())
+              .anyMatch(
+                  committeeParticipantIndex ->
+                      aggregationBits.isSet(currentCommitteeOffset + committeeParticipantIndex));
+      if (!committeeHasAtLeastOneAttester) {
+        return Optional.of(AttestationInvalidReason.PARTICIPANTS_COUNT_MISMATCH);
+      }
+      committeeOffset += committee.size();
     }
-    if (participantsCount != aggregationBits.size()) {
+    if (committeeOffset != aggregationBits.size()) {
       return Optional.of(AttestationInvalidReason.PARTICIPANTS_COUNT_MISMATCH);
     }
     return Optional.empty();
