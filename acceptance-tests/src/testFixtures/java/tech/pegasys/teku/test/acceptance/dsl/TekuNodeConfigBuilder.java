@@ -171,18 +171,6 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
-  public TekuNodeConfigBuilder withFuluEpoch(final UInt64 fuluForkEpoch) {
-    mustBe(NodeType.BEACON_NODE);
-    LOG.debug("Xnetwork-das-fork-epoch={}", fuluForkEpoch);
-    configMap.put("Xnetwork-das-fork-epoch", fuluForkEpoch.toString());
-    specConfigModifier =
-        specConfigModifier.andThen(
-            specConfigBuilder ->
-                specConfigBuilder.fuluBuilder(
-                    fuluBuilder -> fuluBuilder.fuluForkEpoch(fuluForkEpoch)));
-    return this;
-  }
-
   public TekuNodeConfigBuilder withTrustedSetupFromClasspath(final String trustedSetup)
       throws Exception {
     mustBe(NodeType.BEACON_NODE);
