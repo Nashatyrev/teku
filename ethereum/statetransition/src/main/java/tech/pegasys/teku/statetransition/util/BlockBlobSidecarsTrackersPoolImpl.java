@@ -47,6 +47,7 @@ import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
@@ -221,6 +222,11 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
   @Override
   public synchronized void onNewBlobSidecar(
       final BlobSidecar blobSidecar, final RemoteOrigin remoteOrigin) {
+    if (spec.atSlot(blobSidecar.getSlot())
+        .getMilestone()
+        .isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
+      return;
+    }
     if (recentChainData.containsBlock(blobSidecar.getBlockRoot())) {
       return;
     }
@@ -288,6 +294,9 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
   public synchronized void onNewBlock(
       final SignedBeaconBlock block, final Optional<RemoteOrigin> remoteOrigin) {
     if (block.getMessage().getBody().toVersionDeneb().isEmpty()) {
+      return;
+    }
+    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
       return;
     }
     if (recentChainData.containsBlock(block.getRoot())) {

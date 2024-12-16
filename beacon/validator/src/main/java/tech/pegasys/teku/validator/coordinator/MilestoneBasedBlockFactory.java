@@ -14,7 +14,6 @@
 package tech.pegasys.teku.validator.coordinator;
 
 import com.google.common.base.Suppliers;
-import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
