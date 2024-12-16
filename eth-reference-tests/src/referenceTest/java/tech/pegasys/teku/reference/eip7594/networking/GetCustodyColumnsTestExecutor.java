@@ -27,7 +27,7 @@ import tech.pegasys.teku.ethtests.finder.TestDefinition;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.reference.TestExecutor;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 
 public class GetCustodyColumnsTestExecutor implements TestExecutor {
 
@@ -37,7 +37,7 @@ public class GetCustodyColumnsTestExecutor implements TestExecutor {
         loadYaml(testDefinition, "meta.yaml", GetCustodyColumnsMetaData.class);
     final SpecVersion spec = testDefinition.getSpec().getGenesisSpec();
     final List<UInt64> actualResult =
-        MiscHelpersEip7594.required(spec.miscHelpers())
+        MiscHelpersFulu.required(spec.miscHelpers())
             .computeCustodyColumnIndexes(metaData.getNodeId(), metaData.getCustodySubnetCount());
     assertThat(new HashSet<>(actualResult)).isEqualTo(metaData.getResult());
   }

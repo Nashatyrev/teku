@@ -85,8 +85,8 @@ public class GetIdentityIntegrationTest extends AbstractDataBackedRestAPIIntegra
   }
 
   @Test
-  public void shouldReturnNetworkIdentityEip7594() throws Exception {
-    startRestAPIAtGenesis(SpecMilestone.ELECTRA);
+  public void shouldReturnNetworkIdentityFulu() throws Exception {
+    startRestAPIAtGenesis(SpecMilestone.FULU);
 
     final MetadataMessage metadataMessage =
         spec.getGenesisSchemaDefinitions()

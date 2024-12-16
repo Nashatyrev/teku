@@ -55,14 +55,10 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
   private final PendingPartialWithdrawalSchema pendingPartialWithdrawalSchema;
   private final PendingConsolidationSchema pendingConsolidationSchema;
 
-  private final Optional<SchemaDefinitionsEip7594> maybeSchemaDefinitionsEip7594;
   private final SingleAttestationSchema singleAttestationSchema;
 
-  public SchemaDefinitionsElectra(
-      final SchemaRegistry schemaRegistry,
-      final Optional<SchemaDefinitionsEip7594> maybeSchemaDefinitionsEip7594) {
+  public SchemaDefinitionsElectra(final SchemaRegistry schemaRegistry) {
     super(schemaRegistry);
-    this.maybeSchemaDefinitionsEip7594 = maybeSchemaDefinitionsEip7594;
     this.executionRequestsSchema = schemaRegistry.get(EXECUTION_REQUESTS_SCHEMA);
     this.pendingDepositsSchema = schemaRegistry.get(PENDING_DEPOSITS_SCHEMA);
     this.pendingPartialWithdrawalsSchema = schemaRegistry.get(PENDING_PARTIAL_WITHDRAWALS_SCHEMA);
@@ -152,10 +148,5 @@ public class SchemaDefinitionsElectra extends SchemaDefinitionsDeneb {
   @Override
   long getMaxValidatorsPerAttestation(final SpecConfig specConfig) {
     return (long) specConfig.getMaxValidatorsPerCommittee() * specConfig.getMaxCommitteesPerSlot();
-  }
-
-  @Override
-  public Optional<SchemaDefinitionsEip7594> getOptionalSchemaDefinitionsEip7594() {
-    return maybeSchemaDefinitionsEip7594;
   }
 }

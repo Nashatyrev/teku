@@ -29,13 +29,13 @@ import org.apache.tuweni.units.bigints.UInt256;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecFeature;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.SpecMilestone;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.statetransition.datacolumns.retriever.DataColumnSidecarRetriever;
 import tech.pegasys.teku.statetransition.datacolumns.util.StringifyUtil;
@@ -75,13 +75,13 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
   }
 
   private int getColumnCount(final UInt64 slot) {
-    return Eip7594.required(spec.atSlot(slot).getConfig()).getNumberOfColumns();
+    return SpecConfigFulu.required(spec.atSlot(slot).getConfig()).getNumberOfColumns();
   }
 
   private List<DataColumnSlotAndIdentifier> calculateSamplingColumnIds(
       final UInt64 slot, final Bytes32 blockRoot) {
-    final Optional<MiscHelpersEip7594> maybeMiscHelpers =
-        spec.atSlot(slot).miscHelpers().getEip7594Helpers();
+    final Optional<MiscHelpersFulu> maybeMiscHelpers =
+        spec.atSlot(slot).miscHelpers().toVersionFulu();
     return maybeMiscHelpers
         .map(
             miscHelpersEip7594 ->
@@ -170,27 +170,22 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
         });
   }
 
-  private boolean isEIP7594(final BeaconBlock block) {
-    return spec.isFeatureActivatedAtEpoch(
-        SpecFeature.EIP7594, spec.computeEpochAtSlot(block.getSlot()));
-  }
-
   private boolean hasBlobs(final BeaconBlock block) {
     return !block.getBody().getOptionalBlobKzgCommitments().orElseThrow().isEmpty();
   }
 
   private boolean isInCustodyPeriod(final BeaconBlock block) {
-    final MiscHelpersEip7594 miscHelpersEip7594 =
-        MiscHelpersEip7594.required(spec.atSlot(block.getSlot()).miscHelpers());
+    final MiscHelpersFulu miscHelpersFulu =
+        MiscHelpersFulu.required(spec.atSlot(block.getSlot()).miscHelpers());
     final UInt64 currentEpoch = spec.computeEpochAtSlot(currentSlotProvider.getCurrentSlot());
-    return miscHelpersEip7594.isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
+    return miscHelpersFulu.isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
         currentEpoch, spec.computeEpochAtSlot(block.getSlot()));
   }
 
   @Override
   public SamplingEligibilityStatus checkSamplingEligibility(final BeaconBlock block) {
-    if (!isEIP7594(block)) {
-      return SamplingEligibilityStatus.NOT_REQUIRED_BEFORE_EIP7594;
+    if (!spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
+      return SamplingEligibilityStatus.NOT_REQUIRED_BEFORE_FULU;
     } else if (!isInCustodyPeriod(block)) {
       return SamplingEligibilityStatus.NOT_REQUIRED_OLD_EPOCH;
     } else if (!hasBlobs(block)) {

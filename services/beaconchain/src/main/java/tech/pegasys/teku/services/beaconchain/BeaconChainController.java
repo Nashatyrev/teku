@@ -100,9 +100,8 @@ import tech.pegasys.teku.service.serviceutils.layout.DataDirLayout;
 import tech.pegasys.teku.services.executionlayer.ExecutionLayerBlockManagerFactory;
 import tech.pegasys.teku.services.timer.TimerService;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -123,9 +122,9 @@ import tech.pegasys.teku.spec.logic.common.statetransition.availability.Availabi
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.util.BlockRewardCalculatorUtil;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 import tech.pegasys.teku.spec.networks.Eth2Network;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.statetransition.EpochCachePrimer;
 import tech.pegasys.teku.statetransition.LocalOperationAcceptedFilter;
 import tech.pegasys.teku.statetransition.MappedOperationPool;
@@ -242,7 +241,7 @@ import tech.pegasys.teku.validator.coordinator.Eth1DataCache;
 import tech.pegasys.teku.validator.coordinator.Eth1DataProvider;
 import tech.pegasys.teku.validator.coordinator.Eth1VotingPeriod;
 import tech.pegasys.teku.validator.coordinator.GraffitiBuilder;
-import tech.pegasys.teku.validator.coordinator.MilestoneWithFeaturesBlockFactory;
+import tech.pegasys.teku.validator.coordinator.MilestoneBasedBlockFactory;
 import tech.pegasys.teku.validator.coordinator.ValidatorApiHandler;
 import tech.pegasys.teku.validator.coordinator.ValidatorIndexCacheTracker;
 import tech.pegasys.teku.validator.coordinator.performance.DefaultPerformanceTracker;
@@ -251,7 +250,7 @@ import tech.pegasys.teku.validator.coordinator.performance.PerformanceTracker;
 import tech.pegasys.teku.validator.coordinator.performance.SyncCommitteePerformanceTracker;
 import tech.pegasys.teku.validator.coordinator.performance.ValidatorPerformanceMetrics;
 import tech.pegasys.teku.validator.coordinator.publisher.BlockPublisher;
-import tech.pegasys.teku.validator.coordinator.publisher.MilestoneAndFeatureBasedBlockPublisher;
+import tech.pegasys.teku.validator.coordinator.publisher.MilestoneBasedBlockPublisher;
 import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityCalculator;
 import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 
@@ -667,8 +666,8 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   private void initDasSamplerManager() {
-    if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
-      LOG.info("Activated DAS Sampler Manager for EIP7594");
+    if (spec.isMilestoneSupported(SpecMilestone.FULU)) {
+      LOG.info("Activated DAS Sampler Manager for FULU");
       this.dasSamplerManager = new DasSamplerManager(() -> dataAvailabilitySampler, kzg, spec);
     } else {
       LOG.info("Using NOOP DAS Sampler Manager");
@@ -677,13 +676,13 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDataColumnSidecarManager() {
-    if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
+    if (spec.isMilestoneSupported(SpecMilestone.FULU)) {
       final DataColumnSidecarGossipValidator dataColumnSidecarGossipValidator =
           DataColumnSidecarGossipValidator.create(
               spec,
               invalidBlockRoots,
               gossipValidationHelper,
-              MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).miscHelpers()),
+              MiscHelpersFulu.required(spec.forMilestone(SpecMilestone.FULU).miscHelpers()),
               kzg,
               metricsSystem);
       dataColumnSidecarManager =
@@ -698,14 +697,15 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDasCustody() {
-    if (!spec.isFeatureScheduled(SpecFeature.EIP7594)) {
+    if (!spec.isMilestoneSupported(SpecMilestone.FULU)) {
       return;
     }
-    LOG.info("Activating DAS Custody for EIP7594");
-    Eip7594 configEip7594 = Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
-    MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator =
+    LOG.info("Activating DAS Custody for FULU");
+    final SpecConfigFulu specConfigFulu =
+        SpecConfigFulu.required(spec.forMilestone(SpecMilestone.FULU).getConfig());
+    final MinCustodyPeriodSlotCalculator minCustodyPeriodSlotCalculator =
         MinCustodyPeriodSlotCalculator.createFromSpec(spec);
-    int slotsPerEpoch = spec.getGenesisSpec().getSlotsPerEpoch();
+    final int slotsPerEpoch = spec.getGenesisSpec().getSlotsPerEpoch();
 
     final DataColumnSidecarDbAccessor dbAccessor;
     {
@@ -728,12 +728,10 @@ public class BeaconChainController extends Service implements BeaconChainControl
                 .getBlockAtSlotExact(slot)
                 .thenApply(sbb -> sbb.flatMap(SignedBeaconBlock::getBeaconBlock));
 
-    int minCustodyRequirement = configEip7594.getCustodyRequirement();
-    int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
+    int minCustodyRequirement = specConfigFulu.getCustodyRequirement();
+    int maxSubnets = specConfigFulu.getDataColumnSidecarSubnetCount();
     int totalMyCustodySubnets =
-        beaconConfig
-            .p2pConfig()
-            .getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.ELECTRA));
+        beaconConfig.p2pConfig().getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.FULU));
 
     final UpdatableDataColumnSidecarCustody custody;
     {
@@ -796,22 +794,22 @@ public class BeaconChainController extends Service implements BeaconChainControl
             dasRpc,
             operationPoolAsyncRunner,
             Duration.ofSeconds(1));
-    MiscHelpersEip7594 miscHelpersEip7594 =
-        MiscHelpersEip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).miscHelpers());
-    SchemaDefinitionsEip7594 schemaDefinitionsEip7594 =
-        SchemaDefinitionsEip7594.required(
-            spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions());
+    MiscHelpersFulu miscHelpersFulu =
+        MiscHelpersFulu.required(spec.forMilestone(SpecMilestone.FULU).miscHelpers());
+    SchemaDefinitionsFulu schemaDefinitionsFulu =
+        SchemaDefinitionsFulu.required(
+            spec.forMilestone(SpecMilestone.FULU).getSchemaDefinitions());
     RecoveringSidecarRetriever recoveringSidecarRetriever =
         new RecoveringSidecarRetriever(
             sidecarRetriever,
             kzg,
-            miscHelpersEip7594,
-            schemaDefinitionsEip7594,
+            miscHelpersFulu,
+            schemaDefinitionsFulu,
             canonicalBlockResolver,
             dbAccessor,
             operationPoolAsyncRunner,
             Duration.ofMinutes(5),
-            configEip7594.getNumberOfColumns());
+            specConfigFulu.getNumberOfColumns());
 
     dasCustodySync = new DasCustodySync(custody, recoveringSidecarRetriever);
     eventChannels.subscribe(SlotEventsChannel.class, dasCustodySync);
@@ -1155,7 +1153,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
   }
 
   protected void initDataColumnSidecarSubnetBackboneSubscriber() {
-    if (!spec.isFeatureScheduled(SpecFeature.EIP7594)) {
+    if (!spec.isMilestoneSupported(SpecMilestone.FULU)) {
       return;
     }
     LOG.debug("BeaconChainController.initDataColumnSidecarSubnetBackboneSubscriber");
@@ -1166,7 +1164,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             nodeId,
             beaconConfig
                 .p2pConfig()
-                .getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.ELECTRA)));
+                .getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.FULU)));
 
     eventChannels.subscribe(SlotEventsChannel.class, subnetBackboneSubscriber);
   }
@@ -1206,8 +1204,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
             graffitiBuilder,
             forkChoiceNotifier,
             executionLayerBlockProductionManager);
-    final BlockFactory blockFactory =
-        new MilestoneWithFeaturesBlockFactory(spec, operationSelector, kzg);
+    final BlockFactory blockFactory = new MilestoneBasedBlockFactory(spec, operationSelector, kzg);
     SyncCommitteeSubscriptionManager syncCommitteeSubscriptionManager =
         beaconConfig.p2pConfig().isSubscribeAllSubnetsEnabled()
             ? new AllSyncCommitteeSubscriptions(p2pNetwork, spec)
@@ -1224,7 +1221,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
       blobSidecarGossipChannel = BlobSidecarGossipChannel.NOOP;
     }
     final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel;
-    if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
+    if (spec.isMilestoneSupported(SpecMilestone.FULU)) {
       dataColumnSidecarGossipChannel =
           eventChannels.getPublisher(DataColumnSidecarGossipChannel.class);
     } else {
@@ -1245,7 +1242,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
         DutyMetrics.create(metricsSystem, timeProvider, recentChainData, spec);
 
     final BlockPublisher blockPublisher =
-        new MilestoneAndFeatureBasedBlockPublisher(
+        new MilestoneBasedBlockPublisher(
             beaconAsyncRunner,
             spec,
             blockFactory,

@@ -23,22 +23,18 @@ import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
-import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.state.Validator;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateElectra;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 
 public class MiscHelpersElectra extends MiscHelpersDeneb {
   private final SpecConfigElectra specConfigElectra;
   private final PredicatesElectra predicatesElectra;
-  private final Optional<MiscHelpersEip7594> maybeEip7594Helpers;
 
   public MiscHelpersElectra(
       final SpecConfigElectra specConfig,
@@ -50,16 +46,6 @@ public class MiscHelpersElectra extends MiscHelpersDeneb {
         SchemaDefinitionsDeneb.required(schemaDefinitions));
     this.specConfigElectra = SpecConfigElectra.required(specConfig);
     this.predicatesElectra = PredicatesElectra.required(predicates);
-    if (specConfig.getOptionalEip7594Config().isPresent()) {
-      this.maybeEip7594Helpers =
-          Optional.of(
-              new MiscHelpersEip7594(
-                  Eip7594.required(specConfig),
-                  predicates,
-                  SchemaDefinitionsElectra.required(schemaDefinitions)));
-    } else {
-      this.maybeEip7594Helpers = Optional.empty();
-    }
   }
 
   public static MiscHelpersElectra required(final MiscHelpers miscHelpers) {
@@ -125,20 +111,5 @@ public class MiscHelpersElectra extends MiscHelpersDeneb {
     return state
         .getEth1DepositIndex()
         .equals(BeaconStateElectra.required(state).getDepositRequestsStartIndex());
-  }
-
-  @Override
-  public boolean isAvailabilityOfBlobSidecarsRequiredAtEpoch(
-      final UInt64 currentEpoch, final UInt64 epoch) {
-    return getEip7594Helpers()
-        .map(
-            miscHelpersEip7594 ->
-                miscHelpersEip7594.isAvailabilityOfBlobSidecarsRequiredAtEpoch(currentEpoch, epoch))
-        .orElseGet(() -> super.isAvailabilityOfBlobSidecarsRequiredAtEpoch(currentEpoch, epoch));
-  }
-
-  @Override
-  public Optional<MiscHelpersEip7594> getEip7594Helpers() {
-    return maybeEip7594Helpers;
   }
 }

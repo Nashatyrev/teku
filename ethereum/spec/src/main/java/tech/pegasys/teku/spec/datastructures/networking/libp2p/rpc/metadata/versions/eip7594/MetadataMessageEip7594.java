@@ -25,16 +25,16 @@ public class MetadataMessageEip7594
     extends Container4<MetadataMessageEip7594, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
     implements MetadataMessage {
 
-  MetadataMessageEip7594(final MetadataMessageSchemaEip7594 schema) {
+  MetadataMessageEip7594(final MetadataMessageSchemaFulu schema) {
     super(schema);
   }
 
-  MetadataMessageEip7594(final MetadataMessageSchemaEip7594 schema, final TreeNode backingNode) {
+  MetadataMessageEip7594(final MetadataMessageSchemaFulu schema, final TreeNode backingNode) {
     super(schema, backingNode);
   }
 
   MetadataMessageEip7594(
-      final MetadataMessageSchemaEip7594 schema,
+      final MetadataMessageSchemaFulu schema,
       final UInt64 seqNumber,
       final SszBitvector attNets,
       final SszBitvector syncNets,

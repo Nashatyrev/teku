@@ -17,7 +17,6 @@ import com.google.common.annotations.VisibleForTesting;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
 import tech.pegasys.teku.networking.eth2.gossip.topics.GossipTopicName;
 import tech.pegasys.teku.networking.eth2.gossip.topics.GossipTopics;
@@ -29,11 +28,11 @@ import tech.pegasys.teku.networking.p2p.gossip.TopicChannel;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecarSchema;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
@@ -44,8 +43,6 @@ public class DataColumnSidecarSubnetSubscriptions extends CommitteeSubnetSubscri
   private final RecentChainData recentChainData;
   private final OperationProcessor<DataColumnSidecar> processor;
   private final ForkInfo forkInfo;
-  private final UInt64 eip7594ActivationEpoch;
-  private final UInt64 eip7594EndEpoch;
   private final int subnetCount;
   private final DataColumnSidecarSchema dataColumnSidecarSchema;
   private final DebugDataDumper debugDataDumper;
@@ -58,9 +55,7 @@ public class DataColumnSidecarSubnetSubscriptions extends CommitteeSubnetSubscri
       final RecentChainData recentChainData,
       final OperationProcessor<DataColumnSidecar> processor,
       final DebugDataDumper debugDataDumper,
-      final ForkInfo forkInfo,
-      final UInt64 eip7594ActivationEpoch,
-      final UInt64 eip7594EndEpoch) {
+      final ForkInfo forkInfo) {
     super(gossipNetwork, gossipEncoding);
     this.spec = spec;
     this.asyncRunner = asyncRunner;
@@ -70,11 +65,10 @@ public class DataColumnSidecarSubnetSubscriptions extends CommitteeSubnetSubscri
     this.forkInfo = forkInfo;
     final SpecVersion specVersion = spec.forMilestone(SpecMilestone.getHighestMilestone());
     this.dataColumnSidecarSchema =
-        SchemaDefinitionsEip7594.required(specVersion.getSchemaDefinitions())
+        SchemaDefinitionsFulu.required(specVersion.getSchemaDefinitions())
             .getDataColumnSidecarSchema();
-    this.subnetCount = Eip7594.required(specVersion.getConfig()).getDataColumnSidecarSubnetCount();
-    this.eip7594ActivationEpoch = eip7594ActivationEpoch;
-    this.eip7594EndEpoch = eip7594EndEpoch;
+    this.subnetCount =
+        SpecConfigFulu.required(specVersion.getConfig()).getDataColumnSidecarSubnetCount();
   }
 
   public SafeFuture<?> gossip(final DataColumnSidecar sidecar) {
@@ -101,8 +95,6 @@ public class DataColumnSidecarSubnetSubscriptions extends CommitteeSubnetSubscri
         gossipEncoding,
         debugDataDumper,
         forkInfo,
-        eip7594ActivationEpoch,
-        eip7594EndEpoch,
         topicName,
         dataColumnSidecarSchema,
         subnetId);

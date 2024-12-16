@@ -26,11 +26,11 @@ import tech.pegasys.teku.statetransition.block.BlockImportChannel;
 import tech.pegasys.teku.validator.coordinator.BlockFactory;
 import tech.pegasys.teku.validator.coordinator.DutyMetrics;
 
-public class BlockPublisherEip7594 extends BlockPublisherPhase0 {
+public class BlockPublisherFulu extends BlockPublisherPhase0 {
 
   private final DataColumnSidecarGossipChannel dataColumnSidecarGossipChannel;
 
-  public BlockPublisherEip7594(
+  public BlockPublisherFulu(
       final AsyncRunner asyncRunner,
       final BlockFactory blockFactory,
       final BlockImportChannel blockImportChannel,
@@ -46,13 +46,6 @@ public class BlockPublisherEip7594 extends BlockPublisherPhase0 {
         dutyMetrics,
         gossipBlobsAfterBlock);
     this.dataColumnSidecarGossipChannel = dataColumnSidecarGossipChannel;
-  }
-
-  @Override
-  void importBlobSidecars(
-      final List<BlobSidecar> blobSidecars,
-      final BlockPublishingPerformance blockPublishingPerformance) {
-    // TODO: DataColumnSidecars pool fill up
   }
 
   @Override

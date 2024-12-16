@@ -297,7 +297,7 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
 
   @Test
   public void onNewBlock_shouldIgnoreEip7594Blocks() {
-    final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
+    final Spec spec = TestSpecFactory.createMinimalFulu();
     final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolEip7594 =
         new PoolFactory(metricsSystem)
             .createPoolForBlockBlobSidecarsTrackers(

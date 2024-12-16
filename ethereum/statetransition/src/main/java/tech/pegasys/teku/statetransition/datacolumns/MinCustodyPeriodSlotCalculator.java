@@ -15,7 +15,7 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 
 public interface MinCustodyPeriodSlotCalculator {
 
@@ -24,8 +24,8 @@ public interface MinCustodyPeriodSlotCalculator {
       final UInt64 currentEpoch = spec.computeEpochAtSlot(currentSlot);
       final int custodyPeriodEpochs =
           spec.getSpecConfig(currentEpoch)
-              .getOptionalEip7594Config()
-              .map(Eip7594::getMinEpochsForDataColumnSidecarsRequests)
+              .toVersionFulu()
+              .map(SpecConfigFulu::getMinEpochsForDataColumnSidecarsRequests)
               .orElse(0);
       if (custodyPeriodEpochs == 0) {
         return currentSlot;

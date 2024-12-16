@@ -48,8 +48,8 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsAltair;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsBellatrix;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsCapella;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 
 public class SszTestExecutor<T extends SszData> implements TestExecutor {
   private final SchemaProvider<T> sszType;
@@ -235,12 +235,11 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
           .put(
               "ssz_static/DataColumnSidecar",
               new SszTestExecutor<>(
-                  schemas ->
-                      SchemaDefinitionsEip7594.required(schemas).getDataColumnSidecarSchema()))
+                  schemas -> SchemaDefinitionsFulu.required(schemas).getDataColumnSidecarSchema()))
           .put(
               "ssz_static/MatrixEntry",
               new SszTestExecutor<>(
-                  schemas -> SchemaDefinitionsEip7594.required(schemas).getMatrixEntrySchema()))
+                  schemas -> SchemaDefinitionsFulu.required(schemas).getMatrixEntrySchema()))
 
           // Legacy Schemas (Not yet migrated to SchemaDefinitions)
           .put(

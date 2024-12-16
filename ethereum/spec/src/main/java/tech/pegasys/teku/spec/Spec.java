@@ -17,7 +17,6 @@ import static com.google.common.base.Preconditions.checkState;
 import static tech.pegasys.teku.infrastructure.time.TimeUtilities.millisToSeconds;
 import static tech.pegasys.teku.infrastructure.time.TimeUtilities.secondsToMillis;
 import static tech.pegasys.teku.spec.SpecMilestone.DENEB;
-import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
@@ -26,7 +25,6 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.IntList;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +52,7 @@ import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigAltair;
 import tech.pegasys.teku.spec.config.SpecConfigAndParent;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.constants.Domain;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
@@ -252,10 +250,6 @@ public class Spec {
     return forkSchedule.getActiveMilestones();
   }
 
-  public List<SpecFeature> getEnabledFeatures() {
-    return Arrays.stream(SpecFeature.values()).filter(this::isFeatureScheduled).toList();
-  }
-
   /**
    * Returns true if the given milestone is at or prior to our highest supported milestone
    *
@@ -434,10 +428,9 @@ public class Spec {
   public DataColumnSidecar deserializeSidecar(final Bytes serializedSidecar, final UInt64 slot) {
     return atSlot(slot)
         .getSchemaDefinitions()
-        .getOptionalSchemaDefinitionsEip7594()
+        .toVersionFulu()
         .orElseThrow(
-            () ->
-                new RuntimeException("EIP7594 milestone is required to deserialize column sidecar"))
+            () -> new RuntimeException("FULU milestone is required to deserialize column sidecar"))
         .getDataColumnSidecarSchema()
         .sszDeserialize(serializedSidecar);
   }
@@ -1010,29 +1003,29 @@ public class Spec {
   }
 
   public Optional<Integer> getNumberOfDataColumns() {
-    return getFeatureConfigEip7594().map(Eip7594::getNumberOfColumns);
+    return getSpecConfigFulu().map(SpecConfigFulu::getNumberOfColumns);
   }
 
   public Optional<Integer> getNumberOfDataColumnSubnets() {
-    return getFeatureConfigEip7594().map(Eip7594::getDataColumnSidecarSubnetCount);
+    return getSpecConfigFulu().map(SpecConfigFulu::getDataColumnSidecarSubnetCount);
   }
 
   public boolean isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
       final ReadOnlyStore store, final UInt64 epoch) {
-    if (!isFeatureActivatedAtEpoch(SpecFeature.EIP7594, epoch)) {
+    if (getSpecConfigFulu().isEmpty()) {
       return false;
     }
     final SpecConfig config = atEpoch(epoch).getConfig();
-    final Eip7594 specConfigEip7594 = Eip7594.required(config);
+    final SpecConfigFulu specConfigFulu = SpecConfigFulu.required(config);
     return getCurrentEpoch(store)
         .minusMinZero(epoch)
-        .isLessThanOrEqualTo(specConfigEip7594.getMinEpochsForDataColumnSidecarsRequests());
+        .isLessThanOrEqualTo(specConfigFulu.getMinEpochsForDataColumnSidecarsRequests());
   }
 
   public UInt64 computeSubnetForDataColumnSidecar(final DataColumnSidecar dataColumnSidecar) {
     final SpecConfig config = atSlot(dataColumnSidecar.getSlot()).getConfig();
-    final Eip7594 specConfigEip7594 = Eip7594.required(config);
-    return dataColumnSidecar.getIndex().mod(specConfigEip7594.getDataColumnSidecarSubnetCount());
+    final SpecConfigFulu specConfigFulu = SpecConfigFulu.required(config);
+    return dataColumnSidecar.getIndex().mod(specConfigFulu.getDataColumnSidecarSubnetCount());
   }
 
   public Optional<UInt64> computeFirstSlotWithBlobSupport() {
@@ -1046,30 +1039,6 @@ public class Spec {
     return atState(state).miscHelpers().isFormerDepositMechanismDisabled(state);
   }
 
-  public boolean isFeatureScheduled(final SpecFeature feature) {
-    return switch (feature) {
-      case EIP7594 ->
-          this.getFeatureConfigEip7594()
-              .map(eip7594 -> eip7594.getEip7594FeatureEpoch().isLessThan(FAR_FUTURE_EPOCH))
-              .orElse(false);
-      default -> false;
-    };
-  }
-
-  public boolean isFeatureActivated(final SpecFeature feature, final ReadOnlyStore store) {
-    return isFeatureActivatedAtEpoch(feature, getCurrentEpoch(store));
-  }
-
-  public boolean isFeatureActivatedAtEpoch(final SpecFeature feature, final UInt64 epoch) {
-    return switch (feature) {
-      case EIP7594 ->
-          this.getFeatureConfigEip7594()
-              .map(eip7594 -> epoch.isGreaterThanOrEqualTo(eip7594.getEip7594FeatureEpoch()))
-              .orElse(false);
-      default -> false;
-    };
-  }
-
   // Deneb private helpers
   private Optional<SpecConfigDeneb> getSpecConfigDeneb() {
     final SpecMilestone highestSupportedMilestone =
@@ -1079,13 +1048,13 @@ public class Spec {
         .flatMap(SpecConfig::toVersionDeneb);
   }
 
-  // EIP7594 private helpers
-  private Optional<Eip7594> getFeatureConfigEip7594() {
+  // Fulu private helpers
+  private Optional<SpecConfigFulu> getSpecConfigFulu() {
     final SpecMilestone highestSupportedMilestone =
         getForkSchedule().getHighestSupportedMilestone();
     return Optional.ofNullable(forMilestone(highestSupportedMilestone))
         .map(SpecVersion::getConfig)
-        .flatMap(SpecConfig::getOptionalEip7594Config);
+        .flatMap(SpecConfig::toVersionFulu);
   }
 
   // Private helpers

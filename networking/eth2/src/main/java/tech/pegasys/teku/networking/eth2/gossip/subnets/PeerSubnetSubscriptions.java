@@ -37,7 +37,7 @@ import tech.pegasys.teku.networking.eth2.peers.PeerScorer;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
 import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 
 public class PeerSubnetSubscriptions {
@@ -79,8 +79,8 @@ public class PeerSubnetSubscriptions {
     Integer dataColumnSidecarSubnetCount =
         currentVersion
             .getConfig()
-            .getOptionalEip7594Config()
-            .map(Eip7594::getDataColumnSidecarSubnetCount)
+            .toVersionFulu()
+            .map(SpecConfigFulu::getDataColumnSidecarSubnetCount)
             // SszBitvectorSchema.create will throw with 0
             .orElse(1);
 

@@ -57,6 +57,7 @@ import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscri
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsCapella;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsDeneb;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsElectra;
+import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsFulu;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsPhase0;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.AttestationSubnetTopicProvider;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.DataColumnSidecarSubnetTopicProvider;
@@ -106,6 +107,7 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
 import tech.pegasys.teku.statetransition.block.VerifiedBlockOperationsListener;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.datacolumns.log.gossip.DasGossipLogger;
 import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
@@ -227,11 +229,10 @@ public class Eth2P2PNetworkFactory {
               RpcEncoding.createSszSnappyEncoding(spec.getNetworkingConfig().getMaxChunkSize());
         }
         final Optional<UInt64> dasTotalCustodySubnetCount =
-            spec.isMilestoneSupported(SpecMilestone.ELECTRA)
+            spec.isMilestoneSupported(SpecMilestone.FULU)
                 ? Optional.of(
                     UInt64.valueOf(
-                        config.getTotalCustodySubnetCount(
-                            spec.forMilestone(SpecMilestone.ELECTRA))))
+                        config.getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.FULU))))
                 : Optional.empty();
         final Eth2PeerManager eth2PeerManager =
             Eth2PeerManager.create(
@@ -475,7 +476,7 @@ public class Eth2P2PNetworkFactory {
                 syncCommitteeMessageProcessor,
                 signedBlsToExecutionChangeProcessor,
                 debugDataDumper);
-        case ELECTRA, FULU ->
+        case ELECTRA ->
             new GossipForkSubscriptionsElectra(
                 forkAndSpecMilestone.getFork(),
                 spec,
@@ -495,6 +496,28 @@ public class Eth2P2PNetworkFactory {
                 syncCommitteeMessageProcessor,
                 signedBlsToExecutionChangeProcessor,
                 debugDataDumper);
+        case FULU ->
+            new GossipForkSubscriptionsFulu(
+                forkAndSpecMilestone.getFork(),
+                spec,
+                asyncRunner,
+                metricsSystem,
+                network,
+                recentChainData,
+                gossipEncoding,
+                gossipedBlockProcessor,
+                gossipedBlobSidecarProcessor,
+                gossipedAttestationProcessor,
+                gossipedAggregateProcessor,
+                attesterSlashingProcessor,
+                proposerSlashingProcessor,
+                voluntaryExitProcessor,
+                signedContributionAndProofProcessor,
+                syncCommitteeMessageProcessor,
+                signedBlsToExecutionChangeProcessor,
+                dataColumnSidecarOperationProcessor,
+                debugDataDumper,
+                DasGossipLogger.NOOP);
       };
     }
 

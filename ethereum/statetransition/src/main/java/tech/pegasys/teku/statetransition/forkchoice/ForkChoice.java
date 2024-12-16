@@ -43,7 +43,7 @@ import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecFeature;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.cache.CapturingIndexedAttestationCache;
 import tech.pegasys.teku.spec.cache.IndexedAttestationCache;
@@ -441,8 +441,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
         IndexedAttestationCache.capturing();
 
     final AvailabilityChecker<?> availabilityChecker;
-    if (spec.isFeatureActivatedAtEpoch(
-        SpecFeature.EIP7594, spec.computeEpochAtSlot(block.getSlot()))) {
+    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
       LOG.info("Created DAS availabilityChecker for slot {}", block.getSlot());
       availabilityChecker = dasSamplerManager.createAvailabilityChecker(block);
     } else {

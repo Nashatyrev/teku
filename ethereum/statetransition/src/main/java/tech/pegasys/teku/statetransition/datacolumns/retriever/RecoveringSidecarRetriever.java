@@ -35,8 +35,8 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntry;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 
@@ -45,8 +45,8 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
 
   private final DataColumnSidecarRetriever delegate;
   private final KZG kzg;
-  private final MiscHelpersEip7594 specHelpers;
-  private final SchemaDefinitionsEip7594 schemaDefinitions;
+  private final MiscHelpersFulu specHelpers;
+  private final SchemaDefinitionsFulu schemaDefinitions;
   private final CanonicalBlockResolver blockResolver;
   private final DataColumnSidecarDbAccessor sidecarDB;
   private final AsyncRunner asyncRunner;
@@ -59,8 +59,8 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   public RecoveringSidecarRetriever(
       final DataColumnSidecarRetriever delegate,
       final KZG kzg,
-      final MiscHelpersEip7594 specHelpers,
-      final SchemaDefinitionsEip7594 schemaDefinitionsElectra,
+      final MiscHelpersFulu specHelpers,
+      final SchemaDefinitionsFulu schemaDefinitionsElectra,
       final CanonicalBlockResolver blockResolver,
       final DataColumnSidecarDbAccessor sidecarDB,
       final AsyncRunner asyncRunner,
@@ -166,7 +166,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   private class RecoveryEntry {
     private final BeaconBlock block;
     private final KZG kzg;
-    private final MiscHelpersEip7594 specHelpers;
+    private final MiscHelpersFulu specHelpers;
 
     private final Map<UInt64, DataColumnSidecar> existingSidecarsByColIdx = new HashMap<>();
     private final Map<UInt64, List<SafeFuture<DataColumnSidecar>>> promisesByColIdx =
@@ -176,7 +176,7 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     private boolean cancelled = false;
 
     public RecoveryEntry(
-        final BeaconBlock block, final KZG kzg, final MiscHelpersEip7594 specHelpers) {
+        final BeaconBlock block, final KZG kzg, final MiscHelpersFulu specHelpers) {
       this.block = block;
       this.kzg = kzg;
       this.specHelpers = specHelpers;

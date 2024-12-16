@@ -200,14 +200,14 @@ import tech.pegasys.teku.spec.executionlayer.ForkChoiceState;
 import tech.pegasys.teku.spec.executionlayer.PayloadBuildingAttributes;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.deneb.types.VersionedHash;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsAltair;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsBellatrix;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsCapella;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 
 public final class DataStructureUtil {
 
@@ -2659,8 +2659,8 @@ public final class DataStructureUtil {
 
   public DataColumnSidecar randomDataColumnSidecarWithInclusionProof(
       final SignedBeaconBlock signedBeaconBlock, final UInt64 index) {
-    final MiscHelpersEip7594 miscHelpersEip7594 =
-        MiscHelpersEip7594.required(spec.getGenesisSpec().miscHelpers());
+    final MiscHelpersFulu miscHelpersFulu =
+        MiscHelpersFulu.required(spec.getGenesisSpec().miscHelpers());
     final List<KZGCommitment> kzgCommitments =
         signedBeaconBlock
             .getMessage()
@@ -2672,7 +2672,7 @@ public final class DataStructureUtil {
             .map(SszKZGCommitment::getKZGCommitment)
             .toList();
     final List<Bytes32> inclusionProof =
-        miscHelpersEip7594.computeDataColumnKzgCommitmentsInclusionProof(
+        miscHelpersFulu.computeDataColumnKzgCommitmentsInclusionProof(
             signedBeaconBlock.getBeaconBlock().orElseThrow().getBody());
     return new RandomSidecarBuilder()
         .signedBeaconBlockHeader(signedBeaconBlock.asHeader())
@@ -2834,8 +2834,8 @@ public final class DataStructureUtil {
     return SchemaDefinitionsElectra.required(spec.atSlot(slot).getSchemaDefinitions());
   }
 
-  private SchemaDefinitionsEip7594 getEip7594SchemaDefinitions(final UInt64 slot) {
-    return SchemaDefinitionsEip7594.required(spec.atSlot(slot).getSchemaDefinitions());
+  private SchemaDefinitionsFulu getEip7594SchemaDefinitions(final UInt64 slot) {
+    return SchemaDefinitionsFulu.required(spec.atSlot(slot).getSchemaDefinitions());
   }
 
   int getEpochsPerEth1VotingPeriod() {

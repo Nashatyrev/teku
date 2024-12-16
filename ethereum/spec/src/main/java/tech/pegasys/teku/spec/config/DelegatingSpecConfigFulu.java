@@ -20,11 +20,11 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public class DelegatingSpecConfigFulu extends DelegatingSpecConfigElectra
     implements SpecConfigFulu {
-  private final SpecConfigFulu specConfigFulu;
+  private final SpecConfigFulu delegate;
 
   public DelegatingSpecConfigFulu(final SpecConfigFulu specConfig) {
     super(specConfig);
-    this.specConfigFulu = SpecConfigFulu.required(specConfig);
+    this.delegate = SpecConfigFulu.required(specConfig);
   }
 
   @Override
@@ -34,12 +34,57 @@ public class DelegatingSpecConfigFulu extends DelegatingSpecConfigElectra
 
   @Override
   public Bytes4 getFuluForkVersion() {
-    return specConfigFulu.getFuluForkVersion();
+    return delegate.getFuluForkVersion();
   }
 
   @Override
   public UInt64 getFuluForkEpoch() {
-    return specConfigFulu.getFuluForkEpoch();
+    return delegate.getFuluForkEpoch();
+  }
+
+  @Override
+  public UInt64 getFieldElementsPerCell() {
+    return delegate.getFieldElementsPerCell();
+  }
+
+  @Override
+  public UInt64 getFieldElementsPerExtBlob() {
+    return delegate.getFieldElementsPerExtBlob();
+  }
+
+  @Override
+  public UInt64 getKzgCommitmentsInclusionProofDepth() {
+    return delegate.getKzgCommitmentsInclusionProofDepth();
+  }
+
+  @Override
+  public int getNumberOfColumns() {
+    return delegate.getNumberOfColumns();
+  }
+
+  @Override
+  public int getDataColumnSidecarSubnetCount() {
+    return delegate.getDataColumnSidecarSubnetCount();
+  }
+
+  @Override
+  public int getCustodyRequirement() {
+    return delegate.getCustodyRequirement();
+  }
+
+  @Override
+  public int getSamplesPerSlot() {
+    return delegate.getSamplesPerSlot();
+  }
+
+  @Override
+  public int getMinEpochsForDataColumnSidecarsRequests() {
+    return delegate.getMinEpochsForDataColumnSidecarsRequests();
+  }
+
+  @Override
+  public int getMaxRequestDataColumnSidecars() {
+    return delegate.getMaxRequestDataColumnSidecars();
   }
 
   @Override
@@ -51,11 +96,11 @@ public class DelegatingSpecConfigFulu extends DelegatingSpecConfigElectra
       return false;
     }
     final DelegatingSpecConfigFulu that = (DelegatingSpecConfigFulu) o;
-    return Objects.equals(specConfigFulu, that.specConfigFulu);
+    return Objects.equals(delegate, that.delegate);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(specConfigFulu);
+    return Objects.hash(delegate);
   }
 }

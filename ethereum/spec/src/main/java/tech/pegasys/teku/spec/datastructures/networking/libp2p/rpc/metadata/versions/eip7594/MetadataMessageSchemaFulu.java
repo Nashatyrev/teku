@@ -25,11 +25,11 @@ import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
 import tech.pegasys.teku.spec.constants.NetworkConstants;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
 
-public class MetadataMessageSchemaEip7594
+public class MetadataMessageSchemaFulu
     extends ContainerSchema4<
         MetadataMessageEip7594, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
     implements MetadataMessageSchema<MetadataMessageEip7594> {
-  public MetadataMessageSchemaEip7594(final NetworkingSpecConfig networkingSpecConfig) {
+  public MetadataMessageSchemaFulu(final NetworkingSpecConfig networkingSpecConfig) {
     super(
         "MetadataMessage",
         namedSchema("seq_number", SszPrimitiveSchemas.UINT64_SCHEMA),

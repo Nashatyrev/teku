@@ -15,13 +15,13 @@ package tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc;
 
 import tech.pegasys.teku.infrastructure.ssz.schema.impl.AbstractSszListSchema;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 
 public class DataColumnSidecarsByRootRequestMessageSchema
     extends AbstractSszListSchema<DataColumnIdentifier, DataColumnSidecarsByRootRequestMessage> {
 
-  public DataColumnSidecarsByRootRequestMessageSchema(final Eip7594 featureConfig) {
-    super(DataColumnIdentifier.SSZ_SCHEMA, featureConfig.getMaxRequestDataColumnSidecars());
+  public DataColumnSidecarsByRootRequestMessageSchema(final SpecConfigFulu specConfig) {
+    super(DataColumnIdentifier.SSZ_SCHEMA, specConfig.getMaxRequestDataColumnSidecars());
   }
 
   @Override

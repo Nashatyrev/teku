@@ -121,18 +121,6 @@ public class TestSpecFactory {
     return create(specConfig, SpecMilestone.ELECTRA);
   }
 
-  public static Spec createMinimalElectraEip7594() {
-    final SpecConfigAndParent<? extends SpecConfig> specConfig =
-        getElectraEip7594SpecConfig(Eth2Network.MINIMAL);
-    return create(specConfig, SpecMilestone.ELECTRA);
-  }
-
-  public static Spec createMinimalElectraEip7594(final Consumer<SpecConfigBuilder> configAdapter) {
-    final SpecConfigAndParent<? extends SpecConfig> specConfig =
-        getElectraEip7594SpecConfig(Eth2Network.MINIMAL, configAdapter);
-    return create(specConfig, SpecMilestone.ELECTRA);
-  }
-
   public static Spec createMinimalFulu() {
     final SpecConfigAndParent<? extends SpecConfig> specConfig =
         getFuluSpecConfig(Eth2Network.MINIMAL);
@@ -251,12 +239,6 @@ public class TestSpecFactory {
   public static Spec createMainnetElectra() {
     final SpecConfigAndParent<? extends SpecConfig> specConfig =
         getElectraSpecConfig(Eth2Network.MAINNET);
-    return create(specConfig, SpecMilestone.ELECTRA);
-  }
-
-  public static Spec createMainnetElectraEip7594() {
-    final SpecConfigAndParent<? extends SpecConfig> specConfig =
-        getElectraEip7594SpecConfig(Eth2Network.MAINNET);
     return create(specConfig, SpecMilestone.ELECTRA);
   }
 
@@ -473,46 +455,6 @@ public class TestSpecFactory {
                   .capellaBuilder(c -> c.capellaForkEpoch(ZERO))
                   .denebBuilder(d -> d.denebForkEpoch(ZERO))
                   .electraBuilder(e -> e.electraForkEpoch(ZERO));
-              configAdapter.accept(builder);
-            }));
-  }
-
-  private static SpecConfigAndParent<? extends SpecConfig> getElectraEip7594SpecConfig(
-      final Eth2Network network) {
-    return getElectraEip7594SpecConfig(network, ZERO, ZERO, ZERO, ZERO);
-  }
-
-  private static SpecConfigAndParent<? extends SpecConfig> getElectraEip7594SpecConfig(
-      final Eth2Network network,
-      final UInt64 capellaForkEpoch,
-      final UInt64 denebForkEpoch,
-      final UInt64 electraForkEpoch,
-      final UInt64 eip7594ForkEpoch) {
-    return getElectraSpecConfig(
-        network,
-        builder ->
-            builder
-                .altairBuilder(a -> a.altairForkEpoch(ZERO))
-                .bellatrixBuilder(b -> b.bellatrixForkEpoch(ZERO))
-                .capellaBuilder(c -> c.capellaForkEpoch(capellaForkEpoch))
-                .denebBuilder(d -> d.denebForkEpoch(denebForkEpoch))
-                .electraBuilder(e -> e.electraForkEpoch(electraForkEpoch))
-                .eip7594Builder(eip7594 -> eip7594.eip7594ForkEpoch(eip7594ForkEpoch)));
-  }
-
-  private static SpecConfigAndParent<? extends SpecConfig> getElectraEip7594SpecConfig(
-      final Eth2Network network, final Consumer<SpecConfigBuilder> configAdapter) {
-    return requireElectra(
-        SpecConfigLoader.loadConfig(
-            network.configName(),
-            builder -> {
-              builder
-                  .altairBuilder(a -> a.altairForkEpoch(ZERO))
-                  .bellatrixBuilder(b -> b.bellatrixForkEpoch(ZERO))
-                  .capellaBuilder(c -> c.capellaForkEpoch(ZERO))
-                  .denebBuilder(d -> d.denebForkEpoch(ZERO))
-                  .electraBuilder(e -> e.electraForkEpoch(ZERO))
-                  .eip7594Builder(eip7594 -> eip7594.eip7594ForkEpoch(ZERO));
               configAdapter.accept(builder);
             }));
   }

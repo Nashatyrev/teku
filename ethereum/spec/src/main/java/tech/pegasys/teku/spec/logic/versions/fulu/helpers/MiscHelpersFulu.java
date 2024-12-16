@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers;
+package tech.pegasys.teku.spec.logic.versions.fulu.helpers;
 
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.bytesToUInt64;
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.uint256ToBytes;
@@ -21,6 +21,7 @@ import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -37,7 +38,8 @@ import tech.pegasys.teku.kzg.KZGCell;
 import tech.pegasys.teku.kzg.KZGCellAndProof;
 import tech.pegasys.teku.kzg.KZGCellID;
 import tech.pegasys.teku.kzg.KZGCellWithColumnId;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigElectra;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.Blob;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.Cell;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumn;
@@ -55,53 +57,62 @@ import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGProof;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 
-public class MiscHelpersEip7594 {
+public class MiscHelpersFulu extends MiscHelpersElectra {
   private static final MathContext BIGDECIMAL_PRECISION = MathContext.DECIMAL128;
 
-  public static MiscHelpersEip7594 required(final MiscHelpers miscHelpers) {
+  public static MiscHelpersFulu required(final MiscHelpers miscHelpers) {
     return miscHelpers
-        .getEip7594Helpers()
+        .toVersionFulu()
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
-                    "Expected misc helpers with EIP7594 but got: "
+                    "Expected Fulu misc helpers but got: "
                         + miscHelpers.getClass().getSimpleName()));
   }
 
-  private final Eip7594 specConfigEip7594;
+  private final SpecConfigFulu specConfigFulu;
   private final Predicates predicates;
-  private final SchemaDefinitionsEip7594 schemaDefinitions;
-  private final SchemaDefinitionsElectra schemaDefinitionsElectra;
+  private final SchemaDefinitionsFulu schemaDefinitions;
 
-  public MiscHelpersEip7594(
-      final Eip7594 specConfig,
+  public MiscHelpersFulu(
+      final SpecConfigFulu specConfigFulu,
       final Predicates predicates,
-      final SchemaDefinitionsElectra schemaDefinitionsElectra) {
+      final SchemaDefinitions schemaDefinitions) {
+    super(
+        SpecConfigElectra.required(specConfigFulu),
+        predicates,
+        SchemaDefinitionsElectra.required(schemaDefinitions));
     this.predicates = predicates;
-    this.specConfigEip7594 = specConfig;
-    this.schemaDefinitions = SchemaDefinitionsEip7594.required(schemaDefinitionsElectra);
-    this.schemaDefinitionsElectra = schemaDefinitionsElectra;
+    this.specConfigFulu = specConfigFulu;
+    this.schemaDefinitions = SchemaDefinitionsFulu.required(schemaDefinitions);
+  }
+
+  @Override
+  public Optional<MiscHelpersFulu> toVersionFulu() {
+    return Optional.of(this);
   }
 
   public UInt64 computeSubnetForDataColumnSidecar(final UInt64 columnIndex) {
-    return columnIndex.mod(specConfigEip7594.getDataColumnSidecarSubnetCount());
+    return columnIndex.mod(specConfigFulu.getDataColumnSidecarSubnetCount());
   }
 
   private UInt64 computeCustodySubnetIndex(final UInt256 nodeId) {
     return bytesToUInt64(Hash.sha256(uint256ToBytes(nodeId)).slice(0, 8))
-        .mod(specConfigEip7594.getDataColumnSidecarSubnetCount());
+        .mod(specConfigFulu.getDataColumnSidecarSubnetCount());
   }
 
   public List<UInt64> computeCustodySubnetIndexes(final UInt256 nodeId, final int subnetCount) {
     //     assert custody_subnet_count <= DATA_COLUMN_SIDECAR_SUBNET_COUNT
-    if (subnetCount > specConfigEip7594.getDataColumnSidecarSubnetCount()) {
+    if (subnetCount > specConfigFulu.getDataColumnSidecarSubnetCount()) {
       throw new IllegalArgumentException(
           String.format(
               "Subnet count %s couldn't exceed number of subnet columns %s",
-              subnetCount, specConfigEip7594.getDataColumnSidecarSubnetCount()));
+              subnetCount, specConfigFulu.getDataColumnSidecarSubnetCount()));
     }
 
     return Stream.iterate(nodeId, this::incrementByModule)
@@ -123,15 +134,14 @@ public class MiscHelpersEip7594 {
   public List<UInt64> computeCustodyColumnIndexes(final UInt256 nodeId, final int subnetCount) {
     final List<UInt64> subnetIds = computeCustodySubnetIndexes(nodeId, subnetCount);
     final int columnsPerSubnet =
-        specConfigEip7594.getNumberOfColumns()
-            / specConfigEip7594.getDataColumnSidecarSubnetCount();
+        specConfigFulu.getNumberOfColumns() / specConfigFulu.getDataColumnSidecarSubnetCount();
     return subnetIds.stream()
         .flatMap(
             subnetId -> IntStream.range(0, columnsPerSubnet).mapToObj(i -> Pair.of(subnetId, i)))
         .map(
             // ColumnIndex(DATA_COLUMN_SIDECAR_SUBNET_COUNT * i + subnet_id)
             pair ->
-                specConfigEip7594.getDataColumnSidecarSubnetCount() * pair.getRight()
+                specConfigFulu.getDataColumnSidecarSubnetCount() * pair.getRight()
                     + pair.getLeft().intValue())
         .map(UInt64::valueOf)
         .sorted()
@@ -145,7 +155,7 @@ public class MiscHelpersEip7594 {
 
   public boolean verifyDataColumnSidecarKzgProof(
       final KZG kzg, final DataColumnSidecar dataColumnSidecar) {
-    final int dataColumns = specConfigEip7594.getNumberOfColumns();
+    final int dataColumns = specConfigFulu.getNumberOfColumns();
     if (dataColumnSidecar.getIndex().isGreaterThanOrEqualTo(dataColumns)) {
       return false;
     }
@@ -181,14 +191,14 @@ public class MiscHelpersEip7594 {
     return predicates.isValidMerkleBranch(
         dataColumnSidecar.getSszKZGCommitments().hashTreeRoot(),
         dataColumnSidecar.getKzgCommitmentsInclusionProof(),
-        specConfigEip7594.getKzgCommitmentsInclusionProofDepth().intValue(),
+        specConfigFulu.getKzgCommitmentsInclusionProofDepth().intValue(),
         getBlockBodyKzgCommitmentsGeneralizedIndex(),
         dataColumnSidecar.getBlockBodyRoot());
   }
 
   public int getBlockBodyKzgCommitmentsGeneralizedIndex() {
     return (int)
-        BeaconBlockBodySchemaElectra.required(schemaDefinitionsElectra.getBeaconBlockBodySchema())
+        BeaconBlockBodySchemaElectra.required(schemaDefinitions.getBeaconBlockBodySchema())
             .getBlobKzgCommitmentsGeneralizedIndex();
   }
 
@@ -330,26 +340,26 @@ public class MiscHelpersEip7594 {
    * scipy.stats.hypergeom.cdf, with the same signatures.
    */
   public UInt64 getExtendedSampleCount(final UInt64 allowedFailures) {
-    if (allowedFailures.isGreaterThan(specConfigEip7594.getNumberOfColumns() / 2)) {
+    if (allowedFailures.isGreaterThan(specConfigFulu.getNumberOfColumns() / 2)) {
       throw new IllegalArgumentException(
           String.format(
               "Allowed failures (%s) should be less than half of columns number (%s)",
-              allowedFailures, specConfigEip7594.getNumberOfColumns()));
+              allowedFailures, specConfigFulu.getNumberOfColumns()));
     }
-    final UInt64 worstCaseMissing = UInt64.valueOf(specConfigEip7594.getNumberOfColumns() / 2 + 1);
+    final UInt64 worstCaseMissing = UInt64.valueOf(specConfigFulu.getNumberOfColumns() / 2 + 1);
     final double falsePositiveThreshold =
         hypergeomCdf(
             UInt64.ZERO,
-            UInt64.valueOf(specConfigEip7594.getNumberOfColumns()),
+            UInt64.valueOf(specConfigFulu.getNumberOfColumns()),
             worstCaseMissing,
-            UInt64.valueOf(specConfigEip7594.getSamplesPerSlot()));
-    UInt64 sampleCount = UInt64.valueOf(specConfigEip7594.getSamplesPerSlot());
+            UInt64.valueOf(specConfigFulu.getSamplesPerSlot()));
+    UInt64 sampleCount = UInt64.valueOf(specConfigFulu.getSamplesPerSlot());
     for (;
-        sampleCount.isLessThanOrEqualTo(specConfigEip7594.getNumberOfColumns());
+        sampleCount.isLessThanOrEqualTo(specConfigFulu.getNumberOfColumns());
         sampleCount = sampleCount.increment()) {
       if (hypergeomCdf(
               allowedFailures,
-              UInt64.valueOf(specConfigEip7594.getNumberOfColumns()),
+              UInt64.valueOf(specConfigFulu.getNumberOfColumns()),
               worstCaseMissing,
               sampleCount)
           <= falsePositiveThreshold) {
@@ -390,15 +400,16 @@ public class MiscHelpersEip7594 {
         .sum();
   }
 
+  @Override
   public boolean isAvailabilityOfBlobSidecarsRequiredAtEpoch(
       final UInt64 currentEpoch, final UInt64 epoch) {
-    return !epoch.isGreaterThanOrEqualTo(specConfigEip7594.getEip7594FeatureEpoch());
+    return !epoch.isGreaterThanOrEqualTo(specConfigFulu.getFuluForkEpoch());
   }
 
   public boolean isAvailabilityOfDataColumnSidecarsRequiredAtEpoch(
       final UInt64 currentEpoch, final UInt64 epoch) {
     return currentEpoch
         .minusMinZero(epoch)
-        .isLessThanOrEqualTo(specConfigEip7594.getMinEpochsForDataColumnSidecarsRequests());
+        .isLessThanOrEqualTo(specConfigFulu.getMinEpochsForDataColumnSidecarsRequests());
   }
 }

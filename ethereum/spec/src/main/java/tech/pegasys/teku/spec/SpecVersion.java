@@ -37,8 +37,8 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsAltair;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsBellatrix;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsCapella;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsPhase0;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistryBuilder;
@@ -150,12 +150,7 @@ public class SpecVersion extends DelegatingSpecLogic {
       final SpecConfigElectra specConfig, final SchemaRegistryBuilder schemaRegistryBuilder) {
     final SchemaRegistry schemaRegistry =
         schemaRegistryBuilder.build(SpecMilestone.ELECTRA, specConfig);
-    final SchemaDefinitionsElectra schemaDefinitions =
-        new SchemaDefinitionsElectra(
-            schemaRegistry,
-            specConfig
-                .getOptionalEip7594Config()
-                .map(__ -> new SchemaDefinitionsEip7594(schemaRegistry)));
+    final SchemaDefinitionsElectra schemaDefinitions = new SchemaDefinitionsElectra(schemaRegistry);
     final SpecLogicElectra specLogic =
         SpecLogicElectra.create(specConfig, schemaDefinitions, SYSTEM_TIME_PROVIDER);
     return new SpecVersion(SpecMilestone.ELECTRA, specConfig, schemaDefinitions, specLogic);
@@ -165,12 +160,7 @@ public class SpecVersion extends DelegatingSpecLogic {
       final SpecConfigFulu specConfig, final SchemaRegistryBuilder schemaRegistryBuilder) {
     final SchemaRegistry schemaRegistry =
         schemaRegistryBuilder.build(SpecMilestone.FULU, specConfig);
-    final SchemaDefinitionsElectra schemaDefinitions =
-        new SchemaDefinitionsElectra(
-            schemaRegistry,
-            specConfig
-                .getOptionalEip7594Config()
-                .map(__ -> new SchemaDefinitionsEip7594(schemaRegistry)));
+    final SchemaDefinitionsFulu schemaDefinitions = new SchemaDefinitionsFulu(schemaRegistry);
     final SpecLogicFulu specLogic =
         SpecLogicFulu.create(specConfig, schemaDefinitions, SYSTEM_TIME_PROVIDER);
     return new SpecVersion(SpecMilestone.FULU, specConfig, schemaDefinitions, specLogic);

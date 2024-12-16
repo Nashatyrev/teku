@@ -42,7 +42,7 @@ import tech.pegasys.teku.networking.eth2.rpc.core.RpcException;
 import tech.pegasys.teku.networking.eth2.rpc.core.RpcException.ResourceUnavailableException;
 import tech.pegasys.teku.networking.p2p.rpc.StreamClosedException;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
@@ -63,7 +63,7 @@ public class DataColumnSidecarsByRangeMessageHandler
   private static final Logger LOG = LogManager.getLogger();
 
   private final Spec spec;
-  private final Eip7594 specConfigEip7594;
+  private final SpecConfigFulu specConfigFulu;
   private final CombinedChainDataClient combinedChainDataClient;
   private final LabelledMetric<Counter> requestCounter;
   private final Counter totalDataColumnSidecarsRequestedCounter;
@@ -71,12 +71,12 @@ public class DataColumnSidecarsByRangeMessageHandler
 
   public DataColumnSidecarsByRangeMessageHandler(
       final Spec spec,
-      final Eip7594 specConfigEip7594,
+      final SpecConfigFulu specConfigFulu,
       final MetricsSystem metricsSystem,
       final CombinedChainDataClient combinedChainDataClient,
       final DasReqRespLogger dasLogger) {
     this.spec = spec;
-    this.specConfigEip7594 = specConfigEip7594;
+    this.specConfigFulu = specConfigFulu;
     this.combinedChainDataClient = combinedChainDataClient;
     requestCounter =
         metricsSystem.createLabelledCounter(
@@ -115,14 +115,14 @@ public class DataColumnSidecarsByRangeMessageHandler
 
     final int requestedCount = message.getMaximumResponseChunks();
 
-    if (requestedCount > specConfigEip7594.getMaxRequestDataColumnSidecars()) {
+    if (requestedCount > specConfigFulu.getMaxRequestDataColumnSidecars()) {
       requestCounter.labels("count_too_big").inc();
       responseCallbackWithLogging.completeWithErrorResponse(
           new RpcException(
               INVALID_REQUEST_CODE,
               String.format(
                   "Only a maximum of %s blob sidecars can be requested per request. Requested: %s",
-                  specConfigEip7594.getMaxRequestDataColumnSidecars(), requestedCount)));
+                  specConfigFulu.getMaxRequestDataColumnSidecars(), requestedCount)));
       return;
     }
 
@@ -175,7 +175,7 @@ public class DataColumnSidecarsByRangeMessageHandler
               final RequestState initialState =
                   new RequestState(
                       responseCallbackWithLogging,
-                      specConfigEip7594.getMaxRequestDataColumnSidecars(),
+                      specConfigFulu.getMaxRequestDataColumnSidecars(),
                       startSlot,
                       endSlot,
                       columns,

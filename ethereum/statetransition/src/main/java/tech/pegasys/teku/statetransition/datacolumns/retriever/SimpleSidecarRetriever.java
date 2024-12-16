@@ -40,10 +40,10 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 
 // TODO improve thread-safety: external calls are better to do outside of the synchronize block to
 // prevent potential dead locks
@@ -82,7 +82,7 @@ public class SimpleSidecarRetriever
     this.reqResp = reqResp;
     peerManager.addPeerListener(this);
     this.maxRequestCount =
-        Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig())
+        SpecConfigFulu.required(spec.forMilestone(SpecMilestone.FULU).getConfig())
             .getMaxRequestDataColumnSidecars();
   }
 
@@ -212,12 +212,13 @@ public class SimpleSidecarRetriever
   }
 
   private String gatherAvailableCustodiesInfo() {
-    final SpecVersion specVersion = spec.forMilestone(SpecMilestone.ELECTRA);
+    final SpecVersion specVersion = spec.forMilestone(SpecMilestone.FULU);
     final Map<UInt64, Long> colIndexToCount =
         connectedPeers.values().stream()
             .flatMap(p -> p.getNodeCustodyIndexes(specVersion).stream())
             .collect(Collectors.groupingBy(i -> i, Collectors.counting()));
-    final int numberOfColumns = Eip7594.required(specVersion.getConfig()).getNumberOfColumns();
+    final int numberOfColumns =
+        SpecConfigFulu.required(specVersion.getConfig()).getNumberOfColumns();
     IntStream.range(0, numberOfColumns)
         .mapToObj(UInt64::valueOf)
         .forEach(idx -> colIndexToCount.putIfAbsent(idx, 0L));
@@ -288,7 +289,7 @@ public class SimpleSidecarRetriever
 
     private Set<UInt64> calcNodeCustodyIndexes(final CacheKey cacheKey) {
       return new HashSet<>(
-          MiscHelpersEip7594.required(cacheKey.specVersion().miscHelpers())
+          MiscHelpersFulu.required(cacheKey.specVersion().miscHelpers())
               .computeCustodyColumnIndexes(nodeId, cacheKey.custodyCount()));
     }
 

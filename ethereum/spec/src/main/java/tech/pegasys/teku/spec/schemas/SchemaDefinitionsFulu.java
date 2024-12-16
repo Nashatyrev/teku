@@ -15,8 +15,8 @@ package tech.pegasys.teku.spec.schemas;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import tech.pegasys.teku.spec.config.SpecConfigElectra;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import java.util.Optional;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.CellSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecarSchema;
@@ -24,10 +24,10 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.MatrixEntryS
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessageSchema;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageSchemaEip7594;
+import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594.MetadataMessageSchemaFulu;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 
-public class SchemaDefinitionsEip7594 {
+public class SchemaDefinitionsFulu extends SchemaDefinitionsElectra {
 
   private final CellSchema cellSchema;
   private final DataColumnSchema dataColumnSchema;
@@ -38,36 +38,37 @@ public class SchemaDefinitionsEip7594 {
   private final DataColumnSidecarsByRangeRequestMessage
           .DataColumnSidecarsByRangeRequestMessageSchema
       dataColumnSidecarsByRangeRequestMessageSchema;
-  private final MetadataMessageSchemaEip7594 metadataMessageSchema;
+  private final MetadataMessageSchemaFulu metadataMessageSchema;
 
-  public SchemaDefinitionsEip7594(final SchemaRegistry schemaRegistry) {
-    final SpecConfigElectra specConfig = SpecConfigElectra.required(schemaRegistry.getSpecConfig());
-    final Eip7594 featureConfig = Eip7594.required(specConfig);
-    this.cellSchema = new CellSchema(featureConfig);
-    this.dataColumnSchema = new DataColumnSchema(featureConfig, specConfig);
+  public SchemaDefinitionsFulu(final SchemaRegistry schemaRegistry) {
+    super(schemaRegistry);
+    final SpecConfigFulu specConfig = SpecConfigFulu.required(schemaRegistry.getSpecConfig());
+    this.cellSchema = new CellSchema(specConfig);
+    this.dataColumnSchema = new DataColumnSchema(specConfig);
     this.dataColumnSidecarSchema =
         DataColumnSidecarSchema.create(
-            SignedBeaconBlockHeader.SSZ_SCHEMA, dataColumnSchema, featureConfig, specConfig);
+            SignedBeaconBlockHeader.SSZ_SCHEMA, dataColumnSchema, specConfig);
     this.matrixEntrySchema = MatrixEntrySchema.create(cellSchema);
     this.dataColumnSidecarsByRootRequestMessageSchema =
-        new DataColumnSidecarsByRootRequestMessageSchema(featureConfig);
+        new DataColumnSidecarsByRootRequestMessageSchema(specConfig);
     this.dataColumnSidecarsByRangeRequestMessageSchema =
         new DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema(
-            featureConfig);
+            specConfig);
 
-    this.metadataMessageSchema = new MetadataMessageSchemaEip7594(specConfig);
+    this.metadataMessageSchema = new MetadataMessageSchemaFulu(specConfig);
   }
 
-  public static SchemaDefinitionsEip7594 required(final SchemaDefinitions schemaDefinitions) {
+  public static SchemaDefinitionsFulu required(final SchemaDefinitions schemaDefinitions) {
     checkArgument(
-        schemaDefinitions.getOptionalSchemaDefinitionsEip7594().isPresent(),
+        schemaDefinitions instanceof SchemaDefinitionsFulu,
         "Expected definitions of type %s but got %s",
-        SchemaDefinitionsEip7594.class,
+        SchemaDefinitionsFulu.class,
         schemaDefinitions.getClass());
-    return schemaDefinitions.getOptionalSchemaDefinitionsEip7594().get();
+    return (SchemaDefinitionsFulu) schemaDefinitions;
   }
 
-  public MetadataMessageSchemaEip7594 getMetadataMessageSchema() {
+  @Override
+  public MetadataMessageSchemaFulu getMetadataMessageSchema() {
     return metadataMessageSchema;
   }
 
@@ -95,5 +96,10 @@ public class SchemaDefinitionsEip7594 {
   public DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema
       getDataColumnSidecarsByRangeRequestMessageSchema() {
     return dataColumnSidecarsByRangeRequestMessageSchema;
+  }
+
+  @Override
+  public Optional<SchemaDefinitionsFulu> toVersionFulu() {
+    return Optional.of(this);
   }
 }

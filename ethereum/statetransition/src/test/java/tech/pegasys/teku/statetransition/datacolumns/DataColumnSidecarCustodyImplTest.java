@@ -24,7 +24,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
@@ -36,14 +36,15 @@ import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAcces
 @SuppressWarnings({"JavaCase", "FutureReturnValueIgnored"})
 public class DataColumnSidecarCustodyImplTest {
 
-  final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
+  final Spec spec = TestSpecFactory.createMinimalFulu();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
   final DataColumnSidecarDbAccessor dbAccessor =
       DataColumnSidecarDbAccessor.builder(db).spec(spec).build();
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
   final UInt256 myNodeId = UInt256.ONE;
 
-  final Eip7594 config = Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
+  final SpecConfigFulu config =
+      SpecConfigFulu.required(spec.forMilestone(SpecMilestone.FULU).getConfig());
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
 
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);

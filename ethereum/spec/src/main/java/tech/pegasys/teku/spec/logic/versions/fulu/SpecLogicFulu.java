@@ -40,14 +40,14 @@ import tech.pegasys.teku.spec.logic.versions.deneb.util.ForkChoiceUtilDeneb;
 import tech.pegasys.teku.spec.logic.versions.electra.block.BlockProcessorElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.BeaconStateAccessorsElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.BeaconStateMutatorsElectra;
-import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.PredicatesElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.operations.validation.AttestationDataValidatorElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.operations.validation.VoluntaryExitValidatorElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.statetransition.epoch.EpochProcessorElectra;
 import tech.pegasys.teku.spec.logic.versions.electra.util.AttestationUtilElectra;
 import tech.pegasys.teku.spec.logic.versions.fulu.forktransition.FuluStateUpgrade;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 
 public class SpecLogicFulu extends AbstractSpecLogic {
   private final Optional<SyncCommitteeUtil> syncCommitteeUtil;
@@ -95,12 +95,11 @@ public class SpecLogicFulu extends AbstractSpecLogic {
 
   public static SpecLogicFulu create(
       final SpecConfigFulu config,
-      final SchemaDefinitionsElectra schemaDefinitions,
+      final SchemaDefinitionsFulu schemaDefinitions,
       final TimeProvider timeProvider) {
     // Helpers
     final PredicatesElectra predicates = new PredicatesElectra(config);
-    final MiscHelpersElectra miscHelpers =
-        new MiscHelpersElectra(config, predicates, schemaDefinitions);
+    final MiscHelpersFulu miscHelpers = new MiscHelpersFulu(config, predicates, schemaDefinitions);
     final BeaconStateAccessorsElectra beaconStateAccessors =
         new BeaconStateAccessorsElectra(config, predicates, miscHelpers);
     final BeaconStateMutatorsElectra beaconStateMutators =

@@ -29,13 +29,13 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecFeature;
+import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 import tech.pegasys.teku.storage.api.FinalizedCheckpointChannel;
 
@@ -118,7 +118,7 @@ public class DataColumnSidecarCustodyImpl
   }
 
   private List<UInt64> getCustodyColumnsForEpoch(final UInt64 epoch) {
-    return MiscHelpersEip7594.required(spec.atEpoch(epoch).miscHelpers())
+    return MiscHelpersFulu.required(spec.atEpoch(epoch).miscHelpers())
         .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount);
   }
 
@@ -136,7 +136,7 @@ public class DataColumnSidecarCustodyImpl
     final UInt64 epoch = spec.computeEpochAtSlot(slot);
     return spec.atEpoch(epoch)
         .miscHelpers()
-        .getEip7594Helpers()
+        .toVersionFulu()
         .map(
             miscHelpersEip7594 ->
                 miscHelpersEip7594
@@ -201,7 +201,7 @@ public class DataColumnSidecarCustodyImpl
   }
 
   private SafeFuture<SlotCustody> retrieveSlotCustody(final UInt64 slot) {
-    if (!spec.isFeatureActivatedAtEpoch(SpecFeature.EIP7594, spec.computeEpochAtSlot(slot))) {
+    if (!spec.atSlot(slot).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
       return SafeFuture.completedFuture(
           new SlotCustody(
               slot, Optional.empty(), Collections.emptyList(), Collections.emptyList()));

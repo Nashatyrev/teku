@@ -18,7 +18,7 @@ import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
-import tech.pegasys.teku.networking.eth2.gossip.topics.OperationEpochValidator;
+import tech.pegasys.teku.networking.eth2.gossip.topics.OperationMilestoneValidator;
 import tech.pegasys.teku.networking.eth2.gossip.topics.OperationProcessor;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -37,8 +37,6 @@ public class DataColumnSidecarTopicHandler {
       final GossipEncoding gossipEncoding,
       final DebugDataDumper debugDataDumper,
       final ForkInfo forkInfo,
-      final UInt64 startEpoch,
-      final UInt64 endEpoch,
       final String topicName,
       final DataColumnSidecarSchema dataColumnSidecarSchema,
       final int subnetId) {
@@ -52,8 +50,10 @@ public class DataColumnSidecarTopicHandler {
         gossipEncoding,
         forkInfo.getForkDigest(spec),
         topicName,
-        new OperationEpochValidator<>(
-            startEpoch, endEpoch, message -> spec.computeEpochAtSlot(message.getSlot())),
+        new OperationMilestoneValidator<>(
+            recentChainData.getSpec(),
+            forkInfo.getFork(),
+            message -> spec.computeEpochAtSlot(message.getSlot())),
         dataColumnSidecarSchema,
         spec.getNetworkingConfig(),
         debugDataDumper);

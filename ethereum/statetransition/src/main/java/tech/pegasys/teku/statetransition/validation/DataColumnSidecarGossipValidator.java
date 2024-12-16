@@ -42,7 +42,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 
 /**
  * This class supposed to implement gossip validation rules as per <a
@@ -57,7 +57,7 @@ public class DataColumnSidecarGossipValidator {
   private final Set<Bytes32> validSignedBlockHeaders;
   private final GossipValidationHelper gossipValidationHelper;
   private final Map<Bytes32, BlockImportResult> invalidBlockRoots;
-  private final MiscHelpersEip7594 miscHelpersEip7594;
+  private final MiscHelpersFulu miscHelpersFulu;
   private final KZG kzg;
   private final Counter totalDataColumnSidecarsProcessingRequestsCounter;
   private final Counter totalDataColumnSidecarsProcessingSuccessesCounter;
@@ -66,7 +66,7 @@ public class DataColumnSidecarGossipValidator {
       final Spec spec,
       final Map<Bytes32, BlockImportResult> invalidBlockRoots,
       final GossipValidationHelper validationHelper,
-      final MiscHelpersEip7594 miscHelpersEip7594,
+      final MiscHelpersFulu miscHelpersFulu,
       final KZG kzg,
       final MetricsSystem metricsSystem) {
 
@@ -81,7 +81,7 @@ public class DataColumnSidecarGossipValidator {
         spec,
         invalidBlockRoots,
         validationHelper,
-        miscHelpersEip7594,
+        miscHelpersFulu,
         kzg,
         metricsSystem,
         LimitedSet.createSynchronized(validInfoSize),
@@ -98,7 +98,7 @@ public class DataColumnSidecarGossipValidator {
       final Spec spec,
       final Map<Bytes32, BlockImportResult> invalidBlockRoots,
       final GossipValidationHelper gossipValidationHelper,
-      final MiscHelpersEip7594 miscHelpersEip7594,
+      final MiscHelpersFulu miscHelpersFulu,
       final KZG kzg,
       final MetricsSystem metricsSystem,
       final Set<SlotProposerIndexAndColumnIndex> receivedValidDataColumnSidecarInfoSet,
@@ -107,7 +107,7 @@ public class DataColumnSidecarGossipValidator {
     this.spec = spec;
     this.invalidBlockRoots = invalidBlockRoots;
     this.gossipValidationHelper = gossipValidationHelper;
-    this.miscHelpersEip7594 = miscHelpersEip7594;
+    this.miscHelpersFulu = miscHelpersFulu;
     this.kzg = kzg;
     this.receivedValidDataColumnSidecarInfoSet = receivedValidDataColumnSidecarInfoSet;
     this.totalDataColumnSidecarsProcessingRequestsCounter =
@@ -235,7 +235,7 @@ public class DataColumnSidecarGossipValidator {
     /*
      * [REJECT] The sidecar's column data is valid as verified by verify_data_column_sidecar_kzg_proofs(sidecar).
      */
-    if (!miscHelpersEip7594.verifyDataColumnSidecarKzgProof(kzg, dataColumnSidecar)) {
+    if (!miscHelpersFulu.verifyDataColumnSidecarKzgProof(kzg, dataColumnSidecar)) {
       return completedFuture(reject("DataColumnSidecar does not pass kzg validation"));
     }
 
@@ -310,7 +310,7 @@ public class DataColumnSidecarGossipValidator {
     /*
      * [REJECT] The sidecar's column data is valid as verified by verify_data_column_sidecar_kzg_proofs(sidecar).
      */
-    if (!miscHelpersEip7594.verifyDataColumnSidecarKzgProof(kzg, dataColumnSidecar)) {
+    if (!miscHelpersFulu.verifyDataColumnSidecarKzgProof(kzg, dataColumnSidecar)) {
       return completedFuture(reject("DataColumnSidecar does not pass kzg validation"));
     }
 
@@ -349,7 +349,7 @@ public class DataColumnSidecarGossipValidator {
       return true;
     }
 
-    return miscHelpersEip7594.verifyDataColumnSidecarInclusionProof(dataColumnSidecar);
+    return miscHelpersFulu.verifyDataColumnSidecarInclusionProof(dataColumnSidecar);
   }
 
   private boolean verifyBlockHeaderSignature(

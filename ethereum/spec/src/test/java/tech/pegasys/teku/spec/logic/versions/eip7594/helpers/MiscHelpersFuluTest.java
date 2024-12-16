@@ -47,25 +47,25 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
-public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
+public class MiscHelpersFuluTest extends KZGAbstractBenchmark {
 
   private final Spec spec =
-      TestSpecFactory.createMinimalElectraEip7594(
+      TestSpecFactory.createMinimalFulu(
           builder ->
-              builder.eip7594Builder(
-                  eip7594Builder -> eip7594Builder.numberOfColumns(128).samplesPerSlot(16)));
+              builder.fuluBuilder(
+                  fuluBuilder -> fuluBuilder.numberOfColumns(128).samplesPerSlot(16)));
   private final Predicates predicates = new Predicates(spec.getGenesisSpecConfig());
   private final SchemaDefinitionsElectra schemaDefinitionsElectra =
       SchemaDefinitionsElectra.required(spec.getGenesisSchemaDefinitions());
-  private final MiscHelpersEip7594 miscHelpersEip7594 =
-      new MiscHelpersEip7594(
-          spec.getGenesisSpecConfig().getOptionalEip7594Config().orElseThrow(),
+  private final MiscHelpersFulu miscHelpersFulu =
+      new MiscHelpersFulu(
+          spec.getGenesisSpecConfig().toVersionFulu().orElseThrow(),
           predicates,
           schemaDefinitionsElectra);
 
@@ -73,13 +73,13 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
   @MethodSource("getExtendedSampleCountFixtures")
   public void getExtendedSampleCountReturnsCorrectValues(
       final int allowedFailures, final int numberOfSamples) {
-    assertThat(miscHelpersEip7594.getExtendedSampleCount(UInt64.valueOf(allowedFailures)))
+    assertThat(miscHelpersFulu.getExtendedSampleCount(UInt64.valueOf(allowedFailures)))
         .isEqualTo(UInt64.valueOf(numberOfSamples));
   }
 
   @Test
   public void getExtendedSampleCountShouldThrowWhenAllowedFailuresTooBig() {
-    assertThatThrownBy(() -> miscHelpersEip7594.getExtendedSampleCount(UInt64.valueOf(65)))
+    assertThatThrownBy(() -> miscHelpersFulu.getExtendedSampleCount(UInt64.valueOf(65)))
         .isOfAnyClassIn(IllegalArgumentException.class)
         .hasMessageStartingWith(
             "Allowed failures (65) should be less than half of columns number (128)");
@@ -96,7 +96,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
     for (int i = 0; i < numberOfRounds; i++) {
       final long start = System.currentTimeMillis();
       final List<List<MatrixEntry>> extendedMatrix =
-          miscHelpersEip7594.computeExtendedMatrix(blobs, getKzg());
+          miscHelpersFulu.computeExtendedMatrix(blobs, getKzg());
       assertEquals(6, extendedMatrix.size());
       final long end = System.currentTimeMillis();
       runTimes.add((int) (end - start));
@@ -112,7 +112,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
     final List<Blob> blobs =
         IntStream.range(0, 6).mapToObj(__ -> dataStructureUtil.randomValidBlob()).toList();
     final List<List<MatrixEntry>> extendedMatrix =
-        miscHelpersEip7594.computeExtendedMatrix(blobs, getKzg());
+        miscHelpersFulu.computeExtendedMatrix(blobs, getKzg());
     final List<SszKZGCommitment> kzgCommitments =
         blobs.stream()
             .map(blob -> getKzg().blobToKzgCommitment(blob.getBytes()))
@@ -129,7 +129,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
     for (int i = 0; i < numberOfRounds; i++) {
       final long start = System.currentTimeMillis();
       List<DataColumnSidecar> dataColumnSidecars =
-          miscHelpersEip7594.constructDataColumnSidecars(
+          miscHelpersFulu.constructDataColumnSidecars(
               signedBeaconBlock.getMessage(), signedBeaconBlock.asHeader(), extendedMatrix);
       assertEquals(blobs.size(), dataColumnSidecars.getFirst().getDataColumn().size());
       final long end = System.currentTimeMillis();
@@ -143,18 +143,18 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
     final Predicates predicatesMock = mock(Predicates.class);
     when(predicatesMock.isValidMerkleBranch(any(), any(), anyInt(), anyInt(), any()))
         .thenReturn(true);
-    final MiscHelpersEip7594 miscHelpersEip7594WithMockPredicates =
-        new MiscHelpersEip7594(
-            spec.getGenesisSpecConfig().getOptionalEip7594Config().orElseThrow(),
+    final MiscHelpersFulu miscHelpersFuluWithMockPredicates =
+        new MiscHelpersFulu(
+            spec.getGenesisSpecConfig().toVersionFulu().orElseThrow(),
             predicatesMock,
             schemaDefinitionsElectra);
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
     final DataColumnSidecar dataColumnSidecar =
-        SchemaDefinitionsEip7594.required(schemaDefinitionsElectra)
+        SchemaDefinitionsFulu.required(schemaDefinitionsElectra)
             .getDataColumnSidecarSchema()
             .create(
                 UInt64.ZERO,
-                SchemaDefinitionsEip7594.required(schemaDefinitionsElectra)
+                SchemaDefinitionsFulu.required(schemaDefinitionsElectra)
                     .getDataColumnSchema()
                     .create(List.of()),
                 List.of(),
@@ -171,36 +171,36 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
                 dataColumnSidecar.getSszKZGCommitments().hashTreeRoot(),
                 dataColumnSidecar.getKzgCommitmentsInclusionProof(),
                 spec.getGenesisSpecConfig()
-                    .getOptionalEip7594Config()
+                    .toVersionFulu()
                     .orElseThrow()
                     .getKzgCommitmentsInclusionProofDepth()
                     .intValue(),
-                miscHelpersEip7594WithMockPredicates.getBlockBodyKzgCommitmentsGeneralizedIndex(),
+                miscHelpersFuluWithMockPredicates.getBlockBodyKzgCommitmentsGeneralizedIndex(),
                 dataColumnSidecar.getBlockBodyRoot()))
         .isTrue();
     assertThat(
-            miscHelpersEip7594WithMockPredicates.verifyDataColumnSidecarInclusionProof(
+            miscHelpersFuluWithMockPredicates.verifyDataColumnSidecarInclusionProof(
                 dataColumnSidecar))
         .isFalse();
   }
 
   @Test
   public void emptyInclusionProofFromRealNetwork_shouldFailValidation() {
-    final Spec specMainnet = TestSpecFactory.createMainnetElectraEip7594();
+    final Spec specMainnet = TestSpecFactory.createMainnetFulu();
     final Predicates predicatesMainnet = new Predicates(specMainnet.getGenesisSpecConfig());
     final SchemaDefinitionsElectra schemaDefinitionsElectraMainnet =
         SchemaDefinitionsElectra.required(specMainnet.getGenesisSchemaDefinitions());
-    final MiscHelpersEip7594 miscHelpersEip7594Mainnet =
-        new MiscHelpersEip7594(
-            specMainnet.getGenesisSpecConfig().getOptionalEip7594Config().orElseThrow(),
+    final MiscHelpersFulu miscHelpersFuluMainnet =
+        new MiscHelpersFulu(
+            specMainnet.getGenesisSpecConfig().toVersionFulu().orElseThrow(),
             predicatesMainnet,
             schemaDefinitionsElectraMainnet);
     final DataColumnSidecar dataColumnSidecar =
-        SchemaDefinitionsEip7594.required(schemaDefinitionsElectraMainnet)
+        SchemaDefinitionsFulu.required(schemaDefinitionsElectraMainnet)
             .getDataColumnSidecarSchema()
             .create(
                 UInt64.ZERO,
-                SchemaDefinitionsEip7594.required(schemaDefinitionsElectraMainnet)
+                SchemaDefinitionsFulu.required(schemaDefinitionsElectraMainnet)
                     .getDataColumnSchema()
                     .create(List.of()),
                 List.of(),
@@ -227,7 +227,7 @@ public class MiscHelpersEip7594Test extends KZGAbstractBenchmark {
                         "0xdb56114e00fdd4c1f85c892bf35ac9a89289aaecb1ebd0a96cde606a748b5d71"),
                     Bytes32.fromHexString(
                         "0x9535c3eb42aaf182b13b18aacbcbc1df6593ecafd0bf7d5e94fb727b2dc1f265")));
-    assertThat(miscHelpersEip7594Mainnet.verifyDataColumnSidecarInclusionProof(dataColumnSidecar))
+    assertThat(miscHelpersFuluMainnet.verifyDataColumnSidecarInclusionProof(dataColumnSidecar))
         .isFalse();
   }
 

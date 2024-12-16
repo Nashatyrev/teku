@@ -49,7 +49,7 @@ public class MetadataMessageHandler
         switch (protocolVersion) {
           case 1 -> SpecMilestone.PHASE0;
           case 2 -> SpecMilestone.ALTAIR;
-          case 3 -> SpecMilestone.ELECTRA;
+          case 3 -> SpecMilestone.FULU;
           default ->
               throw new IllegalStateException("Unexpected protocol version: " + protocolVersion);
         };

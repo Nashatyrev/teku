@@ -29,7 +29,7 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.config.NetworkingSpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfig;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.logic.common.helpers.MathHelpers;
 
 public class P2PConfig {
@@ -141,9 +141,9 @@ public class P2PConfig {
   }
 
   public int getTotalCustodySubnetCount(final SpecVersion specVersion) {
-    Eip7594 configEip7594 = Eip7594.required(specVersion.getConfig());
-    int minCustodyRequirement = configEip7594.getCustodyRequirement();
-    int maxSubnets = configEip7594.getDataColumnSidecarSubnetCount();
+    final SpecConfigFulu specConfig = SpecConfigFulu.required(specVersion.getConfig());
+    final int minCustodyRequirement = specConfig.getCustodyRequirement();
+    final int maxSubnets = specConfig.getDataColumnSidecarSubnetCount();
     return Integer.min(
         maxSubnets,
         MathHelpers.intPlusMaxIntCapped(minCustodyRequirement, dasExtraCustodySubnetCount));

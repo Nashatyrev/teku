@@ -32,6 +32,26 @@ public interface SpecConfigFulu extends SpecConfigElectra {
 
   UInt64 getFuluForkEpoch();
 
+  UInt64 getFieldElementsPerCell();
+
+  UInt64 getFieldElementsPerExtBlob();
+
+  /** DataColumnSidecar's */
+  UInt64 getKzgCommitmentsInclusionProofDepth();
+
+  int getNumberOfColumns();
+
+  // networking
+  int getDataColumnSidecarSubnetCount();
+
+  int getCustodyRequirement();
+
+  int getSamplesPerSlot();
+
+  int getMinEpochsForDataColumnSidecarsRequests();
+
+  int getMaxRequestDataColumnSidecars();
+
   @Override
   Optional<SpecConfigFulu> toVersionFulu();
 }

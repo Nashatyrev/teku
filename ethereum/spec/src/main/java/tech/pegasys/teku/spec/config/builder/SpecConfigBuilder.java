@@ -138,7 +138,6 @@ public class SpecConfigBuilder {
           .appendBuilder(new CapellaBuilder())
           .appendBuilder(new DenebBuilder())
           .appendBuilder(new ElectraBuilder())
-          .appendBuilder(new Eip7594Builder())
           .appendBuilder(new FuluBuilder());
 
   public SpecConfigAndParent<SpecConfigFulu> build() {
@@ -742,11 +741,6 @@ public class SpecConfigBuilder {
 
   public SpecConfigBuilder electraBuilder(final Consumer<ElectraBuilder> consumer) {
     builderChain.withBuilder(ElectraBuilder.class, consumer);
-    return this;
-  }
-
-  public SpecConfigBuilder eip7594Builder(final Consumer<Eip7594Builder> consumer) {
-    builderChain.withBuilder(Eip7594Builder.class, consumer);
     return this;
   }
 

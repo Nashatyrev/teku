@@ -24,13 +24,41 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
   private final Bytes4 fuluForkVersion;
   private final UInt64 fuluForkEpoch;
 
+  private final int numberOfColumns;
+  private final int dataColumnSidecarSubnetCount;
+  private final int custodyRequirement;
+  private final int samplesPerSlot;
+  private final UInt64 fieldElementsPerCell;
+  private final UInt64 fieldElementsPerExtBlob;
+  private final UInt64 kzgCommitmentsInclusionProofDepth;
+  private final int minEpochsForDataColumnSidecarsRequests;
+  private final int maxRequestDataColumnSidecars;
+
   public SpecConfigFuluImpl(
       final SpecConfigElectra specConfig,
       final Bytes4 fuluForkVersion,
-      final UInt64 fuluForkEpoch) {
+      final UInt64 fuluForkEpoch,
+      final UInt64 fieldElementsPerCell,
+      final UInt64 fieldElementsPerExtBlob,
+      final UInt64 kzgCommitmentsInclusionProofDepth,
+      final int numberOfColumns,
+      final int dataColumnSidecarSubnetCount,
+      final int custodyRequirement,
+      final int samplesPerSlot,
+      final int minEpochsForDataColumnSidecarsRequests,
+      final int maxRequestDataColumnSidecars) {
     super(specConfig);
     this.fuluForkVersion = fuluForkVersion;
     this.fuluForkEpoch = fuluForkEpoch;
+    this.fieldElementsPerCell = fieldElementsPerCell;
+    this.fieldElementsPerExtBlob = fieldElementsPerExtBlob;
+    this.kzgCommitmentsInclusionProofDepth = kzgCommitmentsInclusionProofDepth;
+    this.numberOfColumns = numberOfColumns;
+    this.dataColumnSidecarSubnetCount = dataColumnSidecarSubnetCount;
+    this.custodyRequirement = custodyRequirement;
+    this.samplesPerSlot = samplesPerSlot;
+    this.minEpochsForDataColumnSidecarsRequests = minEpochsForDataColumnSidecarsRequests;
+    this.maxRequestDataColumnSidecars = maxRequestDataColumnSidecars;
   }
 
   @Override
@@ -41,6 +69,51 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
   @Override
   public UInt64 getFuluForkEpoch() {
     return fuluForkEpoch;
+  }
+
+  @Override
+  public UInt64 getFieldElementsPerCell() {
+    return fieldElementsPerCell;
+  }
+
+  @Override
+  public UInt64 getFieldElementsPerExtBlob() {
+    return fieldElementsPerExtBlob;
+  }
+
+  @Override
+  public UInt64 getKzgCommitmentsInclusionProofDepth() {
+    return kzgCommitmentsInclusionProofDepth;
+  }
+
+  @Override
+  public int getNumberOfColumns() {
+    return numberOfColumns;
+  }
+
+  @Override
+  public int getDataColumnSidecarSubnetCount() {
+    return dataColumnSidecarSubnetCount;
+  }
+
+  @Override
+  public int getCustodyRequirement() {
+    return custodyRequirement;
+  }
+
+  @Override
+  public int getSamplesPerSlot() {
+    return samplesPerSlot;
+  }
+
+  @Override
+  public int getMinEpochsForDataColumnSidecarsRequests() {
+    return minEpochsForDataColumnSidecarsRequests;
+  }
+
+  @Override
+  public int getMaxRequestDataColumnSidecars() {
+    return maxRequestDataColumnSidecars;
   }
 
   @Override
@@ -64,11 +137,30 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
     final SpecConfigFuluImpl that = (SpecConfigFuluImpl) o;
     return Objects.equals(specConfig, that.specConfig)
         && Objects.equals(fuluForkVersion, that.fuluForkVersion)
-        && Objects.equals(fuluForkEpoch, that.fuluForkEpoch);
+        && Objects.equals(fuluForkEpoch, that.fuluForkEpoch)
+        && Objects.equals(fieldElementsPerCell, that.fieldElementsPerCell)
+        && Objects.equals(fieldElementsPerExtBlob, that.fieldElementsPerExtBlob)
+        && Objects.equals(kzgCommitmentsInclusionProofDepth, that.kzgCommitmentsInclusionProofDepth)
+        && numberOfColumns == that.numberOfColumns
+        && dataColumnSidecarSubnetCount == that.dataColumnSidecarSubnetCount
+        && custodyRequirement == that.custodyRequirement
+        && minEpochsForDataColumnSidecarsRequests == that.minEpochsForDataColumnSidecarsRequests
+        && maxRequestDataColumnSidecars == that.maxRequestDataColumnSidecars;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(specConfig, fuluForkVersion, fuluForkEpoch);
+    return Objects.hash(
+        specConfig,
+        fuluForkVersion,
+        fuluForkEpoch,
+        numberOfColumns,
+        dataColumnSidecarSubnetCount,
+        custodyRequirement,
+        fieldElementsPerCell,
+        fieldElementsPerExtBlob,
+        kzgCommitmentsInclusionProofDepth,
+        minEpochsForDataColumnSidecarsRequests,
+        maxRequestDataColumnSidecars);
   }
 }

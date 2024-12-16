@@ -29,7 +29,7 @@ import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -159,7 +159,7 @@ public class DasCustodyStand {
     final UInt64 epoch = spec.computeEpochAtSlot(slot);
     return spec.atEpoch(epoch)
         .miscHelpers()
-        .getEip7594Helpers()
+        .toVersionFulu()
         .map(
             miscHelpersEip7594 ->
                 miscHelpersEip7594.computeCustodyColumnIndexes(myNodeId, totalCustodySubnetCount))
@@ -251,9 +251,9 @@ public class DasCustodyStand {
     public DasCustodyStand build() {
       if (totalCustodySubnetCount == null) {
         checkNotNull(spec);
-        final Eip7594 configEip7594 =
-            Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
-        totalCustodySubnetCount = configEip7594.getCustodyRequirement();
+        final SpecConfigFulu configFulu =
+            SpecConfigFulu.required(spec.forMilestone(SpecMilestone.FULU).getConfig());
+        totalCustodySubnetCount = configFulu.getCustodyRequirement();
       }
       return new DasCustodyStand(
           spec,

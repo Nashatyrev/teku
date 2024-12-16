@@ -56,7 +56,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.deneb.types.VersionedHash;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
-import tech.pegasys.teku.spec.logic.versions.feature.eip7594.helpers.MiscHelpersEip7594;
+import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 
 public class MiscHelpers {
 
@@ -455,7 +455,7 @@ public class MiscHelpers {
     return Optional.empty();
   }
 
-  public Optional<MiscHelpersEip7594> getEip7594Helpers() {
+  public Optional<MiscHelpersFulu> toVersionFulu() {
     return Optional.empty();
   }
 }

@@ -54,7 +54,7 @@ import tech.pegasys.teku.networking.p2p.rpc.RpcResponseListener;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -76,7 +76,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.StatusMessage
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessage;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsEip7594;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 
 class DefaultEth2Peer extends DelegatingPeer implements Eth2Peer {
   private static final Logger LOG = LogManager.getLogger();
@@ -150,20 +150,20 @@ class DefaultEth2Peer extends DelegatingPeer implements Eth2Peer {
     this.firstSlotSupportingDataColumnSidecarsByRange =
         Suppliers.memoize(
             () -> {
-              final UInt64 eip7594ForkEpoch = getSpecConfigEip7594().getEip7594FeatureEpoch();
-              return spec.computeStartSlotAtEpoch(eip7594ForkEpoch);
+              final UInt64 fuluForkEpoch = getSpecConfigFulu().getFuluForkEpoch();
+              return spec.computeStartSlotAtEpoch(fuluForkEpoch);
             });
     this.dataColumnSidecarsByRootRequestMessageSchema =
         Suppliers.memoize(
             () ->
-                SchemaDefinitionsEip7594.required(
-                        spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions())
+                SchemaDefinitionsFulu.required(
+                        spec.forMilestone(SpecMilestone.FULU).getSchemaDefinitions())
                     .getDataColumnSidecarsByRootRequestMessageSchema());
     this.dataColumnSidecarsByRangeRequestMessageSchema =
         Suppliers.memoize(
             () ->
-                SchemaDefinitionsEip7594.required(
-                        spec.forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions())
+                SchemaDefinitionsFulu.required(
+                        spec.forMilestone(SpecMilestone.FULU).getSchemaDefinitions())
                     .getDataColumnSidecarsByRangeRequestMessageSchema());
   }
 
@@ -618,8 +618,8 @@ class DefaultEth2Peer extends DelegatingPeer implements Eth2Peer {
     return SpecConfigDeneb.required(spec.forMilestone(SpecMilestone.DENEB).getConfig());
   }
 
-  private Eip7594 getSpecConfigEip7594() {
-    return Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
+  private SpecConfigFulu getSpecConfigFulu() {
+    return SpecConfigFulu.required(spec.forMilestone(SpecMilestone.FULU).getConfig());
   }
 
   private <T> SafeFuture<T> failWithUnsupportedMethodException(final String method) {

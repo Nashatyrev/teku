@@ -32,13 +32,35 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
   private Bytes4 fuluForkVersion;
   private UInt64 fuluForkEpoch;
 
+  private UInt64 fieldElementsPerCell;
+  private UInt64 fieldElementsPerExtBlob;
+  private UInt64 kzgCommitmentsInclusionProofDepth;
+  private Integer numberOfColumns;
+  private Integer dataColumnSidecarSubnetCount;
+  private Integer custodyRequirement;
+  private Integer samplesPerSlot;
+  private Integer minEpochsForDataColumnSidecarsRequests;
+  private Integer maxRequestDataColumnSidecars;
+
   FuluBuilder() {}
 
   @Override
   public SpecConfigAndParent<SpecConfigFulu> build(
       final SpecConfigAndParent<SpecConfigElectra> specConfigAndParent) {
     return SpecConfigAndParent.of(
-        new SpecConfigFuluImpl(specConfigAndParent.specConfig(), fuluForkVersion, fuluForkEpoch),
+        new SpecConfigFuluImpl(
+            specConfigAndParent.specConfig(),
+            fuluForkVersion,
+            fuluForkEpoch,
+            fieldElementsPerCell,
+            fieldElementsPerExtBlob,
+            kzgCommitmentsInclusionProofDepth,
+            numberOfColumns,
+            dataColumnSidecarSubnetCount,
+            custodyRequirement,
+            samplesPerSlot,
+            minEpochsForDataColumnSidecarsRequests,
+            maxRequestDataColumnSidecars),
         specConfigAndParent);
   }
 
@@ -51,6 +73,61 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
   public FuluBuilder fuluForkVersion(final Bytes4 fuluForkVersion) {
     checkNotNull(fuluForkVersion);
     this.fuluForkVersion = fuluForkVersion;
+    return this;
+  }
+
+  public FuluBuilder fieldElementsPerCell(final UInt64 fieldElementsPerCell) {
+    checkNotNull(fieldElementsPerCell);
+    this.fieldElementsPerCell = fieldElementsPerCell;
+    return this;
+  }
+
+  public FuluBuilder fieldElementsPerExtBlob(final UInt64 fieldElementsPerExtBlob) {
+    checkNotNull(fieldElementsPerExtBlob);
+    this.fieldElementsPerExtBlob = fieldElementsPerExtBlob;
+    return this;
+  }
+
+  public FuluBuilder kzgCommitmentsInclusionProofDepth(
+      final UInt64 kzgCommitmentsInclusionProofDepth) {
+    checkNotNull(kzgCommitmentsInclusionProofDepth);
+    this.kzgCommitmentsInclusionProofDepth = kzgCommitmentsInclusionProofDepth;
+    return this;
+  }
+
+  public FuluBuilder numberOfColumns(final Integer numberOfColumns) {
+    checkNotNull(numberOfColumns);
+    this.numberOfColumns = numberOfColumns;
+    return this;
+  }
+
+  public FuluBuilder dataColumnSidecarSubnetCount(final Integer dataColumnSidecarSubnetCount) {
+    checkNotNull(dataColumnSidecarSubnetCount);
+    this.dataColumnSidecarSubnetCount = dataColumnSidecarSubnetCount;
+    return this;
+  }
+
+  public FuluBuilder custodyRequirement(final Integer custodyRequirement) {
+    checkNotNull(custodyRequirement);
+    this.custodyRequirement = custodyRequirement;
+    return this;
+  }
+
+  public FuluBuilder samplesPerSlot(final Integer samplesPerSlot) {
+    checkNotNull(samplesPerSlot);
+    this.samplesPerSlot = samplesPerSlot;
+    return this;
+  }
+
+  public FuluBuilder minEpochsForDataColumnSidecarsRequests(final Integer custodyEpochs) {
+    checkNotNull(custodyEpochs);
+    this.minEpochsForDataColumnSidecarsRequests = custodyEpochs;
+    return this;
+  }
+
+  public FuluBuilder maxRequestDataColumnSidecars(final Integer maxRequestDataColumnSidecars) {
+    checkNotNull(maxRequestDataColumnSidecars);
+    this.maxRequestDataColumnSidecars = maxRequestDataColumnSidecars;
     return this;
   }
 
@@ -75,6 +152,15 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
 
     constants.put("fuluForkEpoch", fuluForkEpoch);
     constants.put("fuluForkVersion", fuluForkVersion);
+    constants.put("numberOfColumns", numberOfColumns);
+    constants.put("dataColumnSidecarSubnetCount", dataColumnSidecarSubnetCount);
+    constants.put("custodyRequirement", custodyRequirement);
+    constants.put("samplesPerSlot", samplesPerSlot);
+    constants.put("fieldElementsPerCell", fieldElementsPerCell);
+    constants.put("fieldElementsPerExtBlob", fieldElementsPerExtBlob);
+    constants.put("kzgCommitmentsInclusionProofDepth", kzgCommitmentsInclusionProofDepth);
+    constants.put("minEpochsForDataColumnSidecarsRequests", minEpochsForDataColumnSidecarsRequests);
+    constants.put("maxRequestDataColumnSidecars", maxRequestDataColumnSidecars);
 
     return constants;
   }

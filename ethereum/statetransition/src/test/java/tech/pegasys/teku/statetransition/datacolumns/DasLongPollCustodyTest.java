@@ -28,7 +28,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
@@ -43,7 +43,7 @@ public class DasLongPollCustodyTest {
   final StubTimeProvider stubTimeProvider = StubTimeProvider.withTimeInSeconds(0);
   final StubAsyncRunner stubAsyncRunner = new StubAsyncRunner(stubTimeProvider);
 
-  final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
+  final Spec spec = TestSpecFactory.createMinimalFulu();
   final DataColumnSidecarDB db = new DataColumnSidecarDBStub();
   final Duration dbDelay = ofMillis(5);
   final DelayedDasDb delayedDb = new DelayedDasDb(db, stubAsyncRunner, dbDelay);
@@ -52,7 +52,8 @@ public class DasLongPollCustodyTest {
   final CanonicalBlockResolverStub blockResolver = new CanonicalBlockResolverStub(spec);
   final UInt256 myNodeId = UInt256.ONE;
 
-  final Eip7594 config = Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig());
+  final SpecConfigFulu config =
+      SpecConfigFulu.required(spec.forMilestone(SpecMilestone.FULU).getConfig());
   final int subnetCount = config.getDataColumnSidecarSubnetCount();
 
   final DataColumnSidecarCustodyImpl custodyImpl =

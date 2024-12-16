@@ -16,13 +16,12 @@ package tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594;
 import java.util.List;
 import tech.pegasys.teku.infrastructure.ssz.schema.impl.AbstractSszListSchema;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
-import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 
 public class DataColumnSchema extends AbstractSszListSchema<Cell, DataColumn> {
 
-  public DataColumnSchema(final Eip7594 featureConfig, final SpecConfigDeneb specConfigDeneb) {
-    super(new CellSchema(featureConfig), specConfigDeneb.getMaxBlobCommitmentsPerBlock());
+  public DataColumnSchema(final SpecConfigFulu specConfig) {
+    super(new CellSchema(specConfig), specConfig.getMaxBlobCommitmentsPerBlock());
   }
 
   public DataColumn create(final List<Cell> cells) {

@@ -36,7 +36,7 @@ import tech.pegasys.teku.statetransition.datacolumns.util.StubAsync;
 
 @SuppressWarnings("FutureReturnValueIgnored")
 public class ColumnIdCachingDasDbTest {
-  final Spec spec = TestSpecFactory.createMinimalElectraEip7594();
+  final Spec spec = TestSpecFactory.createMinimalFulu();
   final DataStructureUtil dataStructureUtil = new DataStructureUtil(0, spec);
 
   final Duration dbDelay = ofMillis(5);

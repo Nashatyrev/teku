@@ -16,7 +16,6 @@ package tech.pegasys.teku.networking.eth2;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
-import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscri
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsCapella;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsDeneb;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsElectra;
-import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsElectraEip7594;
+import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsFulu;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsPhase0;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.AttestationSubnetTopicProvider;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.DataColumnSidecarSubnetTopicProvider;
@@ -74,11 +73,8 @@ import tech.pegasys.teku.networking.p2p.reputation.DefaultReputationManager;
 import tech.pegasys.teku.networking.p2p.reputation.ReputationManager;
 import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecFeature;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.Constants;
-import tech.pegasys.teku.spec.config.SpecConfig;
-import tech.pegasys.teku.spec.config.features.Eip7594;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
@@ -90,7 +86,6 @@ import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.ValidatableSyncCommitteeMessage;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
-import tech.pegasys.teku.spec.datastructures.state.Fork;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsSupplier;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
@@ -169,10 +164,10 @@ public class Eth2P2PNetworkBuilder {
     }
 
     final Optional<UInt64> dasTotalCustodySubnetCount =
-        spec.isMilestoneSupported(SpecMilestone.ELECTRA)
+        spec.isMilestoneSupported(SpecMilestone.FULU)
             ? Optional.of(
                 UInt64.valueOf(
-                    config.getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.ELECTRA))))
+                    config.getTotalCustodySubnetCount(spec.forMilestone(SpecMilestone.FULU))))
             : Optional.empty();
 
     final Eth2PeerManager eth2PeerManager =
@@ -238,27 +233,7 @@ public class Eth2P2PNetworkBuilder {
             forkAndSpecMilestone ->
                 createSubscriptions(forkAndSpecMilestone, network, gossipEncoding))
         .forEach(gossipForkManagerBuilder::fork);
-    // TODO: fix ELECTRA and EIP7594 hardcode
-    if (spec.isFeatureScheduled(SpecFeature.EIP7594)) {
-      final UInt64 activationEpoch =
-          Eip7594.required(spec.forMilestone(SpecMilestone.ELECTRA).getConfig())
-              .getEip7594FeatureEpoch();
-      final Fork fork = spec.getForkSchedule().getFork(activationEpoch);
-      spec.getEnabledFeatures().stream()
-          .map(
-              specFeature ->
-                  createFeatureSubscriptions(
-                      spec.getEnabledMilestones().stream()
-                          .filter(
-                              forkAndSpecMilestone -> forkAndSpecMilestone.getFork().equals(fork))
-                          .findFirst()
-                          .orElseThrow(),
-                      specFeature,
-                      spec.forMilestone(SpecMilestone.ELECTRA).getConfig(),
-                      network,
-                      gossipEncoding))
-          .forEach(gossipForkManagerBuilder::fork);
-    }
+
     return gossipForkManagerBuilder.build();
   }
 
@@ -358,7 +333,7 @@ public class Eth2P2PNetworkBuilder {
               gossipedSyncCommitteeMessageProcessor,
               gossipedSignedBlsToExecutionChangeProcessor,
               debugDataDumper);
-      case ELECTRA, FULU ->
+      case ELECTRA ->
           new GossipForkSubscriptionsElectra(
               forkAndSpecMilestone.getFork(),
               spec,
@@ -378,23 +353,9 @@ public class Eth2P2PNetworkBuilder {
               gossipedSyncCommitteeMessageProcessor,
               gossipedSignedBlsToExecutionChangeProcessor,
               debugDataDumper);
-    };
-  }
-
-  private GossipForkSubscriptions createFeatureSubscriptions(
-      final ForkAndSpecMilestone forkAndSpecMilestone,
-      final SpecFeature specFeature,
-      final SpecConfig specConfig,
-      final DiscoveryNetwork<?> network,
-      final GossipEncoding gossipEncoding) {
-
-    return switch (specFeature) {
-      case EIP7594 ->
-          new GossipForkSubscriptionsElectraEip7594(
+      case FULU ->
+          new GossipForkSubscriptionsFulu(
               forkAndSpecMilestone.getFork(),
-              Eip7594.required(specConfig).getEip7594FeatureEpoch(),
-              // TODO
-              FAR_FUTURE_EPOCH,
               spec,
               asyncRunner,
               metricsSystem,
@@ -402,6 +363,7 @@ public class Eth2P2PNetworkBuilder {
               combinedChainDataClient.getRecentChainData(),
               gossipEncoding,
               gossipedBlockProcessor,
+              gossipedBlobSidecarProcessor,
               gossipedAttestationConsumer,
               gossipedAggregateProcessor,
               gossipedAttesterSlashingConsumer,
@@ -410,8 +372,8 @@ public class Eth2P2PNetworkBuilder {
               gossipedSignedContributionAndProofProcessor,
               gossipedSyncCommitteeMessageProcessor,
               gossipedSignedBlsToExecutionChangeProcessor,
-              debugDataDumper,
               dataColumnSidecarOperationProcessor,
+              debugDataDumper,
               dasGossipLogger);
     };
   }

@@ -17,34 +17,19 @@ import java.util.Objects;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.config.features.Eip7594;
 
 public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
     implements SpecConfigElectra {
   private final SpecConfigElectra specConfigElectra;
-  // FIXME: why are we setting it in Electra if it's any fork feature?
-  //  maybe say because it should be at least electra to set? Is it viable?
-  private final Optional<Eip7594> eip7594;
 
   public DelegatingSpecConfigElectra(final SpecConfigElectra specConfig) {
-    this(specConfig, Optional.empty());
-  }
-
-  public DelegatingSpecConfigElectra(
-      final SpecConfigElectra specConfig, final Optional<Eip7594> eip7594) {
     super(specConfig);
     this.specConfigElectra = SpecConfigElectra.required(specConfig);
-    this.eip7594 = eip7594;
   }
 
   @Override
   public Optional<SpecConfigElectra> toVersionElectra() {
     return Optional.of(this);
-  }
-
-  @Override
-  public Optional<Eip7594> getOptionalEip7594Config() {
-    return specConfigElectra.getOptionalEip7594Config().or(() -> eip7594);
   }
 
   @Override
@@ -141,12 +126,11 @@ public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
       return false;
     }
     final DelegatingSpecConfigElectra that = (DelegatingSpecConfigElectra) o;
-    return Objects.equals(specConfigElectra, that.specConfigElectra)
-        && Objects.equals(eip7594, that.eip7594);
+    return Objects.equals(specConfigElectra, that.specConfigElectra);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(specConfigElectra, eip7594);
+    return Objects.hash(specConfigElectra);
   }
 }

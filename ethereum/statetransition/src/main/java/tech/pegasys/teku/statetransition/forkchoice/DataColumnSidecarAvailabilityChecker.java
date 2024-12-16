@@ -50,7 +50,7 @@ public class DataColumnSidecarAvailabilityChecker implements AvailabilityChecker
   public boolean initiateDataAvailabilityCheck() {
     LOG.info("Starting data availability check for slot {}", block.getSlot());
     switch (dataAvailabilitySampler.checkSamplingEligibility(block.getMessage())) {
-      case NOT_REQUIRED_BEFORE_EIP7594 -> {
+      case NOT_REQUIRED_BEFORE_FULU -> {
         validationResult.complete(DataAndValidationResult.notRequired());
         LOG.info(
             "Availability check for slot {} NOT_REQUIRED, EIP7594 not started", block.getSlot());

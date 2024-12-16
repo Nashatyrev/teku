@@ -141,7 +141,7 @@ public class BlobSidecarManagerImpl implements BlobSidecarManager, SlotEventsCha
       return DataAndValidationResult.notRequired();
     }
 
-    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ELECTRA)) {
+    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
       throw new RuntimeException(
           String.format("PeerDAS block %s shouldn't be verified in BlobSidecarManager", block));
     }

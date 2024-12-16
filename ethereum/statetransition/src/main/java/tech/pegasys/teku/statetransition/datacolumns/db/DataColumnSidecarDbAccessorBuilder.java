@@ -18,7 +18,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.function.Consumer;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.config.features.Eip7594;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalculator;
 
 public class DataColumnSidecarDbAccessorBuilder {
@@ -62,8 +62,8 @@ public class DataColumnSidecarDbAccessorBuilder {
   private int getNumberOfColumnsForSlot(final UInt64 slot) {
     return spec.atSlot(slot)
         .getConfig()
-        .getOptionalEip7594Config()
-        .map(Eip7594::getNumberOfColumns)
+        .toVersionFulu()
+        .map(SpecConfigFulu::getNumberOfColumns)
         .orElse(0);
   }
 

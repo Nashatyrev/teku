@@ -65,7 +65,7 @@ public class DataColumnSidecarSubnetBackboneSubscriber implements SlotEventsChan
   private void onEpoch(final UInt64 epoch) {
     spec.atEpoch(epoch)
         .miscHelpers()
-        .getEip7594Helpers()
+        .toVersionFulu()
         .ifPresent(
             eip7594Spec -> {
               List<UInt64> subnets =

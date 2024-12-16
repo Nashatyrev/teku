@@ -2310,7 +2310,7 @@ public class DatabaseTest {
 
   @TestTemplate
   public void addSidecar_isOperative(final DatabaseContext context) throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalFulu());
     initialize(context);
     final DataColumnSidecar dataColumnSidecar = dataStructureUtil.randomDataColumnSidecar();
     final DataColumnSlotAndIdentifier columnSlotAndIdentifier =
@@ -2324,7 +2324,7 @@ public class DatabaseTest {
   @TestTemplate
   public void setFirstCustodyIncompleteSlot_isOperative(final DatabaseContext context)
       throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalFulu());
     initialize(context);
     assertThat(database.getFirstCustodyIncompleteSlot().isEmpty()).isTrue();
 
@@ -2336,7 +2336,7 @@ public class DatabaseTest {
   @TestTemplate
   public void setFirstSamplerIncompleteSlot_isOperative(final DatabaseContext context)
       throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalFulu());
     initialize(context);
     assertThat(database.getFirstSamplerIncompleteSlot().isEmpty()).isTrue();
 
@@ -2349,7 +2349,7 @@ public class DatabaseTest {
   @SuppressWarnings("JavaCase")
   public void streamDataColumnIdentifiers_isOperative(final DatabaseContext context)
       throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalFulu());
     initialize(context);
 
     final SignedBeaconBlockHeader blockHeader1 = dataStructureUtil.randomSignedBeaconBlockHeader();
@@ -2395,7 +2395,7 @@ public class DatabaseTest {
   @TestTemplate
   @SuppressWarnings("JavaCase")
   public void pruneAllSidecars_isOperative(final DatabaseContext context) throws IOException {
-    setupWithSpec(TestSpecFactory.createMinimalElectraEip7594());
+    setupWithSpec(TestSpecFactory.createMinimalFulu());
     initialize(context);
 
     final SignedBeaconBlockHeader blockHeader1 =
