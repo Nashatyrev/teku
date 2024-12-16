@@ -109,7 +109,8 @@ public class MilestoneBasedBlockFactory implements BlockFactory {
   @Override
   public List<DataColumnSidecar> createDataColumnSidecars(
       final SignedBlockContainer blockContainer, final List<Blob> blobs) {
-    return Collections.emptyList();
+    final SpecMilestone milestone = getMilestone(blockContainer.getSlot());
+    return registeredFactories.get(milestone).createDataColumnSidecars(blockContainer, blobs);
   }
 
   private SpecMilestone getMilestone(final UInt64 slot) {
