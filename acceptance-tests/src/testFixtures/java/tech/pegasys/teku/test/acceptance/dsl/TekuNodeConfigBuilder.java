@@ -216,8 +216,8 @@ public class TekuNodeConfigBuilder {
   public TekuNodeConfigBuilder withFuluEpoch(final UInt64 fuluForkEpoch) {
 
     mustBe(NodeType.BEACON_NODE);
-    LOG.debug("Xnetwork-das-fork-epoch={}", fuluForkEpoch);
-    configMap.put("Xnetwork-das-fork-epoch", fuluForkEpoch.toString());
+    LOG.debug("Xnetwork-fulu-fork-epoch={}", fuluForkEpoch);
+    configMap.put("Xnetwork-fulu-fork-epoch", fuluForkEpoch.toString());
     specConfigModifier =
         specConfigModifier.andThen(
             specConfigBuilder ->

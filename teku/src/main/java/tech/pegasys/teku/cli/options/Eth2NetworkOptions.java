@@ -169,9 +169,8 @@ public class Eth2NetworkOptions {
       arity = "1")
   private UInt64 electraForkEpoch;
 
-  // TODO: change flag when it's safe
   @Option(
-      names = {"--Xnetwork-das-fork-epoch"},
+      names = {"--Xnetwork-fulu-fork-epoch"},
       hidden = true,
       paramLabel = "<epoch>",
       description = "Override the EIP7594 fork activation epoch.",

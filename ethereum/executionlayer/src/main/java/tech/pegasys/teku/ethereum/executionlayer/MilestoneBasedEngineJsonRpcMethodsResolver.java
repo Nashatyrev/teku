@@ -31,7 +31,6 @@ import tech.pegasys.teku.ethereum.executionclient.methods.EngineApiMethod;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineForkChoiceUpdatedV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineForkChoiceUpdatedV2;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineForkChoiceUpdatedV3;
-import tech.pegasys.teku.ethereum.executionclient.methods.EngineForkChoiceUpdatedV4;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetBlobsV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV1;
 import tech.pegasys.teku.ethereum.executionclient.methods.EngineGetPayloadV2;
@@ -120,8 +119,8 @@ public class MilestoneBasedEngineJsonRpcMethodsResolver implements EngineJsonRpc
 
     methods.put(ENGINE_NEW_PAYLOAD, new EngineNewPayloadV4(executionEngineClient));
     methods.put(ENGINE_GET_PAYLOAD, new EngineGetPayloadV4(executionEngineClient, spec));
-    // TODO: put V4 back / test
-    methods.put(ENGINE_FORK_CHOICE_UPDATED, new EngineForkChoiceUpdatedV4(executionEngineClient));
+    // TODO: put EngineForkChoiceUpdatedV4 when it's supported by EL
+    methods.put(ENGINE_FORK_CHOICE_UPDATED, new EngineForkChoiceUpdatedV3(executionEngineClient));
     methods.put(ENGINE_GET_BLOBS, new EngineGetBlobsV1(executionEngineClient, spec));
 
     return methods;
