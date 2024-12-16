@@ -65,7 +65,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     assertThat(totalColumns).isGreaterThan(0);
   }
 
-  private void assertAllBlocksExistWithoutForks(TekuBeaconNode node, List<UInt64> slots)
+  private void assertAllBlocksExistWithoutForks(final TekuBeaconNode node, final List<UInt64> slots)
       throws IOException {
     Bytes32 parentRoot = null;
     for (UInt64 slot : slots) {
@@ -78,7 +78,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     }
   }
 
-  private int getAndAssertDasCustody(TekuBeaconNode node, UInt64 fuluSlot) {
+  private int getAndAssertDasCustody(final TekuBeaconNode node, final UInt64 fuluSlot) {
     try {
       Optional<SignedBeaconBlock> maybeBlock = node.getBlockAtSlot(fuluSlot);
       if (maybeBlock.isPresent()) {

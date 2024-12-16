@@ -625,7 +625,7 @@ public class TekuBeaconNode extends TekuNode {
     }
   }
 
-  public Optional<SignedBeaconBlock> getBlockAtSlot(UInt64 slot) throws IOException {
+  public Optional<SignedBeaconBlock> getBlockAtSlot(final UInt64 slot) throws IOException {
     final Optional<String> result =
         httpClient.getOptional(getRestApiUrl(), "/eth/v2/beacon/blocks/" + slot);
     if (result.isEmpty()) {
