@@ -592,6 +592,12 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
+  public TekuNodeConfigBuilder withDasExtraCustodySubnetCount(final int extraCustodySubnetCount) {
+    LOG.debug("Xdas-extra-custody-subnet-count: {}", extraCustodySubnetCount);
+    configMap.put("Xdas-extra-custody-subnet-count", extraCustodySubnetCount);
+    return this;
+  }
+
   private TekuNodeConfigBuilder withPrivateKey(final PrivKey privKey) throws IOException {
     mustBe(NodeType.BEACON_NODE);
     this.maybePrivKey = Optional.ofNullable(privKey);

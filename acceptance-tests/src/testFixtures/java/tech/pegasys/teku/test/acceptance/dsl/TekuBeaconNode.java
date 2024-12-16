@@ -625,6 +625,22 @@ public class TekuBeaconNode extends TekuNode {
     }
   }
 
+  public  Optional<SignedBeaconBlock> getBlockAtSlot(UInt64 slot) throws IOException {
+    final Optional<String> result = httpClient.getOptional(getRestApiUrl(), "/eth/v2/beacon/blocks/" + slot);
+    if (result.isEmpty()) {
+      return Optional.empty();
+    } else {
+      final DeserializableTypeDefinition<SignedBeaconBlock> jsonTypeDefinition =
+          SharedApiTypes.withDataWrapper(
+              "block",
+              spec.atSlot(slot)
+                  .getSchemaDefinitions()
+                  .getSignedBeaconBlockSchema()
+                  .getJsonTypeDefinition());
+      return Optional.of(JsonUtil.parse(result.get(), jsonTypeDefinition));
+    }
+  }
+
   private Optional<BeaconState> fetchHeadState() throws IOException {
     return fetchState("head");
   }

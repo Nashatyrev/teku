@@ -14,28 +14,55 @@
 package tech.pegasys.teku.test.acceptance.das;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.IntStream;
+
+import kotlin.ranges.IntRange;
+import org.apache.tuweni.bytes.Bytes32;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.test.acceptance.dsl.AcceptanceTestBase;
 import tech.pegasys.teku.test.acceptance.dsl.TekuBeaconNode;
 import tech.pegasys.teku.test.acceptance.dsl.TekuNodeConfigBuilder;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class DasSyncAcceptanceTest extends AcceptanceTestBase {
 
   @Test
   public void shouldSyncToNodeWithGreaterFinalizedEpoch() throws Exception {
     final TekuBeaconNode primaryNode =
-        createTekuBeaconNode(createConfigBuilder().withRealNetwork().build());
+        createTekuBeaconNode(
+            createConfigBuilder()
+                .withRealNetwork()
+                .withDasExtraCustodySubnetCount(128 - 4)
+                .build());
 
     primaryNode.start();
     UInt64 genesisTime = primaryNode.getGenesisTime();
     final TekuBeaconNode lateJoiningNode =
         createLateJoiningNode(primaryNode, genesisTime.intValue());
     primaryNode.waitForEpochAtOrAbove(4);
+    assertAllBlocksExistWithoutForks(primaryNode, IntStream.range(1, 4 * 8).mapToObj(UInt64::valueOf).toList());
 
     lateJoiningNode.start();
     lateJoiningNode.waitForGenesis();
     lateJoiningNode.waitUntilInSyncWith(primaryNode);
+  }
+
+  private void assertAllBlocksExistWithoutForks(TekuBeaconNode node, List<UInt64> slots) throws IOException {
+    Bytes32 parentRoot = null;
+    for (UInt64 slot : slots) {
+      Optional<SignedBeaconBlock> block = node.getBlockAtSlot(slot);
+      assertThat(block).withFailMessage("Block missing at slot {}", slot).isNotEmpty();
+      if (parentRoot != null) {
+        assertThat(block.get().getParentRoot()).isEqualTo(parentRoot);
+      }
+      parentRoot = block.get().getRoot();
+    }
   }
 
   private TekuBeaconNode createLateJoiningNode(
