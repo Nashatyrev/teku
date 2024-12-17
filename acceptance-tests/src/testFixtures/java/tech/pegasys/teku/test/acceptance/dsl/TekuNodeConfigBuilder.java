@@ -592,6 +592,12 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
+  public TekuNodeConfigBuilder withGossipScoringEnabled(final boolean gossipScoringEnabled) {
+    LOG.debug("Xp2p-gossip-scoring-enabled: {}", gossipScoringEnabled);
+    configMap.put("Xp2p-gossip-scoring-enabled", gossipScoringEnabled);
+    return this;
+  }
+
   public TekuNodeConfigBuilder withDasExtraCustodySubnetCount(final int extraCustodySubnetCount) {
     LOG.debug("Xdas-extra-custody-subnet-count: {}", extraCustodySubnetCount);
     configMap.put("Xdas-extra-custody-subnet-count", extraCustodySubnetCount);

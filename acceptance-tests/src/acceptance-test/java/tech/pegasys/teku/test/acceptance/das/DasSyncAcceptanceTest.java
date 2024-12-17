@@ -46,14 +46,19 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     final TekuBeaconNode lateJoiningNode =
         createLateJoiningNode(primaryNode, genesisTime.intValue());
     primaryNode.waitForEpochAtOrAbove(4);
-    assertAllBlocksExistWithoutForks(primaryNode, IntStream.range(1, 4 * 8).mapToObj(UInt64::valueOf).toList());
+    assertAllBlocksExistWithoutForks(
+        primaryNode,
+        IntStream.range(1, 4 * primaryNode.getSpec().slotsPerEpoch(UInt64.ZERO))
+            .mapToObj(UInt64::valueOf)
+            .toList());
 
     lateJoiningNode.start();
     lateJoiningNode.waitForGenesis();
     lateJoiningNode.waitUntilInSyncWith(primaryNode);
   }
 
-  private void assertAllBlocksExistWithoutForks(TekuBeaconNode node, List<UInt64> slots) throws IOException {
+  private void assertAllBlocksExistWithoutForks(TekuBeaconNode node, List<UInt64> slots)
+      throws IOException {
     Bytes32 parentRoot = null;
     for (UInt64 slot : slots) {
       Optional<SignedBeaconBlock> block = node.getBlockAtSlot(slot);
@@ -85,6 +90,8 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         .withElectraEpoch(UInt64.valueOf(1))
         .withFuluEpoch(UInt64.valueOf(2))
         .withStubExecutionEngine()
+        // TODO remove after attestation gossip issue fixed
+        .withGossipScoringEnabled(false)
         .withLogLevel("DEBUG");
   }
 }
