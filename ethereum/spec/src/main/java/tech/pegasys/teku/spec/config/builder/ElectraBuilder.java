@@ -48,11 +48,9 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
   private Integer maxConsolidationRequestsPerPayload;
   private Integer maxPendingPartialsPerWithdrawalsSweep;
   private Integer maxPendingDepositsPerEpoch;
-  // FIXME: remove hardcode, missed in Kurtosis config
-  private Integer maxBlobsPerBlockElectra = 6;
-  private Integer targetBlobsPerBlockElectra = 3;
-  private Integer maxRequestBlobSidecarsElectra = 768;
-  private Integer blobSidecarSubnetCountElectra = 6;
+  private Integer maxBlobsPerBlockElectra;
+  private Integer maxRequestBlobSidecarsElectra;
+  private Integer blobSidecarSubnetCountElectra;
 
   ElectraBuilder() {}
 
@@ -80,7 +78,6 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
             maxPendingPartialsPerWithdrawalsSweep,
             maxPendingDepositsPerEpoch,
             maxBlobsPerBlockElectra,
-            targetBlobsPerBlockElectra,
             maxRequestBlobSidecarsElectra,
             blobSidecarSubnetCountElectra),
         specConfigAndParent);
@@ -200,12 +197,6 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
     return this;
   }
 
-  public ElectraBuilder targetBlobsPerBlockElectra(final Integer targetBlobsPerBlockElectra) {
-    checkNotNull(targetBlobsPerBlockElectra);
-    this.targetBlobsPerBlockElectra = targetBlobsPerBlockElectra;
-    return this;
-  }
-
   public ElectraBuilder maxRequestBlobSidecarsElectra(final Integer maxRequestBlobSidecarsElectra) {
     checkNotNull(maxRequestBlobSidecarsElectra);
     this.maxRequestBlobSidecarsElectra = maxRequestBlobSidecarsElectra;
@@ -255,7 +246,6 @@ public class ElectraBuilder implements ForkConfigBuilder<SpecConfigDeneb, SpecCo
     constants.put("maxPendingPartialsPerWithdrawalsSweep", maxPendingPartialsPerWithdrawalsSweep);
     constants.put("maxPendingDepositsPerEpoch", maxPendingDepositsPerEpoch);
     constants.put("maxBlobsPerBlockElectra", maxBlobsPerBlockElectra);
-    constants.put("targetBlobsPerBlockElectra", targetBlobsPerBlockElectra);
     constants.put("maxRequestBlobSidecarsElectra", maxRequestBlobSidecarsElectra);
     constants.put("blobSidecarSubnetCountElectra", blobSidecarSubnetCountElectra);
 
