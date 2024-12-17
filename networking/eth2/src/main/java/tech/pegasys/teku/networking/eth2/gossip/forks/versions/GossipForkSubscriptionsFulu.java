@@ -80,7 +80,7 @@ public class GossipForkSubscriptionsFulu extends GossipForkSubscriptionsElectra 
         gossipEncoding,
         blockProcessor,
         blobSidecarProcessor,
-        aggregateProcessor,
+        attestationProcessor,
         aggregateProcessor,
         attesterSlashingProcessor,
         proposerSlashingProcessor,
