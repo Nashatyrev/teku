@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.statetransition.forkchoice;
 
-import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
@@ -79,11 +78,5 @@ public class DataColumnSidecarAvailabilityChecker implements AvailabilityChecker
   @Override
   public SafeFuture<DataAndValidationResult<UInt64>> getAvailabilityCheckResult() {
     return validationResult;
-  }
-
-  @Override
-  public DataAndValidationResult<UInt64> validateImmediately(
-      final List<UInt64> dataColumnSidecars) {
-    return DataAndValidationResult.validResult(dataColumnSidecars);
   }
 }

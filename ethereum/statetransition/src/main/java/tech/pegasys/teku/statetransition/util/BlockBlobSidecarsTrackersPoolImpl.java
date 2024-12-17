@@ -94,7 +94,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
   static final String GAUGE_BLOB_SIDECARS_TRACKERS_LABEL = "blob_sidecars_trackers";
 
   static final UInt64 MAX_WAIT_RELATIVE_TO_ATT_DUE_MILLIS = UInt64.valueOf(1500);
-  static final UInt64 MIN_WAIT_MILLIS = UInt64.ZERO;
+  static final UInt64 MIN_WAIT_MILLIS = UInt64.valueOf(500);
   static final UInt64 TARGET_WAIT_MILLIS = UInt64.valueOf(1000);
 
   private final SettableLabelledGauge sizeGauge;
@@ -349,7 +349,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
     totalBlobSidecars += (int) addedBlobs;
     sizeGauge.set(totalBlobSidecars, GAUGE_BLOB_SIDECARS_LABEL);
 
-    if (!blobSidecarsTracker.isCompleted()) {
+    if (!blobSidecarsTracker.isComplete()) {
       LOG.error(
           "Tracker for block {} is supposed to be completed but it is not. Missing blob sidecars: {}",
           block.toLogString(),
@@ -519,7 +519,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
                 // if we attempted to fetch via RPC, we missed the opportunity to complete the
                 // tracker via local EL (local El fetch requires the block to be known)
                 // Let's try now
-                if (!existingTracker.isLocalElFetchTriggered() && !existingTracker.isCompleted()) {
+                if (!existingTracker.isLocalElFetchTriggered() && !existingTracker.isComplete()) {
                   fetchMissingContentFromLocalEL(slotAndBlockRoot)
                       .finish(this::logLocalElBlobsLookupFailure);
                 }
@@ -659,7 +659,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
       return SafeFuture.COMPLETE;
     }
 
-    if (blockBlobSidecarsTracker.isCompleted()) {
+    if (blockBlobSidecarsTracker.isComplete()) {
       return SafeFuture.COMPLETE;
     }
 
@@ -730,7 +730,6 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
                         blobAndProof.get(),
                         beaconBlockBodyDeneb,
                         signedBeaconBlockHeader);
-
                 onNewBlobSidecar(blobSidecar, LOCAL_EL);
               }
             });
@@ -747,14 +746,22 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
     final SszKZGCommitment sszKZGCommitment =
         beaconBlockBodyDeneb.getBlobKzgCommitments().get(blobIdentifier.getIndex().intValue());
 
-    return blobSidecarSchema.create(
-        blobIdentifier.getIndex(),
-        blobAndProof.blob(),
-        sszKZGCommitment,
-        new SszKZGProof(blobAndProof.proof()),
-        signedBeaconBlockHeader,
-        miscHelpersDeneb.computeBlobKzgCommitmentInclusionProof(
-            blobIdentifier.getIndex(), beaconBlockBodyDeneb));
+    final BlobSidecar blobSidecar =
+        blobSidecarSchema.create(
+            blobIdentifier.getIndex(),
+            blobAndProof.blob(),
+            sszKZGCommitment,
+            new SszKZGProof(blobAndProof.proof()),
+            signedBeaconBlockHeader,
+            miscHelpersDeneb.computeBlobKzgCommitmentInclusionProof(
+                blobIdentifier.getIndex(), beaconBlockBodyDeneb));
+
+    blobSidecar.markSignatureAsValidated();
+    blobSidecar.markKzgCommitmentInclusionProofAsValidated();
+    // assume kzg validation done by local EL
+    blobSidecar.markKzgAsValidated();
+
+    return blobSidecar;
   }
 
   private synchronized void fetchMissingContentFromRemotePeers(
@@ -766,7 +773,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
       return;
     }
 
-    if (blockBlobSidecarsTracker.isCompleted()) {
+    if (blockBlobSidecarsTracker.isComplete()) {
       return;
     }
 

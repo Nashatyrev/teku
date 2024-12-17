@@ -650,7 +650,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
       final BlobSidecarManagerImpl blobSidecarManagerImpl =
           new BlobSidecarManagerImpl(
               spec,
-              beaconAsyncRunner,
               recentChainData,
               blockBlobSidecarsTrackersPool,
               blobSidecarValidator,
