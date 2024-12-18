@@ -112,6 +112,11 @@ public class SimpleSidecarRetriever
     }
   }
 
+  @Override
+  public void flush() {
+    asyncRunner.runAsync(this::nextRound).ifExceptionGetsHereRaiseABug();
+  }
+
   private synchronized List<RequestMatch> matchRequestsAndPeers() {
     disposeCompletedRequests();
     final RequestTracker ongoingRequestsTracker = createFromCurrentPendingRequests();

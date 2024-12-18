@@ -31,6 +31,11 @@ public interface DataColumnSidecarRetriever {
   SafeFuture<DataColumnSidecar> retrieve(DataColumnSlotAndIdentifier columnId);
 
   /**
+   * Starts all the queued retrieve requests immediately
+   */
+  void flush();
+
+  /**
    * The request may complete with this exception when requested column is no more on our local
    * canonical chain
    */

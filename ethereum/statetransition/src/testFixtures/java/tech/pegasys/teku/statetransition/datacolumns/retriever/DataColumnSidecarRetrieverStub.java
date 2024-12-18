@@ -47,4 +47,8 @@ public class DataColumnSidecarRetrieverStub implements DataColumnSidecarRetrieve
     }
     return request.promise;
   }
+
+  @Override
+  public void flush() {
+  }
 }
