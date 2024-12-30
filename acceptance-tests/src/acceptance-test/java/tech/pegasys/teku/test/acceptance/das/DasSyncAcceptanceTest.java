@@ -31,6 +31,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
 
   private final int subnetCount = 128;
   private final int defaultCustodySubnetCount = 4;
+  private final int fuluEpoch = 2;
 
   @Test
   public void shouldSyncToNodeWithGreaterFinalizedEpoch() throws Exception {
@@ -45,7 +46,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     UInt64 genesisTime = primaryNode.getGenesisTime();
     final TekuBeaconNode lateJoiningNode =
         createLateJoiningNode(primaryNode, genesisTime.intValue());
-    primaryNode.waitForEpochAtOrAbove(4);
+    primaryNode.waitForEpochAtOrAbove(fuluEpoch + 1);
 
     lateJoiningNode.start();
     lateJoiningNode.waitForGenesis();
@@ -129,7 +130,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         .withCapellaEpoch(UInt64.valueOf(0))
         .withDenebEpoch(UInt64.valueOf(0))
         .withElectraEpoch(UInt64.valueOf(1))
-        .withFuluEpoch(UInt64.valueOf(2))
+        .withFuluEpoch(UInt64.valueOf(fuluEpoch))
         .withStubExecutionEngine();
     // uncomment to debug
     //        .withLogLevel("DEBUG");
