@@ -30,9 +30,7 @@ public interface DataColumnSidecarRetriever {
    */
   SafeFuture<DataColumnSidecar> retrieve(DataColumnSlotAndIdentifier columnId);
 
-  /**
-   * Starts all the queued retrieve requests immediately
-   */
+  /** Starts all the queued retrieve requests immediately */
   void flush();
 
   /**

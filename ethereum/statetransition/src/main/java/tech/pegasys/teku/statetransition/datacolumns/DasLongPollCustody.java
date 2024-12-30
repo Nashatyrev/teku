@@ -35,9 +35,7 @@ import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
 
   public interface GossipWaitTimeoutCalculator {
-    /**
-     * Returns the duration to wait for a column to be gossiped
-     */
+    /** Returns the duration to wait for a column to be gossiped */
     Duration getGossipWaitTimeout(UInt64 slot);
   }
 

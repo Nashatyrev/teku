@@ -13,22 +13,19 @@
 
 package tech.pegasys.teku.test.acceptance.das;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
-
-import kotlin.ranges.IntRange;
 import org.apache.tuweni.bytes.Bytes32;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.test.acceptance.dsl.AcceptanceTestBase;
 import tech.pegasys.teku.test.acceptance.dsl.TekuBeaconNode;
 import tech.pegasys.teku.test.acceptance.dsl.TekuNodeConfigBuilder;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 public class DasSyncAcceptanceTest extends AcceptanceTestBase {
 

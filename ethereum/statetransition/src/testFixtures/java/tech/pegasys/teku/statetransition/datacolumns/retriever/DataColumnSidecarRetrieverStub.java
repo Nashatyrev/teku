@@ -49,6 +49,5 @@ public class DataColumnSidecarRetrieverStub implements DataColumnSidecarRetrieve
   }
 
   @Override
-  public void flush() {
-  }
+  public void flush() {}
 }

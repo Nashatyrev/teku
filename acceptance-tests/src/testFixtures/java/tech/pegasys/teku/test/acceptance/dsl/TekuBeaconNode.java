@@ -64,7 +64,6 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecFactory;
 import tech.pegasys.teku.spec.SpecMilestone;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -626,8 +625,9 @@ public class TekuBeaconNode extends TekuNode {
     }
   }
 
-  public  Optional<SignedBeaconBlock> getBlockAtSlot(UInt64 slot) throws IOException {
-    final Optional<String> result = httpClient.getOptional(getRestApiUrl(), "/eth/v2/beacon/blocks/" + slot);
+  public Optional<SignedBeaconBlock> getBlockAtSlot(UInt64 slot) throws IOException {
+    final Optional<String> result =
+        httpClient.getOptional(getRestApiUrl(), "/eth/v2/beacon/blocks/" + slot);
     if (result.isEmpty()) {
       return Optional.empty();
     } else {

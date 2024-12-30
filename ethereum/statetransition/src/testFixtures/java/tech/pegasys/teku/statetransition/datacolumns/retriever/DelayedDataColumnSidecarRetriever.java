@@ -50,6 +50,5 @@ public class DelayedDataColumnSidecarRetriever implements DataColumnSidecarRetri
   }
 
   @Override
-  public void flush() {
-  }
+  public void flush() {}
 }

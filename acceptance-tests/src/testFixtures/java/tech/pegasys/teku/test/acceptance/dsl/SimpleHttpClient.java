@@ -22,7 +22,6 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
-
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -47,12 +46,13 @@ public class SimpleHttpClient {
   }
 
   public Optional<String> getOptional(final URI baseUrl, final String path) throws IOException {
-      Optional<ResponseBody> maybeBody = this.getOptionalResponseBody(baseUrl, path, Collections.emptyMap());
-      if (maybeBody.isEmpty()) {
-        return Optional.empty();
-      } else {
-        return Optional.of(maybeBody.get().string());
-      }
+    Optional<ResponseBody> maybeBody =
+        this.getOptionalResponseBody(baseUrl, path, Collections.emptyMap());
+    if (maybeBody.isEmpty()) {
+      return Optional.empty();
+    } else {
+      return Optional.of(maybeBody.get().string());
+    }
   }
 
   public String get(final URI baseUrl, final String path, final Map<String, String> headers)
