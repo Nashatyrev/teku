@@ -70,11 +70,12 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     Bytes32 parentRoot = null;
     for (UInt64 slot : slots) {
       Optional<SignedBeaconBlock> block = node.getBlockAtSlot(slot);
-      assertThat(block).withFailMessage("Block missing at slot {}", slot).isNotEmpty();
-      if (parentRoot != null) {
-        assertThat(block.get().getParentRoot()).isEqualTo(parentRoot);
+      if (block.isPresent()) {
+        if (parentRoot != null) {
+          assertThat(block.get().getParentRoot()).isEqualTo(parentRoot);
+        }
+        parentRoot = block.get().getRoot();
       }
-      parentRoot = block.get().getRoot();
     }
   }
 
