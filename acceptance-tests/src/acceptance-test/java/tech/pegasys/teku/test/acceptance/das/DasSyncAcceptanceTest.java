@@ -46,15 +46,26 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     final TekuBeaconNode lateJoiningNode =
         createLateJoiningNode(primaryNode, genesisTime.intValue());
     primaryNode.waitForEpochAtOrAbove(4);
-    assertAllBlocksExistWithoutForks(
-        primaryNode,
-        IntStream.range(1, 4 * primaryNode.getSpec().slotsPerEpoch(UInt64.ZERO))
-            .mapToObj(UInt64::valueOf)
-            .toList());
 
     lateJoiningNode.start();
     lateJoiningNode.waitForGenesis();
     lateJoiningNode.waitUntilInSyncWith(primaryNode);
+    lateJoiningNode.waitForEpochAtOrAbove(6);
+    lateJoiningNode.waitUntilInSyncWith(primaryNode);
+
+    int epochSlots = primaryNode.getSpec().slotsPerEpoch(UInt64.ZERO);
+    int endSlot = 6 * epochSlots;
+    assertAllBlocksExistWithoutForks(
+        primaryNode, IntStream.range(1, endSlot).mapToObj(UInt64::valueOf).toList());
+    int firstFuluSlot = 2 * epochSlots;
+    int totalColumns =
+        IntStream.range(firstFuluSlot, endSlot)
+            .mapToObj(UInt64::valueOf)
+            .map(slot -> getAndAssertDasCustody(lateJoiningNode, slot))
+            .mapToInt(i -> i)
+            .sum();
+
+    assertThat(totalColumns).isGreaterThan(0);
   }
 
   private void assertAllBlocksExistWithoutForks(TekuBeaconNode node, List<UInt64> slots)
@@ -67,6 +78,35 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         assertThat(block.get().getParentRoot()).isEqualTo(parentRoot);
       }
       parentRoot = block.get().getRoot();
+    }
+  }
+
+  private int getAndAssertDasCustody(TekuBeaconNode node, UInt64 fuluSlot) {
+    try {
+      Optional<SignedBeaconBlock> maybeBlock = node.getBlockAtSlot(fuluSlot);
+      if (maybeBlock.isPresent()) {
+        SignedBeaconBlock block = maybeBlock.get();
+        boolean hasBlobs =
+            !block
+                .getBeaconBlock()
+                .orElseThrow()
+                .getBody()
+                .toVersionDeneb()
+                .orElseThrow()
+                .getBlobKzgCommitments()
+                .isEmpty();
+        int columnCount = node.getDataColumnSidecarCount(block.getRoot().toHexString());
+        if (hasBlobs) {
+          assertThat(columnCount).isNotZero();
+        } else {
+          assertThat(columnCount).isZero();
+        }
+        return columnCount;
+      } else {
+        return 0;
+      }
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -89,9 +129,8 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         .withDenebEpoch(UInt64.valueOf(0))
         .withElectraEpoch(UInt64.valueOf(1))
         .withFuluEpoch(UInt64.valueOf(2))
-        .withStubExecutionEngine()
-        // TODO remove after attestation gossip issue fixed
-        .withGossipScoringEnabled(false)
-        .withLogLevel("DEBUG");
+        .withStubExecutionEngine();
+    // uncomment to debug
+    //        .withLogLevel("DEBUG");
   }
 }

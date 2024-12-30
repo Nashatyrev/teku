@@ -64,6 +64,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecFactory;
 import tech.pegasys.teku.spec.SpecMilestone;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -670,6 +671,13 @@ public class TekuBeaconNode extends TekuNode {
           Bytes32.fromHexString(
               jsonNode.get("data").get("validator").get("withdrawal_credentials").asText()));
     }
+  }
+
+  public int getDataColumnSidecarCount(final String blockId) throws IOException {
+    final String result =
+        httpClient.get(getRestApiUrl(), "/eth/v1/beacon/data_column_sidecars/" + blockId);
+    final JsonNode jsonNode = OBJECT_MAPPER.readTree(result);
+    return jsonNode.get("data").size();
   }
 
   public void waitForValidators(final int numberOfValidators) {
