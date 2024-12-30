@@ -1,4 +1,4 @@
-name: Teku PeerDAS related tests
+name: Teku PeerDAS acceptance tests
 
 on: pull_request
 
