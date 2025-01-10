@@ -288,7 +288,8 @@ public class MiscHelpersDeneb extends MiscHelpersCapella {
             sszKZGCommitment,
             new SszKZGProof(blobAndProof.proof()),
             signedBeaconBlockHeader,
-            computeKzgCommitmentInclusionProof(blobIdentifier.getIndex(), beaconBlockBodyDeneb));
+            computeBlobKzgCommitmentInclusionProof(
+                blobIdentifier.getIndex(), beaconBlockBodyDeneb));
 
     blobSidecar.markSignatureAsValidated();
     blobSidecar.markKzgCommitmentInclusionProofAsValidated();
