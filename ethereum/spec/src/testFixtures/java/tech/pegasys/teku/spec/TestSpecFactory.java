@@ -197,7 +197,7 @@ public class TestSpecFactory {
   public static Spec createMinimalWithFuluForkEpoch(final UInt64 fuluForkEpoch) {
     final SpecConfigAndParent<? extends SpecConfig> config =
         getFuluSpecConfig(Eth2Network.MINIMAL, ZERO, ZERO, fuluForkEpoch);
-    return create(config, SpecMilestone.ELECTRA);
+    return create(config, SpecMilestone.FULU);
   }
 
   public static Spec createMinimalPhase0() {

@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594;
+package tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.fulu;
 
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.ssz.collections.SszBitvector;
@@ -21,19 +21,19 @@ import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessage;
 
-public class MetadataMessageEip7594
-    extends Container4<MetadataMessageEip7594, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
+public class MetadataMessageFulu
+    extends Container4<MetadataMessageFulu, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
     implements MetadataMessage {
 
-  MetadataMessageEip7594(final MetadataMessageSchemaFulu schema) {
+  MetadataMessageFulu(final MetadataMessageSchemaFulu schema) {
     super(schema);
   }
 
-  MetadataMessageEip7594(final MetadataMessageSchemaFulu schema, final TreeNode backingNode) {
+  MetadataMessageFulu(final MetadataMessageSchemaFulu schema, final TreeNode backingNode) {
     super(schema, backingNode);
   }
 
-  MetadataMessageEip7594(
+  MetadataMessageFulu(
       final MetadataMessageSchemaFulu schema,
       final UInt64 seqNumber,
       final SszBitvector attNets,

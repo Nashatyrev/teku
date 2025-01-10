@@ -493,14 +493,14 @@ public class BeaconChainMethods {
         new ArrayList<>();
 
     if (spec.isMilestoneSupported(SpecMilestone.FULU)) {
-      final SszSchema<MetadataMessage> eip7594MetadataSchema =
+      final SszSchema<MetadataMessage> fuluMetadataSchema =
           SszSchema.as(
               MetadataMessage.class,
               SchemaDefinitionsFulu.required(
                       spec.forMilestone(SpecMilestone.FULU).getSchemaDefinitions())
                   .getMetadataMessageSchema());
-      final RpcContextCodec<?, MetadataMessage> eip7594ContextCodec =
-          RpcContextCodec.noop(eip7594MetadataSchema);
+      final RpcContextCodec<?, MetadataMessage> fuluContextCodec =
+          RpcContextCodec.noop(fuluMetadataSchema);
 
       final SingleProtocolEth2RpcMethod<EmptyMessage, MetadataMessage> v3Method =
           new SingleProtocolEth2RpcMethod<>(
@@ -510,7 +510,7 @@ public class BeaconChainMethods {
               rpcEncoding,
               requestType,
               expectResponse,
-              eip7594ContextCodec,
+              fuluContextCodec,
               messageHandler,
               peerLookup);
       versionedMethods.add(v3Method);

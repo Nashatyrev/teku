@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.eip7594;
+package tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.fulu;
 
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.ssz.collections.SszBitvector;
@@ -27,8 +27,8 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.Meta
 
 public class MetadataMessageSchemaFulu
     extends ContainerSchema4<
-        MetadataMessageEip7594, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
-    implements MetadataMessageSchema<MetadataMessageEip7594> {
+        MetadataMessageFulu, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
+    implements MetadataMessageSchema<MetadataMessageFulu> {
   public MetadataMessageSchemaFulu(final NetworkingSpecConfig networkingSpecConfig) {
     super(
         "MetadataMessage",
@@ -41,12 +41,12 @@ public class MetadataMessageSchemaFulu
   }
 
   @Override
-  public MetadataMessageEip7594 create(
+  public MetadataMessageFulu create(
       final UInt64 seqNumber,
       final Iterable<Integer> attnets,
       final Iterable<Integer> syncnets,
       final Optional<UInt64> custodySubnetCount) {
-    return new MetadataMessageEip7594(
+    return new MetadataMessageFulu(
         this,
         seqNumber,
         getAttnestSchema().ofBits(attnets),
@@ -55,13 +55,13 @@ public class MetadataMessageSchemaFulu
   }
 
   @Override
-  public MetadataMessageEip7594 createDefault() {
-    return new MetadataMessageEip7594(this);
+  public MetadataMessageFulu createDefault() {
+    return new MetadataMessageFulu(this);
   }
 
   @Override
-  public MetadataMessageEip7594 createFromBackingNode(final TreeNode node) {
-    return new MetadataMessageEip7594(this, node);
+  public MetadataMessageFulu createFromBackingNode(final TreeNode node) {
+    return new MetadataMessageFulu(this, node);
   }
 
   private SszBitvectorSchema<SszBitvector> getAttnestSchema() {
