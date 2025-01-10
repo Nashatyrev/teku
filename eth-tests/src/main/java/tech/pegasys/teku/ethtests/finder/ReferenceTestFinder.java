@@ -37,7 +37,7 @@ public class ReferenceTestFinder {
           TestFork.CAPELLA,
           TestFork.DENEB,
           TestFork.ELECTRA,
-          TestFork.EIP7594);
+          TestFork.FULU);
 
   @MustBeClosed
   public static Stream<TestDefinition> findReferenceTests() throws IOException {

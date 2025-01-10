@@ -73,8 +73,7 @@ public class TestDefinition {
           case TestFork.CAPELLA -> SpecMilestone.CAPELLA;
           case TestFork.DENEB -> SpecMilestone.DENEB;
           case TestFork.ELECTRA -> SpecMilestone.ELECTRA;
-          // TODO: rename when reference tests are updated
-          case TestFork.EIP7594 -> SpecMilestone.FULU;
+          case TestFork.FULU -> SpecMilestone.FULU;
           default -> throw new IllegalArgumentException("Unknown fork: " + fork);
         };
     spec = TestSpecFactory.create(milestone, network);

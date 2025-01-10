@@ -156,7 +156,7 @@ public class SingleMerkleProofTestExecutor implements TestExecutor {
                 beaconBlockBody.hashTreeRoot()))
         .isTrue();
 
-    // Verify 2 MiscHelpersEip7594 helpers
+    // Verify 2 MiscHelpersFulu helpers
     final MiscHelpersFulu miscHelpersFulu =
         MiscHelpersFulu.required(testDefinition.getSpec().getGenesisSpec().miscHelpers());
     assertThat(miscHelpersFulu.getBlockBodyKzgCommitmentsGeneralizedIndex())

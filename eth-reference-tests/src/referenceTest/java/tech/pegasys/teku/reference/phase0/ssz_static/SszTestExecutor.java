@@ -228,7 +228,7 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
                   schemas ->
                       SchemaDefinitionsElectra.required(schemas).getSingleAttestationSchema()))
 
-          // EIP7594 types
+          // Fulu types
           .put(
               "ssz_static/DataColumnIdentifier",
               new SszTestExecutor<>(schemas -> DataColumnIdentifier.SSZ_SCHEMA))

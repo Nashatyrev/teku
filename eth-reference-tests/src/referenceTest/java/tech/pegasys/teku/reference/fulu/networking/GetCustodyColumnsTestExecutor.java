@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.reference.eip7594.networking;
+package tech.pegasys.teku.reference.fulu.networking;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static tech.pegasys.teku.reference.TestDataUtils.loadYaml;
