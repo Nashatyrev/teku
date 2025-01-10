@@ -69,7 +69,6 @@ public class GossipForkSubscriptionsFulu extends GossipForkSubscriptionsElectra 
       final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor,
       final DebugDataDumper debugDataDumper,
       final DasGossipLogger dasGossipLogger) {
-    // TODO: break blobSidecar subscriptions
     super(
         fork,
         spec,
