@@ -14,8 +14,6 @@
 package tech.pegasys.teku.networking.eth2;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.assertj.core.api.Assumptions.assumeThat;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.infrastructure.async.Waiter.waitFor;
 
@@ -156,7 +154,7 @@ public class GetMetadataIntegrationTest extends AbstractRpcMethodIntegrationTest
     final MetadataMessage metadata = safeJoin(res);
     assertThat(metadata).isInstanceOf(expectedType);
     // There will be update of custody_subnet_count in this case
-    if(!(nextMilestone == SpecMilestone.FULU && nextSpecEnabledRemotely)) {
+    if (!(nextMilestone == SpecMilestone.FULU && nextSpecEnabledRemotely)) {
       assertThat(metadata.getSeqNumber()).isEqualTo(UInt64.ZERO);
     }
   }

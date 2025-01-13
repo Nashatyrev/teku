@@ -26,8 +26,7 @@ import tech.pegasys.teku.spec.constants.NetworkConstants;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
 
 public class MetadataMessageSchemaFulu
-    extends ContainerSchema4<
-        MetadataMessageFulu, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
+    extends ContainerSchema4<MetadataMessageFulu, SszUInt64, SszBitvector, SszBitvector, SszUInt64>
     implements MetadataMessageSchema<MetadataMessageFulu> {
   public MetadataMessageSchemaFulu(final NetworkingSpecConfig networkingSpecConfig) {
     super(
