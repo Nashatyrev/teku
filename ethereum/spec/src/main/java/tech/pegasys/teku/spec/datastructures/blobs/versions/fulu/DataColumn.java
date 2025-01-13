@@ -11,23 +11,19 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594;
+package tech.pegasys.teku.spec.datastructures.blobs.versions.fulu;
 
-import org.apache.tuweni.bytes.Bytes;
-import tech.pegasys.teku.infrastructure.ssz.collections.impl.SszByteVectorImpl;
+import tech.pegasys.teku.infrastructure.ssz.SszList;
+import tech.pegasys.teku.infrastructure.ssz.impl.SszListImpl;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
 
-public class Cell extends SszByteVectorImpl {
+public class DataColumn extends SszListImpl<Cell> implements SszList<Cell> {
 
-  Cell(final CellSchema schema, final TreeNode backingNode) {
-    super(schema, backingNode);
-  }
-
-  Cell(final CellSchema cellSchema, final Bytes bytes) {
-    super(cellSchema, bytes);
+  DataColumn(final DataColumnSchema schema, final TreeNode node) {
+    super(schema, node);
   }
 
   public String toBriefString() {
-    return getBytes().slice(0, 7).toUnprefixedHexString();
+    return isEmpty() ? "" : get(0).toBriefString();
   }
 }

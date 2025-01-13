@@ -18,7 +18,7 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
@@ -77,14 +77,14 @@ public interface GossipForkSubscriptions {
   default void publishSignedBlsToExecutionChangeMessage(final SignedBlsToExecutionChange message) {}
 
   default void publishDataColumnSidecar(final DataColumnSidecar blobSidecar) {
-    // since EIP7594
+    // since Fulu
   }
 
   default void subscribeToDataColumnSidecarSubnet(final int subnetId) {
-    // since EIP7594
+    // since Fulu
   }
 
   default void unsubscribeFromDataColumnSidecarSubnet(final int subnetId) {
-    // since EIP7594
+    // since Fulu
   }
 }

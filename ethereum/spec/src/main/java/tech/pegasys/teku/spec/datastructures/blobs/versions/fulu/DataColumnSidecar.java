@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package tech.pegasys.teku.spec.datastructures.blobs.versions.eip7594;
+package tech.pegasys.teku.spec.datastructures.blobs.versions.fulu;
 
 import java.util.List;
 import org.apache.tuweni.bytes.Bytes32;
