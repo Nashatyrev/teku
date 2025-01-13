@@ -138,8 +138,8 @@ public class DataColumnSidecarCustodyImpl
         .miscHelpers()
         .toVersionFulu()
         .map(
-            miscHelpersEip7594 ->
-                miscHelpersEip7594
+            miscHelpersFulu ->
+                miscHelpersFulu
                     .computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount)
                     .contains(columnIndex))
         .orElse(false);

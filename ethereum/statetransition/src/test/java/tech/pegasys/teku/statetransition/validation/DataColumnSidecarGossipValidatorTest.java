@@ -139,7 +139,7 @@ public class DataColumnSidecarGossipValidatorTest {
   }
 
   @TestTemplate
-  void shouldRejectWhenSlotIsNotEip7594() {
+  void shouldRejectWhenSlotIsNotFulu() {
     final Spec mockedSpec = mock(Spec.class);
     when(mockedSpec.getNumberOfDataColumns()).thenReturn(Optional.empty());
     final SpecVersion mockedSpecVersion = mock(SpecVersion.class);

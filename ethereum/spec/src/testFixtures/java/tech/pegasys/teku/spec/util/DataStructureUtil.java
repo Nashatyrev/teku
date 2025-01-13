@@ -2606,7 +2606,7 @@ public final class DataStructureUtil {
       final SignedBeaconBlockHeader signedBlockHeader =
           signedBeaconBlockHeader.orElseGet(DataStructureUtil.this::randomSignedBeaconBlockHeader);
       final DataColumnSidecarSchema dataColumnSidecarSchema =
-          getEip7594SchemaDefinitions(signedBlockHeader.getMessage().getSlot())
+          getFuluSchemaDefinitions(signedBlockHeader.getMessage().getSlot())
               .getDataColumnSidecarSchema();
       final int numberOfProofs =
           kzgProofs
@@ -2639,14 +2639,13 @@ public final class DataStructureUtil {
   }
 
   public DataColumn randomDataColumn(final UInt64 slot, final int blobs) {
-    final DataColumnSchema dataColumnSchema =
-        getEip7594SchemaDefinitions(slot).getDataColumnSchema();
+    final DataColumnSchema dataColumnSchema = getFuluSchemaDefinitions(slot).getDataColumnSchema();
     List<Cell> list = IntStream.range(0, blobs).mapToObj(__ -> randomCell(slot)).toList();
     return dataColumnSchema.create(list);
   }
 
   public Cell randomCell(final UInt64 slot) {
-    final CellSchema cellSchema = getEip7594SchemaDefinitions(slot).getCellSchema();
+    final CellSchema cellSchema = getFuluSchemaDefinitions(slot).getCellSchema();
     return cellSchema.create(randomBytes(cellSchema.getLength()));
   }
 
@@ -2836,7 +2835,7 @@ public final class DataStructureUtil {
     return SchemaDefinitionsElectra.required(spec.atSlot(slot).getSchemaDefinitions());
   }
 
-  private SchemaDefinitionsFulu getEip7594SchemaDefinitions(final UInt64 slot) {
+  private SchemaDefinitionsFulu getFuluSchemaDefinitions(final UInt64 slot) {
     return SchemaDefinitionsFulu.required(spec.atSlot(slot).getSchemaDefinitions());
   }
 

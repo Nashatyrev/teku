@@ -239,11 +239,11 @@ public class BlobSidecarSelectorFactoryTest {
   }
 
   @Test
-  public void shouldForwardRequestsToReconstructionProviderAfterEip7594()
+  public void shouldForwardRequestsToReconstructionProviderAfterFulu()
       throws InterruptedException, ExecutionException {
     final BlobSidecarReconstructionProvider blobSidecarReconstructionProviderMock =
         mock(BlobSidecarReconstructionProvider.class);
-    final BlobSidecarSelectorFactory blobSidecarSelectorFactoryEip7594 =
+    final BlobSidecarSelectorFactory blobSidecarSelectorFactoryFulu =
         new BlobSidecarSelectorFactory(
             TestSpecFactory.createMinimalFulu(), client, blobSidecarReconstructionProviderMock);
 
@@ -255,7 +255,7 @@ public class BlobSidecarSelectorFactoryTest {
         .thenReturn(SafeFuture.completedFuture(blobSidecars));
 
     final Optional<List<BlobSidecar>> result =
-        blobSidecarSelectorFactoryEip7594
+        blobSidecarSelectorFactoryFulu
             .headSelector()
             .getBlobSidecars(indices)
             .get()
@@ -266,11 +266,11 @@ public class BlobSidecarSelectorFactoryTest {
   }
 
   @Test
-  public void shouldForwardSlotSelectorRequestsToReconstructionProviderAfterEip7594()
+  public void shouldForwardSlotSelectorRequestsToReconstructionProviderAfterFulu()
       throws InterruptedException, ExecutionException {
     final BlobSidecarReconstructionProvider blobSidecarReconstructionProviderMock =
         mock(BlobSidecarReconstructionProvider.class);
-    final BlobSidecarSelectorFactory blobSidecarSelectorFactoryEip7594 =
+    final BlobSidecarSelectorFactory blobSidecarSelectorFactoryFulu =
         new BlobSidecarSelectorFactory(
             TestSpecFactory.createMinimalFulu(), client, blobSidecarReconstructionProviderMock);
 
@@ -279,7 +279,7 @@ public class BlobSidecarSelectorFactoryTest {
         .thenReturn(SafeFuture.completedFuture(blobSidecars));
 
     final Optional<List<BlobSidecar>> result =
-        blobSidecarSelectorFactoryEip7594
+        blobSidecarSelectorFactoryFulu
             .slotSelector(block.getSlot())
             .getBlobSidecars(indices)
             .get()

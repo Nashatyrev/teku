@@ -299,9 +299,9 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
   }
 
   @Test
-  public void onNewBlock_shouldIgnoreEip7594Blocks() {
+  public void onNewBlock_shouldIgnoreFuluBlocks() {
     final Spec spec = TestSpecFactory.createMinimalFulu();
-    final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolEip7594 =
+    final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolFulu =
         new PoolFactory(metricsSystem)
             .createPoolForBlockBlobSidecarsTrackers(
                 blockImportChannel,
@@ -319,9 +319,9 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
     final SignedBeaconBlock block =
         dataStructureUtil.randomSignedBeaconBlock(currentSlot.longValue());
-    blockBlobSidecarsTrackersPoolEip7594.onNewBlock(block, Optional.empty());
+    blockBlobSidecarsTrackersPoolFulu.onNewBlock(block, Optional.empty());
 
-    assertThat(blockBlobSidecarsTrackersPoolEip7594.containsBlock(block.getRoot())).isFalse();
+    assertThat(blockBlobSidecarsTrackersPoolFulu.containsBlock(block.getRoot())).isFalse();
     assertThat(requiredBlockRootEvents).isEmpty();
     assertThat(requiredBlockRootDroppedEvents).isEmpty();
     assertThat(requiredBlobSidecarEvents).isEmpty();

@@ -21,13 +21,13 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionCache;
 
-public class Eip7594RestApiBuilderAddon implements RestApiBuilderAddon {
+public class FuluRestApiBuilderAddon implements RestApiBuilderAddon {
 
   final Spec spec;
   final DataProvider dataProvider;
   final SchemaDefinitionCache schemaCache;
 
-  public Eip7594RestApiBuilderAddon(
+  public FuluRestApiBuilderAddon(
       final Spec spec, final DataProvider dataProvider, final SchemaDefinitionCache schemaCache) {
     this.spec = spec;
     this.dataProvider = dataProvider;

@@ -84,8 +84,8 @@ public class DasSamplerBasic implements DataAvailabilitySampler, FinalizedCheckp
         spec.atSlot(slot).miscHelpers().toVersionFulu();
     return maybeMiscHelpers
         .map(
-            miscHelpersEip7594 ->
-                miscHelpersEip7594.computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount))
+            miscHelpersFulu ->
+                miscHelpersFulu.computeCustodyColumnIndexes(nodeId, totalCustodySubnetCount))
         .orElse(Collections.emptyList())
         .stream()
         .map(columnIndex -> new DataColumnSlotAndIdentifier(slot, blockRoot, columnIndex))

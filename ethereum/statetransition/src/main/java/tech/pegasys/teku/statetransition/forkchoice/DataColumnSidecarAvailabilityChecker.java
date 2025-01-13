@@ -51,8 +51,7 @@ public class DataColumnSidecarAvailabilityChecker implements AvailabilityChecker
     switch (dataAvailabilitySampler.checkSamplingEligibility(block.getMessage())) {
       case NOT_REQUIRED_BEFORE_FULU -> {
         validationResult.complete(DataAndValidationResult.notRequired());
-        LOG.info(
-            "Availability check for slot {} NOT_REQUIRED, EIP7594 not started", block.getSlot());
+        LOG.info("Availability check for slot {} NOT_REQUIRED, Fulu not started", block.getSlot());
       }
       case NOT_REQUIRED_OLD_EPOCH -> {
         validationResult.complete(DataAndValidationResult.notRequired());

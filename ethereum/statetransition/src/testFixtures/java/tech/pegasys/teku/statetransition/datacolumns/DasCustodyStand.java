@@ -161,8 +161,8 @@ public class DasCustodyStand {
         .miscHelpers()
         .toVersionFulu()
         .map(
-            miscHelpersEip7594 ->
-                miscHelpersEip7594.computeCustodyColumnIndexes(myNodeId, totalCustodySubnetCount))
+            miscHelpersFulu ->
+                miscHelpersFulu.computeCustodyColumnIndexes(myNodeId, totalCustodySubnetCount))
         .orElse(Collections.emptyList());
   }
 

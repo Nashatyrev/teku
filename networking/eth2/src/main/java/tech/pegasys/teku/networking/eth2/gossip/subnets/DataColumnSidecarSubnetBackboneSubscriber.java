@@ -67,9 +67,9 @@ public class DataColumnSidecarSubnetBackboneSubscriber implements SlotEventsChan
         .miscHelpers()
         .toVersionFulu()
         .ifPresent(
-            eip7594Spec -> {
+            miscHelpersFulu -> {
               List<UInt64> subnets =
-                  eip7594Spec.computeDataColumnSidecarBackboneSubnets(
+                  miscHelpersFulu.computeDataColumnSidecarBackboneSubnets(
                       nodeId, epoch, totalSubnetCount);
               subscribeToSubnets(subnets.stream().map(UInt64::intValue).toList());
             });

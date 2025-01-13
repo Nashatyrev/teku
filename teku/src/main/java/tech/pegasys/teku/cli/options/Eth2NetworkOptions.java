@@ -173,7 +173,7 @@ public class Eth2NetworkOptions {
       names = {"--Xnetwork-fulu-fork-epoch"},
       hidden = true,
       paramLabel = "<epoch>",
-      description = "Override the EIP7594 fork activation epoch.",
+      description = "Override the Fulu fork activation epoch.",
       arity = "1")
   private UInt64 fuluForkEpoch;
 

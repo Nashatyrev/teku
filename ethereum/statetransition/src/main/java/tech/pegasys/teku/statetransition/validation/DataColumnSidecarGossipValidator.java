@@ -144,7 +144,7 @@ public class DataColumnSidecarGossipValidator {
      */
     final Optional<Integer> maybeNumberOfColumns = spec.getNumberOfDataColumns();
     if (maybeNumberOfColumns.isEmpty()) {
-      return completedFuture(reject("DataColumnSidecar's slot is pre-EIP7594"));
+      return completedFuture(reject("DataColumnSidecar's slot is pre-Fulu"));
     }
     if (!dataColumnSidecar.getIndex().isLessThan(maybeNumberOfColumns.get())) {
       return completedFuture(reject("DataColumnSidecar index not less than number of columns."));
