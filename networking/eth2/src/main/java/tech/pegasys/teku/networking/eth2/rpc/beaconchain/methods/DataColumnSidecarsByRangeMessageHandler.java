@@ -298,7 +298,11 @@ public class DataColumnSidecarsByRangeMessageHandler
             .getDataColumnIdentifiers(startSlot, endSlot, maxRequestDataColumnSidecars)
             .thenCompose(
                 keys -> {
-                  dataColumnSidecarKeysIterator = Optional.of(keys.iterator());
+                  dataColumnSidecarKeysIterator =
+                      Optional.of(
+                          keys.stream()
+                              .filter(key -> columns.contains(key.columnIndex()))
+                              .iterator());
                   return getNextDataColumnSidecar(dataColumnSidecarKeysIterator.get());
                 });
       } else {
@@ -311,11 +315,6 @@ public class DataColumnSidecarsByRangeMessageHandler
       if (dataColumnSidecarIdentifiers.hasNext()) {
         final DataColumnSlotAndIdentifier columnSlotAndIdentifier =
             dataColumnSidecarIdentifiers.next();
-
-        // Column that was not requested. TODO: get identifiers only for requested columns from DB
-        if (!columns.contains(columnSlotAndIdentifier.columnIndex())) {
-          return getNextDataColumnSidecar(dataColumnSidecarIdentifiers);
-        }
 
         if (finalizedSlot.isGreaterThanOrEqualTo(columnSlotAndIdentifier.slot())) {
           return combinedChainDataClient.getSidecar(columnSlotAndIdentifier);
