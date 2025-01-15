@@ -13,15 +13,18 @@
 
 package tech.pegasys.teku.spec.datastructures.blobs.versions.fulu;
 
+import static tech.pegasys.teku.spec.schemas.registry.SchemaTypes.CELL_SCHEMA;
+
 import java.util.List;
 import tech.pegasys.teku.infrastructure.ssz.schema.impl.AbstractSszListSchema;
 import tech.pegasys.teku.infrastructure.ssz.tree.TreeNode;
-import tech.pegasys.teku.spec.config.SpecConfigFulu;
+import tech.pegasys.teku.spec.config.SpecConfigDeneb;
+import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 
 public class DataColumnSchema extends AbstractSszListSchema<Cell, DataColumn> {
 
-  public DataColumnSchema(final SpecConfigFulu specConfig) {
-    super(new CellSchema(specConfig), specConfig.getMaxBlobCommitmentsPerBlock());
+  public DataColumnSchema(final SpecConfigDeneb specConfig, final SchemaRegistry registry) {
+    super(registry.get(CELL_SCHEMA), specConfig.getMaxBlobCommitmentsPerBlock());
   }
 
   public DataColumn create(final List<Cell> cells) {

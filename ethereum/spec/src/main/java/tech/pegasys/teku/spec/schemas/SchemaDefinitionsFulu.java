@@ -14,17 +14,20 @@
 package tech.pegasys.teku.spec.schemas;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static tech.pegasys.teku.spec.schemas.registry.SchemaTypes.CELL_SCHEMA;
+import static tech.pegasys.teku.spec.schemas.registry.SchemaTypes.DATA_COLUMN_SCHEMA;
+import static tech.pegasys.teku.spec.schemas.registry.SchemaTypes.DATA_COLUMN_SIDECARS_BY_RANGE_REQUEST_MESSAGE_SCHEMA;
+import static tech.pegasys.teku.spec.schemas.registry.SchemaTypes.DATA_COLUMN_SIDECARS_BY_ROOT_REQUEST_MESSAGE_SCHEMA;
+import static tech.pegasys.teku.spec.schemas.registry.SchemaTypes.DATA_COLUMN_SIDECAR_SCHEMA;
+import static tech.pegasys.teku.spec.schemas.registry.SchemaTypes.MATRIX_ENTRY_SCHEMA;
 
 import java.util.Optional;
-import tech.pegasys.teku.spec.config.SpecConfigFulu;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.CellSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecarSchema;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.MatrixEntrySchema;
-import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRangeRequestMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnSidecarsByRootRequestMessageSchema;
-import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.versions.fulu.MetadataMessageSchemaFulu;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistry;
 
 public class SchemaDefinitionsFulu extends SchemaDefinitionsElectra {
@@ -38,24 +41,17 @@ public class SchemaDefinitionsFulu extends SchemaDefinitionsElectra {
   private final DataColumnSidecarsByRangeRequestMessage
           .DataColumnSidecarsByRangeRequestMessageSchema
       dataColumnSidecarsByRangeRequestMessageSchema;
-  private final MetadataMessageSchemaFulu metadataMessageSchema;
 
   public SchemaDefinitionsFulu(final SchemaRegistry schemaRegistry) {
     super(schemaRegistry);
-    final SpecConfigFulu specConfig = SpecConfigFulu.required(schemaRegistry.getSpecConfig());
-    this.cellSchema = new CellSchema(specConfig);
-    this.dataColumnSchema = new DataColumnSchema(specConfig);
-    this.dataColumnSidecarSchema =
-        DataColumnSidecarSchema.create(
-            SignedBeaconBlockHeader.SSZ_SCHEMA, dataColumnSchema, specConfig);
-    this.matrixEntrySchema = MatrixEntrySchema.create(cellSchema);
+    this.cellSchema = schemaRegistry.get(CELL_SCHEMA);
+    this.dataColumnSchema = schemaRegistry.get(DATA_COLUMN_SCHEMA);
+    this.dataColumnSidecarSchema = schemaRegistry.get(DATA_COLUMN_SIDECAR_SCHEMA);
+    this.matrixEntrySchema = schemaRegistry.get(MATRIX_ENTRY_SCHEMA);
     this.dataColumnSidecarsByRootRequestMessageSchema =
-        new DataColumnSidecarsByRootRequestMessageSchema(specConfig);
+        schemaRegistry.get(DATA_COLUMN_SIDECARS_BY_ROOT_REQUEST_MESSAGE_SCHEMA);
     this.dataColumnSidecarsByRangeRequestMessageSchema =
-        new DataColumnSidecarsByRangeRequestMessage.DataColumnSidecarsByRangeRequestMessageSchema(
-            specConfig);
-
-    this.metadataMessageSchema = new MetadataMessageSchemaFulu(specConfig);
+        schemaRegistry.get(DATA_COLUMN_SIDECARS_BY_RANGE_REQUEST_MESSAGE_SCHEMA);
   }
 
   public static SchemaDefinitionsFulu required(final SchemaDefinitions schemaDefinitions) {
@@ -65,11 +61,6 @@ public class SchemaDefinitionsFulu extends SchemaDefinitionsElectra {
         SchemaDefinitionsFulu.class,
         schemaDefinitions.getClass());
     return (SchemaDefinitionsFulu) schemaDefinitions;
-  }
-
-  @Override
-  public MetadataMessageSchemaFulu getMetadataMessageSchema() {
-    return metadataMessageSchema;
   }
 
   public CellSchema getCellSchema() {
