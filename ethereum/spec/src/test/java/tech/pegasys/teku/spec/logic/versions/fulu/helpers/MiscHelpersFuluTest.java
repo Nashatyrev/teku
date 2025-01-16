@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
@@ -46,7 +47,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
-import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
+import tech.pegasys.teku.spec.logic.versions.electra.helpers.PredicatesElectra;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
@@ -59,7 +60,7 @@ public class MiscHelpersFuluTest extends KZGAbstractBenchmark {
           builder ->
               builder.fuluBuilder(
                   fuluBuilder -> fuluBuilder.numberOfColumns(128).samplesPerSlot(16)));
-  private final Predicates predicates = new Predicates(spec.getGenesisSpecConfig());
+  private final PredicatesElectra predicates = new PredicatesElectra(spec.getGenesisSpecConfig());
   private final SchemaDefinitionsElectra schemaDefinitionsElectra =
       SchemaDefinitionsElectra.required(spec.getGenesisSchemaDefinitions());
   private final MiscHelpersFulu miscHelpersFulu =
@@ -139,7 +140,8 @@ public class MiscHelpersFuluTest extends KZGAbstractBenchmark {
 
   @Test
   public void emptyInclusionProof_shouldFailValidation() {
-    final Predicates predicatesMock = mock(Predicates.class);
+    final PredicatesElectra predicatesMock = mock(PredicatesElectra.class);
+    when(predicatesMock.toVersionElectra()).thenReturn(Optional.of(predicatesMock));
     when(predicatesMock.isValidMerkleBranch(any(), any(), anyInt(), anyInt(), any()))
         .thenReturn(true);
     final MiscHelpersFulu miscHelpersFuluWithMockPredicates =
@@ -186,7 +188,8 @@ public class MiscHelpersFuluTest extends KZGAbstractBenchmark {
   @Test
   public void emptyInclusionProofFromRealNetwork_shouldFailValidation() {
     final Spec specMainnet = TestSpecFactory.createMainnetFulu();
-    final Predicates predicatesMainnet = new Predicates(specMainnet.getGenesisSpecConfig());
+    final PredicatesElectra predicatesMainnet =
+        new PredicatesElectra(specMainnet.getGenesisSpecConfig());
     final SchemaDefinitionsElectra schemaDefinitionsElectraMainnet =
         SchemaDefinitionsElectra.required(specMainnet.getGenesisSchemaDefinitions());
     final MiscHelpersFulu miscHelpersFuluMainnet =
