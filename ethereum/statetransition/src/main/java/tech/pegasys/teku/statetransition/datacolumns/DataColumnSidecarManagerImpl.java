@@ -65,7 +65,7 @@ public class DataColumnSidecarManagerImpl implements DataColumnSidecarManager {
     return validation.thenPeek(
         res -> {
           dasGossipLogger.onReceive(dataColumnSidecar, res);
-          if (res.isAccept() || res.isSaveForFuture()) {
+          if (res.isAccept()) {
             validDataColumnSidecarsSubscribers.forEach(
                 listener -> listener.onNewValidSidecar(dataColumnSidecar));
           }
