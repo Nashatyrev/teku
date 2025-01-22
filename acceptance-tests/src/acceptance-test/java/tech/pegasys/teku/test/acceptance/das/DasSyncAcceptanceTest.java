@@ -58,7 +58,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     int endSlot = 6 * epochSlots;
     assertAllBlocksExistWithoutForks(
         primaryNode, IntStream.range(1, endSlot).mapToObj(UInt64::valueOf).toList());
-    int firstFuluSlot = 2 * epochSlots;
+    int firstFuluSlot = fuluEpoch * epochSlots;
     int totalColumns =
         IntStream.range(firstFuluSlot, endSlot)
             .mapToObj(UInt64::valueOf)
