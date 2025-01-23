@@ -128,9 +128,10 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
     return this;
   }
 
-  public FuluBuilder minEpochsForDataColumnSidecarsRequests(final Integer custodyEpochs) {
-    checkNotNull(custodyEpochs);
-    this.minEpochsForDataColumnSidecarsRequests = custodyEpochs;
+  public FuluBuilder minEpochsForDataColumnSidecarsRequests(
+      final Integer minEpochsForDataColumnSidecarsRequests) {
+    checkNotNull(minEpochsForDataColumnSidecarsRequests);
+    this.minEpochsForDataColumnSidecarsRequests = minEpochsForDataColumnSidecarsRequests;
     return this;
   }
 
