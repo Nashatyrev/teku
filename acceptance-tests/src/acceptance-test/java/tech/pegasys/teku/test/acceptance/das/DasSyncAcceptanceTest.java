@@ -131,8 +131,8 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         .withDenebEpoch(UInt64.valueOf(0))
         .withElectraEpoch(UInt64.valueOf(1))
         .withFuluEpoch(UInt64.valueOf(fuluEpoch))
-        .withStubExecutionEngine();
-    // uncomment to debug
-    //        .withLogLevel("DEBUG");
+        .withStubExecutionEngine()
+        // uncomment to debug
+        .withLogLevel("DEBUG");
   }
 }
