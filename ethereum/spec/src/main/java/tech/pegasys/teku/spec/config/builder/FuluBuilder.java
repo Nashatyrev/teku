@@ -41,7 +41,8 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
   private Integer dataColumnSidecarSubnetCount;
   private Integer custodyRequirement;
   private Integer samplesPerSlot;
-  private Integer minEpochsForDataColumnSidecarsRequests;
+  // FIXME: remove hardcode when Kurtosis config is updated according to the Fulu spec
+  private Integer minEpochsForDataColumnSidecarsRequests = 4096;
   private Integer maxRequestDataColumnSidecars;
 
   FuluBuilder() {}
