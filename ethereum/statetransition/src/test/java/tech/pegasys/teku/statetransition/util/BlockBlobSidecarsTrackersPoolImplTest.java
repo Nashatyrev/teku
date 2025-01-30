@@ -20,6 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.assertThatSafeFuture;
 import static tech.pegasys.teku.statetransition.util.BlockBlobSidecarsTrackersPoolImpl.GAUGE_BLOB_SIDECARS_LABEL;
@@ -34,11 +35,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
+import org.apache.tuweni.bytes.Bytes48;
 import org.hyperledger.besu.metrics.ObservableMetricsSystem;
 import org.hyperledger.besu.metrics.Observation;
 import org.hyperledger.besu.metrics.prometheus.PrometheusMetricsSystem;
@@ -50,9 +54,14 @@ import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.infrastructure.time.StubTimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.kzg.KZG;
+import tech.pegasys.teku.kzg.KZGCell;
+import tech.pegasys.teku.kzg.KZGCellAndProof;
+import tech.pegasys.teku.kzg.KZGProof;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.execution.BlobAndProof;
@@ -102,7 +111,10 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
               historicalTolerance,
               futureTolerance,
               maxItems,
-              this::trackerFactory);
+              this::trackerFactory,
+              false,
+              () -> KZG.NOOP,
+              __ -> {});
 
   private UInt64 currentSlot = historicalTolerance.times(2);
   private final List<Bytes32> requiredBlockRootEvents = new ArrayList<>();
@@ -299,7 +311,7 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
   }
 
   @Test
-  public void onNewBlock_shouldIgnoreFuluBlocks() {
+  public void onNewBlockNonSuperNode_shouldIgnoreFuluBlocks() {
     final Spec spec = TestSpecFactory.createMinimalFulu();
     final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolFulu =
         new PoolFactory(metricsSystem)
@@ -315,20 +327,160 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
                 historicalTolerance,
                 futureTolerance,
                 maxItems,
-                this::trackerFactory);
+                this::trackerFactory,
+                false,
+                () -> KZG.NOOP,
+                __ -> {});
     final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
     final SignedBeaconBlock block =
         dataStructureUtil.randomSignedBeaconBlock(currentSlot.longValue());
+    blockBlobSidecarsTrackersPoolFulu.onSlot(currentSlot);
     blockBlobSidecarsTrackersPoolFulu.onNewBlock(block, Optional.empty());
 
     assertThat(blockBlobSidecarsTrackersPoolFulu.containsBlock(block.getRoot())).isFalse();
-    assertThat(requiredBlockRootEvents).isEmpty();
-    assertThat(requiredBlockRootDroppedEvents).isEmpty();
-    assertThat(requiredBlobSidecarEvents).isEmpty();
-    assertThat(requiredBlobSidecarDroppedEvents).isEmpty();
+    assertThat(blockBlobSidecarsTrackersPoolFulu.getTotalBlobSidecarsTrackers()).isEqualTo(0);
+  }
 
-    assertBlobSidecarsCount(0);
-    assertBlobSidecarsTrackersCount(0);
+  @Test
+  public void superNodeOnNewBlock_shouldTrackFuluBlocks() {
+    final Spec spec = TestSpecFactory.createMinimalFulu();
+    final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolFulu =
+        new PoolFactory(metricsSystem)
+            .createPoolForBlockBlobSidecarsTrackers(
+                blockImportChannel,
+                spec,
+                timeProvider,
+                asyncRunner,
+                recentChainData,
+                executionLayer,
+                () -> blobSidecarGossipValidator,
+                blobSidecarPublisher,
+                historicalTolerance,
+                futureTolerance,
+                maxItems,
+                this::trackerFactory,
+                true,
+                () -> KZG.NOOP,
+                __ -> {});
+    final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
+    final SignedBeaconBlock block =
+        dataStructureUtil.randomSignedBeaconBlock(currentSlot.longValue());
+    blockBlobSidecarsTrackersPoolFulu.onSlot(currentSlot);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlock(block, Optional.empty());
+
+    assertThat(blockBlobSidecarsTrackersPoolFulu.containsBlock(block.getRoot())).isTrue();
+    assertThat(blockBlobSidecarsTrackersPoolFulu.getTotalBlobSidecarsTrackers()).isEqualTo(1);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void superNodeOnAllBlobSidecars_shouldPublishWhenOriginIsLocalEL() {
+    final Spec spec = TestSpecFactory.createMinimalFulu();
+    final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher = mock(Consumer.class);
+    final KZG kzg = mock(KZG.class);
+    final List<KZGCellAndProof> kzgCellAndProofs =
+        IntStream.range(0, 128)
+            .mapToObj(
+                __ ->
+                    new KZGCellAndProof(
+                        new KZGCell(Bytes.random(2048)),
+                        KZGProof.fromBytesCompressed(Bytes48.ZERO)))
+            .toList();
+    when(kzg.computeCellsAndProofs(any())).thenReturn(kzgCellAndProofs);
+    final DataStructureUtil dataStructureUtilFulu = new DataStructureUtil(spec);
+    final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolFulu =
+        new PoolFactory(metricsSystem)
+            .createPoolForBlockBlobSidecarsTrackers(
+                blockImportChannel,
+                spec,
+                timeProvider,
+                asyncRunner,
+                recentChainData,
+                executionLayer,
+                () -> blobSidecarGossipValidator,
+                blobSidecarPublisher,
+                historicalTolerance,
+                futureTolerance,
+                maxItems,
+                this::trackerFactory,
+                true,
+                () -> kzg,
+                dataColumnSidecarPublisher);
+    final SignedBeaconBlock block =
+        dataStructureUtilFulu.randomSignedBeaconBlock(currentSlot.longValue());
+    blockBlobSidecarsTrackersPoolFulu.onSlot(currentSlot);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlock(block, Optional.empty());
+    assertThat(blockBlobSidecarsTrackersPoolFulu.containsBlock(block.getRoot())).isTrue();
+
+    final List<BlobSidecar> blobSidecars = dataStructureUtilFulu.randomBlobSidecarsForBlock(block);
+
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(0), RemoteOrigin.LOCAL_EL);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(1), RemoteOrigin.LOCAL_EL);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(2), RemoteOrigin.LOCAL_EL);
+    verifyNoInteractions(dataColumnSidecarPublisher);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(3), RemoteOrigin.LOCAL_EL);
+    assertThat(
+            blockBlobSidecarsTrackersPoolFulu
+                .getBlobSidecarsTracker(block.getSlotAndBlockRoot())
+                .isComplete())
+        .isTrue();
+    verify(dataColumnSidecarPublisher, times(1)).accept(any(List.class));
+    verifyNoInteractions(blobSidecarPublisher);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void superNodeOnAllBlobSidecars_shouldNotPublishWhenOriginIsLocalELIsNotCurrentSlot() {
+    final Spec spec = TestSpecFactory.createMinimalFulu();
+    final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher = mock(Consumer.class);
+    final KZG kzg = mock(KZG.class);
+    final List<KZGCellAndProof> kzgCellAndProofs =
+        IntStream.range(0, 128)
+            .mapToObj(
+                __ ->
+                    new KZGCellAndProof(
+                        new KZGCell(Bytes.random(2048)),
+                        KZGProof.fromBytesCompressed(Bytes48.ZERO)))
+            .toList();
+    when(kzg.computeCellsAndProofs(any())).thenReturn(kzgCellAndProofs);
+    final DataStructureUtil dataStructureUtilFulu = new DataStructureUtil(spec);
+    final BlockBlobSidecarsTrackersPoolImpl blockBlobSidecarsTrackersPoolFulu =
+        new PoolFactory(metricsSystem)
+            .createPoolForBlockBlobSidecarsTrackers(
+                blockImportChannel,
+                spec,
+                timeProvider,
+                asyncRunner,
+                recentChainData,
+                executionLayer,
+                () -> blobSidecarGossipValidator,
+                blobSidecarPublisher,
+                historicalTolerance,
+                futureTolerance,
+                maxItems,
+                this::trackerFactory,
+                true,
+                () -> kzg,
+                dataColumnSidecarPublisher);
+    final SignedBeaconBlock block =
+        dataStructureUtilFulu.randomSignedBeaconBlock(currentSlot.longValue());
+    blockBlobSidecarsTrackersPoolFulu.onSlot(currentSlot.minus(1));
+    blockBlobSidecarsTrackersPoolFulu.onNewBlock(block, Optional.empty());
+    assertThat(blockBlobSidecarsTrackersPoolFulu.containsBlock(block.getRoot())).isTrue();
+
+    final List<BlobSidecar> blobSidecars = dataStructureUtilFulu.randomBlobSidecarsForBlock(block);
+
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(0), RemoteOrigin.LOCAL_EL);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(1), RemoteOrigin.LOCAL_EL);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(2), RemoteOrigin.LOCAL_EL);
+    blockBlobSidecarsTrackersPoolFulu.onNewBlobSidecar(blobSidecars.get(3), RemoteOrigin.LOCAL_EL);
+    assertThat(
+            blockBlobSidecarsTrackersPoolFulu
+                .getBlobSidecarsTracker(block.getSlotAndBlockRoot())
+                .isComplete())
+        .isTrue();
+    verifyNoInteractions(dataColumnSidecarPublisher);
+    verifyNoInteractions(blobSidecarPublisher);
   }
 
   @Test
