@@ -16,6 +16,7 @@ package tech.pegasys.teku.test.acceptance.das;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
@@ -46,7 +47,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     UInt64 genesisTime = primaryNode.getGenesisTime();
     final TekuBeaconNode lateJoiningNode =
         createLateJoiningNode(primaryNode, genesisTime.intValue());
-    primaryNode.waitForEpochAtOrAbove(fuluEpoch + 1);
+    primaryNode.waitForEpochAtOrAbove(fuluEpoch + 1, Duration.ofMinutes(5));
 
     lateJoiningNode.start();
     lateJoiningNode.waitForGenesis();
