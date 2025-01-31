@@ -598,9 +598,9 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
-  public TekuNodeConfigBuilder withDasExtraCustodySubnetCount(final int extraCustodySubnetCount) {
-    LOG.debug("Xdas-extra-custody-subnet-count: {}", extraCustodySubnetCount);
-    configMap.put("Xdas-extra-custody-subnet-count", extraCustodySubnetCount);
+  public TekuNodeConfigBuilder withDasExtraCustodyGroupCount(final int extraCustodySubnetCount) {
+    LOG.debug("Xdas-extra-custody-group-count: {}", extraCustodySubnetCount);
+    configMap.put("Xdas-extra-custody-group-count", extraCustodySubnetCount);
     return this;
   }
 

@@ -39,7 +39,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         createTekuBeaconNode(
             createConfigBuilder()
                 .withRealNetwork()
-                .withDasExtraCustodySubnetCount(subnetCount - defaultCustodySubnetCount)
+                .withDasExtraCustodyGroupCount(subnetCount - defaultCustodySubnetCount)
                 .build());
 
     primaryNode.start();
