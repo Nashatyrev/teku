@@ -125,6 +125,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
 
   private TekuNodeConfigBuilder createConfigBuilder() throws IOException {
     return TekuNodeConfigBuilder.createBeaconNode()
+        .withNetwork("minimal")
         .withAltairEpoch(UInt64.valueOf(0))
         .withBellatrixEpoch(UInt64.valueOf(0))
         .withCapellaEpoch(UInt64.valueOf(0))
