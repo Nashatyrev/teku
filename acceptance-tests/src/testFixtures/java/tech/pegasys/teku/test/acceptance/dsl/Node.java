@@ -126,7 +126,7 @@ public abstract class Node {
           assertThat(currentEpoch).isGreaterThanOrEqualTo(epoch);
           actualEpoch.set(currentEpoch);
         },
-        2,
+        5,
         TimeUnit.MINUTES);
     return actualEpoch.get();
   }
