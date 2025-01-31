@@ -29,6 +29,7 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -131,6 +132,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
   private final BlockImportChannel blockImportChannel;
 
   private final boolean isSuperNode;
+  private final AtomicBoolean isActiveSuperNode = new AtomicBoolean(false);
   private final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher;
   private final Supplier<KZG> kzgSupplier;
 
@@ -167,9 +169,6 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
     this.isSuperNode = isSuperNode;
     this.kzgSupplier = kzgSupplier;
     this.dataColumnSidecarPublisher = dataColumnSidecarPublisher;
-    if (isSuperNode) {
-      LOG.info("Activated super-node data column sidecars recovery");
-    }
 
     initMetrics(sizeGauge, poolStatsCounters);
   }
@@ -234,7 +233,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
   public synchronized void onNewBlobSidecar(
       final BlobSidecar blobSidecar, final RemoteOrigin remoteOrigin) {
     if (spec.atSlot(blobSidecar.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)
-        && !isSuperNode) {
+        && !isActiveSuperNode.get()) {
       return;
     }
     if (recentChainData.containsBlock(blobSidecar.getBlockRoot())) {
@@ -270,14 +269,14 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
       countBlobSidecar(remoteOrigin);
       newBlobSidecarSubscribers.deliver(NewBlobSidecarSubscriber::onNewBlobSidecar, blobSidecar);
       if (remoteOrigin.equals(LOCAL_EL) && slotAndBlockRoot.getSlot().equals(getCurrentSlot())) {
-        if (isSuperNodeActive(slotAndBlockRoot.getSlot())) {
+        if (isActiveSuperNode.get()) {
           if (blobSidecarsTracker.isComplete()) {
             LOG.info(
                 "Collected all blobSidecar from EL for {}, recovering data column sidecars",
                 slotAndBlockRoot.getSlot());
             publishRecoveredDataColumnSidecars(blobSidecarsTracker);
           } else {
-            LOG.info("Collected blobSidecar from EL: {}", blobSidecar.toLogString());
+            LOG.debug("Collected blobSidecar from EL: {}", blobSidecar.toLogString());
           }
         } else {
           publishRecoveredBlobSidecar(blobSidecar);
@@ -286,11 +285,6 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
     } else {
       countDuplicateBlobSidecar(remoteOrigin);
     }
-  }
-
-  private boolean isSuperNodeActive(final UInt64 slot) {
-    return spec.atSlot(slot).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)
-        && isSuperNode;
   }
 
   private void publishRecoveredBlobSidecar(final BlobSidecar blobSidecar) {
@@ -351,7 +345,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
       return;
     }
     if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)
-        && !isSuperNode) {
+        && !isActiveSuperNode.get()) {
       return;
     }
     if (recentChainData.containsBlock(block.getRoot())) {
@@ -438,6 +432,12 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
   @Override
   public void onSlot(final UInt64 slot) {
     super.onSlot(slot);
+    if (isSuperNode
+        && spec.isMilestoneSupported(SpecMilestone.FULU)
+        && spec.atSlot(slot).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)
+        && isActiveSuperNode.compareAndSet(false, true)) {
+      LOG.info("Activated super-node data column sidecars recovery");
+    }
 
     LOG.trace(
         "Trackers: {}",
