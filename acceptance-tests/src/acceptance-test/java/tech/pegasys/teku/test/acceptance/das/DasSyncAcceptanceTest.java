@@ -66,7 +66,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
             .mapToInt(i -> i)
             .sum();
 
-    assertThat(totalColumns).isNegative();
+    assertThat(totalColumns).isGreaterThan(0);
   }
 
   private void assertAllBlocksExistWithoutForks(final TekuBeaconNode node, final List<UInt64> slots)
