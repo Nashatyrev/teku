@@ -25,6 +25,7 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
   private final UInt64 fuluForkEpoch;
 
   private final int numberOfColumns;
+  private final int numberOfCustodyGroups;
   private final int dataColumnSidecarSubnetCount;
   private final int custodyRequirement;
   private final int samplesPerSlot;
@@ -33,6 +34,7 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
   private final UInt64 kzgCommitmentsInclusionProofDepth;
   private final int minEpochsForDataColumnSidecarsRequests;
   private final int maxRequestDataColumnSidecars;
+  private final int maxBlobsPerBlockFulu;
 
   public SpecConfigFuluImpl(
       final SpecConfigElectra specConfig,
@@ -42,11 +44,13 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
       final UInt64 fieldElementsPerExtBlob,
       final UInt64 kzgCommitmentsInclusionProofDepth,
       final int numberOfColumns,
+      final int numberOfCustodyGroups,
       final int dataColumnSidecarSubnetCount,
       final int custodyRequirement,
       final int samplesPerSlot,
       final int minEpochsForDataColumnSidecarsRequests,
-      final int maxRequestDataColumnSidecars) {
+      final int maxRequestDataColumnSidecars,
+      final int maxBlobsPerBlockFulu) {
     super(specConfig);
     this.fuluForkVersion = fuluForkVersion;
     this.fuluForkEpoch = fuluForkEpoch;
@@ -54,11 +58,13 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
     this.fieldElementsPerExtBlob = fieldElementsPerExtBlob;
     this.kzgCommitmentsInclusionProofDepth = kzgCommitmentsInclusionProofDepth;
     this.numberOfColumns = numberOfColumns;
+    this.numberOfCustodyGroups = numberOfCustodyGroups;
     this.dataColumnSidecarSubnetCount = dataColumnSidecarSubnetCount;
     this.custodyRequirement = custodyRequirement;
     this.samplesPerSlot = samplesPerSlot;
     this.minEpochsForDataColumnSidecarsRequests = minEpochsForDataColumnSidecarsRequests;
     this.maxRequestDataColumnSidecars = maxRequestDataColumnSidecars;
+    this.maxBlobsPerBlockFulu = maxBlobsPerBlockFulu;
   }
 
   @Override
@@ -92,6 +98,11 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
   }
 
   @Override
+  public int getNumberOfCustodyGroups() {
+    return numberOfCustodyGroups;
+  }
+
+  @Override
   public int getDataColumnSidecarSubnetCount() {
     return dataColumnSidecarSubnetCount;
   }
@@ -114,6 +125,11 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
   @Override
   public int getMaxRequestDataColumnSidecars() {
     return maxRequestDataColumnSidecars;
+  }
+
+  @Override
+  public int getMaxBlobsPerBlock() {
+    return maxBlobsPerBlockFulu;
   }
 
   @Override
@@ -142,10 +158,12 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
         && Objects.equals(fieldElementsPerExtBlob, that.fieldElementsPerExtBlob)
         && Objects.equals(kzgCommitmentsInclusionProofDepth, that.kzgCommitmentsInclusionProofDepth)
         && numberOfColumns == that.numberOfColumns
+        && numberOfCustodyGroups == that.numberOfCustodyGroups
         && dataColumnSidecarSubnetCount == that.dataColumnSidecarSubnetCount
         && custodyRequirement == that.custodyRequirement
         && minEpochsForDataColumnSidecarsRequests == that.minEpochsForDataColumnSidecarsRequests
-        && maxRequestDataColumnSidecars == that.maxRequestDataColumnSidecars;
+        && maxRequestDataColumnSidecars == that.maxRequestDataColumnSidecars
+        && maxBlobsPerBlockFulu == that.maxBlobsPerBlockFulu;
   }
 
   @Override
@@ -155,12 +173,14 @@ public class SpecConfigFuluImpl extends DelegatingSpecConfigElectra implements S
         fuluForkVersion,
         fuluForkEpoch,
         numberOfColumns,
+        numberOfCustodyGroups,
         dataColumnSidecarSubnetCount,
         custodyRequirement,
         fieldElementsPerCell,
         fieldElementsPerExtBlob,
         kzgCommitmentsInclusionProofDepth,
         minEpochsForDataColumnSidecarsRequests,
-        maxRequestDataColumnSidecars);
+        maxRequestDataColumnSidecars,
+        maxBlobsPerBlockFulu);
   }
 }

@@ -36,11 +36,13 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
   private UInt64 fieldElementsPerExtBlob;
   private UInt64 kzgCommitmentsInclusionProofDepth;
   private Integer numberOfColumns;
+  private Integer numberOfCustodyGroups;
   private Integer dataColumnSidecarSubnetCount;
   private Integer custodyRequirement;
   private Integer samplesPerSlot;
   private Integer minEpochsForDataColumnSidecarsRequests;
   private Integer maxRequestDataColumnSidecars;
+  private Integer maxBlobsPerBlockFulu;
 
   FuluBuilder() {}
 
@@ -56,11 +58,13 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
             fieldElementsPerExtBlob,
             kzgCommitmentsInclusionProofDepth,
             numberOfColumns,
+            numberOfCustodyGroups,
             dataColumnSidecarSubnetCount,
             custodyRequirement,
             samplesPerSlot,
             minEpochsForDataColumnSidecarsRequests,
-            maxRequestDataColumnSidecars),
+            maxRequestDataColumnSidecars,
+            maxBlobsPerBlockFulu),
         specConfigAndParent);
   }
 
@@ -101,6 +105,12 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
     return this;
   }
 
+  public FuluBuilder numberOfCustodyGroups(final Integer numberOfCustodyGroups) {
+    checkNotNull(numberOfCustodyGroups);
+    this.numberOfCustodyGroups = numberOfCustodyGroups;
+    return this;
+  }
+
   public FuluBuilder dataColumnSidecarSubnetCount(final Integer dataColumnSidecarSubnetCount) {
     checkNotNull(dataColumnSidecarSubnetCount);
     this.dataColumnSidecarSubnetCount = dataColumnSidecarSubnetCount;
@@ -119,15 +129,22 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
     return this;
   }
 
-  public FuluBuilder minEpochsForDataColumnSidecarsRequests(final Integer custodyEpochs) {
-    checkNotNull(custodyEpochs);
-    this.minEpochsForDataColumnSidecarsRequests = custodyEpochs;
+  public FuluBuilder minEpochsForDataColumnSidecarsRequests(
+      final Integer minEpochsForDataColumnSidecarsRequests) {
+    checkNotNull(minEpochsForDataColumnSidecarsRequests);
+    this.minEpochsForDataColumnSidecarsRequests = minEpochsForDataColumnSidecarsRequests;
     return this;
   }
 
   public FuluBuilder maxRequestDataColumnSidecars(final Integer maxRequestDataColumnSidecars) {
     checkNotNull(maxRequestDataColumnSidecars);
     this.maxRequestDataColumnSidecars = maxRequestDataColumnSidecars;
+    return this;
+  }
+
+  public FuluBuilder maxBlobsPerBlockFulu(final Integer maxBlobsPerBlockFulu) {
+    checkNotNull(maxBlobsPerBlockFulu);
+    this.maxBlobsPerBlockFulu = maxBlobsPerBlockFulu;
     return this;
   }
 
@@ -153,6 +170,7 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
     constants.put("fuluForkEpoch", fuluForkEpoch);
     constants.put("fuluForkVersion", fuluForkVersion);
     constants.put("numberOfColumns", numberOfColumns);
+    constants.put("numberOfCustodyGroups", numberOfCustodyGroups);
     constants.put("dataColumnSidecarSubnetCount", dataColumnSidecarSubnetCount);
     constants.put("custodyRequirement", custodyRequirement);
     constants.put("samplesPerSlot", samplesPerSlot);
@@ -161,6 +179,7 @@ public class FuluBuilder implements ForkConfigBuilder<SpecConfigElectra, SpecCon
     constants.put("kzgCommitmentsInclusionProofDepth", kzgCommitmentsInclusionProofDepth);
     constants.put("minEpochsForDataColumnSidecarsRequests", minEpochsForDataColumnSidecarsRequests);
     constants.put("maxRequestDataColumnSidecars", maxRequestDataColumnSidecars);
+    constants.put("maxBlobsPerBlockFulu", maxBlobsPerBlockFulu);
 
     return constants;
   }
