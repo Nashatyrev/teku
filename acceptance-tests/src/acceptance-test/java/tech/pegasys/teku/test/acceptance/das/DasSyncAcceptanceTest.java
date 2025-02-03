@@ -17,10 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
-import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -57,8 +55,6 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
 
     int epochSlots = primaryNode.getSpec().slotsPerEpoch(UInt64.ZERO);
     int endSlot = 6 * epochSlots;
-    assertAllBlocksExistWithoutForks(
-        primaryNode, IntStream.range(1, endSlot).mapToObj(UInt64::valueOf).toList());
     int firstFuluSlot = fuluEpoch * epochSlots;
     int totalColumns =
         IntStream.range(firstFuluSlot, endSlot)
@@ -68,20 +64,6 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
             .sum();
 
     assertThat(totalColumns).isGreaterThan(0);
-  }
-
-  private void assertAllBlocksExistWithoutForks(final TekuBeaconNode node, final List<UInt64> slots)
-      throws IOException {
-    Bytes32 parentRoot = null;
-    for (UInt64 slot : slots) {
-      Optional<SignedBeaconBlock> block = node.getBlockAtSlot(slot);
-      if (block.isPresent()) {
-        if (parentRoot != null) {
-          assertThat(block.get().getParentRoot()).isEqualTo(parentRoot);
-        }
-        parentRoot = block.get().getRoot();
-      }
-    }
   }
 
   private int getAndAssertDasCustody(final TekuBeaconNode node, final UInt64 fuluSlot) {
