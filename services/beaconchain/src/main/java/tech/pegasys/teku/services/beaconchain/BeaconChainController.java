@@ -905,7 +905,7 @@ public class BeaconChainController extends Service implements BeaconChainControl
               () -> blobSidecarValidator,
               blobSidecarGossipChannel::publishBlobSidecar,
               isSuperNode,
-              () -> kzg,
+              kzg,
               dataColumnSidecarPublisher);
       eventChannels.subscribe(FinalizedCheckpointChannel.class, pool);
       blockBlobSidecarsTrackersPool = pool;

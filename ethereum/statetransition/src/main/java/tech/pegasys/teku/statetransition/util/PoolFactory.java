@@ -127,7 +127,7 @@ public class PoolFactory {
       final Supplier<BlobSidecarGossipValidator> gossipValidatorSupplier,
       final Function<BlobSidecar, SafeFuture<Void>> blobSidecarGossipPublisher,
       final boolean isSuperNode,
-      final Supplier<KZG> kzgSupplier,
+      final KZG kzg,
       final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher) {
     return createPoolForBlockBlobSidecarsTrackers(
         blockImportChannel,
@@ -142,7 +142,7 @@ public class PoolFactory {
         FutureItems.DEFAULT_FUTURE_SLOT_TOLERANCE,
         DEFAULT_MAX_BLOCKS,
         isSuperNode,
-        kzgSupplier,
+        kzg,
         dataColumnSidecarPublisher);
   }
 
@@ -159,7 +159,7 @@ public class PoolFactory {
       final UInt64 futureBlockTolerance,
       final int maxTrackers,
       final boolean isSuperNode,
-      final Supplier<KZG> kzgSupplier,
+      final KZG kzg,
       final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher) {
     return new BlockBlobSidecarsTrackersPoolImpl(
         blockImportChannel,
@@ -176,7 +176,7 @@ public class PoolFactory {
         futureBlockTolerance,
         maxTrackers,
         isSuperNode,
-        kzgSupplier,
+        kzg,
         dataColumnSidecarPublisher);
   }
 
@@ -195,7 +195,7 @@ public class PoolFactory {
       final int maxItems,
       final BlockBlobSidecarsTrackerFactory trackerFactory,
       final boolean isSuperNode,
-      final Supplier<KZG> kzgSupplier,
+      final KZG kzg,
       final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher) {
     return new BlockBlobSidecarsTrackersPoolImpl(
         blockImportChannel,
@@ -213,7 +213,7 @@ public class PoolFactory {
         maxItems,
         trackerFactory,
         isSuperNode,
-        kzgSupplier,
+        kzg,
         dataColumnSidecarPublisher);
   }
 }

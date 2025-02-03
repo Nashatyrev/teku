@@ -105,7 +105,7 @@ public class BlockBlobSidecarsTrackersPoolImplFuluTest {
               maxItems,
               BlockBlobSidecarsTracker::new,
               true,
-              () -> kzg,
+              kzg,
               dataColumnSidecarPublisher);
 
   private UInt64 currentSlot = historicalTolerance.times(2);
@@ -143,7 +143,7 @@ public class BlockBlobSidecarsTrackersPoolImplFuluTest {
                 maxItems,
                 BlockBlobSidecarsTracker::new,
                 false,
-                () -> KZG.NOOP,
+                KZG.NOOP,
                 __ -> {});
     final SignedBeaconBlock block =
         dataStructureUtil.randomSignedBeaconBlock(currentSlot.longValue());

@@ -105,7 +105,7 @@ public class BlockBlobSidecarsTrackersPoolImplTest {
               maxItems,
               this::trackerFactory,
               false,
-              () -> KZG.NOOP,
+              KZG.NOOP,
               __ -> {});
 
   private UInt64 currentSlot = historicalTolerance.times(2);

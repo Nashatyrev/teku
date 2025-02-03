@@ -114,6 +114,10 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
 
   private final BlockBlobSidecarsTrackerFactory trackerFactory;
 
+  private final boolean isSuperNode;
+  private final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher;
+  private final KZG kzg;
+
   private final Subscribers<RequiredBlockRootSubscriber> requiredBlockRootSubscribers =
       Subscribers.create(true);
   private final Subscribers<RequiredBlockRootDroppedSubscriber>
@@ -131,10 +135,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
 
   private final BlockImportChannel blockImportChannel;
 
-  private final boolean isSuperNode;
   private final AtomicBoolean isActiveSuperNode = new AtomicBoolean(false);
-  private final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher;
-  private final Supplier<KZG> kzgSupplier;
 
   BlockBlobSidecarsTrackersPoolImpl(
       final BlockImportChannel blockImportChannel,
@@ -151,7 +152,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
       final UInt64 futureSlotTolerance,
       final int maxTrackers,
       final boolean isSuperNode,
-      final Supplier<KZG> kzgSupplier,
+      final KZG kzg,
       final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher) {
     super(spec, futureSlotTolerance, historicalSlotTolerance);
     this.blockImportChannel = blockImportChannel;
@@ -167,7 +168,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
     this.poolStatsCounters = poolStatsCounters;
     this.trackerFactory = BlockBlobSidecarsTracker::new;
     this.isSuperNode = isSuperNode;
-    this.kzgSupplier = kzgSupplier;
+    this.kzg = kzg;
     this.dataColumnSidecarPublisher = dataColumnSidecarPublisher;
 
     initMetrics(sizeGauge, poolStatsCounters);
@@ -190,7 +191,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
       final int maxTrackers,
       final BlockBlobSidecarsTrackerFactory trackerFactory,
       final boolean isSuperNode,
-      final Supplier<KZG> kzgSupplier,
+      final KZG kzg,
       final Consumer<List<DataColumnSidecar>> dataColumnSidecarPublisher) {
     super(spec, futureSlotTolerance, historicalSlotTolerance);
     this.blockImportChannel = blockImportChannel;
@@ -206,7 +207,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
     this.poolStatsCounters = poolStatsCounters;
     this.trackerFactory = trackerFactory;
     this.isSuperNode = isSuperNode;
-    this.kzgSupplier = kzgSupplier;
+    this.kzg = kzg;
     this.dataColumnSidecarPublisher = dataColumnSidecarPublisher;
 
     initMetrics(sizeGauge, poolStatsCounters);
@@ -304,7 +305,7 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
             blockBlobSidecarsTracker.getBlobSidecars().values().stream()
                 .map(BlobSidecar::getBlob)
                 .toList(),
-            kzgSupplier.get());
+            kzg);
     LOG.info(
         "Publishing {} data column sidecars for {}",
         dataColumnSidecars.size(),
