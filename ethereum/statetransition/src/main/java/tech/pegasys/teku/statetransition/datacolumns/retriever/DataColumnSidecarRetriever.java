@@ -30,7 +30,12 @@ public interface DataColumnSidecarRetriever {
    */
   SafeFuture<DataColumnSidecar> retrieve(DataColumnSlotAndIdentifier columnId);
 
-  /** Starts all the queued retrieve requests immediately */
+  /**
+   * The {@link #retrieve(DataColumnSlotAndIdentifier)} method may buffer requests and delay
+   * processing them till the next occasion. This method forces all the queued requests to be
+   * processed. However, requests could still be queued in a downstream component if there is a
+   * congestion.
+   */
   void flush();
 
   /**
