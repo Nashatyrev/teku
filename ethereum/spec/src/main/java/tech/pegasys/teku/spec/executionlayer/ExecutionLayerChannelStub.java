@@ -95,7 +95,7 @@ public class ExecutionLayerChannelStub implements ExecutionLayerChannel {
   private final Random random = new Random();
 
   private PayloadStatus payloadStatus = PayloadStatus.VALID;
-  private Optional<Integer> blobsToGenerate = Optional.of(1);
+  private Optional<Integer> blobsToGenerate = Optional.empty();
 
   // transition emulation
   private static final Bytes32 TERMINAL_BLOCK_PARENT_HASH = Bytes32.ZERO;
