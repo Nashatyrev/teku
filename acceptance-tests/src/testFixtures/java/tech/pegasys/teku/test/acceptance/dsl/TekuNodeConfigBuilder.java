@@ -604,6 +604,16 @@ public class TekuNodeConfigBuilder {
     return this;
   }
 
+  public TekuNodeConfigBuilder withStubBlobCount(final Optional<Integer> stubBlobCount) {
+    LOG.debug("Xinterop-number-of-blobs: {}", stubBlobCount);
+    if (stubBlobCount.isPresent()) {
+      configMap.put("Xinterop-number-of-blobs", stubBlobCount.get());
+    } else {
+      configMap.remove("Xinterop-number-of-blobs");
+    }
+    return this;
+  }
+
   private TekuNodeConfigBuilder withPrivateKey(final PrivKey privKey) throws IOException {
     mustBe(NodeType.BEACON_NODE);
     this.maybePrivKey = Optional.ofNullable(privKey);

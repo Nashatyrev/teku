@@ -52,7 +52,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     lateJoiningNode.start();
     lateJoiningNode.waitForGenesis();
     lateJoiningNode.waitUntilInSyncWith(primaryNode);
-    lateJoiningNode.waitForEpochAtOrAbove(6);
+    lateJoiningNode.waitForEpochAtOrAbove(6, Duration.ofMinutes(5));
     lateJoiningNode.waitUntilInSyncWith(primaryNode);
 
     int epochSlots = primaryNode.getSpec().slotsPerEpoch(UInt64.ZERO);
@@ -134,7 +134,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         .withElectraEpoch(UInt64.valueOf(1))
         .withFuluEpoch(UInt64.valueOf(fuluEpoch))
         .withStubExecutionEngine()
-        // uncomment to debug
+        .withStubBlobCount(Optional.of(1))
         .withLogLevel("DEBUG");
   }
 }
