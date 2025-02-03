@@ -123,7 +123,7 @@ public abstract class Node {
     return waitForEpochAtOrAbove(epoch, Duration.ofMinutes(2));
   }
 
-  public int waitForEpochAtOrAbove(final int epoch, Duration timeout) {
+  public int waitForEpochAtOrAbove(final int epoch, final Duration timeout) {
     final AtomicInteger actualEpoch = new AtomicInteger();
     waitFor(
         () -> {
