@@ -30,10 +30,12 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
 
   private final int subnetCount = 128;
   private final int defaultCustodySubnetCount = 4;
-  private final int fuluEpoch = 2;
+  private final int fuluEpoch = 1;
 
   @Test
   public void shouldSyncToNodeWithGreaterFinalizedEpoch() throws Exception {
+    final int secondNodeStartEpoch = fuluEpoch + 1;
+    final int finalCheckEpoch = secondNodeStartEpoch + 2;
     final TekuBeaconNode primaryNode =
         createTekuBeaconNode(
             createConfigBuilder()
@@ -45,16 +47,16 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
     UInt64 genesisTime = primaryNode.getGenesisTime();
     final TekuBeaconNode lateJoiningNode =
         createLateJoiningNode(primaryNode, genesisTime.intValue());
-    primaryNode.waitForEpochAtOrAbove(fuluEpoch + 1, Duration.ofMinutes(5));
+    primaryNode.waitForEpochAtOrAbove(secondNodeStartEpoch, Duration.ofMinutes(5));
 
     lateJoiningNode.start();
     lateJoiningNode.waitForGenesis();
     lateJoiningNode.waitUntilInSyncWith(primaryNode);
-    lateJoiningNode.waitForEpochAtOrAbove(6, Duration.ofMinutes(5));
+    lateJoiningNode.waitForEpochAtOrAbove(finalCheckEpoch, Duration.ofMinutes(5));
     lateJoiningNode.waitUntilInSyncWith(primaryNode);
 
     int epochSlots = primaryNode.getSpec().slotsPerEpoch(UInt64.ZERO);
-    int endSlot = 6 * epochSlots;
+    int endSlot = (finalCheckEpoch + 1) * epochSlots;
     int firstFuluSlot = fuluEpoch * epochSlots;
     int totalColumns =
         IntStream.range(firstFuluSlot, endSlot)
@@ -113,7 +115,7 @@ public class DasSyncAcceptanceTest extends AcceptanceTestBase {
         .withBellatrixEpoch(UInt64.valueOf(0))
         .withCapellaEpoch(UInt64.valueOf(0))
         .withDenebEpoch(UInt64.valueOf(0))
-        .withElectraEpoch(UInt64.valueOf(1))
+        .withElectraEpoch(UInt64.valueOf(0))
         .withFuluEpoch(UInt64.valueOf(fuluEpoch))
         .withStubExecutionEngine()
         .withStubBlobCount(Optional.of(1))
