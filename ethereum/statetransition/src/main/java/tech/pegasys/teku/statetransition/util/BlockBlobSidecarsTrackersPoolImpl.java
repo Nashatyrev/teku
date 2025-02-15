@@ -233,8 +233,10 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
   @Override
   public synchronized void onNewBlobSidecar(
       final BlobSidecar blobSidecar, final RemoteOrigin remoteOrigin) {
-    if (spec.atSlot(blobSidecar.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)
-        && !isActiveSuperNode.get()) {
+    // TODO: return back isSuperNode
+    if (spec.atSlot(blobSidecar.getSlot())
+        .getMilestone()
+        .isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
       return;
     }
     if (recentChainData.containsBlock(blobSidecar.getBlockRoot())) {
@@ -345,8 +347,8 @@ public class BlockBlobSidecarsTrackersPoolImpl extends AbstractIgnoringFutureHis
     if (block.getMessage().getBody().toVersionDeneb().isEmpty()) {
       return;
     }
-    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)
-        && !isActiveSuperNode.get()) {
+    // TODO: return back isSuperNode
+    if (spec.atSlot(block.getSlot()).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
       return;
     }
     if (recentChainData.containsBlock(block.getRoot())) {

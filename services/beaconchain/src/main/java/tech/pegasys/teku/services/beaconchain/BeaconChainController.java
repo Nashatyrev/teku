@@ -159,6 +159,7 @@ import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCust
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarCustodyImpl;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManagerImpl;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarRecoveringCustody;
 import tech.pegasys.teku.statetransition.datacolumns.LateInitDataColumnSidecarCustody;
 import tech.pegasys.teku.statetransition.datacolumns.MinCustodyPeriodSlotCalculator;
 import tech.pegasys.teku.statetransition.datacolumns.UpdatableDataColumnSidecarCustody;
@@ -731,6 +732,12 @@ public class BeaconChainController extends Service implements BeaconChainControl
                 .getBlockAtSlotExact(slot)
                 .thenApply(sbb -> sbb.flatMap(SignedBeaconBlock::getBeaconBlock));
 
+    MiscHelpersFulu miscHelpersFulu =
+        MiscHelpersFulu.required(spec.forMilestone(SpecMilestone.FULU).miscHelpers());
+    SchemaDefinitionsFulu schemaDefinitionsFulu =
+        SchemaDefinitionsFulu.required(
+            spec.forMilestone(SpecMilestone.FULU).getSchemaDefinitions());
+
     final int minCustodyGroupRequirement = specConfigFulu.getCustodyRequirement();
     final int maxGroups = specConfigFulu.getNumberOfCustodyGroups();
     final int totalMyCustodyGroups =
@@ -767,12 +774,23 @@ public class BeaconChainController extends Service implements BeaconChainControl
               combinedChainDataClient,
               UInt64.valueOf(slotsPerEpoch)
                   .times(DataColumnSidecarByRootCustodyImpl.DEFAULT_MAX_CACHE_SIZE_EPOCHS));
+      final DataColumnSidecarRecoveringCustody dataColumnSidecarRecoveringCustody =
+          new DataColumnSidecarRecoveringCustody(
+              dataColumnSidecarByRootCustody,
+              operationPoolAsyncRunner,
+              spec,
+              miscHelpersFulu,
+              kzg,
+              schemaDefinitionsFulu,
+              canonicalBlockResolver,
+              specConfigFulu.getNumberOfColumns());
+      eventChannels.subscribe(SlotEventsChannel.class, dataColumnSidecarRecoveringCustody);
 
       // TODO fix this dirty hack
       // This is to resolve the initialization loop Network <--> DAS Custody
-      this.dataColumnSidecarCustody.init(dataColumnSidecarByRootCustody);
+      this.dataColumnSidecarCustody.init(dataColumnSidecarRecoveringCustody);
 
-      custody = dataColumnSidecarByRootCustody;
+      custody = dataColumnSidecarRecoveringCustody;
     }
 
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(
@@ -805,11 +823,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
             dasRpc,
             operationPoolAsyncRunner,
             Duration.ofSeconds(1));
-    MiscHelpersFulu miscHelpersFulu =
-        MiscHelpersFulu.required(spec.forMilestone(SpecMilestone.FULU).miscHelpers());
-    SchemaDefinitionsFulu schemaDefinitionsFulu =
-        SchemaDefinitionsFulu.required(
-            spec.forMilestone(SpecMilestone.FULU).getSchemaDefinitions());
     RecoveringSidecarRetriever recoveringSidecarRetriever =
         new RecoveringSidecarRetriever(
             sidecarRetriever,

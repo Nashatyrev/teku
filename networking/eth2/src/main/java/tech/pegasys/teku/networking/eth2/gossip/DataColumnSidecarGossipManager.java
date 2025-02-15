@@ -30,6 +30,16 @@ public class DataColumnSidecarGossipManager implements GossipManager {
   }
 
   public void publish(final DataColumnSidecar dataColumnSidecar) {
+    if (dataColumnSidecar.getIndex().isGreaterThan(120)) {
+      dasGossipLogger.onPublish(
+          dataColumnSidecar,
+          Optional.of(
+              new RuntimeException(
+                  String.format(
+                      "Skipped publishing dataColumnSidecar %s:%s",
+                      dataColumnSidecar.getSlotAndBlockRoot(), dataColumnSidecar.getIndex()))));
+      return;
+    }
     subnetSubscriptions
         .gossip(dataColumnSidecar)
         .finish(
