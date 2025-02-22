@@ -16,6 +16,7 @@ package tech.pegasys.teku.statetransition.datacolumns;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 public interface UpdatableDataColumnSidecarCustody extends DataColumnSidecarCustody {
@@ -23,4 +24,7 @@ public interface UpdatableDataColumnSidecarCustody extends DataColumnSidecarCust
   SafeFuture<Void> onNewValidatedDataColumnSidecar(DataColumnSidecar dataColumnSidecar);
 
   AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns();
+
+  /** Includes non-canonical sidecar identificators */
+  AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns(SlotAndBlockRoot blockId);
 }

@@ -26,6 +26,7 @@ import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
@@ -79,6 +80,12 @@ public class DataColumnSidecarByRootCustodyImpl
   @Override
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return custody.retrieveMissingColumns();
+  }
+
+  @Override
+  public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns(
+      final SlotAndBlockRoot blockId) {
+    return custody.retrieveMissingColumns(blockId);
   }
 
   @Override

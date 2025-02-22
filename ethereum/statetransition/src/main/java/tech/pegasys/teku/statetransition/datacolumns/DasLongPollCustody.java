@@ -30,6 +30,7 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 
 public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, SlotEventsChannel {
@@ -95,6 +96,12 @@ public class DasLongPollCustody implements UpdatableDataColumnSidecarCustody, Sl
   @Override
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return delegate.retrieveMissingColumns();
+  }
+
+  @Override
+  public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns(
+      final SlotAndBlockRoot blockId) {
+    return delegate.retrieveMissingColumns(blockId);
   }
 
   private SafeFuture<Optional<DataColumnSidecar>> addPendingRequest(

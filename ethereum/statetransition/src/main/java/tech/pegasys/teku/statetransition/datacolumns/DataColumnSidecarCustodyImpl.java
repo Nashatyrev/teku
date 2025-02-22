@@ -48,26 +48,27 @@ public class DataColumnSidecarCustodyImpl
       Collection<UInt64> requiredColumnIndices,
       Collection<DataColumnSlotAndIdentifier> custodiedColumnIndices) {
     public Collection<DataColumnSlotAndIdentifier> getIncompleteColumns() {
-      return canonicalBlockRoot
-          .map(
-              blockRoot -> {
-                Set<UInt64> collectedIndices =
-                    custodiedColumnIndices.stream()
-                        .filter(identifier -> identifier.blockRoot().equals(blockRoot))
-                        .map(DataColumnSlotAndIdentifier::columnIndex)
-                        .collect(Collectors.toSet());
-                return requiredColumnIndices.stream()
-                    .filter(requiredColIdx -> !collectedIndices.contains(requiredColIdx))
-                    .map(
-                        missedColIdx ->
-                            new DataColumnSlotAndIdentifier(slot(), blockRoot, missedColIdx));
-              })
-          .orElse(Stream.empty())
-          .toList();
+      return canonicalBlockRoot.map(this::getIncompleteColumns).orElse(Stream.empty()).toList();
+    }
+
+    public Stream<DataColumnSlotAndIdentifier> getIncompleteColumns(final Bytes32 blockRoot) {
+      final Set<UInt64> collectedIndices =
+          custodiedColumnIndices.stream()
+              .filter(identifier -> identifier.blockRoot().equals(blockRoot))
+              .map(DataColumnSlotAndIdentifier::columnIndex)
+              .collect(Collectors.toSet());
+      return requiredColumnIndices.stream()
+          .filter(requiredColIdx -> !collectedIndices.contains(requiredColIdx))
+          .map(missedColIdx -> new DataColumnSlotAndIdentifier(slot(), blockRoot, missedColIdx));
     }
 
     public AsyncStream<DataColumnSlotAndIdentifier> streamIncompleteColumns() {
       return AsyncStream.create(getIncompleteColumns().iterator());
+    }
+
+    public AsyncStream<DataColumnSlotAndIdentifier> streamIncompleteColumns(
+        final Bytes32 blockRoot) {
+      return AsyncStream.create(getIncompleteColumns(blockRoot).iterator());
     }
 
     @SuppressWarnings("UnusedMethod")
@@ -243,5 +244,13 @@ public class DataColumnSidecarCustodyImpl
     // and not considering it missing yet
     return retrievePotentiallyIncompleteSlotCustodies(currentSlot.minusMinZero(gossipWaitSlots))
         .flatMap(SlotCustody::streamIncompleteColumns);
+  }
+
+  @Override
+  public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns(
+      final SlotAndBlockRoot blockId) {
+    return retrievePotentiallyIncompleteSlotCustodies(blockId.getSlot())
+        .filter(slotCustody -> slotCustody.slot().equals(blockId.getSlot()))
+        .flatMap(slotCustody -> slotCustody.streamIncompleteColumns(blockId.getBlockRoot()));
   }
 }
