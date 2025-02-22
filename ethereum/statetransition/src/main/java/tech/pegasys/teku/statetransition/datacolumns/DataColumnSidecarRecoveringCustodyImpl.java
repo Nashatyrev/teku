@@ -15,12 +15,14 @@ package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
@@ -33,12 +35,12 @@ import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 
 public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecarRecoveringCustody {
@@ -48,7 +50,6 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
   private final AsyncRunner asyncRunner;
   private final MiscHelpersFulu miscHelpers;
   private final KZG kzg;
-  private final SchemaDefinitionsFulu schemaDefinitions;
   private final Spec spec;
 
   private final long columnCount;
@@ -67,7 +68,6 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
       final Spec spec,
       final MiscHelpersFulu miscHelpers,
       final KZG kzg,
-      final SchemaDefinitionsFulu schemaDefinitions,
       final boolean isSuperNode,
       final int columnCount,
       final Function<UInt64, Duration> slotToRecoveryDelay) {
@@ -75,7 +75,6 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
     this.asyncRunner = asyncRunner;
     this.miscHelpers = miscHelpers;
     this.kzg = kzg;
-    this.schemaDefinitions = schemaDefinitions;
     this.spec = spec;
     this.recoveryTasks =
         LimitedMap.createSynchronizedNatural(spec.getGenesisSpec().getSlotsPerEpoch());
@@ -90,11 +89,10 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
     if (!isActiveSuperNode(slot)) {
       return;
     }
-    // TODO: when and how to repeat this?
     asyncRunner
         .runAfterDelay(
             () -> {
-              LOG.debug("Check missing identifiers for slot: {}", slot);
+              LOG.debug("Check if recovery needed for slot: {}", slot);
 
               final List<SlotAndBlockRoot> ids =
                   recoveryTasks.keySet().stream()
@@ -104,30 +102,8 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
                   .map(recoveryTasks::get)
                   .forEach(
                       task -> {
-                        AsyncStream<DataColumnSlotAndIdentifier>
-                            dataColumnSlotAndIdentifierAsyncStream =
-                                delegate.retrieveMissingColumns(task.block().getSlotAndBlockRoot());
-                        final SafeFuture<List<DataColumnSlotAndIdentifier>> missingFuture =
-                            dataColumnSlotAndIdentifierAsyncStream.toList();
-                        missingFuture
-                            .thenPeek(
-                                missing -> {
-                                  if (!missing.isEmpty()) {
-                                    if (missing.size() <= recoverColumnCount) {
-                                      LOG.info(
-                                          " {} data column sidecars retrieved for {}. Starting full reconstruction",
-                                          missing.size(),
-                                          task.block.getSlotAndBlockRoot());
-                                      prepareAndInitializeRecovery(task, missing);
-                                    } else {
-                                      LOG.info(
-                                          "Only {} data column sidecars retrieved for {}. Cannot perform reconstruction",
-                                          missing.size(),
-                                          task.block.getSlotAndBlockRoot());
-                                    }
-                                  }
-                                })
-                            .ifExceptionGetsHereRaiseABug();
+                        task.timeouted().set(true);
+                        maybeStartRecovery(task);
                       });
             },
             slotToRecoveryDelay.apply(slot))
@@ -147,7 +123,56 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
       // skip locally produced blocks, we will get everything for it in custody w/o reconstruction
       return;
     }
-    recoveryTasks.put(block.getSlotAndBlockRoot(), new RecoveryTask(block));
+    createOrUpdateRecoveryTaskForBlock(block.getMessage());
+  }
+
+  private synchronized void createOrUpdateRecoveryTaskForBlock(final BeaconBlock block) {
+    if (recoveryTasks.containsKey(block.getSlotAndBlockRoot())) {
+      final RecoveryTask existing = recoveryTasks.get(block.getSlotAndBlockRoot());
+      if (existing.block().get() == null) {
+        existing.block().set(block);
+        maybeStartRecovery(existing);
+      }
+    } else {
+      recoveryTasks.put(
+          block.getSlotAndBlockRoot(),
+          new RecoveryTask(
+              new AtomicReference<>(block),
+              new HashSet<>(),
+              new AtomicBoolean(false),
+              new AtomicBoolean(false)));
+    }
+  }
+
+  private synchronized void maybeStartRecovery(final RecoveryTask task) {
+    if (readyToBeRecovered(task)) {
+      task.recoveryStarted().set(true);
+      if (task.existing().size() != columnCount) {
+        asyncRunner.runAsync(() -> prepareAndInitiateRecovery(task)).ifExceptionGetsHereRaiseABug();
+      }
+    }
+  }
+
+  private boolean readyToBeRecovered(final RecoveryTask task) {
+    if (task.recoveryStarted().get()) {
+      // already started
+      return false;
+    }
+
+    if (!task.timeouted().get()) {
+      return false;
+    }
+
+    if (task.existing().size() < recoverColumnCount) {
+      // not enough columns collected
+      return false;
+    }
+
+    if (task.block().get() == null) {
+      return false;
+    }
+
+    return true;
   }
 
   @Override
@@ -161,33 +186,23 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
         && spec.atSlot(slot).getMilestone().isGreaterThanOrEqualTo(SpecMilestone.FULU);
   }
 
-  private record RecoveryTask(SignedBeaconBlock block) {}
+  private record RecoveryTask(
+      AtomicReference<BeaconBlock> block,
+      Set<DataColumnSlotAndIdentifier> existing,
+      AtomicBoolean recoveryStarted,
+      AtomicBoolean timeouted) {}
 
-  private void prepareAndInitializeRecovery(
-      final RecoveryTask task, final List<DataColumnSlotAndIdentifier> missingIdentificators) {
-    final Map<UInt64, DataColumnSlotAndIdentifier> missingMap =
-        missingIdentificators.stream()
-            .collect(
-                Collectors.toMap(
-                    DataColumnSlotAndIdentifier::columnIndex, identifier -> identifier));
+  private void prepareAndInitiateRecovery(final RecoveryTask task) {
     final SafeFuture<List<DataColumnSidecar>> list =
-        AsyncStream.create(
-                Stream.iterate(UInt64.ZERO, i -> i.isLessThan(columnCount), UInt64::increment)
-                    .filter(key -> !missingMap.containsKey(key)))
-            .mapAsync(
-                i -> {
-                  final DataColumnSlotAndIdentifier dataColumnSlotAndIdentifier =
-                      new DataColumnSlotAndIdentifier(
-                          task.block().getSlot(), task.block().getRoot(), i);
-                  return delegate.getCustodyDataColumnSidecar(dataColumnSlotAndIdentifier);
-                })
+        AsyncStream.create(task.existing().stream())
+            .mapAsync(delegate::getCustodyDataColumnSidecar)
             .map(Optional::get)
             .toList();
-    initiateRecovery(task.block(), list);
+    initiateRecovery(task.block().get(), list);
   }
 
   private void initiateRecovery(
-      final SignedBeaconBlock block, final SafeFuture<List<DataColumnSidecar>> list) {
+      final BeaconBlock block, final SafeFuture<List<DataColumnSidecar>> list) {
     LOG.info("Starting data columns sidecars recovery for block: {}", block.getSlotAndBlockRoot());
 
     list.thenPeek(
@@ -200,7 +215,7 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
               sidecars.forEach(
                   sidecar -> existingSidecarsByColIdx.put(sidecar.getIndex(), sidecar));
               final List<DataColumnSidecar> recoveredSidecars =
-                  miscHelpers.reconstructAllDataColumnSidecars(block.getMessage(), sidecars, kzg);
+                  miscHelpers.reconstructAllDataColumnSidecars(block, sidecars, kzg);
               recoveredSidecars.stream()
                   .filter(sidecar -> !existingSidecarsByColIdx.containsKey(sidecar.getIndex()))
                   .forEach(
@@ -227,7 +242,27 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
   @Override
   public SafeFuture<Void> onNewValidatedDataColumnSidecar(
       final DataColumnSidecar dataColumnSidecar) {
+    createOrUpdateRecoveryTaskForDataColumnSidecar(
+        DataColumnSlotAndIdentifier.fromDataColumn(dataColumnSidecar));
     return delegate.onNewValidatedDataColumnSidecar(dataColumnSidecar);
+  }
+
+  private synchronized void createOrUpdateRecoveryTaskForDataColumnSidecar(
+      final DataColumnSlotAndIdentifier identifier) {
+    if (recoveryTasks.containsKey(identifier.getSlotAndBlockRoot())) {
+      final RecoveryTask existing = recoveryTasks.get(identifier.getSlotAndBlockRoot());
+      existing.existing().add(identifier);
+      maybeStartRecovery(existing);
+    } else {
+      RecoveryTask recoveryTask =
+          new RecoveryTask(
+              new AtomicReference<>(null),
+              new HashSet<>(),
+              new AtomicBoolean(false),
+              new AtomicBoolean(false));
+      recoveryTask.existing().add(identifier);
+      recoveryTasks.put(identifier.getSlotAndBlockRoot(), recoveryTask);
+    }
   }
 
   @Override

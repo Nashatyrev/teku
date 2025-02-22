@@ -33,7 +33,6 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidec
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.statetransition.datacolumns.CanonicalBlockResolver;
 import tech.pegasys.teku.statetransition.datacolumns.db.DataColumnSidecarDbAccessor;
 
@@ -43,7 +42,6 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
   private final DataColumnSidecarRetriever delegate;
   private final KZG kzg;
   private final MiscHelpersFulu specHelpers;
-  private final SchemaDefinitionsFulu schemaDefinitions;
   private final CanonicalBlockResolver blockResolver;
   private final DataColumnSidecarDbAccessor sidecarDB;
   private final AsyncRunner asyncRunner;
@@ -57,7 +55,6 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
       final DataColumnSidecarRetriever delegate,
       final KZG kzg,
       final MiscHelpersFulu specHelpers,
-      final SchemaDefinitionsFulu schemaDefinitionsElectra,
       final CanonicalBlockResolver blockResolver,
       final DataColumnSidecarDbAccessor sidecarDB,
       final AsyncRunner asyncRunner,
@@ -66,7 +63,6 @@ public class RecoveringSidecarRetriever implements DataColumnSidecarRetriever {
     this.delegate = delegate;
     this.kzg = kzg;
     this.specHelpers = specHelpers;
-    this.schemaDefinitions = schemaDefinitionsElectra;
     this.blockResolver = blockResolver;
     this.sidecarDB = sidecarDB;
     this.asyncRunner = asyncRunner;

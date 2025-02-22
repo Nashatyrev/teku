@@ -127,7 +127,6 @@ import tech.pegasys.teku.spec.logic.common.util.BlockRewardCalculatorUtil;
 import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
 import tech.pegasys.teku.spec.networks.Eth2Network;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
 import tech.pegasys.teku.statetransition.EpochCachePrimer;
 import tech.pegasys.teku.statetransition.LocalOperationAcceptedFilter;
 import tech.pegasys.teku.statetransition.MappedOperationPool;
@@ -736,9 +735,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
 
     MiscHelpersFulu miscHelpersFulu =
         MiscHelpersFulu.required(spec.forMilestone(SpecMilestone.FULU).miscHelpers());
-    SchemaDefinitionsFulu schemaDefinitionsFulu =
-        SchemaDefinitionsFulu.required(
-            spec.forMilestone(SpecMilestone.FULU).getSchemaDefinitions());
 
     final int minCustodyGroupRequirement = specConfigFulu.getCustodyRequirement();
     final int maxGroups = specConfigFulu.getNumberOfCustodyGroups();
@@ -783,7 +779,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
               spec,
               miscHelpersFulu,
               kzg,
-              schemaDefinitionsFulu,
               isFuluSuperNode(),
               specConfigFulu.getNumberOfColumns(),
               slot -> Duration.ofMillis(spec.getMillisPerSlot(slot).dividedBy(3).longValue()));
@@ -831,7 +826,6 @@ public class BeaconChainController extends Service implements BeaconChainControl
             sidecarRetriever,
             kzg,
             miscHelpersFulu,
-            schemaDefinitionsFulu,
             canonicalBlockResolver,
             dbAccessor,
             operationPoolAsyncRunner,
