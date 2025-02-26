@@ -14,7 +14,6 @@
 package tech.pegasys.teku.statetransition.datacolumns;
 
 import java.time.Duration;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -23,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
@@ -94,16 +94,13 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
             () -> {
               LOG.debug("Check if recovery needed for slot: {}", slot);
 
-              final List<SlotAndBlockRoot> ids =
-                  recoveryTasks.keySet().stream()
-                      .filter(key -> key.getSlot().equals(slot))
-                      .toList();
-              ids.stream()
+              recoveryTasks.keySet().stream()
+                  .filter(key -> key.getSlot().equals(slot))
                   .map(recoveryTasks::get)
                   .forEach(
-                      task -> {
-                        task.timeouted().set(true);
-                        maybeStartRecovery(task);
+                      recoveryTask -> {
+                        recoveryTask.timedOut().set(true);
+                        maybeStartRecovery(recoveryTask);
                       });
             },
             slotToRecoveryDelay.apply(slot))
@@ -147,7 +144,7 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
   private synchronized void maybeStartRecovery(final RecoveryTask task) {
     if (readyToBeRecovered(task)) {
       task.recoveryStarted().set(true);
-      if (task.existing().size() != columnCount) {
+      if (task.existingColumnIds().size() != columnCount) {
         asyncRunner.runAsync(() -> prepareAndInitiateRecovery(task)).ifExceptionGetsHereRaiseABug();
       }
     }
@@ -159,11 +156,11 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
       return false;
     }
 
-    if (!task.timeouted().get()) {
+    if (!task.timedOut().get()) {
       return false;
     }
 
-    if (task.existing().size() < recoverColumnCount) {
+    if (task.existingColumnIds().size() < recoverColumnCount) {
       // not enough columns collected
       return false;
     }
@@ -188,13 +185,13 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
 
   private record RecoveryTask(
       AtomicReference<BeaconBlock> block,
-      Set<DataColumnSlotAndIdentifier> existing,
+      Set<DataColumnSlotAndIdentifier> existingColumnIds,
       AtomicBoolean recoveryStarted,
-      AtomicBoolean timeouted) {}
+      AtomicBoolean timedOut) {}
 
   private void prepareAndInitiateRecovery(final RecoveryTask task) {
     final SafeFuture<List<DataColumnSidecar>> list =
-        AsyncStream.create(task.existing().stream())
+        AsyncStream.create(task.existingColumnIds().stream())
             .mapAsync(delegate::getCustodyDataColumnSidecar)
             .map(Optional::get)
             .toList();
@@ -211,13 +208,14 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
                   "Recovery for block: {}. DatacolumnSidecars found: {}",
                   block.getSlotAndBlockRoot(),
                   sidecars.size());
-              final Map<UInt64, DataColumnSidecar> existingSidecarsByColIdx = new HashMap<>();
-              sidecars.forEach(
-                  sidecar -> existingSidecarsByColIdx.put(sidecar.getIndex(), sidecar));
+              final Set<UInt64> existingSidecarsIndices =
+                  sidecars.stream()
+                      .map(DataColumnSidecar::getIndex)
+                      .collect(Collectors.toUnmodifiableSet());
               final List<DataColumnSidecar> recoveredSidecars =
                   miscHelpers.reconstructAllDataColumnSidecars(block, sidecars, kzg);
               recoveredSidecars.stream()
-                  .filter(sidecar -> !existingSidecarsByColIdx.containsKey(sidecar.getIndex()))
+                  .filter(sidecar -> !existingSidecarsIndices.contains(sidecar.getIndex()))
                   .forEach(
                       dataColumnSidecar -> {
                         validDataColumnSidecarsSubscribers.forEach(
@@ -251,16 +249,15 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
       final DataColumnSlotAndIdentifier identifier) {
     if (recoveryTasks.containsKey(identifier.getSlotAndBlockRoot())) {
       final RecoveryTask existing = recoveryTasks.get(identifier.getSlotAndBlockRoot());
-      existing.existing().add(identifier);
+      existing.existingColumnIds().add(identifier);
       maybeStartRecovery(existing);
     } else {
       RecoveryTask recoveryTask =
           new RecoveryTask(
               new AtomicReference<>(null),
-              new HashSet<>(),
+              new HashSet<>(List.of(identifier)),
               new AtomicBoolean(false),
               new AtomicBoolean(false));
-      recoveryTask.existing().add(identifier);
       recoveryTasks.put(identifier.getSlotAndBlockRoot(), recoveryTask);
     }
   }
@@ -268,12 +265,6 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
   @Override
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return delegate.retrieveMissingColumns();
-  }
-
-  @Override
-  public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns(
-      final SlotAndBlockRoot blockId) {
-    return delegate.retrieveMissingColumns(blockId);
   }
 
   @Override

@@ -26,24 +26,23 @@ import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 public class DataColumnSidecarByRootCustodyImpl
-    implements DataColumnSidecarByRootCustody, UpdatableDataColumnSidecarCustody {
+    implements DataColumnSidecarByRootCustody, DataColumnSidecarCustody {
 
   public static final int DEFAULT_MAX_CACHE_SIZE_EPOCHS = 1024;
 
-  private final UpdatableDataColumnSidecarCustody custody;
+  private final DataColumnSidecarCustody custody;
   private final CombinedChainDataClient combinedChainDataClient;
   private final UInt64 maxCacheSizeInSlots;
 
   private final ColumnSlotCache cache = new ColumnSlotCache();
 
   public DataColumnSidecarByRootCustodyImpl(
-      final UpdatableDataColumnSidecarCustody custody,
+      final DataColumnSidecarCustody custody,
       final CombinedChainDataClient combinedChainDataClient,
       final UInt64 maxCacheSizeInSlots) {
     this.custody = custody;
@@ -80,12 +79,6 @@ public class DataColumnSidecarByRootCustodyImpl
   @Override
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     return custody.retrieveMissingColumns();
-  }
-
-  @Override
-  public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns(
-      final SlotAndBlockRoot blockId) {
-    return custody.retrieveMissingColumns(blockId);
   }
 
   @Override

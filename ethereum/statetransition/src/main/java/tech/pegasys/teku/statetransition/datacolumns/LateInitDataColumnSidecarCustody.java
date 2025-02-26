@@ -19,7 +19,6 @@ import tech.pegasys.teku.infrastructure.async.stream.AsyncStream;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnSlotAndIdentifier;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
@@ -85,13 +84,6 @@ public class LateInitDataColumnSidecarCustody implements DataColumnSidecarRecove
   public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns() {
     checkDelegate();
     return delegate.retrieveMissingColumns();
-  }
-
-  @Override
-  public AsyncStream<DataColumnSlotAndIdentifier> retrieveMissingColumns(
-      final SlotAndBlockRoot blockId) {
-    checkDelegate();
-    return delegate.retrieveMissingColumns(blockId);
   }
 
   private void checkDelegate() {
