@@ -95,12 +95,13 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
               LOG.debug("Check if recovery needed for slot: {}", slot);
 
               recoveryTasks.keySet().stream()
-                  .filter(key -> key.getSlot().equals(slot))
+                  .filter(key -> key.getSlot().isLessThanOrEqualTo(slot))
                   .map(recoveryTasks::get)
                   .forEach(
                       recoveryTask -> {
-                        recoveryTask.timedOut().set(true);
-                        maybeStartRecovery(recoveryTask);
+                        if (recoveryTask.timedOut().compareAndSet(false, true)) {
+                          maybeStartRecovery(recoveryTask);
+                        }
                       });
             },
             slotToRecoveryDelay.apply(slot))
