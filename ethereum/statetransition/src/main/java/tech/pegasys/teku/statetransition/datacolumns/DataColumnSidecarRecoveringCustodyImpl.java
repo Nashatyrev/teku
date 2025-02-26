@@ -203,7 +203,7 @@ public class DataColumnSidecarRecoveringCustodyImpl implements DataColumnSidecar
       final BeaconBlock block, final SafeFuture<List<DataColumnSidecar>> list) {
     LOG.info("Starting data columns sidecars recovery for block: {}", block.getSlotAndBlockRoot());
 
-    list.thenPeek(
+    list.thenAccept(
             sidecars -> {
               LOG.debug(
                   "Recovery for block: {}. DatacolumnSidecars found: {}",
