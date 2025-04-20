@@ -1,0 +1,26 @@
+general:
+  stop_time: 30m
+  progress: true
+
+ethereum:
+  validators: 120
+  nodes:
+    - location: europe
+      reliability: reliable
+      tag: boot
+      clients:
+        cl: lighthouse_bootnode
+    - location: europe
+      reliabilities: reliable
+      count:
+        total: 2
+      clients:
+        cl: teku
+  clients:
+    teku:
+      type: teku
+      use_unsafe_test_stub: true
+      executable: /home/nashat/teku/build/install/teku/bin/teku
+      environment:
+        JAVA_OPTS: -XX:ActiveProcessorCount=1 -XX:-TieredCompilation -Dos.name=Linux
+      extra_args: "--ignore-weak-subjectivity-period-enabled --p2p-subscribe-all-custody-subnets-enabled --logging=DEBUG"
