@@ -505,6 +505,7 @@ public class ForkChoiceUtil {
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
    * both).
+   * FIXME: spec: name function estimate* instead of get*
    */
   public UInt64 getCommitteeWeightBetweenSlots(
       BeaconState state, UInt64 startSlot, UInt64 endSlot) {
