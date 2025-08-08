@@ -333,9 +333,10 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
   }
 
   @Override
-  public Optional<UInt64> getWeight(final Bytes32 blockRoot) {
+  public Optional<UInt64> getWeight(Bytes32 blockRoot, Checkpoint referenceCheckpoint) {
     protoArrayLock.readLock().lock();
     try {
+      // TODO: adjust ProtoArray for supporting referenceCheckpoint
       return getProtoNode(blockRoot).map(ProtoNode::getWeight);
     } finally {
       protoArrayLock.readLock().unlock();
