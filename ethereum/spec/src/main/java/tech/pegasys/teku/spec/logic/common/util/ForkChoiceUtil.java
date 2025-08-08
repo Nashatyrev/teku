@@ -498,4 +498,101 @@ public class ForkChoiceUtil {
         store.getForkChoiceStrategy().executionBlockHash(block.getParentRoot());
     return parentExecutionRoot.isPresent() && !parentExecutionRoot.get().isZero();
   }
+
+  // TODO extract to config
+  private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
+
+  /**
+   * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
+   * both).
+   */
+  public UInt64 getCommitteeWeightBetweenSlots(
+      BeaconState state, UInt64 startSlot, UInt64 endSlot) {
+
+    //    total_active_balance = get_total_active_balance(state)
+    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(state);
+
+    //    start_epoch = compute_epoch_at_slot(start_slot)
+    //    end_epoch = compute_epoch_at_slot(end_slot)
+    UInt64 startEpoch = miscHelpers.computeEpochAtSlot(startSlot);
+    UInt64 endEpoch = miscHelpers.computeEpochAtSlot(endSlot);
+
+    //    if start_slot > end_slot:
+    //        return Gwei(0)
+    if (startSlot.isGreaterThan(endSlot)) {
+      return UInt64.ZERO;
+    }
+
+    UInt64 slotsPerEpoch = UInt64.valueOf(specConfig.getSlotsPerEpoch());
+    //         end_epoch > start_epoch + 1
+    //        or (end_epoch == start_epoch + 1 and start_slot % SLOTS_PER_EPOCH == 0))
+    boolean ifFullValidatorSetCovered =
+        endEpoch.isGreaterThan(startEpoch.increment())
+            || (endEpoch.equals(startEpoch.increment()) && startSlot.mod(slotsPerEpoch).isZero());
+
+    //    # If an entire epoch is covered by the range, return the total active balance
+    //    if is_full_validator_set_covered(start_slot, end_slot):
+    //        return total_active_balance
+    if (ifFullValidatorSetCovered) {
+      return totalActiveBalance;
+    }
+
+    //    if start_epoch == end_epoch:
+    //        return total_active_balance // SLOTS_PER_EPOCH * (end_slot - start_slot + 1)
+    if (startEpoch.equals(endEpoch)) {
+      return totalActiveBalance
+          .dividedBy(slotsPerEpoch)
+          .times(endSlot.minus(startSlot).increment());
+    }
+
+    //    else:
+    //        # A range that spans an epoch boundary, but does not span any full epoch
+    //        # needs pro-rata calculation
+    //
+    //        # See https://gist.github.com/saltiniroberto/9ee53d29c33878d79417abb2b4468c20
+    //        # for an explanation of the formula used below.
+    //
+    //        # First, calculate the number of committees in the end epoch
+    //        num_slots_in_end_epoch = compute_slots_since_epoch_start(end_slot)
+    UInt64 numSlotsInEndEpoch = computeSlotsSinceEpochStart(endSlot);
+    //        # Next, calculate the number of slots remaining in the end epoch
+    //        remaining_slots_in_end_epoch = SLOTS_PER_EPOCH - num_slots_in_end_epoch
+    UInt64 remainingSlotsInEndEpoch = slotsPerEpoch.minus(numSlotsInEndEpoch);
+    //        # Then, calculate the number of slots in the start epoch
+    //        num_slots_in_start_epoch = SLOTS_PER_EPOCH -
+    // compute_slots_since_epoch_start(start_slot)
+    UInt64 numSlotsInStartEpoch = slotsPerEpoch.minus(computeSlotsSinceEpochStart(startSlot));
+    //        end_epoch_weight_estimate = total_active_balance // SLOTS_PER_EPOCH *
+    // num_slots_in_end_epoch
+    UInt64 endEpochWeightEstimate =
+        totalActiveBalance.dividedBy(slotsPerEpoch).times(numSlotsInEndEpoch);
+    //        start_epoch_weight_estimate = (total_active_balance // SLOTS_PER_EPOCH //
+    // SLOTS_PER_EPOCH *
+    //            num_slots_in_start_epoch * remaining_slots_in_end_epoch)
+    // FIXME: spec
+    //        start_epoch_weight_estimate = (total_active_balance // SLOTS_PER_EPOCH *
+    //            num_slots_in_start_epoch // SLOTS_PER_EPOCH * remaining_slots_in_end_epoch)
+    UInt64 startEpochWeightEstimate =
+        totalActiveBalance
+            .dividedBy(slotsPerEpoch)
+            .times(numSlotsInStartEpoch)
+            .dividedBy(slotsPerEpoch)
+            .times(remainingSlotsInEndEpoch);
+
+    //        # Each committee from the end epoch only contributes a pro-rated weight
+    //        return adjust_committee_weight_estimate_to_ensure_safety(
+    //            Gwei(start_epoch_weight_estimate + end_epoch_weight_estimate)
+    //        )
+    UInt64 estimate = startEpochWeightEstimate.plus(endEpochWeightEstimate);
+    //     Adjusts the ``estimate`` of the weight of a committee for a sequence of slots not
+    // covering a full epoch to
+    //    ensure the safety of the confirmation rule with high probability.
+    //
+    //    See https://gist.github.com/saltiniroberto/9ee53d29c33878d79417abb2b4468c20 for an
+    // explanation of why this is
+    //    required.
+    //    """
+    //    return Gwei(estimate // 1000 * (1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR))
+    return estimate.dividedBy(1000).times(1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR);
+  }
 }
