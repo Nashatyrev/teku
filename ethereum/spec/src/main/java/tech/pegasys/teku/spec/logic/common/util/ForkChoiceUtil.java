@@ -501,11 +501,11 @@ public class ForkChoiceUtil {
 
   // TODO extract to config
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
 
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
-   * both).
-   * FIXME: spec: name function estimate* instead of get*
+   * both). FIXME: spec: name function estimate* instead of get*
    */
   public UInt64 getCommitteeWeightBetweenSlots(
       BeaconState state, UInt64 startSlot, UInt64 endSlot) {
@@ -595,5 +595,53 @@ public class ForkChoiceUtil {
     //    """
     //    return Gwei(estimate // 1000 * (1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR))
     return estimate.dividedBy(1000).times(1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR);
+  }
+
+  // def is_one_confirmed(store: Store, block_root: Root) -> bool:
+  boolean isOneConfirmed(
+      final ReadOnlyStore store,
+      final Bytes32 blockRoot,
+      final UInt64 parentBlockSlot,
+      final BeaconState weightingCheckpointState) {
+    //    current_slot = get_current_slot(store)
+    //    block = store.blocks[block_root]
+    //    parent_block = store.blocks[block.parent_root]
+    //    if get_current_slot(store) % SLOTS_PER_EPOCH == 0:
+    //    if (miscHelpers.isFirstSlotInEpoch(currentSlot)) {
+    // FIXME: (spec)
+    //    if current_slot % SLOTS_PER_EPOCH == 0:
+    //        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
+    //    else:
+    //        weighting_checkpoint = store.prev_slot_justified_checkpoint
+    //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
+
+    //    support = get_weight(store, block_root, weighting_checkpoint_state)
+    UInt64 support =
+        store.getForkChoiceStrategy().getWeight(blockRoot, weightingCheckpointState).orElseThrow();
+    //    maximum_support = get_committee_weight_between_slots(
+    //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+    UInt64 maximumSupport =
+        getCommitteeWeightBetweenSlots(
+            weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store));
+    //    proposer_score = get_proposer_score(store)
+    UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(weightingCheckpointState);
+    //
+    //    # Returns whether the following condition is true using only integer arithmetic
+    //    # support / maximum_support >
+    //    # 0.5 * (1 + proposer_score / maximum_support) + CONFIRMATION_BYZANTINE_THRESHOLD / 100
+    //
+    //    # 2 * support > maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) +
+    // proposer_score
+    //    return (
+    //        2 * support >
+    //        maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD +
+    // proposer_score
+    //    )
+    return support
+        .times(2)
+        .isGreaterThan(
+            maximumSupport
+                .plus(maximumSupport.dividedBy(50).times(CONFIRMATION_BYZANTINE_THRESHOLD))
+                .plus(proposerScore));
   }
 }
