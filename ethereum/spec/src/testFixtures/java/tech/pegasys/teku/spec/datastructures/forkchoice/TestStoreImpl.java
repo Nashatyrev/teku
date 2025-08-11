@@ -477,7 +477,7 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
     }
 
     @Override
-    public Optional<UInt64> getWeight(Bytes32 blockRoot, Checkpoint referenceCheckpoint) {
+    public Optional<UInt64> getWeight(Bytes32 blockRoot, BeaconState referenceCheckpointState) {
       throw new UnsupportedOperationException("Not implemented");
     }
   }

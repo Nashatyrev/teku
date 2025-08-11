@@ -38,6 +38,7 @@ import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.forkchoice.VoteUpdater;
 import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.executionlayer.ExecutionPayloadStatus;
 import tech.pegasys.teku.spec.executionlayer.ForkChoiceState;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
@@ -333,7 +334,7 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
   }
 
   @Override
-  public Optional<UInt64> getWeight(Bytes32 blockRoot, Checkpoint referenceCheckpoint) {
+  public Optional<UInt64> getWeight(Bytes32 blockRoot, BeaconState referenceCheckpointState) {
     protoArrayLock.readLock().lock();
     try {
       // TODO: adjust ProtoArray for supporting referenceCheckpoint
