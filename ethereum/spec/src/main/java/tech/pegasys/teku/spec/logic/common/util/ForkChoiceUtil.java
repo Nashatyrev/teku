@@ -18,7 +18,6 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
-
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -688,4 +687,96 @@ public class ForkChoiceUtil {
     UInt64 slotsPassed = slot.mod(specConfig.getSlotsPerEpoch());
     return totalActiveBalance.dividedBy(specConfig.getSlotsPerEpoch()).times(slotsPassed);
   }
+
+  // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+  boolean willCurrentEpochCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint) {
+    // TODO
+    return true;
+  }
+  //    assert checkpoint.epoch == get_current_epoch_store(store)
+  //
+  //    current_slot = get_current_slot(store)
+  //    current_epoch = compute_epoch_at_slot(current_slot)
+  //
+  //    store_target_checkpoint_state(store, checkpoint)
+  //    checkpoint_state = store.checkpoint_states[checkpoint]
+  //
+  //    total_active_balance = get_total_active_balance(checkpoint_state)
+  //
+  //    # compute FFG support for checkpoint
+  //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
+  //
+  //    # compute total FFG weight till current slot
+  //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
+  // total_active_balance)
+  //
+  //    # compute remaining honest FFG weight
+  //    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
+  //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
+  // config.CONFIRMATION_BYZANTINE_THRESHOLD))
+  //
+  //    # compute min honest FFG support
+  //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
+  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
+  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
+  //        ffg_support_for_checkpoint
+  //    )
+  //
+  //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 *
+  // total_active_balance
+  //
+  //
+  // def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+  boolean willCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint) {
+    // TODO
+    return true;
+  }
+
+  //    if checkpoint == store.justified_checkpoint:
+  //        return True
+  //
+  //    if checkpoint == store.unrealized_justified_checkpoint:
+  //        return True
+  //
+  //    if checkpoint.epoch == get_current_epoch_store(store):
+  //        return will_current_epoch_checkpoint_be_justified(store, checkpoint)
+  //
+  //    return False
+  //
+  //
+  // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+  boolean willNoConflictingCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint) {
+    // TODO
+    return true;
+  }
+  //    assert checkpoint.epoch == get_current_epoch_store(store)
+  //
+  //    current_slot = get_current_slot(store)
+  //    current_epoch = compute_epoch_at_slot(current_slot)
+  //
+  //    store_target_checkpoint_state(store, checkpoint)
+  //    checkpoint_state = store.checkpoint_states[checkpoint]
+  //
+  //    total_active_balance = get_total_active_balance(checkpoint_state)
+  //
+  //    # compute FFG support for checkpoint
+  //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
+  //
+  //    # compute total FFG weight till current slot
+  //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
+  // total_active_balance)
+  //
+  //    # compute remaining honest FFG weight
+  //    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
+  //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
+  // config.CONFIRMATION_BYZANTINE_THRESHOLD))
+  //
+  //    # compute min honest FFG support
+  //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
+  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
+  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
+  //        ffg_support_for_checkpoint
+  //    )
+  //
+  //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= total_active_balance
 }
