@@ -18,7 +18,6 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
-import javax.naming.OperationNotSupportedException;
 
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -672,7 +671,7 @@ public class ForkChoiceUtil {
   }
 
   // def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
-  UInt64 geytFfgWeightTillSlot(UInt64 slot, UInt64 epoch, UInt64 totalActiveBalance) {
+  UInt64 getFfgWeightTillSlot(UInt64 slot, UInt64 epoch, UInt64 totalActiveBalance) {
     //    if slot <= compute_start_slot_at_epoch(epoch):
     //        return Gwei(0)
     if (slot.isLessThanOrEqualTo(miscHelpers.computeStartSlotAtEpoch(epoch))) {
