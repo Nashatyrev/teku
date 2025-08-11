@@ -18,6 +18,8 @@ import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
+import javax.naming.OperationNotSupportedException;
+
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -656,5 +658,35 @@ public class ForkChoiceUtil {
   Bytes32 getCheckpointBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
     UInt64 epochFirstSlot = miscHelpers.computeStartSlotAtEpoch(epoch);
     return store.getForkChoiceStrategy().getAncestor(root, epochFirstSlot).orElseThrow();
+  }
+
+  // def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state:
+  // BeaconState) -> Gwei:
+  // FIXME (spec) fix checkpoint type
+
+  /**
+   * Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
+   */
+  UInt64 getCheckpointWeight(ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+    throw new UnsupportedOperationException("TODO");
+  }
+
+  // def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
+  UInt64 geytFfgWeightTillSlot(UInt64 slot, UInt64 epoch, UInt64 totalActiveBalance) {
+    //    if slot <= compute_start_slot_at_epoch(epoch):
+    //        return Gwei(0)
+    if (slot.isLessThanOrEqualTo(miscHelpers.computeStartSlotAtEpoch(epoch))) {
+      return UInt64.ZERO;
+    }
+    //    elif slot >= compute_start_slot_at_epoch(epoch + 1):
+    //        return total_active_balance
+    if (slot.isGreaterThanOrEqualTo(miscHelpers.computeStartSlotAtEpoch(epoch.increment()))) {
+      return totalActiveBalance;
+    }
+    //    else:
+    //        slots_passed = slot % SLOTS_PER_EPOCH
+    //        return total_active_balance // SLOTS_PER_EPOCH * slots_passed
+    UInt64 slotsPassed = slot.mod(specConfig.getSlotsPerEpoch());
+    return totalActiveBalance.dividedBy(specConfig.getSlotsPerEpoch()).times(slotsPassed);
   }
 }
