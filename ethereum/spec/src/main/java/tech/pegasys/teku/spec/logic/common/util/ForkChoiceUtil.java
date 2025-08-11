@@ -601,15 +601,19 @@ public class ForkChoiceUtil {
   boolean isOneConfirmed(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
-      final UInt64 parentBlockSlot,
       final BeaconState weightingCheckpointState) {
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     //    current_slot = get_current_slot(store)
     //    block = store.blocks[block_root]
     //    parent_block = store.blocks[block.parent_root]
-    //    if get_current_slot(store) % SLOTS_PER_EPOCH == 0:
+    Bytes32 parentBlockRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
+    UInt64 parentBlockSlot = forkChoiceStrategy.blockSlot(parentBlockRoot).orElseThrow();
+
+    //
     //    if (miscHelpers.isFirstSlotInEpoch(currentSlot)) {
     // FIXME: (spec)
     //    if current_slot % SLOTS_PER_EPOCH == 0:
+    //
     //        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
     //    else:
     //        weighting_checkpoint = store.prev_slot_justified_checkpoint
@@ -617,13 +621,14 @@ public class ForkChoiceUtil {
 
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
     UInt64 support =
-        store.getForkChoiceStrategy().getWeight(blockRoot, weightingCheckpointState).orElseThrow();
+        forkChoiceStrategy.getWeight(blockRoot, weightingCheckpointState).orElseThrow();
     //    maximum_support = get_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     UInt64 maximumSupport =
         getCommitteeWeightBetweenSlots(
             weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store));
     //    proposer_score = get_proposer_score(store)
+    // FIXME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
     UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(weightingCheckpointState);
     //
     //    # Returns whether the following condition is true using only integer arithmetic
