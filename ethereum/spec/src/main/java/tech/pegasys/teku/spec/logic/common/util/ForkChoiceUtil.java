@@ -649,4 +649,12 @@ public class ForkChoiceUtil {
                 .plus(maximumSupport.dividedBy(50).times(CONFIRMATION_BYZANTINE_THRESHOLD))
                 .plus(proposerScore));
   }
+
+  /**
+   *  Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root``
+   */
+  Bytes32 getCheckpointBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
+    UInt64 epochFirstSlot = miscHelpers.computeStartSlotAtEpoch(epoch);
+    return store.getForkChoiceStrategy().getAncestor(root, epochFirstSlot).orElseThrow();
+  }
 }
