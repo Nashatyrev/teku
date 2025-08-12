@@ -139,4 +139,19 @@ public interface ReadOnlyStore extends TimeProvider {
 
   // implements is_ffg_competitive from Consensus Spec
   Optional<Boolean> isFfgCompetitive(Bytes32 headRoot, Bytes32 parentRoot);
+
+  default Checkpoint getPrevSlotJustifiedCheckpoint() {
+    // TODO
+    throw new UnsupportedOperationException("TODO");
+  }
+
+  default Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint() {
+    // TODO
+    throw new UnsupportedOperationException("TODO");
+  }
+
+  default Bytes32 getPrevSlotHead() {
+    // TODO
+    throw new UnsupportedOperationException("TODO");
+  }
 }
