@@ -13,6 +13,9 @@
 
 package tech.pegasys.teku.spec.logic.common.util;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -650,22 +653,24 @@ public class ForkChoiceUtil {
                 .plus(proposerScore));
   }
 
-  /**
-   *  Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root``
-   */
+  /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
   Bytes32 getCheckpointBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
     UInt64 epochFirstSlot = miscHelpers.computeStartSlotAtEpoch(epoch);
     return store.getForkChoiceStrategy().getAncestor(root, epochFirstSlot).orElseThrow();
   }
 
+  Checkpoint getCheckpointForBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
+    // FIXME spec deviation (looks equivalent)
+    return new Checkpoint(epoch, getCheckpointBlock(store, root, epoch));
+  }
+
+  /** Uses LMD-GHOST votes to estimate FFG support for a checkpoint. */
   // def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state:
   // BeaconState) -> Gwei:
   // FIXME (spec) fix checkpoint type
-
-  /**
-   * Uses LMD-GHOST votes to estimate FFG support for a checkpoint.
-   */
-  UInt64 getCheckpointWeight(ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+  UInt64 getCheckpointWeight(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+    // TODO likely deep Protoarray modification is needed
     throw new UnsupportedOperationException("TODO");
   }
 
@@ -693,6 +698,7 @@ public class ForkChoiceUtil {
     // TODO
     return true;
   }
+
   //    assert checkpoint.epoch == get_current_epoch_store(store)
   //
   //    current_slot = get_current_slot(store)
@@ -749,6 +755,7 @@ public class ForkChoiceUtil {
     // TODO
     return true;
   }
+
   //    assert checkpoint.epoch == get_current_epoch_store(store)
   //
   //    current_slot = get_current_slot(store)
@@ -779,4 +786,247 @@ public class ForkChoiceUtil {
   //    )
   //
   //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= total_active_balance
+
+  UInt64 getBlockEpoch(ReadOnlyStore store, Bytes32 blockRoot) {
+    UInt64 blockSlot = store.getForkChoiceStrategy().blockSlot(blockRoot).orElseThrow();
+    return miscHelpers.computeEpochAtSlot(blockSlot);
+  }
+
+  UInt64 getCurrentStoreEpoch(ReadOnlyStore store) {
+    UInt64 currentSlot = getCurrentSlot(store);
+    return miscHelpers.computeEpochAtSlot(currentSlot);
+  }
+
+  List<Bytes32> getChainRoots(ReadOnlyStore store, UInt64 ancestorSlot, Bytes32 startBlockRoot) {
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    ArrayList<Bytes32> ret = new ArrayList<>();
+    Bytes32 root = startBlockRoot;
+    ret.add(root);
+    while (forkChoiceStrategy.blockSlot(root).orElseThrow().isGreaterThan(ancestorSlot)) {
+      root = forkChoiceStrategy.blockParentRoot(root).orElseThrow();
+      ret.add(root);
+    }
+    return ret.reversed();
+  }
+
+  /**
+   * Compute the voting source checkpoint in event that block with root ``block_root`` is the head
+   * block
+   */
+  // def get_voting_source(store: Store, block_root: Root) -> Checkpoint:
+  Checkpoint getVotingSource(ReadOnlyStore store, Bytes32 blockRoot) {
+    // block = store.blocks[block_root]
+    // current_epoch = get_current_store_epoch(store)
+    UInt64 currentEpoch = getCurrentStoreEpoch(store);
+    // block_epoch = compute_epoch_at_slot(block.slot)
+    UInt64 blockEpoch = getBlockEpoch(store, blockRoot);
+    // if current_epoch > block_epoch:
+    BlockCheckpoints blockCheckpoints =
+        store.getForkChoiceStrategy().getBlockData(blockRoot).orElseThrow().getCheckpoints();
+    if (currentEpoch.isGreaterThan(blockEpoch)) {
+      // # The block is from a prior epoch, the voting source will be pulled-up
+      // return store.unrealized_justifications[block_root]
+      return blockCheckpoints.getUnrealizedJustifiedCheckpoint();
+    } else {
+      // else:
+      //   # The block is not from a prior epoch, therefore the voting source is not pulled up
+      //   head_state = store.block_states[block_root]
+      //   return head_state.current_justified_checkpoint
+      // FIXME: different from spec but looks equivalent
+      return blockCheckpoints.getJustifiedCheckpoint();
+    }
+  }
+
+  // def is_ancestor(store: Store, root: Root, ancestor: Root):
+  //    assert root in store.blocks
+  //    assert ancestor in store.blocks
+  //
+  //    return get_ancestor(store, root, store.block[ancestor].slot) == ancestor
+  boolean isAncestor(ReadOnlyStore store, Bytes32 root, Bytes32 ancestor) {
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    UInt64 ancestorSlot = forkChoiceStrategy.blockSlot(ancestor).orElseThrow();
+    return forkChoiceStrategy.getAncestor(root, ancestorSlot).orElseThrow().equals(ancestorSlot);
+  }
+
+  /**
+   * This function assumes that the ``latest_confirmed_root`` belongs to the canonical chain and is
+   * either from the previous or from the current epoch.
+   */
+  // def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) -> Root:
+  Bytes32 findLatestConfirmedDescendant(
+      ReadOnlyStore store,
+      Bytes32 latestConfirmedRoot,
+      Bytes32 headBlockRoot /* TODO probably worth adding it to Store */,
+      BeaconState weightingCheckpointState) {
+    // current_epoch = get_current_store_epoch(store)
+    UInt64 currentEpoch = getCurrentStoreEpoch(store);
+    // # verify the latest confirmed block is not too old
+    // assert compute_block_epoch(latest_confirmed_root) + 1 >= current_epoch
+    // FIXME (spec) no compute_block_epoch() function found
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    UInt64 confirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmedRoot).orElseThrow();
+    checkArgument(
+        miscHelpers
+            .computeEpochAtSlot(confirmedSlot)
+            .increment()
+            .isGreaterThanOrEqualTo(currentEpoch));
+    // head = get_head(store)
+    // confirmed_root = latest_confirmed_root
+    Bytes32 confirmedRoot = latestConfirmedRoot;
+    // if (get_block_epoch(store, confirmed_root) + 1 == current_epoch
+    //     and get_voting_source(store, store.prev_slot_head).epoch + 2 >= current_epoch
+    //     and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+    //          or (will_no_conflicting_checkpoint_be_justified(store,
+    // get_checkpoint_block(store, head, current_epoch))
+    //               and (store.unrealized_justifications[store.prev_slot_head].epoch + 1 >=
+    // current_epoch
+    //                  or store.unrealized_justifications[head].epoch + 1 >= current_epoch)))):
+
+    boolean isConfirmedBlockFromPreviousEpoch =
+        getBlockEpoch(store, confirmedRoot).increment().equals(currentEpoch);
+    Checkpoint prevHeadSourceCheckpoint = getVotingSource(store, store.getPrevSlotHead());
+    boolean isPrevHeadSourceTooOld =
+        prevHeadSourceCheckpoint.getEpoch().plus(2).isLessThan(currentEpoch);
+    boolean isFirstEpochSlot = getCurrentSlot(store).mod(specConfig.getSlotsPerEpoch()).isZero();
+    // FIXME sepc deviation with getCheckpointForBlock
+    boolean willNoConflictingCheckpointBeJustified =
+        willNoConflictingCheckpointBeJustified(
+            store, getCheckpointForBlock(store, headBlockRoot, currentEpoch));
+    Checkpoint prevHeadUnrealizedJustifiedCheckpoint =
+        forkChoiceStrategy
+            .getBlockData(store.getPrevSlotHead())
+            .orElseThrow()
+            .getCheckpoints()
+            .getUnrealizedJustifiedCheckpoint();
+    boolean isPrevHeadUnrealizedJustifiedCheckpointOld =
+        prevHeadUnrealizedJustifiedCheckpoint.getEpoch().increment().isLessThan(currentEpoch);
+    Checkpoint currHeadUnrealizedJustifiedCheckpoint =
+        forkChoiceStrategy
+            .getBlockData(headBlockRoot)
+            .orElseThrow()
+            .getCheckpoints()
+            .getUnrealizedJustifiedCheckpoint();
+    boolean isCurrHeadUnrealizedJustifiedCheckpointOld =
+        currHeadUnrealizedJustifiedCheckpoint.getEpoch().increment().isLessThan(currentEpoch);
+
+    // FIXME (spec) needs deobfuscation and explanation
+    if (isConfirmedBlockFromPreviousEpoch
+        && !isPrevHeadSourceTooOld
+        && (isFirstEpochSlot
+            || (willNoConflictingCheckpointBeJustified
+                && !(isPrevHeadUnrealizedJustifiedCheckpointOld
+                    && isCurrHeadUnrealizedJustifiedCheckpointOld)))) {
+
+      // # retrieve suffix of the canonical chain
+      // # verify the latest_confirmed_root belongs to it
+      // canonical_roots = get_canonical_roots(store, confirmed_root)
+      // FIXME (spec) confirmed_root -> slot ?
+      List<Bytes32> canonicalRoots = getChainRoots(store, confirmedSlot, headBlockRoot);
+      // assert canonical_roots.pop(0) == confirmed_root
+      checkArgument(canonicalRoots.get(0).equals(confirmedRoot));
+      canonicalRoots.remove(0);
+      // # starting with the child of the latest_confirmed_root
+      // # move towards the head in attempt to advance confirmed block
+      // # and stop when the first unconfirmed descendant is encountered for block_root in
+      // canonical_roots:
+      for (Bytes32 blockRoot : canonicalRoots) {
+        // block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
+        // FIXME (spec): can replace with get_block_epoch()
+        UInt64 blockEpoch = getBlockEpoch(store, blockRoot);
+        // # If we reach the current epoch, we exit as this code is only for confirming blocks from
+        // the previous epoch
+        // if block_epoch == current_epoch:
+        //     break
+        if (blockEpoch.equals(currentEpoch)) {
+          break;
+        }
+        // # We can only rely on the previous head if it is a descendant of the block we are
+        // attempting to confirm
+        // if not is_ancestor(store, store.prev_slot_head, block_root):
+        //     break
+        if (!isAncestor(store, store.getPrevSlotHead(), blockRoot)) {
+          break;
+        }
+        // if not is_one_confirmed(store, block_root):
+        //     break
+        if (!isOneConfirmed(store, blockRoot, weightingCheckpointState)) {
+          break;
+        }
+        // confirmed_root = block_root
+        confirmedRoot = blockRoot;
+      }
+    }
+
+    // if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+    //    or store.unrealized_justifications[head].epoch + 1 >= current_epoch):
+    if (isFirstEpochSlot || !isCurrHeadUnrealizedJustifiedCheckpointOld) {
+      // # retrieve suffix of the canonical chain
+      // # verify the latest_confirmed_root belongs to it
+      // canonical_roots = get_canonical_roots(store, confirmed_root)
+      // assert canonical_roots.pop(0) == confirmed_root
+      UInt64 newConfirmedSlot = forkChoiceStrategy.blockSlot(confirmedRoot).orElseThrow();
+      List<Bytes32> canonicalRoots = getChainRoots(store, newConfirmedSlot, headBlockRoot);
+      // assert canonical_roots.pop(0) == confirmed_root
+      checkArgument(canonicalRoots.get(0).equals(confirmedRoot));
+      canonicalRoots.remove(0);
+      // tentative_confirmed_root = confirmed_root
+      Bytes32 tentativeConfirmedRoot = confirmedRoot;
+      // for block_root in canonical_roots:
+      //     block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
+      // FIXME (spec): can replace with get_block_epoch()
+      for (Bytes32 blockRoot : canonicalRoots) {
+        UInt64 blockEpoch = getBlockEpoch(store, blockRoot);
+
+        // tentative_confirmed_epoch =
+        //     compute_epoch_at_slot(store.blocks[tentative_confirmed_root].slot)
+        UInt64 tentativeConfirmedEpoch = getBlockEpoch(store, tentativeConfirmedRoot);
+
+        // # The following condition can only be true the first time that we advance to a
+        // # block from the current epoch
+        // if block_epoch > tentative_confirmed_epoch:
+        if (blockEpoch.isGreaterThan(tentativeConfirmedEpoch)) {
+          // checkpoint_root = get_checkpoint_block(store, block_root, block_epoch)
+          // checkpoint = Checkpoint(checkpoint_root, block_epoch)
+          Checkpoint checkpoint = getCheckpointForBlock(store, blockRoot, blockEpoch);
+          // # To confirm blocks from the current epoch ensure that
+          // # current epoch checkpoint will be justified
+          // if not will_checkpoint_be_justified(store, checkpoint):
+          //     break
+          if (!willCheckpointBeJustified(store, checkpoint)) {
+            break;
+          }
+        }
+        // if not is_one_confirmed(store, block_root):
+        //    break
+        if (!isOneConfirmed(store, blockRoot, weightingCheckpointState)) {
+          break;
+        }
+        // tentative_confirmed_root = block_root
+        tentativeConfirmedRoot = blockRoot;
+      }
+      // # the tentative_confirmed_root can only be confirmed if we can ensure that it is not
+      // # going to be reorged out in either the current or next epoch.
+      // if (get_block_epoch(store, tentative_confirmed_root) == current_epoch
+      //     or (get_voting_source(store, tentative_confirmed_root).epoch + 2 >= current_epoch
+      //         and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+      //              or will_no_conflicting_checkpoint_be_justified(store,
+      // get_checkpoint_block(store, head, current_epoch))))):
+      // FIXME (spec): is it really the same condition as above?
+      boolean isTentativeInCurrentEpoch =
+          getBlockEpoch(store, tentativeConfirmedRoot).equals(currentEpoch);
+      boolean isTentativeVoutingSourceTooOld =
+          getVotingSource(store, tentativeConfirmedRoot)
+              .getEpoch()
+              .plus(2)
+              .isLessThan(currentEpoch);
+      if (isTentativeInCurrentEpoch
+          || (isTentativeVoutingSourceTooOld
+              && (isFirstEpochSlot || willNoConflictingCheckpointBeJustified))) {
+        // confirmed_root = tentative_confirmed_root
+        confirmedRoot = tentativeConfirmedRoot;
+      }
+    }
+    // return confirmed_root
+    return confirmedRoot;
+  }
 }
