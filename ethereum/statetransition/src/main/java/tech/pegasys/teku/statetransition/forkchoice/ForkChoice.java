@@ -310,7 +310,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
   public void onTick(
       final UInt64 currentTimeMillis, final Optional<TickProcessingPerformance> performanceRecord) {
-    final UpdatableStore store = recentChainData.getStore();
+    final ReadOnlyStore store = recentChainData.getStore();
     final UInt64 slotAtStartOfTick = spec.getCurrentSlot(store);
     tickProcessor.onTick(currentTimeMillis).join();
     performanceRecord.ifPresent(TickProcessingPerformance::tickProcessorComplete);
