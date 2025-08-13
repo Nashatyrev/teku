@@ -343,6 +343,33 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
     }
   }
 
+  private boolean isAncestor(final Bytes32 ancestor, final Bytes32 descendant) {
+    UInt64 ancestorSlot = blockSlot(ancestor).orElseThrow();
+    Optional<Bytes32> mbAncestor = getAncestor(descendant, ancestorSlot);
+    return mbAncestor.map(a -> a.equals(ancestor)).orElse(false);
+  }
+
+  @Override
+  public Optional<UInt64> getNetWeight(Bytes32 blockRoot) {
+    protoArrayLock.readLock().lock();
+    try {
+      Optional<UInt64> mbRawWeight = getProtoNode(blockRoot).map(ProtoNode::getWeight);
+      UInt64 proposerBootInRawWeight = proposerBoostRoot
+          .map(
+              boostRoot -> {
+                if (isAncestor(blockRoot, boostRoot)) {
+                  return proposerBoostAmount;
+                } else {
+                  return UInt64.ZERO;
+                }
+              })
+          .orElse(UInt64.ZERO);
+      return mbRawWeight.map(rawWeight -> rawWeight.minus(proposerBootInRawWeight));
+    } finally {
+      protoArrayLock.readLock().unlock();
+    }
+  }
+
   @Override
   public Optional<Boolean> isOptimistic(final Bytes32 blockRoot) {
     protoArrayLock.readLock().lock();

@@ -18,7 +18,6 @@ import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 
 public interface ReadOnlyForkChoiceStrategy {
 
@@ -54,6 +53,10 @@ public interface ReadOnlyForkChoiceStrategy {
 
   Optional<ProtoNodeData> getBlockData(Bytes32 blockRoot);
 
-  Optional<UInt64> getWeight(Bytes32 blockRoot, BeaconState referenceCheckpointState);
   Optional<UInt64> getWeight(Bytes32 blockRoot);
+
+  /**
+   * Gets weight without proposer boost - only votes
+   */
+  Optional<UInt64> getNetWeight(Bytes32 blockRoot);
 }
