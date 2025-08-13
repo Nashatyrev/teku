@@ -55,4 +55,5 @@ public interface ReadOnlyForkChoiceStrategy {
   Optional<ProtoNodeData> getBlockData(Bytes32 blockRoot);
 
   Optional<UInt64> getWeight(Bytes32 blockRoot, BeaconState referenceCheckpointState);
+  Optional<UInt64> getWeight(Bytes32 blockRoot);
 }

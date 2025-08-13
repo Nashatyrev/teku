@@ -17,6 +17,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
@@ -156,7 +158,13 @@ public class ConfirmationRuleUtil {
     return estimate.dividedBy(1000).times(1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR);
   }
 
-  // def is_one_confirmed(store: Store, block_root: Root) -> bool:
+  public Optional<UInt64> getWeightForState(ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
+    // TODO consider referenceState. Most likely requires Protoarray redesign
+    return store.getForkChoiceStrategy().getWeight(blockRoot);
+
+  }
+
+    // def is_one_confirmed(store: Store, block_root: Root) -> bool:
   boolean isOneConfirmed(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
@@ -179,8 +187,7 @@ public class ConfirmationRuleUtil {
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
 
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
-    UInt64 support =
-        forkChoiceStrategy.getWeight(blockRoot, weightingCheckpointState).orElseThrow();
+    UInt64 support = getWeightForState(store, blockRoot, weightingCheckpointState).orElseThrow();
     //    maximum_support = get_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     UInt64 maximumSupport =
@@ -227,6 +234,7 @@ public class ConfirmationRuleUtil {
   UInt64 getCheckpointWeight(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
     // TODO likely deep Protoarray modification is needed
+
     throw new UnsupportedOperationException("TODO");
   }
 
