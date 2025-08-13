@@ -17,34 +17,16 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NavigableMap;
-import java.util.Optional;
-import java.util.TreeMap;
-import javax.annotation.CheckReturnValue;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.config.SpecConfig;
-import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
-import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
-import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
-import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
-import tech.pegasys.teku.spec.datastructures.forkchoice.MutableStore;
-import tech.pegasys.teku.spec.datastructures.forkchoice.ProtoNodeData;
 import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyForkChoiceStrategy;
 import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyStore;
-import tech.pegasys.teku.spec.datastructures.operations.Attestation;
-import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
-import tech.pegasys.teku.spec.datastructures.state.Fork;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
-import tech.pegasys.teku.spec.datastructures.util.AttestationProcessingResult;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
-import tech.pegasys.teku.spec.logic.common.statetransition.epoch.EpochProcessor;
-import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 
 public class ConfirmationRuleUtil {
 
@@ -632,7 +614,8 @@ public class ConfirmationRuleUtil {
     //
     //        confirmed_root = store.finalized_checkpoint.root
     UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
-    if (confirmedBlockEpoch.increment().isLessThan(currentEpoch) || !isAncestor(store, head, confirmedRoot)) {
+    if (confirmedBlockEpoch.increment().isLessThan(currentEpoch)
+        || !isAncestor(store, head, confirmedRoot)) {
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
     }
     //
@@ -645,13 +628,15 @@ public class ConfirmationRuleUtil {
     //    # of any honest validator and, therefore, any honest validator will keep voting for it for
     // the entire epoch
     //    confirmed_block_slot = store.blocks[confirmed_root].slot
-    UInt64 confirmedBlockSlot = store.getForkChoiceStrategy().blockSlot(confirmedRoot).orElseThrow();
+    UInt64 confirmedBlockSlot =
+        store.getForkChoiceStrategy().blockSlot(confirmedRoot).orElseThrow();
     //    prev_unrealized_justified_checkpoint_slot =
     // store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
-    UInt64 prevUnrealizedJustifiedCeckpointSlot = store
-        .getForkChoiceStrategy()
-        .blockSlot(store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot())
-        .orElseThrow();
+    UInt64 prevUnrealizedJustifiedCeckpointSlot =
+        store
+            .getForkChoiceStrategy()
+            .blockSlot(store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot())
+            .orElseThrow();
     UInt64 prevUnrealizedJustifiedCeckpointEpoch =
         store.getPrevSlotUnrealizedJustifiedCheckpoint().getEpoch();
     boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
