@@ -161,7 +161,6 @@ public class ConfirmationRuleUtil {
   public Optional<UInt64> getWeightForState(ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
     // TODO consider referenceState. Most likely requires Protoarray redesign
     return store.getForkChoiceStrategy().getWeight(blockRoot);
-
   }
 
     // def is_one_confirmed(store: Store, block_root: Root) -> bool:
@@ -233,9 +232,15 @@ public class ConfirmationRuleUtil {
   // FIXME (spec) fix checkpoint type
   UInt64 getCheckpointWeight(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
-    // TODO likely deep Protoarray modification is needed
-
-    throw new UnsupportedOperationException("TODO");
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    UInt64 checkpointSlot = forkChoiceStrategy.blockSlot(checkpoint.getRoot()).orElseThrow();
+    if (isFirstEpochSlot(checkpointSlot)) {
+      // FIXME probably spec deviation
+      return forkChoiceStrategy.getNetWeight(checkpoint.getRoot()).orElseThrow();
+    } else {
+      // TODO maybe Protoarray modification is needed
+      throw new UnsupportedOperationException("TODO");
+    }
   }
 
   // def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
