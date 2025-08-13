@@ -1029,4 +1029,78 @@ public class ForkChoiceUtil {
     // return confirmed_root
     return confirmedRoot;
   }
+
+  // def get_latest_confirmed(store: Store) -> Root:
+  Bytes32 getLatestConfirmed(
+      ReadOnlyStore store,
+      Bytes32 head /* TODO probably worth adding it to Store */,
+      BeaconState weightingCheckpointState) {
+    //    confirmed_root = store.confirmed_root
+    Bytes32 confirmedRoot = store.getConfirmedRoot();
+    //    current_epoch = get_current_store_epoch(store)
+    UInt64 currentEpoch = getCurrentStoreEpoch(store);
+
+    //    # revert to finalized block if the latest confirmed block:
+    //    # a) from two or more epochs ago
+    //    # b) doesn't belong to the canonical chain
+    //    #
+    //    # either of the above conditions signifies that confirmation rule assumptions (at least
+    // synchrony) are broken
+    //    # and already confirmed block might not be safe to use hence revert to the safest one
+    // which is the finalized block
+    //    # this reversal trades monotonicity in favour of safety in the casey of asynchrony in the
+    // network
+    //    head = get_head(store)
+    //    if confirmed_block_epoch + 1 < current_epoch or not is_ancestor(store, head,
+    // confirmed_root):
+    // FIXME (spec): confirmed_block_epoch is not defined
+    //
+    //        confirmed_root = store.finalized_checkpoint.root
+    UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
+    if (confirmedBlockEpoch.increment().isLessThan(currentEpoch) || !isAncestor(store, head, confirmedRoot)) {
+      confirmedRoot = store.getFinalizedCheckpoint().getRoot();
+    }
+    //
+    //    # if we are at the beginning of the epoch and the epoch of the unrealized justified
+    // checkpoint at beginning of the last slot of
+    //    # the previous epoch corresponds to the previous epoch, then we can confirm the block of
+    // the unrealized justified
+    //    # checkpoint as, under synchrony, such a checkpoint is for sure now the greatest justified
+    // checkpoint in the view
+    //    # of any honest validator and, therefore, any honest validator will keep voting for it for
+    // the entire epoch
+    //    confirmed_block_slot = store.blocks[confirmed_root].slot
+    UInt64 confirmedBlockSlot = store.getForkChoiceStrategy().blockSlot(confirmedRoot).orElseThrow();
+    //    prev_unrealized_justified_checkpoint_slot =
+    // store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
+    UInt64 prevUnrealizedJustifiedCeckpointSlot = store
+        .getForkChoiceStrategy()
+        .blockSlot(store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot())
+        .orElseThrow();
+    UInt64 prevUnrealizedJustifiedCeckpointEpoch =
+        store.getPrevSlotUnrealizedJustifiedCheckpoint().getEpoch();
+    boolean isFirstEpochSlot = getCurrentSlot(store).mod(specConfig.getSlotsPerEpoch()).isZero();
+    //    if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
+    //        and store.prev_slot_unrealized_justified_checkpoint.epoch + 1 == current_epoch
+    //        and confirmed_block_slot < prev_unrealized_justified_checkpoint_slot):
+    if (isFirstEpochSlot
+        && prevUnrealizedJustifiedCeckpointEpoch.increment().equals(currentEpoch)
+        && confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot)) {
+      //        confirmed_root = store.prev_slot_unrealized_justified_checkpoint.root
+      confirmedRoot = store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot();
+    }
+
+    //    # attempt to further advance the latest confirmed block
+    //    confirmed_block_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
+    confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
+    //    if confirmed_block_epoch + 1 >= current_epoch:
+    //        return find_latest_confirmed_descendant(store, confirmed_root)
+    //    else:
+    //        return confirmed_root
+    if (confirmedBlockEpoch.increment().isGreaterThanOrEqualTo(currentEpoch)) {
+      return findLatestConfirmedDescendant(store, confirmedRoot, head, weightingCheckpointState);
+    } else {
+      return confirmedRoot;
+    }
+  }
 }
