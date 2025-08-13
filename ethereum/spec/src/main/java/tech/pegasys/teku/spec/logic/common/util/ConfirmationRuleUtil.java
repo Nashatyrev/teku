@@ -48,19 +48,21 @@ import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportRe
 
 public class ConfirmationRuleUtil {
 
+  // TODO extract to config
+  private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
+
   protected final SpecConfig specConfig;
   protected final BeaconStateAccessors beaconStateAccessors;
   protected final MiscHelpers miscHelpers;
-  private final ForkChoiceUtil forkChoiceUtil;
 
   public ConfirmationRuleUtil(
       final SpecConfig specConfig,
       final BeaconStateAccessors beaconStateAccessors,
-      final MiscHelpers miscHelpers, ForkChoiceUtil forkChoiceUtil) {
+      final MiscHelpers miscHelpers) {
     this.specConfig = specConfig;
     this.beaconStateAccessors = beaconStateAccessors;
     this.miscHelpers = miscHelpers;
-    this.forkChoiceUtil = forkChoiceUtil;
   }
 
   private UInt64 getCurrentSlot(final ReadOnlyStore store) {
@@ -76,10 +78,6 @@ public class ConfirmationRuleUtil {
   private boolean isFirstEpochSlot(final UInt64 slot) {
     return computeSlotsSinceEpochStart(slot).isZero();
   }
-
-  // TODO extract to config
-  private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
 
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
@@ -108,7 +106,7 @@ public class ConfirmationRuleUtil {
     // FIXME (spec): is_first_epoch_slot
     boolean ifFullValidatorSetCovered =
         endEpoch.isGreaterThan(startEpoch.increment())
-            || (endEpoch.equals(startEpoch.increment()) && startSlot.mod(slotsPerEpoch).isZero());
+            || (endEpoch.equals(startEpoch.increment()) && isFirstEpochSlot(startSlot));
 
     //    # If an entire epoch is covered by the range, return the total active balance
     //    if is_full_validator_set_covered(start_slot, end_slot):
@@ -265,7 +263,8 @@ public class ConfirmationRuleUtil {
     //    else:
     //        slots_passed = slot % SLOTS_PER_EPOCH
     //        return total_active_balance // SLOTS_PER_EPOCH * slots_passed
-    UInt64 slotsPassed = slot.mod(specConfig.getSlotsPerEpoch());
+    // FIXME (spec): use computeSlotsSinceEpochStart
+    UInt64 slotsPassed = computeSlotsSinceEpochStart(slot);
     return totalActiveBalance.dividedBy(specConfig.getSlotsPerEpoch()).times(slotsPassed);
   }
 
@@ -463,7 +462,7 @@ public class ConfirmationRuleUtil {
     Checkpoint prevHeadSourceCheckpoint = getVotingSource(store, store.getPrevSlotHead());
     boolean isPrevHeadSourceTooOld =
         prevHeadSourceCheckpoint.getEpoch().plus(2).isLessThan(currentEpoch);
-    boolean isFirstEpochSlot = getCurrentSlot(store).mod(specConfig.getSlotsPerEpoch()).isZero();
+    boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
     // FIXME sepc deviation with getCheckpointForBlock
     boolean willNoConflictingCheckpointBeJustified =
         willNoConflictingCheckpointBeJustified(
@@ -655,10 +654,11 @@ public class ConfirmationRuleUtil {
         .orElseThrow();
     UInt64 prevUnrealizedJustifiedCeckpointEpoch =
         store.getPrevSlotUnrealizedJustifiedCheckpoint().getEpoch();
-    boolean isFirstEpochSlot = getCurrentSlot(store).mod(specConfig.getSlotsPerEpoch()).isZero();
+    boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
     //    if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
     //        and store.prev_slot_unrealized_justified_checkpoint.epoch + 1 == current_epoch
     //        and confirmed_block_slot < prev_unrealized_justified_checkpoint_slot):
+    // FIXME (spec): isFirstEpochSlot
     if (isFirstEpochSlot
         && prevUnrealizedJustifiedCeckpointEpoch.increment().equals(currentEpoch)
         && confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot)) {
