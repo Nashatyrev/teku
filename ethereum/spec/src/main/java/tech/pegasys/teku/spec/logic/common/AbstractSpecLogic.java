@@ -29,6 +29,7 @@ import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
 import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlindBlockUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlockProposalUtil;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.spec.logic.common.util.ValidatorsUtil;
 
@@ -49,6 +50,7 @@ public abstract class AbstractSpecLogic implements SpecLogic {
   protected final EpochProcessor epochProcessor;
   protected final BlockProcessor blockProcessor;
   protected final ForkChoiceUtil forkChoiceUtil;
+  protected final ConfirmationRuleUtil confirmationRuleUtil;
   protected final BlockProposalUtil blockProposalUtil;
   protected final Optional<BlindBlockUtil> blockConversionUtil;
 
@@ -69,6 +71,7 @@ public abstract class AbstractSpecLogic implements SpecLogic {
       final EpochProcessor epochProcessor,
       final BlockProcessor blockProcessor,
       final ForkChoiceUtil forkChoiceUtil,
+      final ConfirmationRuleUtil confirmationRuleUtil,
       final BlockProposalUtil blockProposalUtil,
       final Optional<BlindBlockUtil> blockConversionUtil,
       final Optional<StateUpgrade<?>> stateUpgrade) {
@@ -84,6 +87,7 @@ public abstract class AbstractSpecLogic implements SpecLogic {
     this.epochProcessor = epochProcessor;
     this.blockProcessor = blockProcessor;
     this.forkChoiceUtil = forkChoiceUtil;
+    this.confirmationRuleUtil = confirmationRuleUtil;
     this.blockProposalUtil = blockProposalUtil;
     this.blockConversionUtil = blockConversionUtil;
     this.operationValidator = operationValidator;
@@ -128,6 +132,11 @@ public abstract class AbstractSpecLogic implements SpecLogic {
   @Override
   public ForkChoiceUtil getForkChoiceUtil() {
     return forkChoiceUtil;
+  }
+
+  @Override
+  public ConfirmationRuleUtil getConfirmationRuleUtil() {
+    return confirmationRuleUtil;
   }
 
   @Override

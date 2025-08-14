@@ -26,6 +26,7 @@ import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
 import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlindBlockUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlockProposalUtil;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.spec.logic.common.util.LightClientUtil;
 import tech.pegasys.teku.spec.logic.common.util.SyncCommitteeUtil;
@@ -67,6 +68,7 @@ public class SpecLogicElectra extends AbstractSpecLogic {
       final EpochProcessorElectra epochProcessor,
       final BlockProcessorElectra blockProcessor,
       final ForkChoiceUtil forkChoiceUtil,
+      final ConfirmationRuleUtil confirmationRuleUtil,
       final BlockProposalUtil blockProposalUtil,
       final BlindBlockUtil blindBlockUtil,
       final SyncCommitteeUtil syncCommitteeUtil,
@@ -86,6 +88,7 @@ public class SpecLogicElectra extends AbstractSpecLogic {
         epochProcessor,
         blockProcessor,
         forkChoiceUtil,
+        confirmationRuleUtil,
         blockProposalUtil,
         Optional.of(blindBlockUtil),
         Optional.of(stateUpgrade));
@@ -174,6 +177,8 @@ public class SpecLogicElectra extends AbstractSpecLogic {
     final ForkChoiceUtil forkChoiceUtil =
         new ForkChoiceUtilDeneb(
             config, beaconStateAccessors, epochProcessor, attestationUtil, miscHelpers);
+    final ConfirmationRuleUtil confirmationRuleUtil =
+        new ConfirmationRuleUtil(config, beaconStateAccessors, miscHelpers);
     final BlockProposalUtil blockProposalUtil =
         new BlockProposalUtil(schemaDefinitions, blockProcessor);
 
@@ -198,6 +203,7 @@ public class SpecLogicElectra extends AbstractSpecLogic {
         epochProcessor,
         blockProcessor,
         forkChoiceUtil,
+        confirmationRuleUtil,
         blockProposalUtil,
         blindBlockUtil,
         syncCommitteeUtil,

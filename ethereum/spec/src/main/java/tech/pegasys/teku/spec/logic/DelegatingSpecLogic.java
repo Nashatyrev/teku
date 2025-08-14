@@ -28,6 +28,7 @@ import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
 import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlindBlockUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlockProposalUtil;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.spec.logic.common.util.LightClientUtil;
 import tech.pegasys.teku.spec.logic.common.util.SyncCommitteeUtil;
@@ -79,6 +80,11 @@ public class DelegatingSpecLogic implements SpecLogic {
   @Override
   public ForkChoiceUtil getForkChoiceUtil() {
     return specLogic.getForkChoiceUtil();
+  }
+
+  @Override
+  public ConfirmationRuleUtil getConfirmationRuleUtil() {
+    return specLogic.getConfirmationRuleUtil();
   }
 
   @Override
