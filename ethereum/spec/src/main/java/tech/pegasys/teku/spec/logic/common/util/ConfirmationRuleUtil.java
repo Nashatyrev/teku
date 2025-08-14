@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
-
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
@@ -160,12 +159,13 @@ public class ConfirmationRuleUtil {
     return estimate.dividedBy(1000).times(1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR);
   }
 
-  public Optional<UInt64> getWeightForState(ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
+  public Optional<UInt64> getWeightForState(
+      ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
     // TODO consider referenceState. Most likely requires Protoarray redesign
     return store.getForkChoiceStrategy().getWeight(blockRoot);
   }
 
-    // def is_one_confirmed(store: Store, block_root: Root) -> bool:
+  // def is_one_confirmed(store: Store, block_root: Root) -> bool:
   boolean isOneConfirmed(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
@@ -268,7 +268,8 @@ public class ConfirmationRuleUtil {
   }
 
   // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willCurrentEpochCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+  boolean willCurrentEpochCheckpointBeJustified(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -308,11 +309,14 @@ public class ConfirmationRuleUtil {
     //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
     //        ffg_support_for_checkpoint
     //    )
-    UInt64 min = List.of(
-        ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
-        ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
-        ffgSupportForCheckpoint
-    ).stream().min(Comparator.naturalOrder()).orElseThrow();
+    UInt64 min =
+        List.of(
+                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
+                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
+                ffgSupportForCheckpoint)
+            .stream()
+            .min(Comparator.naturalOrder())
+            .orElseThrow();
     UInt64 minHonestFfgSupport = ffgSupportForCheckpoint.minus(min);
 
     //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 *
@@ -332,7 +336,8 @@ public class ConfirmationRuleUtil {
   }
 
   // def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+  boolean willCheckpointBeJustified(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
     //    if checkpoint == store.justified_checkpoint:
     //        return True
     if (checkpoint.equals(store.getJustifiedCheckpoint())) {

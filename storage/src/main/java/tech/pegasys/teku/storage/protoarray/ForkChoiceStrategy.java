@@ -38,7 +38,6 @@ import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.forkchoice.VoteUpdater;
 import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.executionlayer.ExecutionPayloadStatus;
 import tech.pegasys.teku.spec.executionlayer.ForkChoiceState;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
@@ -354,16 +353,17 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
     protoArrayLock.readLock().lock();
     try {
       Optional<UInt64> mbRawWeight = getProtoNode(blockRoot).map(ProtoNode::getWeight);
-      UInt64 proposerBootInRawWeight = proposerBoostRoot
-          .map(
-              boostRoot -> {
-                if (isAncestor(blockRoot, boostRoot)) {
-                  return proposerBoostAmount;
-                } else {
-                  return UInt64.ZERO;
-                }
-              })
-          .orElse(UInt64.ZERO);
+      UInt64 proposerBootInRawWeight =
+          proposerBoostRoot
+              .map(
+                  boostRoot -> {
+                    if (isAncestor(blockRoot, boostRoot)) {
+                      return proposerBoostAmount;
+                    } else {
+                      return UInt64.ZERO;
+                    }
+                  })
+              .orElse(UInt64.ZERO);
       return mbRawWeight.map(rawWeight -> rawWeight.minus(proposerBootInRawWeight));
     } finally {
       protoArrayLock.readLock().unlock();

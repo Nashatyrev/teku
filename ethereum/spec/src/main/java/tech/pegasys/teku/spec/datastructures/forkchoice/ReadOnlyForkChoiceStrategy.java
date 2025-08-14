@@ -55,8 +55,6 @@ public interface ReadOnlyForkChoiceStrategy {
 
   Optional<UInt64> getWeight(Bytes32 blockRoot);
 
-  /**
-   * Gets weight without proposer boost - only votes
-   */
+  /** Gets weight without proposer boost - only votes */
   Optional<UInt64> getNetWeight(Bytes32 blockRoot);
 }

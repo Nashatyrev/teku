@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.spec.logic.common.util;
 
-
 import java.util.List;
 import java.util.NavigableMap;
 import java.util.Optional;
