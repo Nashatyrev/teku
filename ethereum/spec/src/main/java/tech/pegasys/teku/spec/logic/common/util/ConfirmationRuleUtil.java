@@ -159,10 +159,10 @@ public class ConfirmationRuleUtil {
     return estimate.dividedBy(1000).times(1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR);
   }
 
-  public Optional<UInt64> getWeightForState(
+  public Optional<UInt64> getNetWeightForState(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
     // TODO consider referenceState. Most likely requires Protoarray redesign
-    return store.getForkChoiceStrategy().getWeight(blockRoot);
+    return store.getForkChoiceStrategy().getNetWeight(blockRoot);
   }
 
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
@@ -188,7 +188,7 @@ public class ConfirmationRuleUtil {
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
 
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
-    UInt64 support = getWeightForState(store, blockRoot, weightingCheckpointState).orElseThrow();
+    UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState).orElseThrow();
     //    maximum_support = get_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     UInt64 maximumSupport =
