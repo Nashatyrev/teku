@@ -16,6 +16,7 @@ package tech.pegasys.teku.spec.logic.common.util;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,6 +36,7 @@ public class ConfirmationRuleUtil {
   // TODO extract to config
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
+  private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
 
   protected final SpecConfig specConfig;
   protected final BeaconStateAccessors beaconStateAccessors;
@@ -230,12 +232,14 @@ public class ConfirmationRuleUtil {
   // def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state:
   // BeaconState) -> Gwei:
   // FIXME (spec) fix checkpoint type
-  UInt64 getCheckpointWeight(
+  private UInt64 getCheckpointWeight(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 checkpointSlot = forkChoiceStrategy.blockSlot(checkpoint.getRoot()).orElseThrow();
     if (isFirstEpochSlot(checkpointSlot)) {
       // FIXME probably spec deviation
+      // FIXME basically one need to use the state passed but the ProtoArray implied state,
+      //  which is basically the current justified checkpoint state
       return forkChoiceStrategy.getNetWeight(checkpoint.getRoot()).orElseThrow();
     } else {
       // TODO maybe Protoarray modification is needed
@@ -264,61 +268,90 @@ public class ConfirmationRuleUtil {
   }
 
   // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willCurrentEpochCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint) {
-    // TODO
-    return true;
+  boolean willCurrentEpochCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+
+    //    assert checkpoint.epoch == get_current_epoch_store(store)
+    UInt64 currentEpoch = getCurrentEpochStore(store);
+    checkArgument(checkpoint.getEpoch() == currentEpoch);
+
+    //    current_slot = get_current_slot(store)
+    UInt64 currentSlot = getCurrentSlot(store);
+    //    current_epoch = compute_epoch_at_slot(current_slot)
+    //
+    //    store_target_checkpoint_state(store, checkpoint)
+    //    checkpoint_state = store.checkpoint_states[checkpoint]
+    // FIXME (spec): to fix approach
+    //
+    //    total_active_balance = get_total_active_balance(checkpoint_state)
+    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
+    //
+    //    # compute FFG support for checkpoint
+    //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
+    UInt64 ffgSupportForCheckpoint = getCheckpointWeight(store, checkpoint, checkpointState);
+    //
+    //    # compute total FFG weight till current slot
+    //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
+    // total_active_balance)
+    UInt64 ffgWeightTillNow = getFfgWeightTillSlot(currentSlot, currentEpoch, totalActiveBalance);
+
+    //    # compute remaining honest FFG weight
+    //    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
+    UInt64 remainingFfgWeight = totalActiveBalance.minus(ffgWeightTillNow);
+    //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
+    // config.CONFIRMATION_BYZANTINE_THRESHOLD))
+    UInt64 remainingHonestFfgWeight =
+        remainingFfgWeight.dividedBy(100).times(100 - CONFIRMATION_BYZANTINE_THRESHOLD);
+
+    //    # compute min honest FFG support
+    //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
+    //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
+    //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
+    //        ffg_support_for_checkpoint
+    //    )
+    UInt64 min = List.of(
+        ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
+        ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
+        ffgSupportForCheckpoint
+    ).stream().min(Comparator.naturalOrder()).orElseThrow();
+    UInt64 minHonestFfgSupport = ffgSupportForCheckpoint.minus(min);
+
+    //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 *
+    // total_active_balance
+    return minHonestFfgSupport
+        .plus(remainingHonestFfgWeight)
+        .times(3)
+        .isGreaterThanOrEqualTo(totalActiveBalance.times(2));
   }
 
-  //    assert checkpoint.epoch == get_current_epoch_store(store)
-  //
-  //    current_slot = get_current_slot(store)
-  //    current_epoch = compute_epoch_at_slot(current_slot)
-  //
-  //    store_target_checkpoint_state(store, checkpoint)
-  //    checkpoint_state = store.checkpoint_states[checkpoint]
-  //
-  //    total_active_balance = get_total_active_balance(checkpoint_state)
-  //
-  //    # compute FFG support for checkpoint
-  //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
-  //
-  //    # compute total FFG weight till current slot
-  //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
-  // total_active_balance)
-  //
-  //    # compute remaining honest FFG weight
-  //    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
-  //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
-  // config.CONFIRMATION_BYZANTINE_THRESHOLD))
-  //
-  //    # compute min honest FFG support
-  //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
-  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
-  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
-  //        ffg_support_for_checkpoint
-  //    )
-  //
-  //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 *
-  // total_active_balance
-  //
-  //
+  private Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
+    // FIXME alternative view of store.unrealized_justified_checkpoint. Need to double check
+    return store.getForkChoiceStrategy().getChainHeads(true).stream()
+        .map(head -> head.getCheckpoints().getUnrealizedJustifiedCheckpoint())
+        .max(Comparator.comparing(Checkpoint::getEpoch))
+        .orElseThrow();
+  }
+
   // def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint) {
-    // TODO
-    return true;
+  boolean willCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+    //    if checkpoint == store.justified_checkpoint:
+    //        return True
+    if (checkpoint.equals(store.getJustifiedCheckpoint())) {
+      return true;
+    }
+    //    if checkpoint == store.unrealized_justified_checkpoint:
+    //        return True
+    if (checkpoint.equals(getUnrealizedJustifiedCheckpoint(store))) {
+      return true;
+    }
+    //    if checkpoint.epoch == get_current_epoch_store(store):
+    //        return will_current_epoch_checkpoint_be_justified(store, checkpoint)
+    if (checkpoint.getEpoch().equals(getCurrentEpochStore(store))) {
+      return willCurrentEpochCheckpointBeJustified(store, checkpoint, checkpointState);
+    }
+    //    return False
+    return false;
   }
 
-  //    if checkpoint == store.justified_checkpoint:
-  //        return True
-  //
-  //    if checkpoint == store.unrealized_justified_checkpoint:
-  //        return True
-  //
-  //    if checkpoint.epoch == get_current_epoch_store(store):
-  //        return will_current_epoch_checkpoint_be_justified(store, checkpoint)
-  //
-  //    return False
-  //
   //
   // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
   boolean willNoConflictingCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint) {
@@ -362,7 +395,7 @@ public class ConfirmationRuleUtil {
     return miscHelpers.computeEpochAtSlot(blockSlot);
   }
 
-  UInt64 getCurrentStoreEpoch(ReadOnlyStore store) {
+  UInt64 getCurrentEpochStore(ReadOnlyStore store) {
     UInt64 currentSlot = getCurrentSlot(store);
     return miscHelpers.computeEpochAtSlot(currentSlot);
   }
@@ -387,7 +420,7 @@ public class ConfirmationRuleUtil {
   Checkpoint getVotingSource(ReadOnlyStore store, Bytes32 blockRoot) {
     // block = store.blocks[block_root]
     // current_epoch = get_current_store_epoch(store)
-    UInt64 currentEpoch = getCurrentStoreEpoch(store);
+    UInt64 currentEpoch = getCurrentEpochStore(store);
     // block_epoch = compute_epoch_at_slot(block.slot)
     UInt64 blockEpoch = getBlockEpoch(store, blockRoot);
     // if current_epoch > block_epoch:
@@ -429,7 +462,7 @@ public class ConfirmationRuleUtil {
       Bytes32 headBlockRoot /* TODO probably worth adding it to Store */,
       BeaconState weightingCheckpointState) {
     // current_epoch = get_current_store_epoch(store)
-    UInt64 currentEpoch = getCurrentStoreEpoch(store);
+    UInt64 currentEpoch = getCurrentEpochStore(store);
     // # verify the latest confirmed block is not too old
     // assert compute_block_epoch(latest_confirmed_root) + 1 >= current_epoch
     // FIXME (spec) no compute_block_epoch() function found
@@ -562,7 +595,7 @@ public class ConfirmationRuleUtil {
           // # current epoch checkpoint will be justified
           // if not will_checkpoint_be_justified(store, checkpoint):
           //     break
-          if (!willCheckpointBeJustified(store, checkpoint)) {
+          if (!willCheckpointBeJustified(store, checkpoint, weightingCheckpointState)) {
             break;
           }
         }
@@ -608,7 +641,7 @@ public class ConfirmationRuleUtil {
     //    confirmed_root = store.confirmed_root
     Bytes32 confirmedRoot = store.getConfirmedRoot();
     //    current_epoch = get_current_store_epoch(store)
-    UInt64 currentEpoch = getCurrentStoreEpoch(store);
+    UInt64 currentEpoch = getCurrentEpochStore(store);
 
     //    # revert to finalized block if the latest confirmed block:
     //    # a) from two or more epochs ago
