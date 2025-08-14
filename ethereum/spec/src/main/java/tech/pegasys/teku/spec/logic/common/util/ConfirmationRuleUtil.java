@@ -359,41 +359,64 @@ public class ConfirmationRuleUtil {
 
   //
   // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willNoConflictingCheckpointBeJustified(ReadOnlyStore store, Checkpoint checkpoint) {
-    // TODO
-    return true;
-  }
+  boolean willNoConflictingCheckpointBeJustified(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+    //    assert checkpoint.epoch == get_current_epoch_store(store)
+    UInt64 currentEpoch = getCurrentEpochStore(store);
+    checkArgument(checkpoint.getEpoch().equals(currentEpoch));
 
-  //    assert checkpoint.epoch == get_current_epoch_store(store)
-  //
-  //    current_slot = get_current_slot(store)
-  //    current_epoch = compute_epoch_at_slot(current_slot)
-  //
-  //    store_target_checkpoint_state(store, checkpoint)
-  //    checkpoint_state = store.checkpoint_states[checkpoint]
-  //
-  //    total_active_balance = get_total_active_balance(checkpoint_state)
-  //
-  //    # compute FFG support for checkpoint
-  //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
-  //
-  //    # compute total FFG weight till current slot
-  //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
-  // total_active_balance)
-  //
-  //    # compute remaining honest FFG weight
-  //    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
-  //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
-  // config.CONFIRMATION_BYZANTINE_THRESHOLD))
-  //
-  //    # compute min honest FFG support
-  //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
-  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
-  //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
-  //        ffg_support_for_checkpoint
-  //    )
-  //
-  //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= total_active_balance
+    //    current_slot = get_current_slot(store)
+    UInt64 currentSlot = getCurrentSlot(store);
+    //    current_epoch = compute_epoch_at_slot(current_slot)
+
+    //    store_target_checkpoint_state(store, checkpoint)
+    //    checkpoint_state = store.checkpoint_states[checkpoint]
+    // FIXME (spec): to fix approach
+    //
+    //    total_active_balance = get_total_active_balance(checkpoint_state)
+    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
+
+    //    # compute FFG support for checkpoint
+    //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
+    UInt64 ffgSupportForCheckpoint = getCheckpointWeight(store, checkpoint, checkpointState);
+
+    //    # compute total FFG weight till current slot
+    //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
+    // total_active_balance)
+    UInt64 ffgWeightTillNow = getFfgWeightTillSlot(currentSlot, currentEpoch, totalActiveBalance);
+
+    //    # compute remaining honest FFG weight
+    //    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
+    UInt64 remainingFfgWeight = totalActiveBalance.minus(ffgWeightTillNow);
+    //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
+    // config.CONFIRMATION_BYZANTINE_THRESHOLD))
+    UInt64 remainingHonestFfgWeight =
+        remainingFfgWeight.dividedBy(100).times(100 - CONFIRMATION_BYZANTINE_THRESHOLD);
+
+    //    # compute min honest FFG support
+    //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
+    //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
+    //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
+    //        ffg_support_for_checkpoint
+    //    )
+    UInt64 min =
+        List.of(
+                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
+                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
+                ffgSupportForCheckpoint)
+            .stream()
+            .min(Comparator.naturalOrder())
+            .orElseThrow();
+    UInt64 minHonestFfgSupport = ffgSupportForCheckpoint.minus(min);
+
+    //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= total_active_balance
+    return minHonestFfgSupport
+        .plus(remainingHonestFfgWeight)
+        .times(3)
+        .isGreaterThanOrEqualTo(totalActiveBalance);
+    // FIXME (spec): deduplicate function with willCurrentEpochCheckpointBeJustified (just the
+    // latest multiplier differs)
+  }
 
   UInt64 getBlockEpoch(ReadOnlyStore store, Bytes32 blockRoot) {
     UInt64 blockSlot = store.getForkChoiceStrategy().blockSlot(blockRoot).orElseThrow();
@@ -499,7 +522,9 @@ public class ConfirmationRuleUtil {
     // FIXME sepc deviation with getCheckpointForBlock
     boolean willNoConflictingCheckpointBeJustified =
         willNoConflictingCheckpointBeJustified(
-            store, getCheckpointForBlock(store, headBlockRoot, currentEpoch));
+            store,
+            getCheckpointForBlock(store, headBlockRoot, currentEpoch),
+            weightingCheckpointState);
     Checkpoint prevHeadUnrealizedJustifiedCheckpoint =
         forkChoiceStrategy
             .getBlockData(store.getPrevSlotHead())
