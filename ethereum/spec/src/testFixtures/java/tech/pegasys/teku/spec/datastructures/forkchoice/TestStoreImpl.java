@@ -480,5 +480,10 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
     public Optional<UInt64> getWeight(Bytes32 blockRoot) {
       throw new UnsupportedOperationException("Not implemented");
     }
+
+    @Override
+    public Optional<UInt64> getNetWeight(Bytes32 blockRoot) {
+      throw new UnsupportedOperationException("Not implemented");
+    }
   }
 }
