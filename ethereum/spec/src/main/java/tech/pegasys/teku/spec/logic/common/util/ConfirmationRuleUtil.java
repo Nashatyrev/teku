@@ -37,9 +37,9 @@ public class ConfirmationRuleUtil {
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
 
-  protected final SpecConfig specConfig;
-  protected final BeaconStateAccessors beaconStateAccessors;
-  protected final MiscHelpers miscHelpers;
+  private final SpecConfig specConfig;
+  private final BeaconStateAccessors beaconStateAccessors;
+  private final MiscHelpers miscHelpers;
 
   public ConfirmationRuleUtil(
       final SpecConfig specConfig,
@@ -68,7 +68,7 @@ public class ConfirmationRuleUtil {
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
    * both). FIXME: spec: name function estimate* instead of get*
    */
-  public UInt64 getCommitteeWeightBetweenSlots(
+  private UInt64 getCommitteeWeightBetweenSlots(
       BeaconState state, UInt64 startSlot, UInt64 endSlot) {
 
     //    total_active_balance = get_total_active_balance(state)
@@ -159,14 +159,14 @@ public class ConfirmationRuleUtil {
     return estimate.dividedBy(1000).times(1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR);
   }
 
-  public Optional<UInt64> getNetWeightForState(
+  private Optional<UInt64> getNetWeightForState(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
     // TODO consider referenceState. Most likely requires Protoarray redesign
     return store.getForkChoiceStrategy().getNetWeight(blockRoot);
   }
 
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
-  boolean isOneConfirmed(
+  private boolean isOneConfirmed(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
       final BeaconState weightingCheckpointState) {
@@ -218,12 +218,12 @@ public class ConfirmationRuleUtil {
   }
 
   /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
-  Bytes32 getCheckpointBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
+  private Bytes32 getCheckpointBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
     UInt64 epochFirstSlot = miscHelpers.computeStartSlotAtEpoch(epoch);
     return store.getForkChoiceStrategy().getAncestor(root, epochFirstSlot).orElseThrow();
   }
 
-  Checkpoint getCheckpointForBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
+  private Checkpoint getCheckpointForBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
     // FIXME spec deviation (looks equivalent)
     return new Checkpoint(epoch, getCheckpointBlock(store, root, epoch));
   }
@@ -248,7 +248,7 @@ public class ConfirmationRuleUtil {
   }
 
   // def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
-  UInt64 getFfgWeightTillSlot(UInt64 slot, UInt64 epoch, UInt64 totalActiveBalance) {
+  private UInt64 getFfgWeightTillSlot(UInt64 slot, UInt64 epoch, UInt64 totalActiveBalance) {
     //    if slot <= compute_start_slot_at_epoch(epoch):
     //        return Gwei(0)
     if (slot.isLessThanOrEqualTo(miscHelpers.computeStartSlotAtEpoch(epoch))) {
@@ -268,7 +268,7 @@ public class ConfirmationRuleUtil {
   }
 
   // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willCurrentEpochCheckpointBeJustified(
+  private boolean willCurrentEpochCheckpointBeJustified(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
@@ -336,7 +336,7 @@ public class ConfirmationRuleUtil {
   }
 
   // def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willCheckpointBeJustified(
+  private boolean willCheckpointBeJustified(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
     //    if checkpoint == store.justified_checkpoint:
     //        return True
@@ -359,7 +359,7 @@ public class ConfirmationRuleUtil {
 
   //
   // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  boolean willNoConflictingCheckpointBeJustified(
+  private boolean willNoConflictingCheckpointBeJustified(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -418,17 +418,17 @@ public class ConfirmationRuleUtil {
     // latest multiplier differs)
   }
 
-  UInt64 getBlockEpoch(ReadOnlyStore store, Bytes32 blockRoot) {
+  private UInt64 getBlockEpoch(ReadOnlyStore store, Bytes32 blockRoot) {
     UInt64 blockSlot = store.getForkChoiceStrategy().blockSlot(blockRoot).orElseThrow();
     return miscHelpers.computeEpochAtSlot(blockSlot);
   }
 
-  UInt64 getCurrentEpochStore(ReadOnlyStore store) {
+  private UInt64 getCurrentEpochStore(ReadOnlyStore store) {
     UInt64 currentSlot = getCurrentSlot(store);
     return miscHelpers.computeEpochAtSlot(currentSlot);
   }
 
-  List<Bytes32> getChainRoots(ReadOnlyStore store, UInt64 ancestorSlot, Bytes32 startBlockRoot) {
+  private List<Bytes32> getChainRoots(ReadOnlyStore store, UInt64 ancestorSlot, Bytes32 startBlockRoot) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     ArrayList<Bytes32> ret = new ArrayList<>();
     Bytes32 root = startBlockRoot;
@@ -473,7 +473,7 @@ public class ConfirmationRuleUtil {
   //    assert ancestor in store.blocks
   //
   //    return get_ancestor(store, root, store.block[ancestor].slot) == ancestor
-  boolean isAncestor(ReadOnlyStore store, Bytes32 root, Bytes32 ancestor) {
+  private boolean isAncestor(ReadOnlyStore store, Bytes32 root, Bytes32 ancestor) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 ancestorSlot = forkChoiceStrategy.blockSlot(ancestor).orElseThrow();
     return forkChoiceStrategy.getAncestor(root, ancestorSlot).orElseThrow().equals(ancestorSlot);
@@ -484,7 +484,7 @@ public class ConfirmationRuleUtil {
    * either from the previous or from the current epoch.
    */
   // def find_latest_confirmed_descendant(store: Store, latest_confirmed_root: Root) -> Root:
-  Bytes32 findLatestConfirmedDescendant(
+  private Bytes32 findLatestConfirmedDescendant(
       ReadOnlyStore store,
       Bytes32 latestConfirmedRoot,
       Bytes32 headBlockRoot /* TODO probably worth adding it to Store */,
@@ -664,7 +664,7 @@ public class ConfirmationRuleUtil {
   }
 
   // def get_latest_confirmed(store: Store) -> Root:
-  Bytes32 getLatestConfirmed(
+  public Bytes32 getLatestConfirmed(
       ReadOnlyStore store,
       Bytes32 head /* TODO probably worth adding it to Store */,
       BeaconState weightingCheckpointState) {
