@@ -327,7 +327,7 @@ public class ConfirmationRuleUtil {
         .isGreaterThanOrEqualTo(totalActiveBalance.times(2));
   }
 
-  private Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
+  public Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
     // FIXME alternative view of store.unrealized_justified_checkpoint. Need to double check
     return store.getForkChoiceStrategy().getChainHeads(true).stream()
         .map(head -> head.getCheckpoints().getUnrealizedJustifiedCheckpoint())

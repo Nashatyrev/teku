@@ -104,7 +104,7 @@ public interface MutableStore extends ReadOnlyStore {
     throw new UnsupportedOperationException("TODO");
   }
 
-  default void getPrevSlotHead(Bytes32 prevSlotHead) {
+  default void setPrevSlotHead(Bytes32 prevSlotHead) {
     // TODO
     throw new UnsupportedOperationException("TODO");
   }

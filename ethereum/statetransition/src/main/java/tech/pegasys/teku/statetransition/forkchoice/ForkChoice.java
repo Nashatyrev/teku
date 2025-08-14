@@ -72,6 +72,7 @@ import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndV
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.StateTransitionException;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.statetransition.attestation.DeferredAttestations;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
@@ -358,19 +359,41 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                             justifiedCheckpoint::getRoot);
                         return false;
                       }
-                      updateHeadTransaction(
+                      Bytes32 headRoot = updateHeadTransaction(
                           nodeSlot,
                           maybeJustifiedCheckpointState.orElseThrow(),
                           finalizedCheckpoint,
                           justifiedCheckpoint);
                       nodeSlot.ifPresent(lastProcessHeadSlot::set);
+                      updateConfirmationRuleStore(maybeJustifiedCheckpointState.orElseThrow(), headRoot);
                       notifyForkChoiceUpdatedAndOptimisticSyncingChanged(
                           isPreProposal ? nodeSlot : Optional.empty());
                       return true;
                     }));
   }
 
-  private void updateHeadTransaction(
+  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 headRoot) {
+    final SpecVersion specVersion = spec.atSlot(justifiedState.getSlot());
+    ConfirmationRuleUtil confirmationRuleUtil = specVersion.getConfirmationRuleUtil();
+
+    StoreTransaction storeTransaction = recentChainData.startStoreTransaction();
+    // store.confirmed_root = get_latest_confirmed(store)
+    // FIXME temp spec deviation: taking justified state for now
+    Bytes32 latestConfirmed = confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, justifiedState);
+    storeTransaction.setConfirmedRoot(latestConfirmed);
+    // store.prev_slot_justified_checkpoint = store.justified_checkpoint
+    storeTransaction.setPrevSlotJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
+    // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
+    Checkpoint unrealizedJustifiedCheckpoint = confirmationRuleUtil.getUnrealizedJustifiedCheckpoint(storeTransaction);
+    storeTransaction.setPrevSlotUnrealizedJustifiedCheckpoint(unrealizedJustifiedCheckpoint);
+    // store.prev_slot_head = get_head(store)
+    // FIXME probbaly deviate from spec: headRoot is actually this slot head
+    //    may be we need to o this in on_slot handler ???
+    storeTransaction.setPrevSlotHead(headRoot);
+    storeTransaction.commit();
+  }
+
+  private Bytes32 updateHeadTransaction(
       final Optional<UInt64> nodeSlot,
       final BeaconState justifiedState,
       final Checkpoint finalizedCheckpoint,
@@ -415,6 +438,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       // successful updateHead call
       transaction.commit();
     }
+
+    return headBlockRoot;
   }
 
   /**
