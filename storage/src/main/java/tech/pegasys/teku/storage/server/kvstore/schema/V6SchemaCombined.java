@@ -285,6 +285,10 @@ public abstract class V6SchemaCombined implements SchemaCombined {
         .put("EARLIEST_BLOB_SIDECAR_SLOT", getVariableEarliestBlobSidecarSlot())
         .put("EARLIEST_BLOCK_SLOT_AVAILABLE", getVariableEarliestBlockSlot())
         .put("LATEST_CANONICAL_BLOCK_ROOT", getVariableLatestCanonicalBlockRoot())
+        .put("CONFIRMED_ROOT", getVariableConfirmedRoot())
+        .put("PREV_SLOT_JUSTIFIED_CHECKPOINT", getVariablePrevSlotJustifiedCheckpoint())
+        .put("PREV_SLOT_UNREALIZED_JUSTIFIED_CHECKPOINT", getVariablePrevSlotUnrealizedJustifiedCheckpoint())
+        .put("PREV_SLOT_HEAD", getVariablePrevSlotHead())
         .put("FIRST_CUSTODY_INCOMPLETE_SLOT", getVariableFirstCustodyIncompleteSlot())
         .put("FIRST_SAMPLER_INCOMPLETE_SLOT", getVariableFirstSamplerIncompleteSlot())
         .build();
