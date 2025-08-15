@@ -628,6 +628,10 @@ public class KvStoreDatabase implements Database {
       updater.setBestJustifiedCheckpoint(anchorCheckpoint);
       updater.setFinalizedCheckpoint(anchorCheckpoint);
       updater.setLatestFinalizedState(anchorState);
+      updater.setConfirmedRoot(anchorRoot);
+      updater.setPrevSlotJustifiedCheckpoint(anchorCheckpoint);
+      updater.setPrevSlotUnrealizedJustifiedCheckpoint(anchorCheckpoint);
+      updater.setPrevSlotHead(anchorRoot);
 
       // We need to store the anchor block in both hot and cold storage so that on restart
       // we're guaranteed to have at least one block / state to load into RecentChainData.
