@@ -310,22 +310,26 @@ public class StoreBuilder {
   }
 
   public StoreBuilder confirmedRoot(Bytes32 confirmedRoot) {
+    checkNotNull(confirmedRoot);
     this.confirmedRoot = confirmedRoot;
     return this;
 
   }
 
   public StoreBuilder prevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
+    checkNotNull(prevSlotJustifiedCheckpoint);
     this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
     return this;
   }
 
   public StoreBuilder prevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+    checkNotNull(prevSlotUnrealizedJustifiedCheckpoint);
     this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
     return this;
   }
 
   public StoreBuilder prevSlotHead(Bytes32 prevSlotHead) {
+    checkNotNull(prevSlotHead);
     this.prevSlotHead = prevSlotHead;
     return this;
   }
