@@ -112,4 +112,12 @@ public interface SchemaCombined extends Schema {
   default SchemaHotAdapter asSchemaHot() {
     return new SchemaHotAdapter(this);
   }
+
+  KvStoreVariable<Bytes32> getVariableConfirmedRoot();
+
+  KvStoreVariable<Checkpoint> getVariablePrevSlotJustifiedCheckpoint();
+
+  KvStoreVariable<Checkpoint> getVariablePrevSlotUnrealizedJustifiedCheckpoint();
+
+  KvStoreVariable<Bytes32> getVariablePrevSlotHead();
 }

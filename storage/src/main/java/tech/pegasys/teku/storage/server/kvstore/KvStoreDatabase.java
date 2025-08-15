@@ -761,6 +761,12 @@ public class KvStoreDatabase implements Database {
 
     final Map<UInt64, VoteTracker> votes = dao.getVotes();
 
+    Bytes32 confirmedRoot = dao.getConfirmedRoot().orElseThrow();
+    Checkpoint prevSlotJustifiedCheckpoint = dao.getPrevSlotJustifiedCheckpoint().orElseThrow();
+    Checkpoint prevSlotUnrealizedJustifiedCheckpoint = dao.getPrevSlotUnrealizedJustifiedCheckpoint().orElseThrow();
+    Bytes32 prevSlotHead = dao.getPrevSlotHead().orElseThrow();
+
+
     // Build map with block information
     final Map<Bytes32, StoredBlockMetadata> blockInformation = buildHotBlockMetadata();
     // If anchor block is missing, try to pull block info from the anchor state
@@ -805,6 +811,10 @@ public class KvStoreDatabase implements Database {
             bestJustifiedCheckpoint,
             blockInformation,
             votes,
+            confirmedRoot,
+            prevSlotJustifiedCheckpoint,
+            prevSlotUnrealizedJustifiedCheckpoint,
+            prevSlotHead,
             latestCanonicalBlockRoot));
   }
 
@@ -1246,6 +1256,10 @@ public class KvStoreDatabase implements Database {
 
       update.getLatestCanonicalBlockRoot().ifPresent(updater::setLatestCanonicalBlockRoot);
       update.getJustifiedCheckpoint().ifPresent(updater::setJustifiedCheckpoint);
+      update.getConfirmedRoot().ifPresent(updater::setConfirmedRoot);
+      update.getPrevSlotJustifiedCheckpoint().ifPresent(updater::setPrevSlotJustifiedCheckpoint);
+      update.getPrevSlotUnrealizedJustifiedCheckpoint().ifPresent(updater::setPrevSlotUnrealizedJustifiedCheckpoint);
+      update.getPrevSlotHead().ifPresent(updater::setPrevSlotHead);
       update.getBestJustifiedCheckpoint().ifPresent(updater::setBestJustifiedCheckpoint);
       latestFinalizedStateUpdateStartTime = System.currentTimeMillis();
       update.getLatestFinalizedState().ifPresent(updater::setLatestFinalizedState);

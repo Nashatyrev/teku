@@ -74,6 +74,11 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
   Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars = new HashMap<>();
   Optional<UInt64> maybeEarliestBlobSidecarTransactionSlot = Optional.empty();
   Optional<Bytes32> maybeLatestCanonicalBlockRoot = Optional.empty();
+  Optional<Bytes32> confirmedRoot = Optional.empty();
+  Optional<Checkpoint> prevSlotJustifiedCheckpoint = Optional.empty();
+  Optional<Checkpoint> prevSlotUnrealizedJustifiedCheckpoint = Optional.empty();
+  Optional<Bytes32> prevSlotHead = Optional.empty();
+
   private final UpdatableStore.StoreUpdateHandler updateHandler;
 
   StoreTransaction(
@@ -182,6 +187,30 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
   public void removeProposerBoostRoot() {
     proposerBoostRoot = Optional.empty();
     proposerBoostRootSet = true;
+  }
+
+  @Override
+  public void setConfirmedRoot(Bytes32 confirmedRoot) {
+    this.confirmedRoot = Optional.of(confirmedRoot);
+
+  }
+
+  @Override
+  public void setPrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
+    this.prevSlotJustifiedCheckpoint = Optional.of(prevSlotJustifiedCheckpoint);
+
+  }
+
+  @Override
+  public void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+    this.prevSlotUnrealizedJustifiedCheckpoint = Optional.of(prevSlotUnrealizedJustifiedCheckpoint);
+
+  }
+
+  @Override
+  public void setPrevSlotHead(Bytes32 prevSlotHead) {
+    this.prevSlotHead = Optional.of(prevSlotHead);
+
   }
 
   @Override
@@ -350,6 +379,26 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
     } finally {
       lock.readLock().unlock();
     }
+  }
+
+  @Override
+  public Bytes32 getConfirmedRoot() {
+    return confirmedRoot.orElseGet(store::getConfirmedRoot);
+  }
+
+  @Override
+  public Checkpoint getPrevSlotJustifiedCheckpoint() {
+    return prevSlotJustifiedCheckpoint.orElseGet(store::getPrevSlotJustifiedCheckpoint);
+  }
+
+  @Override
+  public Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint() {
+    return prevSlotUnrealizedJustifiedCheckpoint.orElseGet(store::getPrevSlotUnrealizedJustifiedCheckpoint);
+  }
+
+  @Override
+  public Bytes32 getPrevSlotHead() {
+    return prevSlotHead.orElseGet(store::getPrevSlotHead);
   }
 
   @Override

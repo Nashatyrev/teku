@@ -116,6 +116,12 @@ class Store extends CacheableStore {
   private VoteTracker[] votes;
   private UInt64 highestVotedValidatorIndex;
 
+  // confirmation rule fields
+  private Bytes32 confirmedRoot;
+  private Checkpoint prevSlotJustifiedCheckpoint;
+  private Checkpoint prevSlotUnrealizedJustifiedCheckpoint;
+  private Bytes32 prevSlotHead;
+
   private UInt64 reorgThreshold = UInt64.ZERO;
   private UInt64 parentThreshold = UInt64.ZERO;
 
@@ -133,13 +139,19 @@ class Store extends CacheableStore {
       final AnchorPoint finalizedAnchor,
       final Optional<SlotAndExecutionPayloadSummary> finalizedOptimisticTransitionPayload,
       final Checkpoint justifiedCheckpoint,
-      final Checkpoint bestJustifiedCheckpoint,
+
+  final Checkpoint bestJustifiedCheckpoint,
       final ForkChoiceStrategy forkChoiceStrategy,
       final Map<UInt64, VoteTracker> votes,
       final Map<Bytes32, SignedBeaconBlock> blocks,
       final CachingTaskQueue<SlotAndBlockRoot, BeaconState> checkpointStates,
       final Optional<Map<Bytes32, StateAndBlockSummary>> maybeEpochStates,
-      final Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars) {
+      final Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars,
+        final Bytes32 confirmedRoot,
+      final Checkpoint prevSlotJustifiedCheckpoint,
+      final Checkpoint prevSlotUnrealizedJustifiedCheckpoint,
+      final Bytes32 prevSlotHead
+      ) {
     checkArgument(
         time.isGreaterThanOrEqualTo(genesisTime),
         "Time must be greater than or equal to genesisTime");
@@ -161,6 +173,10 @@ class Store extends CacheableStore {
     this.timeMillis = secondsToMillis(time);
     this.genesisTime = genesisTime;
     this.justifiedCheckpoint = justifiedCheckpoint;
+    this.confirmedRoot = confirmedRoot;
+    this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
+    this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
+    this.prevSlotHead = prevSlotHead;
     this.bestJustifiedCheckpoint = bestJustifiedCheckpoint;
     this.blocks = blocks;
     this.blobSidecars = blobSidecars;
@@ -169,6 +185,7 @@ class Store extends CacheableStore {
     this.votes =
         new VoteTracker[this.highestVotedValidatorIndex.intValue() + VOTE_TRACKER_SPARE_CAPACITY];
     votes.forEach((key, value) -> this.votes[key.intValue()] = value);
+
 
     // Track latest finalized block
     this.finalizedAnchor = finalizedAnchor;
@@ -222,6 +239,10 @@ class Store extends CacheableStore {
       final Checkpoint bestJustifiedCheckpoint,
       final Map<Bytes32, StoredBlockMetadata> blockInfoByRoot,
       final Map<UInt64, VoteTracker> votes,
+      final Bytes32 confirmedRoot,
+      final Checkpoint prevSlotJustifiedCheckpoint,
+      final Checkpoint prevSlotUnrealizedJustifiedCheckpoint,
+      final Bytes32 prevSlotHead,
       final StoreConfig config,
       final ForkChoiceStrategy forkChoiceStrategy) {
     final Map<Bytes32, SignedBeaconBlock> blocks =
@@ -262,7 +283,11 @@ class Store extends CacheableStore {
         blocks,
         checkpointStateTaskQueue,
         maybeEpochStates,
-        blobSidecars);
+        blobSidecars,
+        confirmedRoot,
+        prevSlotJustifiedCheckpoint,
+        prevSlotUnrealizedJustifiedCheckpoint,
+        prevSlotHead);
   }
 
   public static UpdatableStore create(
@@ -282,6 +307,11 @@ class Store extends CacheableStore {
       final Map<Bytes32, StoredBlockMetadata> blockInfoByRoot,
       final Optional<Bytes32> initialCanonicalBlockRoot,
       final Map<UInt64, VoteTracker> votes,
+      final Bytes32 confirmedRoot,
+      final Checkpoint prevSlotJustifiedCheckpoint,
+      final Checkpoint prevSlotUnrealizedJustifiedCheckpoint,
+      final Bytes32 prevSlotHead,
+
       final StoreConfig config) {
     final UInt64 currentEpoch = spec.computeEpochAtSlot(spec.getCurrentSlot(time, genesisTime));
 
@@ -312,6 +342,10 @@ class Store extends CacheableStore {
         bestJustifiedCheckpoint,
         blockInfoByRoot,
         votes,
+        confirmedRoot,
+        prevSlotJustifiedCheckpoint,
+        prevSlotUnrealizedJustifiedCheckpoint,
+        prevSlotHead,
         config,
         forkChoiceStrategy);
   }
@@ -554,6 +588,46 @@ class Store extends CacheableStore {
       final List<Bytes32> blockRoots = new ArrayList<>();
       forkChoiceStrategy.processAllInOrder((root, slot, parent) -> blockRoots.add(root));
       return blockRoots;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public Bytes32 getConfirmedRoot() {
+    readLock.lock();
+    try {
+      return confirmedRoot;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public Checkpoint getPrevSlotJustifiedCheckpoint() {
+    readLock.lock();
+    try {
+      return prevSlotJustifiedCheckpoint;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint() {
+    readLock.lock();
+    try {
+      return prevSlotUnrealizedJustifiedCheckpoint;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
+  public Bytes32 getPrevSlotHead() {
+    readLock.lock();
+    try {
+      return prevSlotHead;
     } finally {
       readLock.unlock();
     }
@@ -1120,5 +1194,21 @@ class Store extends CacheableStore {
 
   void updateBestJustifiedCheckpoint(final Checkpoint checkpoint) {
     this.bestJustifiedCheckpoint = checkpoint;
+  }
+
+  void updateConfirmedRoot(Bytes32 confirmedRoot) {
+    this.confirmedRoot = confirmedRoot;
+  }
+
+  void updatePrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
+    this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
+  }
+
+  void updatePrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+    this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
+  }
+
+  void updatePrevSlotHead(Bytes32 prevSlotHead) {
+    this.prevSlotHead = prevSlotHead;
   }
 }

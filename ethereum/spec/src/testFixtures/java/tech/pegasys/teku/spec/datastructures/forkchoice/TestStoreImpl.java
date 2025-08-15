@@ -52,6 +52,10 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   protected Map<Bytes32, BlockCheckpoints> blockCheckpoints;
   protected Map<Checkpoint, BeaconState> checkpointStates;
   protected Map<UInt64, VoteTracker> votes;
+  protected Bytes32 confirmedRoot;
+  protected Checkpoint prevSlotJustifiedCheckpoint;
+  protected Checkpoint prevSlotUnrealizedJustifiedCheckpoint;
+  protected Bytes32 prevSlotHead;
   protected Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars;
   protected Optional<UInt64> earliestBlobSidecarSlot;
   protected Optional<Bytes32> latestCanonicalBlockRoot;
@@ -111,6 +115,26 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   @Override
   public Checkpoint getJustifiedCheckpoint() {
     return justifiedCheckpoint;
+  }
+
+  @Override
+  public Bytes32 getConfirmedRoot() {
+    return confirmedRoot;
+  }
+
+  @Override
+  public Checkpoint getPrevSlotJustifiedCheckpoint() {
+    return prevSlotJustifiedCheckpoint;
+  }
+
+  @Override
+  public Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint() {
+    return prevSlotUnrealizedJustifiedCheckpoint;
+  }
+
+  @Override
+  public Bytes32 getPrevSlotHead() {
+    return prevSlotHead;
   }
 
   @Override
@@ -323,6 +347,26 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   @Override
   public void setJustifiedCheckpoint(final Checkpoint justifiedCheckpoint) {
     this.justifiedCheckpoint = justifiedCheckpoint;
+  }
+
+  @Override
+  public void setConfirmedRoot(Bytes32 confirmedRoot) {
+    this.confirmedRoot = confirmedRoot;
+  }
+
+  @Override
+  public void setPrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
+    this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
+  }
+
+  @Override
+  public void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+    this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
+  }
+
+  @Override
+  public void setPrevSlotHead(Bytes32 prevSlotHead) {
+    this.prevSlotHead = prevSlotHead;
   }
 
   @Override

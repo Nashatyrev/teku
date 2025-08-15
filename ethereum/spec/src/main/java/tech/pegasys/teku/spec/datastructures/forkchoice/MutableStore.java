@@ -89,23 +89,11 @@ public interface MutableStore extends ReadOnlyStore {
 
   void removeFinalizedOptimisticTransitionPayload();
 
-  default void setConfirmedRoot(Bytes32 confirmedRoot) {
-    // TODO
-    throw new UnsupportedOperationException("TODO");
-  }
+  void setConfirmedRoot(Bytes32 confirmedRoot);
 
-  default void setPrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
-    // TODO
-    throw new UnsupportedOperationException("TODO");
-  }
+   void setPrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint);
 
-  default void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
-    // TODO
-    throw new UnsupportedOperationException("TODO");
-  }
+   void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint);
 
-  default void setPrevSlotHead(Bytes32 prevSlotHead) {
-    // TODO
-    throw new UnsupportedOperationException("TODO");
-  }
+   void setPrevSlotHead(Bytes32 prevSlotHead);
 }

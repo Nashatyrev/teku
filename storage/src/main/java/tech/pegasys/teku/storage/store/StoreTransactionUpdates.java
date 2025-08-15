@@ -26,6 +26,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.BlockAndCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
+import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.storage.api.FinalizedChainData;
 import tech.pegasys.teku.storage.api.StorageUpdate;
@@ -107,6 +108,10 @@ class StoreTransactionUpdates {
         optimisticTransitionBlockRootSet,
         optimisticTransitionBlockRoot,
         latestCanonicalBlockRoot,
+        tx.confirmedRoot,
+        tx.prevSlotJustifiedCheckpoint,
+        tx.prevSlotUnrealizedJustifiedCheckpoint,
+        tx.prevSlotHead,
         blobSidecarsEnabled,
         dataColumnSidecarsEnabled);
   }
