@@ -359,13 +359,12 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                             justifiedCheckpoint::getRoot);
                         return false;
                       }
-                      Bytes32 headRoot = updateHeadTransaction(
+                      updateHeadTransaction(
                           nodeSlot,
                           maybeJustifiedCheckpointState.orElseThrow(),
                           finalizedCheckpoint,
                           justifiedCheckpoint);
                       nodeSlot.ifPresent(lastProcessHeadSlot::set);
-                      updateConfirmationRuleStore(maybeJustifiedCheckpointState.orElseThrow(), headRoot);
                       notifyForkChoiceUpdatedAndOptimisticSyncingChanged(
                           isPreProposal ? nodeSlot : Optional.empty());
                       return true;
@@ -393,7 +392,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     storeTransaction.commit();
   }
 
-  private Bytes32 updateHeadTransaction(
+  private void updateHeadTransaction(
       final Optional<UInt64> nodeSlot,
       final BeaconState justifiedState,
       final Checkpoint finalizedCheckpoint,
@@ -438,8 +437,6 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       // successful updateHead call
       transaction.commit();
     }
-
-    return headBlockRoot;
   }
 
   /**
@@ -816,6 +813,22 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
         result.markAsCanonical();
       }
     }
+
+    recentChainData
+        .getJustifiedCheckpoint()
+        .ifPresent(
+            justifiedCheckpoint -> {
+              recentChainData
+                  .retrieveCheckpointState(justifiedCheckpoint)
+                  .thenAccept(
+                      maybeState -> {
+                        maybeState.ifPresent(
+                            justifiedState -> {
+                              updateConfirmationRuleStore(
+                                  justifiedState, bestHeadBlock.getBlockRoot());
+                            });
+                      });
+            });
 
     if (!result.isBlockOnCanonicalChain() && shouldApplyProposerBoost) {
       // This is likely a reorging block that requires a full processHead to update the head.
