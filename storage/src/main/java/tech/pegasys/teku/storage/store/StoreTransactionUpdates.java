@@ -151,6 +151,11 @@ class StoreTransactionUpdates {
             tx.pulledUpBlockCheckpoints,
             prunedHotBlockRoots,
             store.getFinalizedCheckpoint());
+
+    tx.confirmedRoot.ifPresent(store::updateConfirmedRoot);
+    tx.prevSlotJustifiedCheckpoint.ifPresent(store::updatePrevSlotJustifiedCheckpoint);
+    tx.prevSlotUnrealizedJustifiedCheckpoint.ifPresent(store::updatePrevSlotUnrealizedJustifiedCheckpoint);
+    tx.prevSlotHead.ifPresent(store::updatePrevSlotHead);
   }
 
   private StateAndBlockSummary blockAndStateAsSummary(final SignedBlockAndState blockAndState) {

@@ -110,7 +110,11 @@ public class StorageUpdate {
             && blobSidecars.isEmpty()
             && maybeEarliestBlobSidecarSlot.isEmpty()
             && latestCanonicalBlockRoot.isEmpty()
-            && !optimisticTransitionBlockRootSet;
+            && !optimisticTransitionBlockRootSet
+            && confirmedRoot.isEmpty()
+            && prevSlotJustifiedCheckpoint.isEmpty()
+            && prevSlotUnrealizedJustifiedCheckpoint.isEmpty()
+            && prevSlotHead.isEmpty();
   }
 
   public boolean isEmpty() {
