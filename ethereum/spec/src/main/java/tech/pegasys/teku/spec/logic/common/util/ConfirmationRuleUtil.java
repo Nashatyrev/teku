@@ -476,7 +476,7 @@ public class ConfirmationRuleUtil {
   private boolean isAncestor(ReadOnlyStore store, Bytes32 root, Bytes32 ancestor) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 ancestorSlot = forkChoiceStrategy.blockSlot(ancestor).orElseThrow();
-    return forkChoiceStrategy.getAncestor(root, ancestorSlot).orElseThrow().equals(ancestorSlot);
+    return forkChoiceStrategy.getAncestor(root, ancestorSlot).orElseThrow().equals(ancestor);
   }
 
   /**
