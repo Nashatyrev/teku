@@ -832,7 +832,9 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       }
     }
 
-    if (!result.isBlockOnCanonicalChain() && shouldApplyProposerBoost) {
+    // FIXME we probably shouldn't call processHead() every block
+    // however may leav in prototype if it's just a matter of performance
+//    if (!result.isBlockOnCanonicalChain() && shouldApplyProposerBoost) {
       // This is likely a reorging block that requires a full processHead to update the head.
       // Running processHead here will ensure:
       //
@@ -845,7 +847,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       // cover attestation generation and not sync committee message, since it is generated
       // VC side and requires head event to be sent before attestationDue.
       processHead().finish(error -> LOG.error("Fork choice updating head failed", error));
-    }
+//    }
   }
 
   private SlotAndBlockRoot findNewChainHead(final ForkChoiceStrategy forkChoiceStrategy) {
