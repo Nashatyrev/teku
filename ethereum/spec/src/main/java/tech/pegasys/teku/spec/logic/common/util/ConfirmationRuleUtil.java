@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
+
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
@@ -310,11 +312,10 @@ public class ConfirmationRuleUtil {
     //        ffg_support_for_checkpoint
     //    )
     UInt64 min =
-        List.of(
+        Stream.of(
                 ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
                 ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
                 ffgSupportForCheckpoint)
-            .stream()
             .min(Comparator.naturalOrder())
             .orElseThrow();
     UInt64 minHonestFfgSupport = ffgSupportForCheckpoint.minus(min);
@@ -413,11 +414,10 @@ public class ConfirmationRuleUtil {
     //        ffg_support_for_checkpoint
     //    )
     UInt64 min =
-        List.of(
+        Stream.of(
                 ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
                 ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
                 ffgSupportForCheckpoint)
-            .stream()
             .min(Comparator.naturalOrder())
             .orElseThrow();
     UInt64 minHonestFfgSupport = ffgSupportForCheckpoint.minus(min);
@@ -570,8 +570,8 @@ public class ConfirmationRuleUtil {
       // FIXME (spec) confirmed_root -> slot ?
       List<Bytes32> canonicalRoots = getChainRoots(store, confirmedSlot, headBlockRoot);
       // assert canonical_roots.pop(0) == confirmed_root
-      checkArgument(canonicalRoots.get(0).equals(confirmedRoot));
-      canonicalRoots.remove(0);
+      checkArgument(canonicalRoots.getFirst().equals(confirmedRoot));
+      canonicalRoots.removeFirst();
       // # starting with the child of the latest_confirmed_root
       // # move towards the head in attempt to advance confirmed block
       // # and stop when the first unconfirmed descendant is encountered for block_root in
@@ -614,8 +614,8 @@ public class ConfirmationRuleUtil {
       UInt64 confirmedSlot1 = forkChoiceStrategy.blockSlot(confirmedRoot).orElseThrow();
       List<Bytes32> canonicalRoots = getChainRoots(store, confirmedSlot1, headBlockRoot);
       // assert canonical_roots.pop(0) == confirmed_root
-      checkArgument(canonicalRoots.get(0).equals(confirmedRoot));
-      canonicalRoots.remove(0);
+      checkArgument(canonicalRoots.getFirst().equals(confirmedRoot));
+      canonicalRoots.removeFirst();
       // tentative_confirmed_root = confirmed_root
       Bytes32 tentativeConfirmedRoot = confirmedRoot;
       // for block_root in canonical_roots:
