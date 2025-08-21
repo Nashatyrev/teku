@@ -611,8 +611,8 @@ public class ConfirmationRuleUtil {
       // # verify the latest_confirmed_root belongs to it
       // canonical_roots = get_canonical_roots(store, confirmed_root)
       // assert canonical_roots.pop(0) == confirmed_root
-      UInt64 newConfirmedSlot = forkChoiceStrategy.blockSlot(confirmedRoot).orElseThrow();
-      List<Bytes32> canonicalRoots = getChainRoots(store, newConfirmedSlot, headBlockRoot);
+      UInt64 confirmedSlot1 = forkChoiceStrategy.blockSlot(confirmedRoot).orElseThrow();
+      List<Bytes32> canonicalRoots = getChainRoots(store, confirmedSlot1, headBlockRoot);
       // assert canonical_roots.pop(0) == confirmed_root
       checkArgument(canonicalRoots.get(0).equals(confirmedRoot));
       canonicalRoots.remove(0);
