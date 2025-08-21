@@ -684,8 +684,11 @@ public class CombinedKvStoreDao<S extends SchemaCombined>
     }
 
     @Override
-    public void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
-      transaction.put(schema.getVariablePrevSlotUnrealizedJustifiedCheckpoint(), prevSlotUnrealizedJustifiedCheckpoint);
+    public void setPrevSlotUnrealizedJustifiedCheckpoint(
+        Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+      transaction.put(
+          schema.getVariablePrevSlotUnrealizedJustifiedCheckpoint(),
+          prevSlotUnrealizedJustifiedCheckpoint);
     }
 
     @Override

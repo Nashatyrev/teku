@@ -77,15 +77,19 @@ public class SchemaHotAdapter implements Schema {
   public KvStoreVariable<Checkpoint> getVariableJustifiedCheckpoint() {
     return delegate.getVariableJustifiedCheckpoint();
   }
+
   public KvStoreVariable<Bytes32> getVariableConfirmedRoot() {
     return delegate.getVariableConfirmedRoot();
   }
+
   public KvStoreVariable<Checkpoint> getVariablePrevSlotJustifiedCheckpoint() {
     return delegate.getVariablePrevSlotJustifiedCheckpoint();
   }
+
   public KvStoreVariable<Checkpoint> getVariablePrevSlotUnrealizedJustifiedCheckpoint() {
     return delegate.getVariablePrevSlotUnrealizedJustifiedCheckpoint();
   }
+
   public KvStoreVariable<Bytes32> getVariablePrevSlotHead() {
     return delegate.getVariablePrevSlotHead();
   }

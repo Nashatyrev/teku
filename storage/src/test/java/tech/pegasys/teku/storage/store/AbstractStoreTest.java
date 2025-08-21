@@ -218,12 +218,10 @@ public abstract class AbstractStoreTest {
                     Optional.of(spec.calculateBlockCheckpoints(genesis.getState())))))
         .storeConfig(pruningOptions)
         .votes(emptyMap())
-
         .confirmedRoot(genesis.getRoot())
         .prevSlotJustifiedCheckpoint(genesisCheckpoint)
         .prevSlotUnrealizedJustifiedCheckpoint(genesisCheckpoint)
         .prevSlotHead(genesis.getRoot())
-
         .latestCanonicalBlockRoot(Optional.empty());
   }
 

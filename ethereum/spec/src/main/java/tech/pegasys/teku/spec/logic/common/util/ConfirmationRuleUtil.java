@@ -329,17 +329,19 @@ public class ConfirmationRuleUtil {
 
   public Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
     // FIXME alternative view of store.unrealized_justified_checkpoint. Need to double check
-    Checkpoint ret = store.getForkChoiceStrategy().getChainHeads(true).stream()
-        .map(
-            head -> {
-              return head.getCheckpoints().getUnrealizedJustifiedCheckpoint();
-            })
-        .max(Comparator.comparing(Checkpoint::getEpoch))
-        .orElseThrow();
+    Checkpoint ret =
+        store.getForkChoiceStrategy().getChainHeads(true).stream()
+            .map(
+                head -> {
+                  return head.getCheckpoints().getUnrealizedJustifiedCheckpoint();
+                })
+            .max(Comparator.comparing(Checkpoint::getEpoch))
+            .orElseThrow();
 
     // FIXME: hack around initial ZERO checkpoints
     if (ret.getRoot().equals(Bytes32.ZERO)) {
-      Bytes32 genesisBlockRoot = store.getForkChoiceStrategy().getBlockRootsAtSlot(UInt64.ZERO).getFirst();
+      Bytes32 genesisBlockRoot =
+          store.getForkChoiceStrategy().getBlockRootsAtSlot(UInt64.ZERO).getFirst();
       return new Checkpoint(UInt64.ZERO, genesisBlockRoot);
     } else {
       return ret;
@@ -439,7 +441,8 @@ public class ConfirmationRuleUtil {
     return miscHelpers.computeEpochAtSlot(currentSlot);
   }
 
-  private List<Bytes32> getChainRoots(ReadOnlyStore store, UInt64 ancestorSlot, Bytes32 startBlockRoot) {
+  private List<Bytes32> getChainRoots(
+      ReadOnlyStore store, UInt64 ancestorSlot, Bytes32 startBlockRoot) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     ArrayList<Bytes32> ret = new ArrayList<>();
     Bytes32 root = startBlockRoot;

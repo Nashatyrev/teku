@@ -137,8 +137,6 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     return hotDao.getVotes();
   }
 
-
-
   public Optional<Bytes32> getConfirmedRoot() {
     return hotDao.getConfirmedRoot();
   }
@@ -154,7 +152,6 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
   public Optional<Bytes32> getPrevSlotHead() {
     return hotDao.getPrevSlotHead();
   }
-
 
   @Override
   public Optional<Bytes32> getLatestCanonicalBlockRoot() {
@@ -507,7 +504,8 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     }
 
     @Override
-    public void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+    public void setPrevSlotUnrealizedJustifiedCheckpoint(
+        Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
       hotUpdater.setPrevSlotUnrealizedJustifiedCheckpoint(prevSlotUnrealizedJustifiedCheckpoint);
     }
 

@@ -101,11 +101,7 @@ public class StoreBuilder {
         // FIXME (spec) not specified in the spec
         anchor.getCheckpoint(),
         anchor.getRoot(),
-
-        Optional.empty()
-
-
-        );
+        Optional.empty());
   }
 
   public StoreBuilder onDiskStoreData(final OnDiskStoreData data) {
@@ -145,7 +141,6 @@ public class StoreBuilder {
           bestJustifiedCheckpoint,
           blockInfoByRoot,
           votes,
-
           confirmedRoot,
           prevSlotJustifiedCheckpoint,
           prevSlotUnrealizedJustifiedCheckpoint,
@@ -313,7 +308,6 @@ public class StoreBuilder {
     checkNotNull(confirmedRoot);
     this.confirmedRoot = confirmedRoot;
     return this;
-
   }
 
   public StoreBuilder prevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
@@ -322,7 +316,8 @@ public class StoreBuilder {
     return this;
   }
 
-  public StoreBuilder prevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+  public StoreBuilder prevSlotUnrealizedJustifiedCheckpoint(
+      Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
     checkNotNull(prevSlotUnrealizedJustifiedCheckpoint);
     this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
     return this;

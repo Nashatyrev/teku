@@ -139,19 +139,17 @@ class Store extends CacheableStore {
       final AnchorPoint finalizedAnchor,
       final Optional<SlotAndExecutionPayloadSummary> finalizedOptimisticTransitionPayload,
       final Checkpoint justifiedCheckpoint,
-
-  final Checkpoint bestJustifiedCheckpoint,
+      final Checkpoint bestJustifiedCheckpoint,
       final ForkChoiceStrategy forkChoiceStrategy,
       final Map<UInt64, VoteTracker> votes,
       final Map<Bytes32, SignedBeaconBlock> blocks,
       final CachingTaskQueue<SlotAndBlockRoot, BeaconState> checkpointStates,
       final Optional<Map<Bytes32, StateAndBlockSummary>> maybeEpochStates,
       final Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars,
-        final Bytes32 confirmedRoot,
+      final Bytes32 confirmedRoot,
       final Checkpoint prevSlotJustifiedCheckpoint,
       final Checkpoint prevSlotUnrealizedJustifiedCheckpoint,
-      final Bytes32 prevSlotHead
-      ) {
+      final Bytes32 prevSlotHead) {
     checkArgument(
         time.isGreaterThanOrEqualTo(genesisTime),
         "Time must be greater than or equal to genesisTime");
@@ -185,7 +183,6 @@ class Store extends CacheableStore {
     this.votes =
         new VoteTracker[this.highestVotedValidatorIndex.intValue() + VOTE_TRACKER_SPARE_CAPACITY];
     votes.forEach((key, value) -> this.votes[key.intValue()] = value);
-
 
     // Track latest finalized block
     this.finalizedAnchor = finalizedAnchor;
@@ -311,7 +308,6 @@ class Store extends CacheableStore {
       final Checkpoint prevSlotJustifiedCheckpoint,
       final Checkpoint prevSlotUnrealizedJustifiedCheckpoint,
       final Bytes32 prevSlotHead,
-
       final StoreConfig config) {
     final UInt64 currentEpoch = spec.computeEpochAtSlot(spec.getCurrentSlot(time, genesisTime));
 
@@ -1204,7 +1200,8 @@ class Store extends CacheableStore {
     this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
   }
 
-  void updatePrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+  void updatePrevSlotUnrealizedJustifiedCheckpoint(
+      Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
     this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
   }
 

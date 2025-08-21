@@ -360,7 +360,8 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   }
 
   @Override
-  public void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+  public void setPrevSlotUnrealizedJustifiedCheckpoint(
+      Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
     this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
   }
 

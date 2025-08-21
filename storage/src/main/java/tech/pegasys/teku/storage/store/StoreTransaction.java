@@ -192,25 +192,22 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
   @Override
   public void setConfirmedRoot(Bytes32 confirmedRoot) {
     this.confirmedRoot = Optional.of(confirmedRoot);
-
   }
 
   @Override
   public void setPrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
     this.prevSlotJustifiedCheckpoint = Optional.of(prevSlotJustifiedCheckpoint);
-
   }
 
   @Override
-  public void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+  public void setPrevSlotUnrealizedJustifiedCheckpoint(
+      Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
     this.prevSlotUnrealizedJustifiedCheckpoint = Optional.of(prevSlotUnrealizedJustifiedCheckpoint);
-
   }
 
   @Override
   public void setPrevSlotHead(Bytes32 prevSlotHead) {
     this.prevSlotHead = Optional.of(prevSlotHead);
-
   }
 
   @Override
@@ -393,7 +390,8 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
 
   @Override
   public Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint() {
-    return prevSlotUnrealizedJustifiedCheckpoint.orElseGet(store::getPrevSlotUnrealizedJustifiedCheckpoint);
+    return prevSlotUnrealizedJustifiedCheckpoint.orElseGet(
+        store::getPrevSlotUnrealizedJustifiedCheckpoint);
   }
 
   @Override

@@ -26,7 +26,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.BlockAndCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
-import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.storage.api.FinalizedChainData;
 import tech.pegasys.teku.storage.api.StorageUpdate;
@@ -154,7 +153,8 @@ class StoreTransactionUpdates {
 
     tx.confirmedRoot.ifPresent(store::updateConfirmedRoot);
     tx.prevSlotJustifiedCheckpoint.ifPresent(store::updatePrevSlotJustifiedCheckpoint);
-    tx.prevSlotUnrealizedJustifiedCheckpoint.ifPresent(store::updatePrevSlotUnrealizedJustifiedCheckpoint);
+    tx.prevSlotUnrealizedJustifiedCheckpoint.ifPresent(
+        store::updatePrevSlotUnrealizedJustifiedCheckpoint);
     tx.prevSlotHead.ifPresent(store::updatePrevSlotHead);
   }
 

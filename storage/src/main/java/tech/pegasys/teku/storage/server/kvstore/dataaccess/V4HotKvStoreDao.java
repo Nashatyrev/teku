@@ -143,8 +143,6 @@ public class V4HotKvStoreDao {
     return db.get(schema.getVariablePrevSlotHead());
   }
 
-
-
   @MustBeClosed
   public Stream<DepositsFromBlockEvent> streamDepositsFromBlocks() {
     return db.stream(schema.getColumnDepositsFromBlockEvents()).map(ColumnEntry::getValue);
@@ -245,15 +243,16 @@ public class V4HotKvStoreDao {
     }
 
     @Override
-    public void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
-      transaction.put(schema.getVariablePrevSlotUnrealizedJustifiedCheckpoint(), prevSlotUnrealizedJustifiedCheckpoint);
-
+    public void setPrevSlotUnrealizedJustifiedCheckpoint(
+        Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+      transaction.put(
+          schema.getVariablePrevSlotUnrealizedJustifiedCheckpoint(),
+          prevSlotUnrealizedJustifiedCheckpoint);
     }
 
     @Override
     public void setPrevSlotHead(Bytes32 prevSlotHead) {
       transaction.put(schema.getVariablePrevSlotHead(), prevSlotHead);
-
     }
 
     @Override

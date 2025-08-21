@@ -378,7 +378,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     StoreTransaction storeTransaction = recentChainData.startStoreTransaction();
     // store.confirmed_root = get_latest_confirmed(store)
     // FIXME temp spec deviation: taking justified state for now
-    Bytes32 latestConfirmed = confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, justifiedState);
+    Bytes32 latestConfirmed =
+        confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, justifiedState);
     storeTransaction.setConfirmedRoot(latestConfirmed);
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = storeTransaction.getForkChoiceStrategy();
     Optional<UInt64> headSlot = forkChoiceStrategy.blockSlot(headRoot);
@@ -396,7 +397,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevSlotJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
-    Checkpoint unrealizedJustifiedCheckpoint = confirmationRuleUtil.getUnrealizedJustifiedCheckpoint(storeTransaction);
+    Checkpoint unrealizedJustifiedCheckpoint =
+        confirmationRuleUtil.getUnrealizedJustifiedCheckpoint(storeTransaction);
     storeTransaction.setPrevSlotUnrealizedJustifiedCheckpoint(unrealizedJustifiedCheckpoint);
     // store.prev_slot_head = get_head(store)
     // FIXME probbaly deviate from spec: headRoot is actually this slot head
