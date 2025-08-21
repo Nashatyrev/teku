@@ -329,10 +329,21 @@ public class ConfirmationRuleUtil {
 
   public Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
     // FIXME alternative view of store.unrealized_justified_checkpoint. Need to double check
-    return store.getForkChoiceStrategy().getChainHeads(true).stream()
-        .map(head -> head.getCheckpoints().getUnrealizedJustifiedCheckpoint())
+    Checkpoint ret = store.getForkChoiceStrategy().getChainHeads(true).stream()
+        .map(
+            head -> {
+              return head.getCheckpoints().getUnrealizedJustifiedCheckpoint();
+            })
         .max(Comparator.comparing(Checkpoint::getEpoch))
         .orElseThrow();
+
+    // FIXME: hack around initial ZERO checkpoints
+    if (ret.getRoot().equals(Bytes32.ZERO)) {
+      Bytes32 genesisBlockRoot = store.getForkChoiceStrategy().getBlockRootsAtSlot(UInt64.ZERO).getFirst();
+      return new Checkpoint(UInt64.ZERO, genesisBlockRoot);
+    } else {
+      return ret;
+    }
   }
 
   // def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
