@@ -275,7 +275,7 @@ public class ConfirmationRuleUtil {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
-    checkArgument(checkpoint.getEpoch() == currentEpoch);
+    checkArgument(checkpoint.getEpoch().equals(currentEpoch));
 
     //    current_slot = get_current_slot(store)
     UInt64 currentSlot = getCurrentSlot(store);
