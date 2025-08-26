@@ -394,7 +394,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             + latestConfirmedSlot
             + ",("
             + latestConfirmed
-            + ")");
+            + "), justified="
+    + storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevSlotJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
