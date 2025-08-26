@@ -119,7 +119,8 @@ public class ConfirmationRuleUtil {
     //
     //        # First, calculate the number of committees in the end epoch
     //        num_slots_in_end_epoch = compute_slots_since_epoch_start(end_slot)
-    UInt64 numSlotsInEndEpoch = computeSlotsSinceEpochStart(endSlot);
+    // FIX+ME (!! spec) end_slot is inclusive then we need +1 here:
+    //   num_slots_in_end_epoch = compute_slots_since_epoch_start(end_slot) + 1
     UInt64 numSlotsInEndEpoch = computeSlotsSinceEpochStart(lastSlot).increment();
     //        # Next, calculate the number of slots remaining in the end epoch
     //        remaining_slots_in_end_epoch = SLOTS_PER_EPOCH - num_slots_in_end_epoch
