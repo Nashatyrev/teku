@@ -78,8 +78,6 @@ public class ConfirmationRuleUtil {
 
     //    start_epoch = compute_epoch_at_slot(start_slot)
     //    end_epoch = compute_epoch_at_slot(end_slot)
-    UInt64 startEpoch = miscHelpers.computeEpochAtSlot(startSlot);
-    UInt64 endEpoch = miscHelpers.computeEpochAtSlot(endSlot);
     UInt64 startEpoch = miscHelpers.computeEpochAtSlot(firstSlot);
     UInt64 endEpoch = miscHelpers.computeEpochAtSlot(lastSlot);
 
@@ -122,6 +120,7 @@ public class ConfirmationRuleUtil {
     //        # First, calculate the number of committees in the end epoch
     //        num_slots_in_end_epoch = compute_slots_since_epoch_start(end_slot)
     UInt64 numSlotsInEndEpoch = computeSlotsSinceEpochStart(endSlot);
+    UInt64 numSlotsInEndEpoch = computeSlotsSinceEpochStart(lastSlot).increment();
     //        # Next, calculate the number of slots remaining in the end epoch
     //        remaining_slots_in_end_epoch = SLOTS_PER_EPOCH - num_slots_in_end_epoch
     UInt64 remainingSlotsInEndEpoch = slotsPerEpoch.minus(numSlotsInEndEpoch);
@@ -197,8 +196,10 @@ public class ConfirmationRuleUtil {
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     UInt64 maximumSupport =
         getCommitteeWeightBetweenSlots(
-            weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store));
             weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
+
+    // FIXME (spec): is it ok that maximumSupport can be less than actual support???
+    //checkState(support.isLessThanOrEqualTo(maximumSupport));
     //    proposer_score = get_proposer_score(store)
     // FIXME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
     UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(weightingCheckpointState);
