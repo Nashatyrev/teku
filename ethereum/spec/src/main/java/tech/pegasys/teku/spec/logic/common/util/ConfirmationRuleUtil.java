@@ -71,7 +71,7 @@ public class ConfirmationRuleUtil {
    * both). FIXME: spec: name function estimate* instead of get*
    */
   private UInt64 getCommitteeWeightBetweenSlots(
-      BeaconState state, UInt64 startSlot, UInt64 endSlot) {
+      BeaconState state, UInt64 firstSlot, UInt64 lastSlot) {
 
     //    total_active_balance = get_total_active_balance(state)
     UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(state);
@@ -80,10 +80,12 @@ public class ConfirmationRuleUtil {
     //    end_epoch = compute_epoch_at_slot(end_slot)
     UInt64 startEpoch = miscHelpers.computeEpochAtSlot(startSlot);
     UInt64 endEpoch = miscHelpers.computeEpochAtSlot(endSlot);
+    UInt64 startEpoch = miscHelpers.computeEpochAtSlot(firstSlot);
+    UInt64 endEpoch = miscHelpers.computeEpochAtSlot(lastSlot);
 
     //    if start_slot > end_slot:
     //        return Gwei(0)
-    if (startSlot.isGreaterThan(endSlot)) {
+    if (firstSlot.isGreaterThan(lastSlot)) {
       return UInt64.ZERO;
     }
 
@@ -93,7 +95,7 @@ public class ConfirmationRuleUtil {
     // FIXME (spec): is_first_epoch_slot
     boolean ifFullValidatorSetCovered =
         endEpoch.isGreaterThan(startEpoch.increment())
-            || (endEpoch.equals(startEpoch.increment()) && isFirstEpochSlot(startSlot));
+            || (endEpoch.equals(startEpoch.increment()) && isFirstEpochSlot(firstSlot));
 
     //    # If an entire epoch is covered by the range, return the total active balance
     //    if is_full_validator_set_covered(start_slot, end_slot):
@@ -107,7 +109,7 @@ public class ConfirmationRuleUtil {
     if (startEpoch.equals(endEpoch)) {
       return totalActiveBalance
           .dividedBy(slotsPerEpoch)
-          .times(endSlot.minus(startSlot).increment());
+          .times(lastSlot.minus(firstSlot).increment());
     }
 
     //    else:
@@ -126,7 +128,7 @@ public class ConfirmationRuleUtil {
     //        # Then, calculate the number of slots in the start epoch
     //        num_slots_in_start_epoch = SLOTS_PER_EPOCH -
     // compute_slots_since_epoch_start(start_slot)
-    UInt64 numSlotsInStartEpoch = slotsPerEpoch.minus(computeSlotsSinceEpochStart(startSlot));
+    UInt64 numSlotsInStartEpoch = slotsPerEpoch.minus(computeSlotsSinceEpochStart(firstSlot));
     //        end_epoch_weight_estimate = total_active_balance // SLOTS_PER_EPOCH *
     // num_slots_in_end_epoch
     UInt64 endEpochWeightEstimate =
@@ -196,6 +198,7 @@ public class ConfirmationRuleUtil {
     UInt64 maximumSupport =
         getCommitteeWeightBetweenSlots(
             weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store));
+            weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
     //    proposer_score = get_proposer_score(store)
     // FIXME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
     UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(weightingCheckpointState);
