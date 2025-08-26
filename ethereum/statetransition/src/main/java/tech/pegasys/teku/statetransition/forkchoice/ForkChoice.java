@@ -359,13 +359,15 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                             justifiedCheckpoint::getRoot);
                         return false;
                       }
-                      Bytes32 headRoot = updateHeadTransaction(
-                          nodeSlot,
-                          maybeJustifiedCheckpointState.orElseThrow(),
-                          finalizedCheckpoint,
-                          justifiedCheckpoint);
+                      Bytes32 headRoot =
+                          updateHeadTransaction(
+                              nodeSlot,
+                              maybeJustifiedCheckpointState.orElseThrow(),
+                              finalizedCheckpoint,
+                              justifiedCheckpoint);
                       nodeSlot.ifPresent(lastProcessHeadSlot::set);
-                      updateConfirmationRuleStore(maybeJustifiedCheckpointState.orElseThrow(), headRoot);
+                      updateConfirmationRuleStore(
+                          maybeJustifiedCheckpointState.orElseThrow(), headRoot);
                       notifyForkChoiceUpdatedAndOptimisticSyncingChanged(
                           isPreProposal ? nodeSlot : Optional.empty());
                       return true;
@@ -395,7 +397,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             + ",("
             + latestConfirmed
             + "), justified="
-    + storeTransaction.getJustifiedCheckpoint());
+            + storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevSlotJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
@@ -835,20 +837,20 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
     // FIXME we probably shouldn't call processHead() every block
     // however may leav in prototype if it's just a matter of performance
-//    if (!result.isBlockOnCanonicalChain() && shouldApplyProposerBoost) {
-      // This is likely a reorging block that requires a full processHead to update the head.
-      // Running processHead here will ensure:
-      //
-      // - node producing a reorging block will attest and produce sync committee for the reorging
-      // block
-      // - node just importing (not producing it) a reorging block will produce sync committee for
-      // the new head
-      //
-      // It wouldn't be enough to trigger processHead at attestationDue because it will only
-      // cover attestation generation and not sync committee message, since it is generated
-      // VC side and requires head event to be sent before attestationDue.
-      processHead().finish(error -> LOG.error("Fork choice updating head failed", error));
-//    }
+    //    if (!result.isBlockOnCanonicalChain() && shouldApplyProposerBoost) {
+    // This is likely a reorging block that requires a full processHead to update the head.
+    // Running processHead here will ensure:
+    //
+    // - node producing a reorging block will attest and produce sync committee for the reorging
+    // block
+    // - node just importing (not producing it) a reorging block will produce sync committee for
+    // the new head
+    //
+    // It wouldn't be enough to trigger processHead at attestationDue because it will only
+    // cover attestation generation and not sync committee message, since it is generated
+    // VC side and requires head event to be sent before attestationDue.
+    processHead().finish(error -> LOG.error("Fork choice updating head failed", error));
+    //    }
   }
 
   private SlotAndBlockRoot findNewChainHead(final ForkChoiceStrategy forkChoiceStrategy) {

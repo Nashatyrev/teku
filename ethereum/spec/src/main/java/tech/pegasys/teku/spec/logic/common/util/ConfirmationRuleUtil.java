@@ -14,14 +14,12 @@
 package tech.pegasys.teku.spec.logic.common.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
-
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
@@ -69,8 +67,8 @@ public class ConfirmationRuleUtil {
 
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
-   * both). FIX+ME: spec: name function estimate* instead of get*
-   * FIX+ME (spec): better do `end_slot` exclusive instead of slot-1 on caller site
+   * both). FIX+ME: spec: name function estimate* instead of get* FIX+ME (spec): better do
+   * `end_slot` exclusive instead of slot-1 on caller site
    */
   private UInt64 getCommitteeWeightBetweenSlots(
       BeaconState state, UInt64 firstSlot, UInt64 lastSlot) {
@@ -200,10 +198,12 @@ public class ConfirmationRuleUtil {
     // FIX-ME (spec): if make end_slot exclusive then need to remove '- 1'
     UInt64 maximumSupport =
         getCommitteeWeightBetweenSlots(
-            weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
+            weightingCheckpointState,
+            parentBlockSlot.increment(),
+            getCurrentSlot(store).decrement());
 
     // FIXME (spec): is it ok that maximumSupport can be less than actual support???
-    //checkState(support.isLessThanOrEqualTo(maximumSupport));
+    // checkState(support.isLessThanOrEqualTo(maximumSupport));
     //    proposer_score = get_proposer_score(store)
     // FIXME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
     UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(weightingCheckpointState);
