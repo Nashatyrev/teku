@@ -14,6 +14,7 @@
 package tech.pegasys.teku.spec.logic.common.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -68,7 +69,8 @@ public class ConfirmationRuleUtil {
 
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
-   * both). FIXME: spec: name function estimate* instead of get*
+   * both). FIX+ME: spec: name function estimate* instead of get*
+   * FIX+ME (spec): better do `end_slot` exclusive instead of slot-1 on caller site
    */
   private UInt64 getCommitteeWeightBetweenSlots(
       BeaconState state, UInt64 firstSlot, UInt64 lastSlot) {
@@ -90,7 +92,7 @@ public class ConfirmationRuleUtil {
     UInt64 slotsPerEpoch = UInt64.valueOf(specConfig.getSlotsPerEpoch());
     //         end_epoch > start_epoch + 1
     //        or (end_epoch == start_epoch + 1 and start_slot % SLOTS_PER_EPOCH == 0))
-    // FIXME (spec): is_first_epoch_slot
+    // FIX+ME (spec): is_first_epoch_slot
     boolean ifFullValidatorSetCovered =
         endEpoch.isGreaterThan(startEpoch.increment())
             || (endEpoch.equals(startEpoch.increment()) && isFirstEpochSlot(firstSlot));
@@ -136,7 +138,7 @@ public class ConfirmationRuleUtil {
     //        start_epoch_weight_estimate = (total_active_balance // SLOTS_PER_EPOCH //
     // SLOTS_PER_EPOCH *
     //            num_slots_in_start_epoch * remaining_slots_in_end_epoch)
-    // FIXME: spec
+    // FIX-ME: spec
     //        start_epoch_weight_estimate = (total_active_balance // SLOTS_PER_EPOCH *
     //            num_slots_in_start_epoch // SLOTS_PER_EPOCH * remaining_slots_in_end_epoch)
     UInt64 startEpochWeightEstimate =
@@ -183,7 +185,7 @@ public class ConfirmationRuleUtil {
 
     //
     //    if (miscHelpers.isFirstSlotInEpoch(currentSlot)) {
-    // FIXME: (spec)
+    // FIX+ME: (spec)
     //    if current_slot % SLOTS_PER_EPOCH == 0:
     //
     //        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
@@ -195,6 +197,7 @@ public class ConfirmationRuleUtil {
     UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState).orElseThrow();
     //    maximum_support = get_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+    // FIX-ME (spec): if make end_slot exclusive then need to remove '- 1'
     UInt64 maximumSupport =
         getCommitteeWeightBetweenSlots(
             weightingCheckpointState, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
@@ -238,7 +241,7 @@ public class ConfirmationRuleUtil {
   /** Uses LMD-GHOST votes to estimate FFG support for a checkpoint. */
   // def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state:
   // BeaconState) -> Gwei:
-  // FIXME (spec) fix checkpoint type
+  // FIX+ME (spec) fix checkpoint type
   private UInt64 getCheckpointWeight(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
@@ -269,7 +272,7 @@ public class ConfirmationRuleUtil {
     //    else:
     //        slots_passed = slot % SLOTS_PER_EPOCH
     //        return total_active_balance // SLOTS_PER_EPOCH * slots_passed
-    // FIXME (spec): use computeSlotsSinceEpochStart
+    // FIX+ME (spec): use computeSlotsSinceEpochStart
     UInt64 slotsPassed = computeSlotsSinceEpochStart(slot);
     return totalActiveBalance.dividedBy(specConfig.getSlotsPerEpoch()).times(slotsPassed);
   }
@@ -288,7 +291,7 @@ public class ConfirmationRuleUtil {
     //
     //    store_target_checkpoint_state(store, checkpoint)
     //    checkpoint_state = store.checkpoint_states[checkpoint]
-    // FIXME (spec): to fix approach
+    // FIXME (spec): to fix approach to retrieve state
     //
     //    total_active_balance = get_total_active_balance(checkpoint_state)
     UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
@@ -390,7 +393,7 @@ public class ConfirmationRuleUtil {
 
     //    store_target_checkpoint_state(store, checkpoint)
     //    checkpoint_state = store.checkpoint_states[checkpoint]
-    // FIXME (spec): to fix approach
+    // FIXME (spec): to fix approach to retrieve state
     //
     //    total_active_balance = get_total_active_balance(checkpoint_state)
     UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
@@ -512,7 +515,7 @@ public class ConfirmationRuleUtil {
     UInt64 currentEpoch = getCurrentEpochStore(store);
     // # verify the latest confirmed block is not too old
     // assert compute_block_epoch(latest_confirmed_root) + 1 >= current_epoch
-    // FIXME (spec) no compute_block_epoch() function found
+    // FIX+ME (spec) no compute_block_epoch() function found
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 confirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmedRoot).orElseThrow();
     checkArgument(
@@ -572,7 +575,7 @@ public class ConfirmationRuleUtil {
       // # retrieve suffix of the canonical chain
       // # verify the latest_confirmed_root belongs to it
       // canonical_roots = get_canonical_roots(store, confirmed_root)
-      // FIXME (spec) confirmed_root -> slot ?
+      // FIX+ME (spec) confirmed_root -> slot ?
       List<Bytes32> canonicalRoots = getChainRoots(store, confirmedSlot, headBlockRoot);
       // assert canonical_roots.pop(0) == confirmed_root
       checkArgument(canonicalRoots.getFirst().equals(confirmedRoot));
@@ -583,7 +586,7 @@ public class ConfirmationRuleUtil {
       // canonical_roots:
       for (Bytes32 blockRoot : canonicalRoots) {
         // block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
-        // FIXME (spec): can replace with get_block_epoch()
+        // FIX+ME (spec): can replace with get_block_epoch()
         UInt64 blockEpoch = getBlockEpoch(store, blockRoot);
         // # If we reach the current epoch, we exit as this code is only for confirming blocks from
         // the previous epoch
@@ -625,7 +628,7 @@ public class ConfirmationRuleUtil {
       Bytes32 tentativeConfirmedRoot = confirmedRoot;
       // for block_root in canonical_roots:
       //     block_epoch = compute_epoch_at_slot(store.blocks[block_root].slot)
-      // FIXME (spec): can replace with get_block_epoch()
+      // FIX+ME (spec): can replace with get_block_epoch()
       for (Bytes32 blockRoot : canonicalRoots) {
         UInt64 blockEpoch = getBlockEpoch(store, blockRoot);
 
@@ -705,7 +708,7 @@ public class ConfirmationRuleUtil {
     //    head = get_head(store)
     //    if confirmed_block_epoch + 1 < current_epoch or not is_ancestor(store, head,
     // confirmed_root):
-    // FIXME (spec): confirmed_block_epoch is not defined
+    // FIX+ME (spec): confirmed_block_epoch is not defined
     //
     //        confirmed_root = store.finalized_checkpoint.root
     UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
@@ -738,7 +741,7 @@ public class ConfirmationRuleUtil {
     //    if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
     //        and store.prev_slot_unrealized_justified_checkpoint.epoch + 1 == current_epoch
     //        and confirmed_block_slot < prev_unrealized_justified_checkpoint_slot):
-    // FIXME (spec): isFirstEpochSlot
+    // FIX+ME (spec): isFirstEpochSlot
     if (isFirstEpochSlot
         && prevUnrealizedJustifiedCeckpointEpoch.increment().equals(currentEpoch)
         && confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot)) {
