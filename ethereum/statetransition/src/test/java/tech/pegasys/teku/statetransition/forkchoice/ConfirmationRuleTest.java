@@ -93,9 +93,20 @@ class ConfirmationRuleTest {
 
   private ForkChoice forkChoice;
 
+  private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 29;
+  private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
+
   @BeforeEach
   public void setup() {
-    setupWithSpec(TestSpecFactory.createMinimalBellatrix());
+    setupWithSpec(
+        TestSpecFactory.createMinimalBellatrix(
+            builder ->
+                builder
+                    .committeeWeightEstimationAdjustmentFactor(
+                        COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR)
+                    .confirmationByzantineThreshold(CONFIRMATION_BYZANTINE_THRESHOLD)
+                    .confirmationSlashingThreshold(CONFIRMATION_SLASHING_THRESHOLD)));
   }
 
   private void setupWithSpec(final Spec unmockedSpec) {
