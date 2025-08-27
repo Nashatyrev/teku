@@ -389,13 +389,13 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     Optional<UInt64> latestConfirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmed);
     System.err.println(
         "updateConfirmationRuleStore: head="
-            + headSlot
+            + headSlot.map(UInt64::toString).orElse("NaN")
             + ",("
-            + headRoot
+            + headRoot.toString().substring(0, 10)
             + "), confirmed="
-            + latestConfirmedSlot
+            + latestConfirmedSlot.map(UInt64::toString).orElse("NaN")
             + ",("
-            + latestConfirmed
+            + latestConfirmed.toString().substring(0, 10)
             + "), justified="
             + storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
