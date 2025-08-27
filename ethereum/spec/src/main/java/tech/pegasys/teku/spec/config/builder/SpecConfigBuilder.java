@@ -122,6 +122,11 @@ public class SpecConfigBuilder {
   private Integer attestationSubnetExtraBits;
   private Integer attestationSubnetPrefixBits;
 
+  // Confirmation Rule
+  private Integer committeeWeightEstimationAdjustmentFactor;
+  private Integer confirmationByzantineThreshold;
+  private Integer confirmationSlashingThreshold;
+
   // added after Phase0, so add default values, or will be compatibility issue
   private Integer reorgMaxEpochsSinceFinalization = 2;
 
@@ -237,6 +242,9 @@ public class SpecConfigBuilder {
                 attestationSubnetCount,
                 attestationSubnetExtraBits,
                 attestationSubnetPrefixBits,
+                committeeWeightEstimationAdjustmentFactor,
+                confirmationByzantineThreshold,
+                confirmationSlashingThreshold,
                 reorgMaxEpochsSinceFinalization,
                 reorgHeadWeightThreshold,
                 reorgParentWeightThreshold,
@@ -315,6 +323,9 @@ public class SpecConfigBuilder {
     constants.put("attestationSubnetCount", attestationSubnetCount);
     constants.put("attestationSubnetExtraBits", attestationSubnetExtraBits);
     constants.put("attestationSubnetPrefixBits", attestationSubnetPrefixBits);
+    constants.put("committeeWeightEstimationAdjustmentFactor", committeeWeightEstimationAdjustmentFactor);
+    constants.put("confirmationByzantineThreshold", confirmationByzantineThreshold);
+    constants.put("confirmationSlashingThreshold", confirmationSlashingThreshold);
     constants.put("reorgMaxEpochsSinceFinalization", reorgMaxEpochsSinceFinalization);
     constants.put("reorgHeadWeightThreshold", reorgHeadWeightThreshold);
     constants.put("reorgParentWeightThreshold", reorgParentWeightThreshold);
@@ -780,6 +791,23 @@ public class SpecConfigBuilder {
     this.attestationSubnetPrefixBits = attestationSubnetPrefixBits;
     return this;
   }
+
+  public SpecConfigBuilder committeeWeightEstimationAdjustmentFactor(final Integer committeeWeightEstimationAdjustmentFactor) {
+    this.committeeWeightEstimationAdjustmentFactor = committeeWeightEstimationAdjustmentFactor;
+    return this;
+  }
+
+  public SpecConfigBuilder confirmationByzantineThreshold(final Integer confirmationByzantineThreshold) {
+    this.confirmationByzantineThreshold = confirmationByzantineThreshold;
+    return this;
+  }
+
+  public SpecConfigBuilder confirmationSlashingThreshold(final Integer confirmationSlashingThreshold) {
+    this.confirmationSlashingThreshold = confirmationSlashingThreshold;
+    return this;
+  }
+
+
 
   public SpecConfigBuilder reorgMaxEpochsSinceFinalization(
       final Integer reorgMaxEpochsSinceFinalization) {

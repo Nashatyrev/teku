@@ -33,11 +33,6 @@ import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 
 public class ConfirmationRuleUtil {
 
-  // TODO extract to config
-  private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 29;
-  private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
-
   private final SpecConfig specConfig;
   private final BeaconStateAccessors beaconStateAccessors;
   private final MiscHelpers miscHelpers;
@@ -169,7 +164,7 @@ public class ConfirmationRuleUtil {
     //    required.
     //    """
     //    return Gwei(estimate // 1000 * (1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR))
-    return estimate.dividedBy(1000).times(1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR);
+    return estimate.dividedBy(1000).times(1000 + specConfig.getCommitteeWeightEstimationAdjustmentFactor());
   }
 
   private Optional<UInt64> getNetWeightForState(
@@ -232,7 +227,7 @@ public class ConfirmationRuleUtil {
         .times(2)
         .isGreaterThan(
             maximumSupport
-                .plus(maximumSupport.dividedBy(50).times(CONFIRMATION_BYZANTINE_THRESHOLD))
+                .plus(maximumSupport.dividedBy(50).times(specConfig.getConfirmationByzantineThreshold()))
                 .plus(proposerScore));
   }
 
@@ -320,7 +315,7 @@ public class ConfirmationRuleUtil {
     //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
     // config.CONFIRMATION_BYZANTINE_THRESHOLD))
     UInt64 remainingHonestFfgWeight =
-        remainingFfgWeight.dividedBy(100).times(100 - CONFIRMATION_BYZANTINE_THRESHOLD);
+        remainingFfgWeight.dividedBy(100).times(100 - specConfig.getConfirmationByzantineThreshold());
 
     //    # compute min honest FFG support
     //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
@@ -330,8 +325,8 @@ public class ConfirmationRuleUtil {
     //    )
     UInt64 min =
         Stream.of(
-                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
-                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
+                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationByzantineThreshold()),
+                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationSlashingThreshold()),
                 ffgSupportForCheckpoint)
             .min(Comparator.naturalOrder())
             .orElseThrow();
@@ -422,7 +417,7 @@ public class ConfirmationRuleUtil {
     //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
     // config.CONFIRMATION_BYZANTINE_THRESHOLD))
     UInt64 remainingHonestFfgWeight =
-        remainingFfgWeight.dividedBy(100).times(100 - CONFIRMATION_BYZANTINE_THRESHOLD);
+        remainingFfgWeight.dividedBy(100).times(100 - specConfig.getConfirmationByzantineThreshold());
 
     //    # compute min honest FFG support
     //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
@@ -432,8 +427,8 @@ public class ConfirmationRuleUtil {
     //    )
     UInt64 min =
         Stream.of(
-                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_BYZANTINE_THRESHOLD),
-                ffgWeightTillNow.dividedBy(100).times(CONFIRMATION_SLASHING_THRESHOLD),
+                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationByzantineThreshold()),
+                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationSlashingThreshold()),
                 ffgSupportForCheckpoint)
             .min(Comparator.naturalOrder())
             .orElseThrow();
