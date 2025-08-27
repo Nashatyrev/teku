@@ -23,8 +23,11 @@ import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +41,8 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.operations.AttestationSchema;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannelStub;
@@ -61,6 +66,7 @@ import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.storage.server.StateStorageMode;
 import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
+import tech.pegasys.teku.storage.store.UpdatableStore;
 
 class ConfirmationRuleTest {
 
@@ -171,11 +177,13 @@ class ConfirmationRuleTest {
     }
   }
 
-  private void importNextBlockWithAllAttestations() {
+  private SignedBeaconBlock importNextBlockWithAllAttestations() {
     final ChainUpdater chainUpdater = storageSystem.chainUpdater();
     UInt64 headSlot = chainUpdater.getHeadSlot();
+    return importNextBlockWithAllAttestations(headSlot);
+  }
 
-    // Add a block with enough attestations to justify the epoch.
+  private SignedBeaconBlock importNextBlockWithAllAttestations(UInt64 headSlot) {
     final BlockOptions epoch2BlockOptions = BlockOptions.create();
     final UInt64 newBlockSlot = headSlot.increment();
     chainBuilder
@@ -184,13 +192,50 @@ class ConfirmationRuleTest {
     final SignedBlockAndState epoch2Block =
         chainBuilder.generateBlockAtSlot(newBlockSlot, epoch2BlockOptions);
     importBlock(epoch2Block);
+    return epoch2Block.getBlock();
   }
 
   @Test
   void sanityTest() {
+    ArrayList<BeaconBlock> allBlocks = new ArrayList<>();
     for (int i = 0; i < 64; i++) {
-      importNextBlockWithAllAttestations();
+      SignedBeaconBlock block = importNextBlockWithAllAttestations();
+      allBlocks.add(block.getMessage());
     }
+
+    assertThat(allBlocks.get(allBlocks.size() - 2).getRoot())
+        .isEqualTo(storageSystem.recentChainData().getStore().getConfirmedRoot());
+  }
+
+  @Test
+  void testSeveralEpochsEmptySlotGap() {
+    UpdatableStore store = storageSystem.recentChainData().getStore();
+    ArrayList<BeaconBlock> allBlocks = new ArrayList<>();
+    for (int i = 0; i < 64; i++) {
+      SignedBeaconBlock block = importNextBlockWithAllAttestations();
+      allBlocks.add(block.getMessage());
+    }
+
+    assertThat(store.getConfirmedRoot())
+        .isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+
+    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(8 * 3);
+
+    SignedBeaconBlock gapBlock = importNextBlockWithAllAttestations(slotAfterGap);
+    allBlocks.add(gapBlock.getMessage());
+
+    // rollback to finalized
+    Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
+    // don't think this is right
+    assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
+
+    for (int i = 0; i < 64; i++) {
+      SignedBeaconBlock block = importNextBlockWithAllAttestations();
+      allBlocks.add(block.getMessage());
+    }
+
+    assertThat(store.getConfirmedRoot())
+        .isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
   }
 
   private void assertBlockImportedSuccessfully(
