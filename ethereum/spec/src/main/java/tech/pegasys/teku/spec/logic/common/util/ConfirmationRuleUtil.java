@@ -257,7 +257,8 @@ public class ConfirmationRuleUtil {
       return forkChoiceStrategy.getNetWeight(checkpoint.getRoot()).orElseThrow();
     } else {
       // TODO maybe Protoarray modification is needed
-      throw new UnsupportedOperationException("TODO");
+      // TODO!!! Just the stub for initial testing
+      return forkChoiceStrategy.getNetWeight(checkpoint.getRoot()).orElseThrow();
     }
   }
 
