@@ -35,7 +35,7 @@ public class ConfirmationRuleUtil {
 
   // TODO extract to config
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 29;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
 
   private final SpecConfig specConfig;
@@ -66,6 +66,20 @@ public class ConfirmationRuleUtil {
   }
 
   /**
+   *  Returns whether the range from ``first_slot`` to ``last_slot`` (inclusive of both) includes an entire epoch
+   */
+  private boolean isFullValidatorSetCovered(final UInt64 firstSlot, final UInt64 lastSlot) {
+
+    //    start_full_epoch = compute_epoch_at_slot(first_slot + (SLOTS_PER_EPOCH - 1))
+    UInt64 startFullEpoch = miscHelpers.computeEpochAtSlot(firstSlot.plus(specConfig.getSlotsPerEpoch()).decrement());
+    //    end_full_epoch = compute_epoch_at_slot(last_slot + 1) # exclusive
+    UInt64 endFullEpoch = miscHelpers.computeEpochAtSlot(lastSlot.increment());
+
+    //    return start_full_epoch < end_full_epoch
+    return startFullEpoch.isLessThan(endFullEpoch);
+  }
+
+  /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
    * both). FIX+ME: spec: name function estimate* instead of get* FIX+ME (spec): better do
    * `end_slot` exclusive instead of slot-1 on caller site
@@ -90,15 +104,10 @@ public class ConfirmationRuleUtil {
     UInt64 slotsPerEpoch = UInt64.valueOf(specConfig.getSlotsPerEpoch());
     //         end_epoch > start_epoch + 1
     //        or (end_epoch == start_epoch + 1 and start_slot % SLOTS_PER_EPOCH == 0))
-    // FIX+ME (spec): is_first_epoch_slot
-    boolean ifFullValidatorSetCovered =
-        endEpoch.isGreaterThan(startEpoch.increment())
-            || (endEpoch.equals(startEpoch.increment()) && isFirstEpochSlot(firstSlot));
-
     //    # If an entire epoch is covered by the range, return the total active balance
     //    if is_full_validator_set_covered(start_slot, end_slot):
     //        return total_active_balance
-    if (ifFullValidatorSetCovered) {
+    if (isFullValidatorSetCovered(firstSlot,lastSlot)) {
       return totalActiveBalance;
     }
 
