@@ -323,7 +323,8 @@ public class SpecConfigBuilder {
     constants.put("attestationSubnetCount", attestationSubnetCount);
     constants.put("attestationSubnetExtraBits", attestationSubnetExtraBits);
     constants.put("attestationSubnetPrefixBits", attestationSubnetPrefixBits);
-    constants.put("committeeWeightEstimationAdjustmentFactor", committeeWeightEstimationAdjustmentFactor);
+    constants.put(
+        "committeeWeightEstimationAdjustmentFactor", committeeWeightEstimationAdjustmentFactor);
     constants.put("confirmationByzantineThreshold", confirmationByzantineThreshold);
     constants.put("confirmationSlashingThreshold", confirmationSlashingThreshold);
     constants.put("reorgMaxEpochsSinceFinalization", reorgMaxEpochsSinceFinalization);
@@ -792,22 +793,23 @@ public class SpecConfigBuilder {
     return this;
   }
 
-  public SpecConfigBuilder committeeWeightEstimationAdjustmentFactor(final Integer committeeWeightEstimationAdjustmentFactor) {
+  public SpecConfigBuilder committeeWeightEstimationAdjustmentFactor(
+      final Integer committeeWeightEstimationAdjustmentFactor) {
     this.committeeWeightEstimationAdjustmentFactor = committeeWeightEstimationAdjustmentFactor;
     return this;
   }
 
-  public SpecConfigBuilder confirmationByzantineThreshold(final Integer confirmationByzantineThreshold) {
+  public SpecConfigBuilder confirmationByzantineThreshold(
+      final Integer confirmationByzantineThreshold) {
     this.confirmationByzantineThreshold = confirmationByzantineThreshold;
     return this;
   }
 
-  public SpecConfigBuilder confirmationSlashingThreshold(final Integer confirmationSlashingThreshold) {
+  public SpecConfigBuilder confirmationSlashingThreshold(
+      final Integer confirmationSlashingThreshold) {
     this.confirmationSlashingThreshold = confirmationSlashingThreshold;
     return this;
   }
-
-
 
   public SpecConfigBuilder reorgMaxEpochsSinceFinalization(
       final Integer reorgMaxEpochsSinceFinalization) {

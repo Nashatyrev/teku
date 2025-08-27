@@ -61,12 +61,14 @@ public class ConfirmationRuleUtil {
   }
 
   /**
-   *  Returns whether the range from ``first_slot`` to ``last_slot`` (inclusive of both) includes an entire epoch
+   * Returns whether the range from ``first_slot`` to ``last_slot`` (inclusive of both) includes an
+   * entire epoch
    */
   private boolean isFullValidatorSetCovered(final UInt64 firstSlot, final UInt64 lastSlot) {
 
     //    start_full_epoch = compute_epoch_at_slot(first_slot + (SLOTS_PER_EPOCH - 1))
-    UInt64 startFullEpoch = miscHelpers.computeEpochAtSlot(firstSlot.plus(specConfig.getSlotsPerEpoch()).decrement());
+    UInt64 startFullEpoch =
+        miscHelpers.computeEpochAtSlot(firstSlot.plus(specConfig.getSlotsPerEpoch()).decrement());
     //    end_full_epoch = compute_epoch_at_slot(last_slot + 1) # exclusive
     UInt64 endFullEpoch = miscHelpers.computeEpochAtSlot(lastSlot.increment());
 
@@ -102,7 +104,7 @@ public class ConfirmationRuleUtil {
     //    # If an entire epoch is covered by the range, return the total active balance
     //    if is_full_validator_set_covered(start_slot, end_slot):
     //        return total_active_balance
-    if (isFullValidatorSetCovered(firstSlot,lastSlot)) {
+    if (isFullValidatorSetCovered(firstSlot, lastSlot)) {
       return totalActiveBalance;
     }
 
@@ -164,7 +166,9 @@ public class ConfirmationRuleUtil {
     //    required.
     //    """
     //    return Gwei(estimate // 1000 * (1000 + COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR))
-    return estimate.dividedBy(1000).times(1000 + specConfig.getCommitteeWeightEstimationAdjustmentFactor());
+    return estimate
+        .dividedBy(1000)
+        .times(1000 + specConfig.getCommitteeWeightEstimationAdjustmentFactor());
   }
 
   private Optional<UInt64> getNetWeightForState(
@@ -227,7 +231,10 @@ public class ConfirmationRuleUtil {
         .times(2)
         .isGreaterThan(
             maximumSupport
-                .plus(maximumSupport.dividedBy(50).times(specConfig.getConfirmationByzantineThreshold()))
+                .plus(
+                    maximumSupport
+                        .dividedBy(50)
+                        .times(specConfig.getConfirmationByzantineThreshold()))
                 .plus(proposerScore));
   }
 
@@ -316,7 +323,9 @@ public class ConfirmationRuleUtil {
     //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
     // config.CONFIRMATION_BYZANTINE_THRESHOLD))
     UInt64 remainingHonestFfgWeight =
-        remainingFfgWeight.dividedBy(100).times(100 - specConfig.getConfirmationByzantineThreshold());
+        remainingFfgWeight
+            .dividedBy(100)
+            .times(100 - specConfig.getConfirmationByzantineThreshold());
 
     //    # compute min honest FFG support
     //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
@@ -326,8 +335,12 @@ public class ConfirmationRuleUtil {
     //    )
     UInt64 min =
         Stream.of(
-                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationByzantineThreshold()),
-                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationSlashingThreshold()),
+                ffgWeightTillNow
+                    .dividedBy(100)
+                    .times(specConfig.getConfirmationByzantineThreshold()),
+                ffgWeightTillNow
+                    .dividedBy(100)
+                    .times(specConfig.getConfirmationSlashingThreshold()),
                 ffgSupportForCheckpoint)
             .min(Comparator.naturalOrder())
             .orElseThrow();
@@ -418,7 +431,9 @@ public class ConfirmationRuleUtil {
     //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
     // config.CONFIRMATION_BYZANTINE_THRESHOLD))
     UInt64 remainingHonestFfgWeight =
-        remainingFfgWeight.dividedBy(100).times(100 - specConfig.getConfirmationByzantineThreshold());
+        remainingFfgWeight
+            .dividedBy(100)
+            .times(100 - specConfig.getConfirmationByzantineThreshold());
 
     //    # compute min honest FFG support
     //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
@@ -428,8 +443,12 @@ public class ConfirmationRuleUtil {
     //    )
     UInt64 min =
         Stream.of(
-                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationByzantineThreshold()),
-                ffgWeightTillNow.dividedBy(100).times(specConfig.getConfirmationSlashingThreshold()),
+                ffgWeightTillNow
+                    .dividedBy(100)
+                    .times(specConfig.getConfirmationByzantineThreshold()),
+                ffgWeightTillNow
+                    .dividedBy(100)
+                    .times(specConfig.getConfirmationSlashingThreshold()),
                 ffgSupportForCheckpoint)
             .min(Comparator.naturalOrder())
             .orElseThrow();

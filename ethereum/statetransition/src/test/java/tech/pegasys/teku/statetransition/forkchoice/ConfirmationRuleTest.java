@@ -26,7 +26,6 @@ import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_C
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
@@ -216,8 +215,7 @@ class ConfirmationRuleTest {
       allBlocks.add(block.getMessage());
     }
 
-    assertThat(store.getConfirmedRoot())
-        .isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
 
     UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(8 * 3);
 
@@ -234,8 +232,7 @@ class ConfirmationRuleTest {
       allBlocks.add(block.getMessage());
     }
 
-    assertThat(store.getConfirmedRoot())
-        .isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
   }
 
   private void assertBlockImportedSuccessfully(
