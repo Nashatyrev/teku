@@ -374,17 +374,25 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                     }));
   }
 
-  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 headRoot) {
+  private void updateConfirmationRuleStore(BeaconState justifiedState,
+                                           Bytes32 optimisticHeadRoot) {
     final SpecVersion specVersion = spec.atSlot(justifiedState.getSlot());
     ConfirmationRuleUtil confirmationRuleUtil = specVersion.getConfirmationRuleUtil();
 
     StoreTransaction storeTransaction = recentChainData.startStoreTransaction();
+
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = storeTransaction.getForkChoiceStrategy();
+    Bytes32 headRoot = optimisticHeadRoot;
+    // retrieving non-optimistic head. In unhappy case we shoud stop on justified block
+    while (forkChoiceStrategy.isOptimistic(headRoot).orElseThrow()) {
+      headRoot = forkChoiceStrategy.blockParentRoot(headRoot).orElseThrow();
+    }
+
     // store.confirmed_root = get_latest_confirmed(store)
     // FIXME temp spec deviation: taking justified state for now
     Bytes32 latestConfirmed =
         confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, justifiedState);
     storeTransaction.setConfirmedRoot(latestConfirmed);
-    ReadOnlyForkChoiceStrategy forkChoiceStrategy = storeTransaction.getForkChoiceStrategy();
     Optional<UInt64> headSlot = forkChoiceStrategy.blockSlot(headRoot);
     Optional<UInt64> latestConfirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmed);
     System.err.println(
