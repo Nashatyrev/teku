@@ -21,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.infrastructure.collections.cache.Cache;
+import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
@@ -709,6 +711,15 @@ public class ConfirmationRuleUtil {
     return confirmedRoot;
   }
 
+  private LRUCache<Bytes32, UInt64> signleBlockRootToEpochCache =
+      LRUCache.<Bytes32, UInt64>create(1);
+
+  // the previous confirmed root was evicted due to finalization of a later block
+  // this is a hacky way to preserve it for just one iteration
+  private UInt64 getBlockEpochCached(ReadOnlyStore store, Bytes32 blockRoot) {
+    return signleBlockRootToEpochCache.get(blockRoot, root -> getBlockEpoch(store, root));
+  }
+
   // def get_latest_confirmed(store: Store) -> Root:
   public Bytes32 getLatestConfirmed(
       ReadOnlyStore store,
@@ -735,17 +746,12 @@ public class ConfirmationRuleUtil {
     // FIX+ME (spec): confirmed_block_epoch is not defined
     //
     //        confirmed_root = store.finalized_checkpoint.root
-    if (!store.getForkChoiceStrategy().contains(confirmedRoot)) {
-      // the previous confirmed root was evicted due to finalization of a later block
-      // this is basically an implementation hack and doesn't contradict to the spec
+    UInt64 confirmedBlockEpoch = getBlockEpochCached(store, confirmedRoot);
+    if (confirmedBlockEpoch.increment().isLessThan(currentEpoch)
+        || !isAncestor(store, head, confirmedRoot)) {
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
-    } else {
-      UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
-      if (confirmedBlockEpoch.increment().isLessThan(currentEpoch)
-          || !isAncestor(store, head, confirmedRoot)) {
-        confirmedRoot = store.getFinalizedCheckpoint().getRoot();
-      }
     }
+
     //
     //    # if we are at the beginning of the epoch and the epoch of the unrealized justified
     // checkpoint at beginning of the last slot of
@@ -781,15 +787,17 @@ public class ConfirmationRuleUtil {
 
     //    # attempt to further advance the latest confirmed block
     //    confirmed_block_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
-    UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
+    confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
     //    if confirmed_block_epoch + 1 >= current_epoch:
     //        return find_latest_confirmed_descendant(store, confirmed_root)
     //    else:
     //        return confirmed_root
     if (confirmedBlockEpoch.increment().isGreaterThanOrEqualTo(currentEpoch)) {
-      return findLatestConfirmedDescendant(store, confirmedRoot, head, weightingCheckpointState);
-    } else {
-      return confirmedRoot;
+      confirmedRoot =
+          findLatestConfirmedDescendant(store, confirmedRoot, head, weightingCheckpointState);
     }
+    // put to cache
+    getBlockEpochCached(store, confirmedRoot);
+    return confirmedRoot;
   }
 }
