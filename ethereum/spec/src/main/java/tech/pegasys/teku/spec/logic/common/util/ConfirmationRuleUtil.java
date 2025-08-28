@@ -735,10 +735,16 @@ public class ConfirmationRuleUtil {
     // FIX+ME (spec): confirmed_block_epoch is not defined
     //
     //        confirmed_root = store.finalized_checkpoint.root
-    UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
-    if (confirmedBlockEpoch.increment().isLessThan(currentEpoch)
-        || !isAncestor(store, head, confirmedRoot)) {
+    if (!store.getForkChoiceStrategy().contains(confirmedRoot)) {
+      // the previous confirmed root was evicted due to finalization of a later block
+      // this is basically an implementation hack and doesn't contradict to the spec
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
+    } else {
+      UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
+      if (confirmedBlockEpoch.increment().isLessThan(currentEpoch)
+          || !isAncestor(store, head, confirmedRoot)) {
+        confirmedRoot = store.getFinalizedCheckpoint().getRoot();
+      }
     }
     //
     //    # if we are at the beginning of the epoch and the epoch of the unrealized justified
@@ -775,7 +781,7 @@ public class ConfirmationRuleUtil {
 
     //    # attempt to further advance the latest confirmed block
     //    confirmed_block_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
-    confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
+    UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
     //    if confirmed_block_epoch + 1 >= current_epoch:
     //        return find_latest_confirmed_descendant(store, confirmed_root)
     //    else:
