@@ -385,7 +385,12 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     Bytes32 headRoot = optimisticHeadRoot;
     // retrieving non-optimistic head. In unhappy case we shoud stop on justified block
     while (forkChoiceStrategy.isOptimistic(headRoot).orElseThrow()) {
-      headRoot = forkChoiceStrategy.blockParentRoot(headRoot).orElseThrow();
+      Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(headRoot).orElseThrow();
+      if (parentRoot.isZero()) {
+        // headRoot is the genesis block
+        break;
+      }
+      headRoot = parentRoot;
     }
 
     // store.confirmed_root = get_latest_confirmed(store)
