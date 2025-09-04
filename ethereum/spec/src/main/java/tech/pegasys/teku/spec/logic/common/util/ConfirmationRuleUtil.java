@@ -17,9 +17,11 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -327,7 +329,7 @@ public class ConfirmationRuleUtil {
   // def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state:
   // BeaconState) -> Gwei:
   // FIX+ME (spec) fix checkpoint type
-  private UInt64 getCheckpointWeight(
+  private UInt64 getCheckpointWeightFast(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 checkpointSlot = forkChoiceStrategy.blockSlot(checkpoint.getRoot()).orElseThrow();
@@ -338,9 +340,69 @@ public class ConfirmationRuleUtil {
       return forkChoiceStrategy.getNetWeight(checkpoint.getRoot()).orElseThrow();
     } else {
       // TODO maybe Protoarray modification is needed
-      // TODO!!! Just the stub for initial testing
-      return forkChoiceStrategy.getNetWeight(checkpoint.getRoot()).orElseThrow();
+      throw new UnsupportedOperationException("Not implemented");
     }
+  }
+
+  /** Naive slow spec-like implementation */
+  private UInt64 getCheckpointWeightSlow(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+
+    //     if get_current_slot(store) <= compute_start_slot_at_epoch(checkpoint.epoch):
+    //        return Gwei(0)
+    if (getCurrentSlot(store)
+        .isLessThanOrEqualTo(miscHelpers.computeStartSlotAtEpoch(checkpoint.getEpoch()))) {
+      return UInt64.ZERO;
+    }
+    //    checkpoint_weight = 0
+    //    for validator_index, latest_message in store.latest_messages.items():
+    //        vote_target = get_checkpoint_for_block(store, latest_message.root,
+    // latest_message.epoch)
+    //        # checkpoint matches vote's target
+    //        if checkpoint == vote_target:
+    //            checkpoint_weight +=
+    // checkpoint_state.validators[validator_index].effective_balance
+    // FIXME (spec): nit: more function style
+    SszList<Validator> validators = checkpointState.getValidators();
+    UInt64 checkpointWeight =
+        store.calculateFromAllVotes(
+            votes ->
+                IntStream.range(0, votes.length)
+                    .filter(
+                        validatorIndex -> {
+                          VoteTracker vote = votes[validatorIndex];
+                          return vote != null && !vote.equals(VoteTracker.DEFAULT);
+                        })
+                    .filter(
+                        validatorIndex -> {
+                          VoteTracker vote = votes[validatorIndex];
+                          Checkpoint voteTarget =
+                              getCheckpointForBlock(store, vote.getNextRoot(), vote.getNextEpoch());
+                          return voteTarget.equals(checkpoint);
+                        })
+                    .mapToObj(
+                        validatorIndex -> validators.get(validatorIndex).getEffectiveBalance())
+                    .reduce(UInt64.ZERO, UInt64::plus));
+
+    //    return Gwei(checkpoint_weight)
+    return checkpointWeight;
+  }
+
+  private UInt64 getCheckpointWeight(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+    UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState);
+
+    UInt64 checkpointSlot =
+        store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
+    if (isFirstEpochSlot(checkpointSlot)) {
+      UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
+      checkState(
+          weightFast.equals(weightSlow),
+          "Slow and fast algorithms don't match: {} != {}",
+          weightSlow,
+          weightFast);
+    }
+    return weightSlow;
   }
 
   // def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
