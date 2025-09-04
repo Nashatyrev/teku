@@ -89,6 +89,7 @@ class ConfirmationRuleTest {
   private ChainBuilder chainBuilder;
   private SignedBlockAndState genesis;
   private RecentChainData recentChainData;
+  private ConfirmationRuleUtil confirmationRuleUtil;
 
   private final ForkChoiceNotifier forkChoiceNotifier = mock(ForkChoiceNotifier.class);
   private final OptimisticHeadSubscriber optimisticSyncStateTracker =
@@ -103,6 +104,8 @@ class ConfirmationRuleTest {
   private final InlineEventThread eventThread = new InlineEventThread();
 
   private ForkChoice forkChoice;
+
+  private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
 
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 29;
@@ -149,6 +152,7 @@ class ConfirmationRuleTest {
             DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED,
             debugDataDumper,
             metricsSystem);
+    this.confirmationRuleUtil = spec.getGenesisSpec().getConfirmationRuleUtil();
 
     // Starting and mocks
     when(transitionBlockValidator.verifyAncestorTransitionBlock(any()))
@@ -285,18 +289,42 @@ class ConfirmationRuleTest {
 
     processHead(blockWithAttesterSlashings.getSlot());
 
-    Checkpoint genesisCheckpoint = recentChainData.getJustifiedCheckpoint().orElseThrow();
-    BeaconState state =
-        recentChainData.retrieveCheckpointState(genesisCheckpoint).join().orElseThrow();
-    ConfirmationRuleUtil confirmationRuleUtil = spec.getGenesisSpec().getConfirmationRuleUtil();
     UInt64 checkpointWeight =
         confirmationRuleUtil.getCheckpointWeight(
-            recentChainData.getStore(), genesisCheckpoint, state);
-    UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
+            recentChainData.getStore(),
+            genesis.getState().getCurrentJustifiedCheckpoint(),
+            genesis.getState());
 
     // 2 of 3 votes are equivocating, but should still count
     assertThat(checkpointWeight).isEqualTo(validatorBalance.times(3));
   }
+
+  @Test
+  void getCheckpointWeight_shouldCountVotesOnlyInTheCheckpointEpoch() {
+    final BlockOptions options = BlockOptions.create();
+    // 1 attestations for epoch 0
+    chainBuilder.getAttestationGenerator()
+        .streamAttestations(genesis, UInt64.valueOf(6))
+        .limit(1)
+        .forEach(options::addAttestation);
+    // 2 attestations for epoch 1
+    chainBuilder.getAttestationGenerator()
+        .streamAttestations(genesis, UInt64.valueOf(8))
+        .limit(2)
+        .forEach(options::addAttestation);
+
+    final SignedBlockAndState epoch1Block = chainBuilder.generateNextBlock(9, options);
+
+    importBlock(epoch1Block);
+
+    Checkpoint epoch1Checkpoint = new Checkpoint(UInt64.ONE, genesis.getRoot());
+    UInt64 checkpointWeight =
+        confirmationRuleUtil.getCheckpointWeight(
+            recentChainData.getStore(), epoch1Checkpoint, genesis.getState());
+
+    assertThat(checkpointWeight).isEqualTo(validatorBalance.times(2));
+  }
+
 
   private void assertBlockImportedSuccessfully(
       final SafeFuture<BlockImportResult> importResult, final boolean optimistically) {

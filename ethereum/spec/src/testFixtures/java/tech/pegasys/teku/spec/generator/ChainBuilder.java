@@ -517,6 +517,10 @@ public class ChainBuilder {
     return attestationGenerator.streamAttestations(attestedHead, attestedHead.getSlot());
   }
 
+  public AttestationGenerator getAttestationGenerator() {
+    return attestationGenerator;
+  }
+
   public AttesterSlashing createAttesterSlashingForAttestation(
       final Attestation attestation, final SignedBlockAndState blockAndState) {
     return attesterSlashingGenerator.createAttesterSlashingForAttestation(

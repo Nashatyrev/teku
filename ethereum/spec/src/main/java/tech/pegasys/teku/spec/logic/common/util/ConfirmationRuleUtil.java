@@ -399,7 +399,8 @@ public class ConfirmationRuleUtil {
 
     UInt64 checkpointSlot =
         store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
-    if (isFirstEpochSlot(checkpointSlot)) {
+    UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
+    if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
       // just checking implementation compatibility
       UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false);
       UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
