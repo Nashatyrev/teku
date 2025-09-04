@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;

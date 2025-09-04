@@ -16,16 +16,14 @@ package tech.pegasys.teku.spec.logic.common.util;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
+import com.google.common.annotations.VisibleForTesting;
+import it.unimi.dsi.fastutil.ints.IntList;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import com.google.common.annotations.VisibleForTesting;
-import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
@@ -347,7 +345,10 @@ public class ConfirmationRuleUtil {
 
   /** Naive slow spec-like implementation */
   private UInt64 getCheckpointWeightSlow(
-      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState, boolean includeEquivocative) {
+      ReadOnlyStore store,
+      Checkpoint checkpoint,
+      BeaconState checkpointState,
+      boolean includeEquivocative) {
 
     //     if get_current_slot(store) <= compute_start_slot_at_epoch(checkpoint.epoch):
     //        return Gwei(0)

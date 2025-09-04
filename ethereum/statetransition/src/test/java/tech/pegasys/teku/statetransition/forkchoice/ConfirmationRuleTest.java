@@ -21,8 +21,6 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
-import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ONE;
-import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ZERO;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 
 import java.util.ArrayList;
@@ -288,9 +286,12 @@ class ConfirmationRuleTest {
     processHead(blockWithAttesterSlashings.getSlot());
 
     Checkpoint genesisCheckpoint = recentChainData.getJustifiedCheckpoint().orElseThrow();
-    BeaconState state = recentChainData.retrieveCheckpointState(genesisCheckpoint).join().orElseThrow();
+    BeaconState state =
+        recentChainData.retrieveCheckpointState(genesisCheckpoint).join().orElseThrow();
     ConfirmationRuleUtil confirmationRuleUtil = spec.getGenesisSpec().getConfirmationRuleUtil();
-    UInt64 checkpointWeight = confirmationRuleUtil.getCheckpointWeight(recentChainData.getStore(), genesisCheckpoint, state);
+    UInt64 checkpointWeight =
+        confirmationRuleUtil.getCheckpointWeight(
+            recentChainData.getStore(), genesisCheckpoint, state);
     UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
 
     // 2 of 3 votes are equivocating, but should still count

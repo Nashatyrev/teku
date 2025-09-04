@@ -374,8 +374,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                     }));
   }
 
-  private void updateConfirmationRuleStore(BeaconState justifiedState,
-                                           Bytes32 optimisticHeadRoot) {
+  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 optimisticHeadRoot) {
     final SpecVersion specVersion = spec.atSlot(justifiedState.getSlot());
     ConfirmationRuleUtil confirmationRuleUtil = specVersion.getConfirmationRuleUtil();
 

@@ -48,7 +48,7 @@ public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
    *
    * <p>May be overridden by the ENV_SPEC environment variable.
    */
-//  private static final String SPEC = "minimal";
+  //  private static final String SPEC = "minimal";
   private static final String SPEC = "";
 
   /**
@@ -56,7 +56,7 @@ public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
    *
    * <p>May be overridden by the ENV_MILESTONE environment variable.
    */
-//  private static final String MILESTONE = "altair";
+  //  private static final String MILESTONE = "altair";
   private static final String MILESTONE = "";
 
   /**
