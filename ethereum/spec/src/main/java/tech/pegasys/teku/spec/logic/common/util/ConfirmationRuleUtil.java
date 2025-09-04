@@ -461,8 +461,9 @@ public class ConfirmationRuleUtil {
         .plus(remainingHonestFfgWeight)
         .times(3)
         .isGreaterThanOrEqualTo(totalActiveBalance);
-    // FIXME (spec): deduplicate function with willCurrentEpochCheckpointBeJustified (just the
-    // latest multiplier differs)
+    // FIX+ME (spec): deduplicate function with willCurrentEpochCheckpointBeJustified (just the
+    //    latest multiplier differs)
+    // https://github.com/mkalinin/confirmation-rule/pull/23
   }
 
   private UInt64 getBlockEpoch(ReadOnlyStore store, Bytes32 blockRoot) {
@@ -505,6 +506,7 @@ public class ConfirmationRuleUtil {
     if (currentEpoch.isGreaterThan(blockEpoch)) {
       // # The block is from a prior epoch, the voting source will be pulled-up
       // return store.unrealized_justifications[block_root]
+      // FIXME: different from spec but looks equivalent
       return blockCheckpoints.getUnrealizedJustifiedCheckpoint();
     } else {
       // else:
@@ -535,7 +537,7 @@ public class ConfirmationRuleUtil {
   private Bytes32 findLatestConfirmedDescendant(
       ReadOnlyStore store,
       Bytes32 latestConfirmedRoot,
-      Bytes32 headBlockRoot /* TODO probably worth adding it to Store */,
+      Bytes32 headBlockRoot,
       BeaconState weightingCheckpointState) {
     // current_epoch = get_current_store_epoch(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -567,7 +569,8 @@ public class ConfirmationRuleUtil {
     boolean isPrevHeadSourceTooOld =
         prevHeadSourceCheckpoint.getEpoch().plus(2).isLessThan(currentEpoch);
     boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
-    // FIXME sepc deviation with getCheckpointForBlock
+    // FIX+ME sepc deviation with getCheckpointForBlock
+    // https://github.com/mkalinin/confirmation-rule/pull/22
     boolean willNoConflictingCheckpointBeJustified =
         willNoConflictingCheckpointBeJustified(
             store,
@@ -692,7 +695,6 @@ public class ConfirmationRuleUtil {
       //         and (get_current_slot(store) % SLOTS_PER_EPOCH == 0
       //              or will_no_conflicting_checkpoint_be_justified(store,
       // get_checkpoint_block(store, head, current_epoch))))):
-      // FIXME (spec): is it really the same condition as above?
       boolean isTentativeInCurrentEpoch =
           getBlockEpoch(store, tentativeConfirmedRoot).equals(currentEpoch);
       boolean isTentativeVoutingSourceTooOld =
