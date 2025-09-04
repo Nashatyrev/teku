@@ -22,6 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -403,6 +405,11 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   public VoteTracker getVote(final UInt64 validatorIndex) {
     VoteTracker vote = votes.get(validatorIndex);
     return vote != null ? vote : VoteTracker.DEFAULT;
+  }
+
+  @Override
+  public <R> R calculateFromAllVotes(Function<VoteTracker[], R> processor) {
+    throw new UnsupportedOperationException("Not implemented");
   }
 
   @Override

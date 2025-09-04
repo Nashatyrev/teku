@@ -913,6 +913,16 @@ class Store extends CacheableStore {
     }
   }
 
+  @Override
+  public <R> R calculateFromAllVotes(final Function<VoteTracker[], R> processor) {
+    readVotesLock.lock();
+    try {
+      return processor.apply(votes);
+    } finally {
+      readVotesLock.unlock();
+    }
+  }
+
   private SafeFuture<Optional<SignedBlockAndState>> getAndCacheBlockAndState(
       final Bytes32 blockRoot) {
     return getOrRegenerateBlockAndState(blockRoot)
