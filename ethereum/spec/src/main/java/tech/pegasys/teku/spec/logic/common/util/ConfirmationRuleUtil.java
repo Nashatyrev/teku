@@ -24,7 +24,6 @@ import java.util.stream.Stream;
 
 import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.tuweni.bytes.Bytes32;
-import tech.pegasys.teku.infrastructure.collections.cache.Cache;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -89,7 +88,7 @@ public class ConfirmationRuleUtil {
    * both). FIX+ME: spec: name function estimate* instead of get* FIX+ME (spec): better do
    * `end_slot` exclusive instead of slot-1 on caller site
    */
-  private UInt64 getCommitteeWeightBetweenSlots(
+  private UInt64 estimateCommitteeWeightBetweenSlots(
       BeaconState state, UInt64 firstSlot, UInt64 lastSlot) {
 
     //    total_active_balance = get_total_active_balance(state)
@@ -280,7 +279,7 @@ public class ConfirmationRuleUtil {
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     // FIX-ME (spec): if make end_slot exclusive then need to remove '- 1'
     UInt64 maximumSupport =
-        getCommitteeWeightBetweenSlots(
+        estimateCommitteeWeightBetweenSlots(
             weightingCheckpointState,
             parentBlockSlot.increment(),
             getCurrentSlot(store).decrement());
