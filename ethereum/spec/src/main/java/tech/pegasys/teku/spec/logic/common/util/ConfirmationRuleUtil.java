@@ -14,21 +14,27 @@
 package tech.pegasys.teku.spec.logic.common.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
+
+import it.unimi.dsi.fastutil.ints.IntList;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.cache.Cache;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
+import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyForkChoiceStrategy;
 import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyStore;
+import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
+import tech.pegasys.teku.spec.datastructures.state.Validator;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
@@ -173,10 +179,77 @@ public class ConfirmationRuleUtil {
         .times(1000 + specConfig.getCommitteeWeightEstimationAdjustmentFactor());
   }
 
-  private Optional<UInt64> getNetWeightForState(
+  /** Fast prototype, but doesn't account referenceCheckpointState and thus is NOT spec compliant */
+  private Optional<UInt64> getNetWeightForStateFast(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
     // TODO consider referenceState. Most likely requires Protoarray redesign
     return store.getForkChoiceStrategy().getNetWeight(blockRoot);
+  }
+
+  /** Slow but spec compliant prototype */
+  private UInt64 getNetWeightForStateSlow(
+      ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
+
+    //     unslashed_and_active_indices = [
+    //        i for i in get_active_validator_indices(state, get_current_epoch(state))
+    //        if not state.validators[i].slashed
+    //    ]
+    IntList activeValidatorIndices =
+        beaconStateAccessors.getActiveNonSlashedValidatorIndices(
+            referenceCheckpointState, getCurrentEpochStore(store));
+
+    //    attestation_score = Gwei(sum(
+    //        state.validators[i].effective_balance for i in unslashed_and_active_indices
+    //        if (i in store.latest_messages
+    //            and i not in store.equivocating_indices
+    //            and is_ancestor(store, store.latest_messages[i].root, root))
+    //    ))
+
+    SszList<Validator> validators = referenceCheckpointState.getValidators();
+    UInt64 attestationScore =
+        store.calculateFromAllVotes(
+            votes ->
+                activeValidatorIndices.stream()
+                    .filter(
+                        validatorIndex -> {
+                          if (validatorIndex >= votes.length) {
+                            return false;
+                          }
+                          VoteTracker vote = votes[validatorIndex];
+                          return vote != null
+                              && !vote.equals(VoteTracker.DEFAULT)
+                              && !vote.isEquivocating()
+                              && isAncestor(store, vote.getNextRoot(), blockRoot);
+                        })
+                    .map(validatorIndex -> validators.get(validatorIndex).getEffectiveBalance())
+                    .reduce(UInt64.ZERO, UInt64::plus));
+
+    //    if store.proposer_boost_root == Root():
+    //        # Return only attestation score if ``proposer_boost_root`` is not set
+    //        return attestation_score
+    //
+    //    # Calculate proposer score if ``proposer_boost_root`` is set
+    //    proposer_score = Gwei(0)
+    //    # Boost is applied if ``root`` is an ancestor of ``proposer_boost_root``
+    //    if is_ancestor(store, store.proposer_boost_root, root):
+    //        proposer_score = get_proposer_score(store)
+    //    return attestation_score + proposer_score
+
+    // FIXME (spec): should we add proposer boost or not?
+    return attestationScore;
+  }
+
+  private UInt64 getNetWeightForState(
+      ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
+    UInt64 weightFast =
+        getNetWeightForStateFast(store, blockRoot, referenceCheckpointState).orElseThrow();
+    UInt64 weightSlow = getNetWeightForStateSlow(store, blockRoot, referenceCheckpointState);
+    checkState(
+        weightFast.equals(weightSlow),
+        "Weights doesnt match fast {} != slow {}",
+        weightFast,
+        weightSlow);
+    return weightFast;
   }
 
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
@@ -202,7 +275,7 @@ public class ConfirmationRuleUtil {
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
 
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
-    UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState).orElseThrow();
+    UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState);
     //    maximum_support = get_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     // FIX-ME (spec): if make end_slot exclusive then need to remove '- 1'
