@@ -23,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import java.net.ConnectException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -394,22 +395,31 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
     // store.confirmed_root = get_latest_confirmed(store)
     // FIXME temp spec deviation: taking justified state for now
+    ConfirmationRuleUtil.CheckpointStateStore checkpointStateStore = (__) -> justifiedState;
+    ConfirmationRuleUtil.TrackingCheckpointStateStore trackingCheckpointStateStore =
+        new ConfirmationRuleUtil.TrackingCheckpointStateStore(checkpointStateStore);
     Bytes32 latestConfirmed =
-        confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, (__) -> justifiedState);
+        confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, trackingCheckpointStateStore);
     storeTransaction.setConfirmedRoot(latestConfirmed);
     Optional<UInt64> headSlot = forkChoiceStrategy.blockSlot(headRoot);
     Optional<UInt64> latestConfirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmed);
+    int uniqStatesRequested = new HashSet<>(trackingCheckpointStateStore.getRequestedCheckpoints()).size();
     System.err.println(
         "updateConfirmationRuleStore: head="
             + headSlot.map(UInt64::toString).orElse("NaN")
             + ",("
-            + headRoot.toString().substring(0, 10)
+            + headRoot.toString().substring(0, 8)
             + "), confirmed="
             + latestConfirmedSlot.map(UInt64::toString).orElse("NaN")
             + ",("
-            + latestConfirmed.toString().substring(0, 10)
-            + "), justified="
-            + storeTransaction.getJustifiedCheckpoint());
+            + latestConfirmed.toString().substring(0, 8)
+            + "), states requested/uniq: "
+            + (uniqStatesRequested > 2 ? "####" : "")
+            + trackingCheckpointStateStore.getRequestedCheckpoints().size()
+            + "/"
+            + uniqStatesRequested
+            + ", justified="
+            + toStr(storeTransaction.getJustifiedCheckpoint()));
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevSlotJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
@@ -421,6 +431,10 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     //    may be we need to o this in on_slot handler ???
     storeTransaction.setPrevSlotHead(headRoot);
     storeTransaction.commit();
+  }
+
+  private static String toStr(Checkpoint checkpoint) {
+    return "Checkpoint[" + checkpoint.getEpoch() + ", " + checkpoint.getRoot().toString().substring(0, 8) + "]";
   }
 
   private Bytes32 updateHeadTransaction(
