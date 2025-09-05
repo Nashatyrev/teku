@@ -197,9 +197,15 @@ public class ConfirmationRuleUtil {
     //        i for i in get_active_validator_indices(state, get_current_epoch(state))
     //        if not state.validators[i].slashed
     //    ]
-    IntList activeValidatorIndices =
-        beaconStateAccessors.getActiveNonSlashedValidatorIndices(
+//    IntList activeValidatorIndices =
+//        beaconStateAccessors.getActiveNonSlashedValidatorIndices(
+//            referenceCheckpointState, getCurrentEpochStore(store));
+    List<UInt64> effectiveActiveUnslashedBalances =
+        beaconStateUtil.getEffectiveActiveUnslashedBalances(
             referenceCheckpointState, getCurrentEpochStore(store));
+    IntStream effectiveActiveUnslashedIndicesStream =
+        IntStream.range(0, effectiveActiveUnslashedBalances.size())
+            .filter(i -> !effectiveActiveUnslashedBalances.get(i).isZero());
 
     //    attestation_score = Gwei(sum(
     //        state.validators[i].effective_balance for i in unslashed_and_active_indices
@@ -212,7 +218,7 @@ public class ConfirmationRuleUtil {
     UInt64 attestationScore =
         store.calculateFromAllVotes(
             votes ->
-                activeValidatorIndices.stream()
+                effectiveActiveUnslashedIndicesStream
                     .filter(
                         validatorIndex -> {
                           if (validatorIndex >= votes.length) {
@@ -224,8 +230,9 @@ public class ConfirmationRuleUtil {
                               && !vote.isEquivocating()
                               && isAncestor(store, vote.getNextRoot(), blockRoot);
                         })
-                    .map(validatorIndex -> validators.get(validatorIndex).getEffectiveBalance())
-                    .reduce(UInt64.ZERO, UInt64::plus));
+                    .mapToObj(validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
+                    .reduce(UInt64.ZERO, UInt64::plus)
+        );
 
     //    if store.proposer_boost_root == Root():
     //        # Return only attestation score if ``proposer_boost_root`` is not set
