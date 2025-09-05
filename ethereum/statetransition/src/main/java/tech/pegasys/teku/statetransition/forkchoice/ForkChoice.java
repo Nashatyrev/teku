@@ -395,7 +395,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     // store.confirmed_root = get_latest_confirmed(store)
     // FIXME temp spec deviation: taking justified state for now
     Bytes32 latestConfirmed =
-        confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, justifiedState);
+        confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, (__) -> justifiedState);
     storeTransaction.setConfirmedRoot(latestConfirmed);
     Optional<UInt64> headSlot = forkChoiceStrategy.blockSlot(headRoot);
     Optional<UInt64> latestConfirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmed);

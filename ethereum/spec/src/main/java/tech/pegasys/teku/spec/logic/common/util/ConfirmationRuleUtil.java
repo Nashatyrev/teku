@@ -17,7 +17,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.annotations.VisibleForTesting;
-import it.unimi.dsi.fastutil.ints.IntList;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -40,6 +40,11 @@ import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 
 public class ConfirmationRuleUtil {
+
+  public interface CheckpointStateStore {
+
+    BeaconState getState(Checkpoint checkpoint);
+  }
 
   private final SpecConfig specConfig;
   private final BeaconStateAccessors beaconStateAccessors;
@@ -196,9 +201,6 @@ public class ConfirmationRuleUtil {
     //        i for i in get_active_validator_indices(state, get_current_epoch(state))
     //        if not state.validators[i].slashed
     //    ]
-//    IntList activeValidatorIndices =
-//        beaconStateAccessors.getActiveNonSlashedValidatorIndices(
-//            referenceCheckpointState, getCurrentEpochStore(store));
     List<UInt64> effectiveActiveUnslashedBalances =
         beaconStateUtil.getEffectiveActiveUnslashedBalances(
             referenceCheckpointState, getCurrentEpochStore(store));
@@ -229,9 +231,9 @@ public class ConfirmationRuleUtil {
                               && !vote.isEquivocating()
                               && isAncestor(store, vote.getNextRoot(), blockRoot);
                         })
-                    .mapToObj(validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
-                    .reduce(UInt64.ZERO, UInt64::plus)
-        );
+                    .mapToObj(
+                        validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
+                    .reduce(UInt64.ZERO, UInt64::plus));
 
     //    if store.proposer_boost_root == Root():
     //        # Return only attestation score if ``proposer_boost_root`` is not set
@@ -265,7 +267,7 @@ public class ConfirmationRuleUtil {
   private boolean isOneConfirmed(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
-      final BeaconState weightingCheckpointState) {
+      final CheckpointStateStore checkpointStateStore) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     //    current_slot = get_current_slot(store)
     //    block = store.blocks[block_root]
@@ -281,8 +283,12 @@ public class ConfirmationRuleUtil {
     //        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
     //    else:
     //        weighting_checkpoint = store.prev_slot_justified_checkpoint
+    Checkpoint weightingCheckpoint =
+        isFirstEpochSlot(getCurrentSlot(store))
+            ? store.getPrevSlotUnrealizedJustifiedCheckpoint()
+            : store.getPrevSlotJustifiedCheckpoint();
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
-
+    BeaconState weightingCheckpointState = checkpointStateStore.getState(weightingCheckpoint);
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
     UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState);
     //    maximum_support = get_committee_weight_between_slots(
@@ -297,8 +303,9 @@ public class ConfirmationRuleUtil {
     // FIXME (spec): is it ok that maximumSupport can be less than actual support???
     // checkState(support.isLessThanOrEqualTo(maximumSupport));
     //    proposer_score = get_proposer_score(store)
-    // FIXME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
-    UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(weightingCheckpointState);
+    // FIX+ME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
+    BeaconState proposerBoostState = checkpointStateStore.getState(store.getJustifiedCheckpoint());
+    UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(proposerBoostState);
     //
     //    # Returns whether the following condition is true using only integer arithmetic
     //    # support / maximum_support >
@@ -447,7 +454,7 @@ public class ConfirmationRuleUtil {
 
   // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
   private boolean willCurrentEpochCheckpointBeJustified(
-      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -459,8 +466,9 @@ public class ConfirmationRuleUtil {
     //
     //    store_target_checkpoint_state(store, checkpoint)
     //    checkpoint_state = store.checkpoint_states[checkpoint]
-    // FIXME (spec): to fix approach to retrieve state
-    //
+    // FIX+ME (spec): to fix approach to retrieve state
+    BeaconState checkpointState = checkpointStateStore.getState(checkpoint);
+
     //    total_active_balance = get_total_active_balance(checkpoint_state)
     UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
     //
@@ -533,7 +541,7 @@ public class ConfirmationRuleUtil {
 
   // def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
   private boolean willCheckpointBeJustified(
-      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
     //    if checkpoint == store.justified_checkpoint:
     //        return True
     if (checkpoint.equals(store.getJustifiedCheckpoint())) {
@@ -547,7 +555,7 @@ public class ConfirmationRuleUtil {
     //    if checkpoint.epoch == get_current_epoch_store(store):
     //        return will_current_epoch_checkpoint_be_justified(store, checkpoint)
     if (checkpoint.getEpoch().equals(getCurrentEpochStore(store))) {
-      return willCurrentEpochCheckpointBeJustified(store, checkpoint, checkpointState);
+      return willCurrentEpochCheckpointBeJustified(store, checkpoint, checkpointStateStore);
     }
     //    return False
     return false;
@@ -556,7 +564,7 @@ public class ConfirmationRuleUtil {
   //
   // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
   private boolean willNoConflictingCheckpointBeJustified(
-      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
     checkArgument(checkpoint.getEpoch().equals(currentEpoch));
@@ -567,7 +575,8 @@ public class ConfirmationRuleUtil {
 
     //    store_target_checkpoint_state(store, checkpoint)
     //    checkpoint_state = store.checkpoint_states[checkpoint]
-    // FIXME (spec): to fix approach to retrieve state
+    // FIX+ME (spec): to fix approach to retrieve state
+    BeaconState checkpointState = checkpointStateStore.getState(checkpoint);
     //
     //    total_active_balance = get_total_active_balance(checkpoint_state)
     UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
@@ -692,7 +701,7 @@ public class ConfirmationRuleUtil {
       ReadOnlyStore store,
       Bytes32 latestConfirmedRoot,
       Bytes32 headBlockRoot,
-      BeaconState weightingCheckpointState) {
+      CheckpointStateStore checkpointStateStore) {
     // current_epoch = get_current_store_epoch(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
     // # verify the latest confirmed block is not too old
@@ -727,9 +736,7 @@ public class ConfirmationRuleUtil {
     // https://github.com/mkalinin/confirmation-rule/pull/22
     boolean willNoConflictingCheckpointBeJustified =
         willNoConflictingCheckpointBeJustified(
-            store,
-            getCheckpointForBlock(store, headBlockRoot, currentEpoch),
-            weightingCheckpointState);
+            store, getCheckpointForBlock(store, headBlockRoot, currentEpoch), checkpointStateStore);
     Checkpoint prevHeadUnrealizedJustifiedCheckpoint =
         forkChoiceStrategy
             .getBlockData(store.getPrevSlotHead())
@@ -787,7 +794,7 @@ public class ConfirmationRuleUtil {
         }
         // if not is_one_confirmed(store, block_root):
         //     break
-        if (!isOneConfirmed(store, blockRoot, weightingCheckpointState)) {
+        if (!isOneConfirmed(store, blockRoot, checkpointStateStore)) {
           break;
         }
         // confirmed_root = block_root
@@ -830,13 +837,13 @@ public class ConfirmationRuleUtil {
           // # current epoch checkpoint will be justified
           // if not will_checkpoint_be_justified(store, checkpoint):
           //     break
-          if (!willCheckpointBeJustified(store, checkpoint, weightingCheckpointState)) {
+          if (!willCheckpointBeJustified(store, checkpoint, checkpointStateStore)) {
             break;
           }
         }
         // if not is_one_confirmed(store, block_root):
         //    break
-        if (!isOneConfirmed(store, blockRoot, weightingCheckpointState)) {
+        if (!isOneConfirmed(store, blockRoot, checkpointStateStore)) {
           break;
         }
         // tentative_confirmed_root = block_root
@@ -880,7 +887,7 @@ public class ConfirmationRuleUtil {
   public Bytes32 getLatestConfirmed(
       ReadOnlyStore store,
       Bytes32 head /* TODO probably worth adding it to Store */,
-      BeaconState weightingCheckpointState) {
+      CheckpointStateStore checkpointStateStore) {
     //    confirmed_root = store.confirmed_root
     Bytes32 confirmedRoot = store.getConfirmedRoot();
     //    current_epoch = get_current_store_epoch(store)
@@ -950,7 +957,7 @@ public class ConfirmationRuleUtil {
     //        return confirmed_root
     if (confirmedBlockEpoch.increment().isGreaterThanOrEqualTo(currentEpoch)) {
       confirmedRoot =
-          findLatestConfirmedDescendant(store, confirmedRoot, head, weightingCheckpointState);
+          findLatestConfirmedDescendant(store, confirmedRoot, head, checkpointStateStore);
     }
     // put to cache
     getBlockEpochCached(store, confirmedRoot);
