@@ -304,12 +304,14 @@ class ConfirmationRuleTest {
   void getCheckpointWeight_shouldCountVotesOnlyInTheCheckpointEpoch() {
     final BlockOptions options = BlockOptions.create();
     // 1 attestations for epoch 0
-    chainBuilder.getAttestationGenerator()
+    chainBuilder
+        .getAttestationGenerator()
         .streamAttestations(genesis, UInt64.valueOf(6))
         .limit(1)
         .forEach(options::addAttestation);
     // 2 attestations for epoch 1
-    chainBuilder.getAttestationGenerator()
+    chainBuilder
+        .getAttestationGenerator()
         .streamAttestations(genesis, UInt64.valueOf(8))
         .limit(2)
         .forEach(options::addAttestation);
@@ -325,7 +327,6 @@ class ConfirmationRuleTest {
 
     assertThat(checkpointWeight).isEqualTo(validatorBalance.times(2));
   }
-
 
   private void assertBlockImportedSuccessfully(
       final SafeFuture<BlockImportResult> importResult, final boolean optimistically) {
