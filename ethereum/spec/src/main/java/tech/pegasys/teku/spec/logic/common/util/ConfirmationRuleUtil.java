@@ -43,14 +43,17 @@ public class ConfirmationRuleUtil {
 
   private final SpecConfig specConfig;
   private final BeaconStateAccessors beaconStateAccessors;
+  private final BeaconStateUtil beaconStateUtil;
   private final MiscHelpers miscHelpers;
 
   public ConfirmationRuleUtil(
       final SpecConfig specConfig,
       final BeaconStateAccessors beaconStateAccessors,
+      BeaconStateUtil beaconStateUtil,
       final MiscHelpers miscHelpers) {
     this.specConfig = specConfig;
     this.beaconStateAccessors = beaconStateAccessors;
+    this.beaconStateUtil = beaconStateUtil;
     this.miscHelpers = miscHelpers;
   }
 

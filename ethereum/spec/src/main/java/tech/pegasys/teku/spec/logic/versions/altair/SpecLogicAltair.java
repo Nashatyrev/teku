@@ -167,7 +167,7 @@ public class SpecLogicAltair extends AbstractSpecLogic {
         new ForkChoiceUtil(
             config, beaconStateAccessors, epochProcessor, attestationUtil, miscHelpers);
     final ConfirmationRuleUtil confirmationRuleUtil =
-        new ConfirmationRuleUtil(config, beaconStateAccessors, miscHelpers);
+        new ConfirmationRuleUtil(config, beaconStateAccessors, beaconStateUtil, miscHelpers);
     final BlockProposalUtil blockProposalUtil =
         new BlockProposalUtil(schemaDefinitions, blockProcessor);
 
