@@ -185,7 +185,6 @@ public class ConfirmationRuleUtil {
   /** Fast prototype, but doesn't account referenceCheckpointState and thus is NOT spec compliant */
   private Optional<UInt64> getNetWeightForStateFast(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
-    // TODO consider referenceState. Most likely requires Protoarray redesign
     return store.getForkChoiceStrategy().getNetWeight(blockRoot);
   }
 
@@ -330,7 +329,8 @@ public class ConfirmationRuleUtil {
   }
 
   private Checkpoint getCheckpointForBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
-    // FIXME spec deviation (looks equivalent)
+    // FIX+ME spec deviation (looks equivalent)
+    // https://github.com/mkalinin/confirmation-rule/pull/22
     return new Checkpoint(epoch, getCheckpointBlock(store, root, epoch));
   }
 
@@ -343,12 +343,8 @@ public class ConfirmationRuleUtil {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 checkpointSlot = forkChoiceStrategy.blockSlot(checkpoint.getRoot()).orElseThrow();
     if (isFirstEpochSlot(checkpointSlot)) {
-      // FIXME probably spec deviation
-      // FIXME basically one need to use the state passed but the ProtoArray implied state,
-      //  which is basically the current justified checkpoint state
       return getNetWeightForState(store, checkpoint.getRoot(), checkpointState);
     } else {
-      // TODO maybe Protoarray modification is needed
       throw new UnsupportedOperationException("Not implemented");
     }
   }
