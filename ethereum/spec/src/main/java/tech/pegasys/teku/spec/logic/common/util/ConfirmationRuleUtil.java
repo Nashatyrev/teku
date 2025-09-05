@@ -346,7 +346,7 @@ public class ConfirmationRuleUtil {
       // FIXME probably spec deviation
       // FIXME basically one need to use the state passed but the ProtoArray implied state,
       //  which is basically the current justified checkpoint state
-      return forkChoiceStrategy.getNetWeight(checkpoint.getRoot()).orElseThrow();
+      return getNetWeightForState(store, checkpoint.getRoot(), checkpointState);
     } else {
       // TODO maybe Protoarray modification is needed
       throw new UnsupportedOperationException("Not implemented");
@@ -358,7 +358,8 @@ public class ConfirmationRuleUtil {
       ReadOnlyStore store,
       Checkpoint checkpoint,
       BeaconState checkpointState,
-      boolean includeEquivocative) {
+      boolean includeEquivocative,
+      boolean includeSlashed) {
 
     //     if get_current_slot(store) <= compute_start_slot_at_epoch(checkpoint.epoch):
     //        return Gwei(0)
@@ -391,6 +392,9 @@ public class ConfirmationRuleUtil {
                           if (!includeEquivocative && vote.isEquivocating()) {
                             return false;
                           }
+                          if (!includeSlashed && validators.get(validatorIndex).isSlashed()) {
+                            return false;
+                          }
                           Checkpoint voteTarget =
                               getCheckpointForBlock(store, vote.getNextRoot(), vote.getNextEpoch());
                           return voteTarget.equals(checkpoint);
@@ -412,7 +416,7 @@ public class ConfirmationRuleUtil {
     UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
     if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
       // just checking implementation compatibility
-      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false);
+      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false, false);
       UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
       checkState(
           weightFast.equals(weightSlow),
@@ -421,7 +425,7 @@ public class ConfirmationRuleUtil {
           weightFast);
     }
 
-    UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, true);
+    UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, true, true);
     return weightSlow;
   }
 
