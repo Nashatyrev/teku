@@ -289,11 +289,12 @@ class ConfirmationRuleTest {
 
     processHead(blockWithAttesterSlashings.getSlot());
 
+    Checkpoint genesisCheckpoint = recentChainData.getJustifiedCheckpoint().orElseThrow();
+    BeaconState state =
+        recentChainData.retrieveCheckpointState(genesisCheckpoint).join().orElseThrow();
     UInt64 checkpointWeight =
         confirmationRuleUtil.getCheckpointWeight(
-            recentChainData.getStore(),
-            genesis.getState().getCurrentJustifiedCheckpoint(),
-            genesis.getState());
+            recentChainData.getStore(), genesisCheckpoint, state);
 
     // 2 of 3 votes are equivocating, but should still count
     assertThat(checkpointWeight).isEqualTo(validatorBalance.times(3));
