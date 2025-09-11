@@ -473,6 +473,17 @@ public class ConfirmationRuleUtil {
   // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
   private boolean willCurrentEpochCheckpointBeJustified(
       ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
+    return checkpointJustificationIndicator(store, checkpoint, checkpointStateStore, 2);
+  }
+  // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+  private boolean willNoConflictingCheckpointBeJustified(
+      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
+    return checkpointJustificationIndicator(store, checkpoint, checkpointStateStore, 1);
+  }
+
+    // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+  private boolean checkpointJustificationIndicator(
+      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore, int multiplier) {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -533,7 +544,7 @@ public class ConfirmationRuleUtil {
     return minHonestFfgSupport
         .plus(remainingHonestFfgWeight)
         .times(3)
-        .isGreaterThanOrEqualTo(totalActiveBalance.times(2));
+        .isGreaterThanOrEqualTo(totalActiveBalance.times(multiplier));
   }
 
   public Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
@@ -577,74 +588,6 @@ public class ConfirmationRuleUtil {
     }
     //    return False
     return false;
-  }
-
-  //
-  // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  private boolean willNoConflictingCheckpointBeJustified(
-      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
-    //    assert checkpoint.epoch == get_current_epoch_store(store)
-    UInt64 currentEpoch = getCurrentEpochStore(store);
-    checkArgument(checkpoint.getEpoch().equals(currentEpoch));
-
-    //    current_slot = get_current_slot(store)
-    UInt64 currentSlot = getCurrentSlot(store);
-    //    current_epoch = compute_epoch_at_slot(current_slot)
-
-    //    store_target_checkpoint_state(store, checkpoint)
-    //    checkpoint_state = store.checkpoint_states[checkpoint]
-    // FIX+ME (spec): to fix approach to retrieve state
-    BeaconState checkpointState = checkpointStateStore.getState(checkpoint);
-    //
-    //    total_active_balance = get_total_active_balance(checkpoint_state)
-    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
-
-    //    # compute FFG support for checkpoint
-    //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
-    UInt64 ffgSupportForCheckpoint = getCheckpointWeight(store, checkpoint, checkpointState);
-
-    //    # compute total FFG weight till current slot
-    //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
-    // total_active_balance)
-    UInt64 ffgWeightTillNow = getFfgWeightTillSlot(currentSlot, currentEpoch, totalActiveBalance);
-
-    //    # compute remaining honest FFG weight
-    //    remaining_ffg_weight = total_active_balance - ffg_weight_till_now
-    UInt64 remainingFfgWeight = totalActiveBalance.minus(ffgWeightTillNow);
-    //    remaining_honest_ffg_weight = Gwei(remaining_ffg_weight // 100 * (100 -
-    // config.CONFIRMATION_BYZANTINE_THRESHOLD))
-    UInt64 remainingHonestFfgWeight =
-        remainingFfgWeight
-            .dividedBy(100)
-            .times(100 - specConfig.getConfirmationByzantineThreshold());
-
-    //    # compute min honest FFG support
-    //    min_honest_ffg_support = ffg_support_for_checkpoint - min(
-    //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_BYZANTINE_THRESHOLD),
-    //        Gwei(ffg_weight_till_now // 100 * config.CONFIRMATION_SLASHING_THRESHOLD),
-    //        ffg_support_for_checkpoint
-    //    )
-    UInt64 min =
-        Stream.of(
-                ffgWeightTillNow
-                    .dividedBy(100)
-                    .times(specConfig.getConfirmationByzantineThreshold()),
-                ffgWeightTillNow
-                    .dividedBy(100)
-                    .times(specConfig.getConfirmationSlashingThreshold()),
-                ffgSupportForCheckpoint)
-            .min(Comparator.naturalOrder())
-            .orElseThrow();
-    UInt64 minHonestFfgSupport = ffgSupportForCheckpoint.minus(min);
-
-    //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= total_active_balance
-    return minHonestFfgSupport
-        .plus(remainingHonestFfgWeight)
-        .times(3)
-        .isGreaterThanOrEqualTo(totalActiveBalance);
-    // FIX+ME (spec): deduplicate function with willCurrentEpochCheckpointBeJustified (just the
-    //    latest multiplier differs)
-    // https://github.com/mkalinin/confirmation-rule/pull/23
   }
 
   private UInt64 getBlockEpoch(ReadOnlyStore store, Bytes32 blockRoot) {
