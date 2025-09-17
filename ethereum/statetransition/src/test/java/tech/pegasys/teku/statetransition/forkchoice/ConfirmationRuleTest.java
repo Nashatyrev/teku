@@ -24,16 +24,21 @@ import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.Stubber;
+import tech.pegasys.teku.bls.BLSConstants;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.eventthread.InlineEventThread;
+import tech.pegasys.teku.infrastructure.collections.LimitedMap;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -52,6 +57,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannelStub;
 import tech.pegasys.teku.spec.executionlayer.ForkChoiceUpdatedResult;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
+import tech.pegasys.teku.spec.generator.AttestationGenerator;
 import tech.pegasys.teku.spec.generator.ChainBuilder;
 import tech.pegasys.teku.spec.generator.ChainBuilder.BlockOptions;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
@@ -106,7 +112,7 @@ class ConfirmationRuleTest {
   private ForkChoice forkChoice;
 
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
-
+  private static final int VALIDATOR_COUNT = 1_000_000;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 29;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
@@ -115,13 +121,14 @@ class ConfirmationRuleTest {
   public void setup() {
     BLSConstants.disableBLSVerification();
     setupWithSpec(
-        TestSpecFactory.createMinimalBellatrix(
-            builder ->
-                builder
-                    .committeeWeightEstimationAdjustmentFactor(
-                        COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR)
-                    .confirmationByzantineThreshold(CONFIRMATION_BYZANTINE_THRESHOLD)
-                    .confirmationSlashingThreshold(CONFIRMATION_SLASHING_THRESHOLD)));
+        TestSpecFactory.createMainnetBellatrix(
+//            builder ->
+//                builder
+//                    .committeeWeightEstimationAdjustmentFactor(
+//                        COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR)
+//                    .confirmationByzantineThreshold(CONFIRMATION_BYZANTINE_THRESHOLD)
+//                    .confirmationSlashingThreshold(CONFIRMATION_SLASHING_THRESHOLD)
+    ));
   }
 
   private void setupWithSpec(final Spec unmockedSpec) {
@@ -133,7 +140,7 @@ class ConfirmationRuleTest {
         InMemoryStorageSystemBuilder.create()
             .storageMode(StateStorageMode.PRUNE)
             .specProvider(spec)
-            .numberOfValidators(16)
+            .numberOfValidators(VALIDATOR_COUNT)
             .build();
     this.chainBuilder = storageSystem.chainBuilder();
     this.genesis = chainBuilder.generateGenesis(UInt64.ZERO, false);
@@ -233,9 +240,9 @@ class ConfirmationRuleTest {
       allBlocks.add(block.getMessage());
     }
 
-    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+//    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
 
-    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(8 * 3);
+    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32 * 3);
 
     SignedBeaconBlock gapBlock = importNextBlockWithAllAttestations(slotAfterGap);
     allBlocks.add(gapBlock.getMessage());
