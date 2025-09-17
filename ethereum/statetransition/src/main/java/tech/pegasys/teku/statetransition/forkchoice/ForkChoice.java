@@ -384,7 +384,16 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = storeTransaction.getForkChoiceStrategy();
     Bytes32 headRoot = optimisticHeadRoot;
     // retrieving non-optimistic head. In unhappy case we shoud stop on justified block
-    while (forkChoiceStrategy.isOptimistic(headRoot).orElseThrow()) {
+    while (true) {
+      Optional<Boolean> maybeIsOptimistic = forkChoiceStrategy.isOptimistic(headRoot);
+      if (maybeIsOptimistic.isEmpty()) {
+        // no non-optimistic heads yet
+        System.err.println("Non-optimistic head not found. Topmost root: " + headRoot);
+        return;
+      } else if (!maybeIsOptimistic.get()) {
+        // found non-optimistic head
+        break;
+      }
       Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(headRoot).orElseThrow();
       if (parentRoot.isZero()) {
         // headRoot is the genesis block
