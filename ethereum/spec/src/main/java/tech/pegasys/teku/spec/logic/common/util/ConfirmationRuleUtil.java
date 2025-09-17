@@ -439,6 +439,10 @@ public class ConfirmationRuleUtil {
                           if (!includeSlashed && validators.get(validatorIndex).isSlashed()) {
                             return false;
                           }
+                          if (!store.getForkChoiceStrategy().contains(vote.getNextRoot())) {
+                            // vote block was finalized and pruned from protoarray
+                            return false;
+                          }
                           CheckpointFast voteTarget =
                               getCheckpointFastForBlock(store, vote.getNextRoot(), vote.getNextEpoch());
                           return voteTarget.equals(checkpointFast);
@@ -677,7 +681,7 @@ public class ConfirmationRuleUtil {
   private boolean isAncestor(ReadOnlyStore store, Bytes32 root, Bytes32 ancestor) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 ancestorSlot = forkChoiceStrategy.blockSlot(ancestor).orElseThrow();
-    return forkChoiceStrategy.getAncestor(root, ancestorSlot).orElseThrow().equals(ancestor);
+    return forkChoiceStrategy.getAncestor(root, ancestorSlot).orElse(Bytes32.ZERO).equals(ancestor);
   }
 
   /**
@@ -918,11 +922,12 @@ public class ConfirmationRuleUtil {
         store.getForkChoiceStrategy().blockSlot(confirmedRoot).orElseThrow();
     //    prev_unrealized_justified_checkpoint_slot =
     // store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
-    UInt64 prevUnrealizedJustifiedCeckpointSlot =
-        store
-            .getForkChoiceStrategy()
-            .blockSlot(store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot())
-            .orElseThrow();
+    Optional<UInt64> prevUnrealizedJustifiedCeckpointSlot = store
+        .getForkChoiceStrategy()
+        .blockSlot(store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot());
+    if (prevUnrealizedJustifiedCeckpointSlot.isEmpty()) {
+      return confirmedRoot;
+    }
     UInt64 prevUnrealizedJustifiedCeckpointEpoch =
         store.getPrevSlotUnrealizedJustifiedCheckpoint().getEpoch();
     boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
@@ -932,14 +937,14 @@ public class ConfirmationRuleUtil {
     // FIX+ME (spec): isFirstEpochSlot
     if (isFirstEpochSlot
         && prevUnrealizedJustifiedCeckpointEpoch.increment().equals(currentEpoch)
-        && confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot)) {
+        && confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot.get())) {
       //        confirmed_root = store.prev_slot_unrealized_justified_checkpoint.root
       confirmedRoot = store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot();
     }
 
     //    # attempt to further advance the latest confirmed block
     //    confirmed_block_epoch = compute_epoch_at_slot(store.blocks[confirmed_root].slot)
-    confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
+    UInt64 confirmedBlockEpoch = getBlockEpoch(store, confirmedRoot);
     //    if confirmed_block_epoch + 1 >= current_epoch:
     //        return find_latest_confirmed_descendant(store, confirmed_root)
     //    else:
