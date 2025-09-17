@@ -506,6 +506,26 @@ public class ChainBuilder {
         .flatMap(this::streamValidAttestationsWithTargetBlock);
   }
 
+  public Stream<Attestation> streamValidAttestationsForBlockAtSlotOnly(final UInt64 slot) {
+    // Calculate bounds for valid head blocks
+    final UInt64 currentEpoch = spec.computeEpochAtSlot(slot);
+    final UInt64 prevEpoch =
+        currentEpoch.compareTo(UInt64.ZERO) == 0 ? currentEpoch : currentEpoch.minus(UInt64.ONE);
+    final UInt64 minBlockSlot = spec.computeStartSlotAtEpoch(prevEpoch);
+
+    SignedBlockAndState blockAndStateAtSlot = getLatestBlockAndStateAtSlot(slot);
+
+    if (blockAndStateAtSlot == null) {
+      return Stream.empty();
+    }
+
+    if (blockAndStateAtSlot.getSlot().compareTo(minBlockSlot) < 0) {
+      return Stream.empty();
+    }
+
+    return streamValidAttestationsWithTargetBlock(blockAndStateAtSlot);
+  }
+
   /**
    * Utility for streaming valid attestations with a specific target block.
    *

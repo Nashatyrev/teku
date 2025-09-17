@@ -193,12 +193,19 @@ class ConfirmationRuleTest {
     return importNextBlockWithAllAttestations(headSlot);
   }
 
+  private final Set<Attestation> includedAttestations =
+      Collections.newSetFromMap(LimitedMap.createNonSynchronized(VALIDATOR_COUNT * 3));
+
   private SignedBeaconBlock importNextBlockWithAllAttestations(UInt64 headSlot) {
     final BlockOptions epoch2BlockOptions = BlockOptions.create();
     final UInt64 newBlockSlot = headSlot.increment();
-    chainBuilder
-        .streamValidAttestationsForBlockAtSlot(newBlockSlot)
-        .forEach(epoch2BlockOptions::addAttestation);
+    List<Attestation> unaggregatedAtts =
+        chainBuilder.streamValidAttestationsForBlockAtSlotOnly(newBlockSlot)
+            .filter(att -> !includedAttestations.contains(att))
+            .toList();
+    includedAttestations.addAll(unaggregatedAtts);
+    List<Attestation> attestations = AttestationGenerator.groupAndAggregateAttestations(unaggregatedAtts);
+    attestations.forEach(epoch2BlockOptions::addAttestation);
     final SignedBlockAndState epoch2Block =
         chainBuilder.generateBlockAtSlot(newBlockSlot, epoch2BlockOptions);
     importBlock(epoch2Block);
