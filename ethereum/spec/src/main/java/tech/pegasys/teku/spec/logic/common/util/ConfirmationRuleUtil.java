@@ -19,10 +19,15 @@ import static com.google.common.base.Preconditions.checkState;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import com.google.common.base.Predicate;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
@@ -233,6 +238,16 @@ public class ConfirmationRuleUtil {
     //            and is_ancestor(store, store.latest_messages[i].root, root))
     //    ))
 
+    Map<Bytes32, Boolean> isAncestorCache = new HashMap<>();
+    Predicate<Bytes32> isAncestorCached = voteRoot -> {
+      Boolean b = isAncestorCache.get(voteRoot);
+      if (b == null) {
+        b = isAncestor(store, voteRoot, blockRoot);
+        isAncestorCache.put(voteRoot, b);
+      }
+      return b;
+    };
+
     SszList<Validator> validators = referenceCheckpointState.getValidators();
     UInt64 attestationScore =
         store.calculateFromAllVotes(
@@ -247,7 +262,7 @@ public class ConfirmationRuleUtil {
                           return vote != null
                               && !vote.equals(VoteTracker.DEFAULT)
                               && !vote.isEquivocating()
-                              && isAncestor(store, vote.getNextRoot(), blockRoot);
+                              && isAncestorCached.apply(vote.getNextRoot());
                         })
                     .mapToObj(
                         validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
@@ -349,6 +364,14 @@ public class ConfirmationRuleUtil {
     return new Checkpoint(epoch, getCheckpointBlock(store, root, epoch));
   }
 
+
+  LRUCache<Pair<Bytes32, UInt64>, CheckpointFast> blockCheckpointCache = LRUCache.create(10000);
+  private CheckpointFast getCheckpointFastForBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
+    return blockCheckpointCache.get(
+        Pair.of(root, epoch),
+        __ -> CheckpointFast.fromCheckpoint(getCheckpointForBlock(store, root, epoch)));
+  }
+
   /** Uses LMD-GHOST votes to estimate FFG support for a checkpoint. */
   // def get_checkpoint_weight(store: Store, checkpoint: checkpoint_state, checkpoint_state:
   // BeaconState) -> Gwei:
@@ -361,6 +384,15 @@ public class ConfirmationRuleUtil {
       return getNetWeightForState(store, checkpoint.getRoot(), checkpointState);
     } else {
       throw new UnsupportedOperationException("Not implemented");
+    }
+  }
+
+  record CheckpointFast(
+      int epoch,
+      Bytes32 root
+  ) {
+    static CheckpointFast fromCheckpoint(Checkpoint checkpoint) {
+      return new CheckpointFast(checkpoint.getEpoch().intValue(), checkpoint.getRoot());
     }
   }
 
@@ -388,6 +420,7 @@ public class ConfirmationRuleUtil {
     // checkpoint_state.validators[validator_index].effective_balance
     // FIXME (spec): nit: more function style
     SszList<Validator> validators = checkpointState.getValidators();
+    CheckpointFast checkpointFast = CheckpointFast.fromCheckpoint(checkpoint);
     UInt64 checkpointWeight =
         store.calculateFromAllVotes(
             votes ->
@@ -406,9 +439,9 @@ public class ConfirmationRuleUtil {
                           if (!includeSlashed && validators.get(validatorIndex).isSlashed()) {
                             return false;
                           }
-                          Checkpoint voteTarget =
-                              getCheckpointForBlock(store, vote.getNextRoot(), vote.getNextEpoch());
-                          return voteTarget.equals(checkpoint);
+                          CheckpointFast voteTarget =
+                              getCheckpointFastForBlock(store, vote.getNextRoot(), vote.getNextEpoch());
+                          return voteTarget.equals(checkpointFast);
                         })
                     .mapToObj(
                         validatorIndex -> validators.get(validatorIndex).getEffectiveBalance())
