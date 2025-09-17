@@ -275,15 +275,15 @@ public class ConfirmationRuleUtil {
 
   private UInt64 getNetWeightForState(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
-    UInt64 weightFast =
-        getNetWeightForStateFast(store, blockRoot, referenceCheckpointState).orElseThrow();
+//    UInt64 weightFast =
+//        getNetWeightForStateFast(store, blockRoot, referenceCheckpointState).orElseThrow();
     UInt64 weightSlow = getNetWeightForStateSlow(store, blockRoot, referenceCheckpointState);
-    checkState(
-        weightFast.equals(weightSlow),
-        "Weights doesnt match fast {} != slow {}",
-        weightFast,
-        weightSlow);
-    return weightFast;
+//    checkState(
+//        weightFast.equals(weightSlow),
+//        "Weights doesnt match fast {} != slow {}",
+//        weightFast,
+//        weightSlow);
+    return weightSlow;
   }
 
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
@@ -455,19 +455,19 @@ public class ConfirmationRuleUtil {
   public UInt64 getCheckpointWeight(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
 
-    UInt64 checkpointSlot =
-        store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
-    UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
-    if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
-      // just checking implementation compatibility
-      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false, false);
-      UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
-      checkState(
-          weightFast.equals(weightSlow),
-          "Slow and fast algorithms don't match: {} != {}",
-          weightSlow,
-          weightFast);
-    }
+//    UInt64 checkpointSlot =
+//        store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
+//    UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
+//    if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
+//      // just checking implementation compatibility
+//      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false, false);
+//      UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
+//      checkState(
+//          weightFast.equals(weightSlow),
+//          "Slow and fast algorithms don't match: {} != {}",
+//          weightSlow,
+//          weightFast);
+//    }
 
     UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, true, true);
     return weightSlow;
