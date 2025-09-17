@@ -253,18 +253,8 @@ public class ConfirmationRuleUtil {
                         validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
                     .reduce(UInt64.ZERO, UInt64::plus));
 
-    //    if store.proposer_boost_root == Root():
-    //        # Return only attestation score if ``proposer_boost_root`` is not set
-    //        return attestation_score
-    //
-    //    # Calculate proposer score if ``proposer_boost_root`` is set
-    //    proposer_score = Gwei(0)
-    //    # Boost is applied if ``root`` is an ancestor of ``proposer_boost_root``
-    //    if is_ancestor(store, store.proposer_boost_root, root):
-    //        proposer_score = get_proposer_score(store)
-    //    return attestation_score + proposer_score
-
-    // FIXME (spec): should we add proposer boost or not?
+    // FIX+ME (spec): should we add proposer boost or not?  NO
+    // https://github.com/mkalinin/confirmation-rule/pull/24
     return attestationScore;
   }
 
@@ -318,7 +308,7 @@ public class ConfirmationRuleUtil {
             parentBlockSlot.increment(),
             getCurrentSlot(store).decrement());
 
-    // FIXME (spec): is it ok that maximumSupport can be less than actual support???
+    // FIX+ME (spec): is it ok that maximumSupport can be less than actual support???
     // checkState(support.isLessThanOrEqualTo(maximumSupport));
     //    proposer_score = get_proposer_score(store)
     // FIX+ME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
