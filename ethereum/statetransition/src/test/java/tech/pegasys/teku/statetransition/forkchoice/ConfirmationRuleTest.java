@@ -136,7 +136,7 @@ class ConfirmationRuleTest {
             .numberOfValidators(16)
             .build();
     this.chainBuilder = storageSystem.chainBuilder();
-    this.genesis = chainBuilder.generateGenesis();
+    this.genesis = chainBuilder.generateGenesis(UInt64.ZERO, false);
     this.recentChainData = storageSystem.recentChainData();
     this.executionLayer = new ExecutionLayerChannelStub(spec, false);
     this.forkChoice =
