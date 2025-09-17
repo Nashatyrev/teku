@@ -407,12 +407,16 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     ConfirmationRuleUtil.CheckpointStateStore checkpointStateStore = (__) -> justifiedState;
     ConfirmationRuleUtil.TrackingCheckpointStateStore trackingCheckpointStateStore =
         new ConfirmationRuleUtil.TrackingCheckpointStateStore(checkpointStateStore);
+    long s = System.currentTimeMillis();
     Bytes32 latestConfirmed =
-        confirmationRuleUtil.getLatestConfirmed(storeTransaction, headRoot, trackingCheckpointStateStore);
+        confirmationRuleUtil.getLatestConfirmed(
+            storeTransaction, headRoot, trackingCheckpointStateStore);
+    long t = System.currentTimeMillis() - s;
     storeTransaction.setConfirmedRoot(latestConfirmed);
     Optional<UInt64> headSlot = forkChoiceStrategy.blockSlot(headRoot);
     Optional<UInt64> latestConfirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmed);
-    int uniqStatesRequested = new HashSet<>(trackingCheckpointStateStore.getRequestedCheckpoints()).size();
+    int uniqStatesRequested =
+        new HashSet<>(trackingCheckpointStateStore.getRequestedCheckpoints()).size();
     System.err.println(
         "updateConfirmationRuleStore: head="
             + headSlot.map(UInt64::toString).orElse("NaN")
@@ -420,7 +424,9 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             + headRoot.toString().substring(0, 8)
             + "), confirmed="
             + latestConfirmedSlot.map(UInt64::toString).orElse("NaN")
-            + ",("
+            + "(-"
+            + headSlot.orElseThrow().minus(latestConfirmedSlot.orElseThrow())
+            + "),("
             + latestConfirmed.toString().substring(0, 8)
             + "), states requested/uniq: "
             + (uniqStatesRequested > 2 ? "####" : "")
@@ -428,7 +434,10 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             + "/"
             + uniqStatesRequested
             + ", justified="
-            + toStr(storeTransaction.getJustifiedCheckpoint()));
+            + toStr(storeTransaction.getJustifiedCheckpoint())
+            + " in "
+            + t
+            + " ms");
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevSlotJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
@@ -443,7 +452,11 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
   }
 
   private static String toStr(Checkpoint checkpoint) {
-    return "Checkpoint[" + checkpoint.getEpoch() + ", " + checkpoint.getRoot().toString().substring(0, 8) + "]";
+    return "Checkpoint["
+        + checkpoint.getEpoch()
+        + ", "
+        + checkpoint.getRoot().toString().substring(0, 8)
+        + "]";
   }
 
   private Bytes32 updateHeadTransaction(
