@@ -113,6 +113,7 @@ class ConfirmationRuleTest {
 
   @BeforeEach
   public void setup() {
+    BLSConstants.disableBLSVerification();
     setupWithSpec(
         TestSpecFactory.createMinimalBellatrix(
             builder ->

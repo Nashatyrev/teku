@@ -101,16 +101,17 @@ public class AttestationGenerator {
                 attestationSchema.getAggregationBitsSchema().ofBits(targetBitlistSize),
                 SszBitlist::or,
                 SszBitlist::or);
-    final BLSSignature targetSig =
-        BLS.aggregate(
-            srcAttestations.stream()
-                .map(attestation -> attestation.getAggregateSignature())
-                .collect(Collectors.toList()));
+//    final BLSSignature targetSig =
+//        BLS.aggregate(
+//            srcAttestations.stream()
+//                .map(attestation -> attestation.getAggregateSignature())
+//                .collect(Collectors.toList()));
 
     return attestationSchema.create(
         targetBitlist,
         srcAttestations.get(0).getData(),
-        targetSig,
+//        targetSig,
+        BLSSignature.infinity(),
         () -> srcAttestations.get(0).getCommitteeBitsRequired());
   }
 
@@ -409,14 +410,15 @@ public class AttestationGenerator {
       final SszBitlist aggregationBitfield =
           getAggregationBits(attestationSchema, committeeSize, indexIntoCommittee);
 
-      final BLSSignature signature =
-          new LocalSigner(spec, attesterKeyPair, SyncAsyncRunner.SYNC_RUNNER)
-              .signAttestationData(attestationData, state.getForkInfo())
-              .join();
+//      final BLSSignature signature =
+//          new LocalSigner(spec, attesterKeyPair, SyncAsyncRunner.SYNC_RUNNER)
+//              .signAttestationData(attestationData, state.getForkInfo())
+//              .join();
       return attestationSchema.create(
           aggregationBitfield,
           attestationData,
-          signature,
+//          signature,
+          BLSSignature.infinity(),
           getCommitteeBitsSupplier(attestationSchema, committeeIndex));
     }
 
