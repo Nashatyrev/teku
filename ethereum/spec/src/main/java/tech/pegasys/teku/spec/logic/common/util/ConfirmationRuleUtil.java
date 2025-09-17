@@ -613,6 +613,10 @@ public class ConfirmationRuleUtil {
     return false;
   }
 
+  private boolean hasProtoarrayBlock(ReadOnlyStore store, Bytes32 blockRoot) {
+    return store.getForkChoiceStrategy().blockSlot(blockRoot).isPresent();
+  }
+
   private UInt64 getBlockEpoch(ReadOnlyStore store, Bytes32 blockRoot) {
     UInt64 blockSlot = store.getForkChoiceStrategy().blockSlot(blockRoot).orElseThrow();
     return miscHelpers.computeEpochAtSlot(blockSlot);
@@ -893,8 +897,9 @@ public class ConfirmationRuleUtil {
     // FIX+ME (spec): confirmed_block_epoch is not defined
     //
     //        confirmed_root = store.finalized_checkpoint.root
-    UInt64 confirmedBlockEpoch = getBlockEpochCached(store, confirmedRoot);
-    if (confirmedBlockEpoch.increment().isLessThan(currentEpoch)
+//    UInt64 confirmedBlockEpoch = getBlockEpochCached(store, confirmedRoot);
+    if (!hasProtoarrayBlock(store, confirmedRoot)
+        || getBlockEpoch(store, confirmedRoot).increment().isLessThan(currentEpoch)
         || !isAncestor(store, head, confirmedRoot)) {
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
     }
