@@ -126,7 +126,7 @@ class ConfirmationRuleTest {
 
   private void setupWithSpec(final Spec unmockedSpec) {
     // Setting up spec and all dependants
-    this.spec = spy(unmockedSpec);
+    this.spec = unmockedSpec; // spy(unmockedSpec);
     this.dataStructureUtil = new DataStructureUtil(spec);
     this.attestationSchema = spec.getGenesisSchemaDefinitions().getAttestationSchema();
     this.storageSystem =
