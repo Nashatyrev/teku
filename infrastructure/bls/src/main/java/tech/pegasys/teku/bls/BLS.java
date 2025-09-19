@@ -355,6 +355,9 @@ public class BLS {
       final List<BLSPublicKey> publicKeys,
       final Bytes message,
       final BLSSignature signature) {
+    if (BLSConstants.verificationDisabled) {
+      return new BatchSemiAggregate() {};
+    }
     try {
       return getBlsImpl()
           .prepareBatchVerify(
@@ -382,6 +385,9 @@ public class BLS {
       final List<BLSPublicKey> publicKeys2,
       final Bytes message2,
       final BLSSignature signature2) {
+    if (BLSConstants.verificationDisabled) {
+      return new BatchSemiAggregate() {};
+    }
     try {
       return getBlsImpl()
           .prepareBatchVerify2(
