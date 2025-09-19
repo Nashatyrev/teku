@@ -856,7 +856,7 @@ public class ConfirmationRuleUtil {
               .plus(2)
               .isLessThan(currentEpoch);
       if (isTentativeInCurrentEpoch
-          || (isTentativeVoutingSourceTooOld
+          || (!isTentativeVoutingSourceTooOld
               && (isFirstEpochSlot || willNoConflictingCheckpointBeJustified))) {
         // confirmed_root = tentative_confirmed_root
         confirmedRoot = tentativeConfirmedRoot;
