@@ -132,7 +132,7 @@ class ConfirmationRuleReplay {
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
   private static final int VALIDATOR_COUNT = 1_000_000;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 29;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
 
   String jsonApiEndpoint =
