@@ -523,7 +523,7 @@ public class ChainBuilder {
       return Stream.empty();
     }
 
-    return streamValidAttestationsWithTargetBlock(blockAndStateAtSlot);
+    return attestationGenerator.streamAttestations(blockAndStateAtSlot, slot.decrement());
   }
 
   /**
