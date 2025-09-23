@@ -566,6 +566,8 @@ public class ConfirmationRuleUtil {
             .orElseThrow();
     UInt64 minHonestFfgSupport = ffgSupportForCheckpoint.minus(min);
 
+    // In real numbers:
+    //   (min_honest_ffg_support + remaining_honest_ffg_weight) / total_active_balance >= 2 / 3
     //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 *
     // total_active_balance
     return minHonestFfgSupport
