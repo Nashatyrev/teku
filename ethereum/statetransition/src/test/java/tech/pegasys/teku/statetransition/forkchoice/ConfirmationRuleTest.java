@@ -28,6 +28,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
@@ -110,11 +112,15 @@ class ConfirmationRuleTest {
   private final InlineEventThread eventThread = new InlineEventThread();
 
   private ForkChoice forkChoice;
+  private VoteTracker voteTracker;
+  ArrayList<BeaconBlock> allBlocks = new ArrayList<>();
+
 
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
-  private static final int VALIDATOR_COUNT = 1_000_000;
+  //  private static final int VALIDATOR_COUNT = 1_000_000;
+  private static final int VALIDATOR_COUNT = 1 << 15;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
 
   @BeforeEach
@@ -122,13 +128,14 @@ class ConfirmationRuleTest {
     BLSConstants.disableBLSVerification();
     setupWithSpec(
         TestSpecFactory.createMainnetBellatrix(
-//            builder ->
-//                builder
-//                    .committeeWeightEstimationAdjustmentFactor(
-//                        COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR)
-//                    .confirmationByzantineThreshold(CONFIRMATION_BYZANTINE_THRESHOLD)
-//                    .confirmationSlashingThreshold(CONFIRMATION_SLASHING_THRESHOLD)
-    ));
+            //        TestSpecFactory.createMinimalBellatrix(
+            builder ->
+                builder
+                    .committeeWeightEstimationAdjustmentFactor(
+                        COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR)
+                    .confirmationByzantineThreshold(CONFIRMATION_BYZANTINE_THRESHOLD)
+                    .confirmationSlashingThreshold(CONFIRMATION_SLASHING_THRESHOLD)));
+    voteTracker = new VoteTracker(spec, storageSystem.recentChainData());
   }
 
   private void setupWithSpec(final Spec unmockedSpec) {
@@ -204,19 +211,58 @@ class ConfirmationRuleTest {
       Collections.newSetFromMap(LimitedMap.createNonSynchronized(VALIDATOR_COUNT * 3));
 
   private SignedBeaconBlock importNextBlockWithAllAttestations(UInt64 headSlot) {
-    final BlockOptions epoch2BlockOptions = BlockOptions.create();
+    UInt64 prevHeadSlot = storageSystem.recentChainData().getHeadSlot();
     final UInt64 newBlockSlot = headSlot.increment();
     List<Attestation> unaggregatedAtts =
-        chainBuilder.streamValidAttestationsForBlockAtSlotOnly(newBlockSlot)
-            .filter(att -> !includedAttestations.contains(att))
+        LongStream.range(prevHeadSlot.longValue() + 1, newBlockSlot.longValue() + 1)
+            .mapToObj(UInt64::valueOf)
+            .flatMap(slot -> chainBuilder.streamValidAttestationsForBlockAtSlotOnly(slot))
             .toList();
-    includedAttestations.addAll(unaggregatedAtts);
-    List<Attestation> attestations = AttestationGenerator.groupAndAggregateAttestations(unaggregatedAtts);
+    return importNextBlockWithAttestations(headSlot, unaggregatedAtts);
+  }
+
+  private SignedBeaconBlock importNextBlockWithAttestations(
+      UInt64 headSlot, List<Attestation> unaggregatedAtts) {
+    List<Attestation> filteredAtts =
+        unaggregatedAtts.stream().filter(att -> !includedAttestations.contains(att)).toList();
+
+    includedAttestations.addAll(filteredAtts);
+    List<Attestation> attestations =
+        AttestationGenerator.groupAndAggregateAttestations(filteredAtts);
+    final BlockOptions epoch2BlockOptions = BlockOptions.create();
     attestations.forEach(epoch2BlockOptions::addAttestation);
+    final UInt64 newBlockSlot = headSlot.increment();
     final SignedBlockAndState epoch2Block =
         chainBuilder.generateBlockAtSlot(newBlockSlot, epoch2BlockOptions);
     importBlock(epoch2Block);
     return epoch2Block.getBlock();
+  }
+
+  void trackBlockAndVotes(BeaconBlock block) {
+    allBlocks.add(block);
+    int newVotesInBlock = voteTracker.updateVotes(block.getBeaconBlock().orElseThrow());
+    System.err.println(
+        "Importing block: "
+            + block.getSlot()
+            + ", "
+            + block.getRoot()
+            + ", votes in block: "
+            + newVotesInBlock);
+    for (int i = 1; i < 4; i++) {
+      if (block.getSlot().intValue() <= i) {
+        break;
+      }
+      UInt64 slot = block.getSlot().minus(i);
+      Optional<SignedBeaconBlock> slotBlock =
+          storageSystem.combinedChainDataClient().getBlockAtSlotExact(slot).join();
+      System.err.println(
+          "\tSlot/block votes/slot votes:\t"
+              + slot
+              + "\t"
+              + slotBlock.map(b -> voteTracker.getVoteCountForBlock(b.getRoot())).orElse(0)
+              + "\t"
+              + voteTracker.getVoteCountInSlot(slot));
+    }
   }
 
   @Test
@@ -234,13 +280,13 @@ class ConfirmationRuleTest {
   @Test
   void testSeveralEpochsEmptySlotGap() {
     UpdatableStore store = storageSystem.recentChainData().getStore();
-    ArrayList<BeaconBlock> allBlocks = new ArrayList<>();
     for (int i = 0; i < 64; i++) {
       SignedBeaconBlock block = importNextBlockWithAllAttestations();
       allBlocks.add(block.getMessage());
     }
 
-//    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+    //    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() -
+    // 2).getRoot());
 
     UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32 * 3);
 
@@ -255,6 +301,70 @@ class ConfirmationRuleTest {
     for (int i = 0; i < 64; i++) {
       SignedBeaconBlock block = importNextBlockWithAllAttestations();
       allBlocks.add(block.getMessage());
+    }
+
+    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+  }
+
+  @Test
+  void testOneEmptySlotGap() {
+    UpdatableStore store = storageSystem.recentChainData().getStore();
+    for (int i = 0; i < 16; i++) {
+      SignedBeaconBlock block = importNextBlockWithAllAttestations();
+      trackBlockAndVotes(block.getBeaconBlock().orElseThrow());
+    }
+
+    //    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() -
+    // 2).getRoot());
+
+    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(1);
+
+    SignedBeaconBlock gapBlock = importNextBlockWithAllAttestations(slotAfterGap);
+    trackBlockAndVotes(gapBlock.getBeaconBlock().orElseThrow());
+
+    for (int i = 0; i < 16; i++) {
+      SignedBeaconBlock block = importNextBlockWithAllAttestations();
+      trackBlockAndVotes(block.getBeaconBlock().orElseThrow());
+    }
+
+    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+  }
+
+  @Test
+  void testFirstEpochBlockAttestationDeficit() {
+    int blockAttestationDeficitPercent = 11;
+
+    UpdatableStore store = storageSystem.recentChainData().getStore();
+    for (int i = 1; i < 32; i++) {
+      SignedBeaconBlock block = importNextBlockWithAllAttestations();
+      trackBlockAndVotes(block.getBeaconBlock().orElseThrow());
+    }
+
+    UInt64 weakBlockSlot = allBlocks.getLast().getSlot().increment();
+    List<Attestation> allForLastBlock =
+        chainBuilder.streamValidAttestationsForBlockAtSlotOnly(weakBlockSlot.increment()).toList();
+    List<Attestation> someForLastBlock =
+        allForLastBlock.stream()
+            .limit(allForLastBlock.size() * blockAttestationDeficitPercent / 100)
+            .toList();
+
+    SignedBeaconBlock weakBlock = importNextBlockWithAllAttestations();
+    trackBlockAndVotes(weakBlock.getBeaconBlock().orElseThrow());
+
+    List<Attestation> someForWeakBlock =
+        chainBuilder
+            .streamValidAttestationsForBlockAtSlotOnly(weakBlockSlot.increment())
+            .skip(someForLastBlock.size())
+            .toList();
+
+    SignedBeaconBlock nexBlockWithMixedAttest = importNextBlockWithAttestations(weakBlockSlot,
+        Stream.concat(someForWeakBlock.stream(), someForLastBlock.stream()).toList()
+    );
+    trackBlockAndVotes(nexBlockWithMixedAttest.getBeaconBlock().orElseThrow());
+
+    for (int i = 0; i < 32; i++) {
+      SignedBeaconBlock block = importNextBlockWithAllAttestations();
+      trackBlockAndVotes(block.getBeaconBlock().orElseThrow());
     }
 
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());

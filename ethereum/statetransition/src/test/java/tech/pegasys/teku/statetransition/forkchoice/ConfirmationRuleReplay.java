@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.statetransition.forkchoice;
 
-import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -34,7 +33,6 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +41,6 @@ import java.util.Set;
 
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import org.apache.tuweni.bytes.Bytes;
-import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,13 +61,10 @@ import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
-import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.AttestationSchema;
-import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
-import tech.pegasys.teku.spec.datastructures.util.ChainDataLoader;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannelStub;
 import tech.pegasys.teku.spec.executionlayer.ForkChoiceUpdatedResult;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
@@ -80,7 +74,6 @@ import tech.pegasys.teku.spec.generator.ChainBuilder.BlockOptions;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
-import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
 import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
@@ -88,7 +81,6 @@ import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice.OptimisticHeadSubscriber;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceUpdatedResultSubscriber.ForkChoiceUpdatedResultNotification;
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
-import tech.pegasys.teku.statetransition.validation.AttestationStateSelector;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator.BroadcastValidationResult;
 import tech.pegasys.teku.storage.client.ChainUpdater;
@@ -132,7 +124,7 @@ class ConfirmationRuleReplay {
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
   private static final int VALIDATOR_COUNT = 1_000_000;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
 
   String jsonApiEndpoint =
@@ -157,13 +149,21 @@ class ConfirmationRuleReplay {
 
   static final int numberOfBlockToLoad = 105;
 
-  AttestationStateSelector attestationStateSelector;
+  VoteTracker voteTracker;
 
   @BeforeEach
   public void setup() throws IOException {
     BLSConstants.disableBLSVerification();
 
-    this.spec = TestSpecFactory.createMainnetElectra();
+    this.spec =
+        TestSpecFactory.createMainnetElectra(
+            builder ->
+                builder
+                    .committeeWeightEstimationAdjustmentFactor(
+                        COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR)
+                    .confirmationByzantineThreshold(CONFIRMATION_BYZANTINE_THRESHOLD)
+                    .confirmationSlashingThreshold(CONFIRMATION_SLASHING_THRESHOLD));
+    
     String fullStateUrl = jsonApiEndpoint + statePath + anchorStateRoot;
     System.out.println("Loading state from: " + fullStateUrl);
     Bytes stateBytes = BeaconCache.getCachedContent(fullStateUrl);
@@ -186,9 +186,8 @@ class ConfirmationRuleReplay {
     }
 
     setupWithSpec();
-    attestationStateSelector =
-        new AttestationStateSelector(
-            spec, storageSystem.recentChainData(), new StubMetricsSystem());
+
+    voteTracker = new VoteTracker(spec, storageSystem.recentChainData());
   }
 
   private Optional<SignedBeaconBlock> loadBlock(int slot) {
@@ -334,29 +333,9 @@ class ConfirmationRuleReplay {
       if (block == blocks.getFirst()) {
         continue;
       }
-      updateVotes(block.getBeaconBlock().orElseThrow());
 
-      System.err.println(
-          "Importing block: "
-              + block.getSlot()
-              + ", "
-              + block.getRoot()
-              + ", votes in block: "
-              + blockToVotes.get(block.getRoot()).size());
-      for (int i = 1; i < 4; i++) {
-        UInt64 slot = block.getSlot().minus(i);
-        Optional<SignedBeaconBlock> slotBlock =
-            storageSystem.combinedChainDataClient().getBlockAtSlotExact(slot).join();
-        System.err.println(
-            "\tSlot/block votes/slot votes:\t"
-                + slot
-                + "\t"
-                + slotBlock
-                    .map(b -> headBlockToVotes.getOrDefault(b.getRoot(), emptySet()).size())
-                    .orElse(0)
-                + "\t"
-                + slotToVotes.getOrDefault(slot, emptySet()).size());
-      }
+      trackVotes(block.getBeaconBlock().orElseThrow());
+
       storageSystem.chainUpdater().advanceCurrentSlotToAtLeast(block.getSlot());
       final SafeFuture<BlockImportResult> result =
           forkChoice.onBlock(block, Optional.empty(), blockBroadcastValidator, executionLayer);
@@ -364,27 +343,26 @@ class ConfirmationRuleReplay {
     }
   }
 
-  final Map<Bytes32, Set<UInt64>> headBlockToVotes = new HashMap<>();
-  final Map<UInt64, Set<UInt64>> slotToVotes = new HashMap<>();
-  final Map<Bytes32, Set<UInt64>> blockToVotes = new HashMap<>();
-
-  void updateVotes(BeaconBlock block) {
-    AttestationUtil attestationUtil = spec.atSlot(block.getSlot()).getAttestationUtil();
-    for (Attestation attestation :
-        block.getBeaconBlock().orElseThrow().getBody().getAttestations()) {
-      Bytes32 voteBlock = attestation.getData().getBeaconBlockRoot();
-      BeaconState state = null;
-      state =
-          attestationStateSelector.getStateToValidate(attestation.getData()).join().orElseThrow();
-      IndexedAttestation indexedAttestation =
-          attestationUtil.getIndexedAttestation(state, attestation);
-
-      List<UInt64> listUnboxed = indexedAttestation.getAttestingIndices().asListUnboxed();
-      headBlockToVotes.computeIfAbsent(voteBlock, k -> new HashSet<>()).addAll(listUnboxed);
-      slotToVotes
-          .computeIfAbsent(attestation.getData().getSlot(), k -> new HashSet<>())
-          .addAll(listUnboxed);
-      blockToVotes.computeIfAbsent(block.getRoot(), k -> new HashSet<>()).addAll(listUnboxed);
+  void trackVotes(BeaconBlock block) {
+    int newVotesInBlock = voteTracker.updateVotes(block.getBeaconBlock().orElseThrow());
+    System.err.println(
+        "Importing block: "
+            + block.getSlot()
+            + ", "
+            + block.getRoot()
+            + ", votes in block: "
+            + newVotesInBlock);
+    for (int i = 1; i < 4; i++) {
+      UInt64 slot = block.getSlot().minus(i);
+      Optional<SignedBeaconBlock> slotBlock =
+          storageSystem.combinedChainDataClient().getBlockAtSlotExact(slot).join();
+      System.err.println(
+          "\tSlot/block votes/slot votes:\t"
+              + slot
+              + "\t"
+              + slotBlock.map(b -> voteTracker.getVoteCountForBlock(b.getRoot())).orElse(0)
+              + "\t"
+              + voteTracker.getVoteCountInSlot(slot));
     }
   }
 
