@@ -35,6 +35,8 @@ import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.Stubber;
 import tech.pegasys.teku.bls.BLSConstants;
@@ -120,8 +122,8 @@ class ConfirmationRuleTest {
   //  private static final int VALIDATOR_COUNT = 1_000_000;
   private static final int VALIDATOR_COUNT = 1 << 15;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
-  private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
+  private static final int CONFIRMATION_SLASHING_THRESHOLD = 25;
 
   @BeforeEach
   public void setup() {
@@ -330,12 +332,11 @@ class ConfirmationRuleTest {
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
   }
 
-  @Test
-  void testFirstEpochBlockAttestationDeficit() {
-    int blockAttestationDeficitPercent = 11;
-
+  @ParameterizedTest
+  @ValueSource(ints = {10, 15, 50, 90})
+  void testFirstEpochBlockAttestationDeficit(int blockAttestationDeficitPercent) {
     UpdatableStore store = storageSystem.recentChainData().getStore();
-    for (int i = 1; i < 32; i++) {
+    for (int i = 1; i < 64; i++) { // run 2 epochs to 'warm up' justification processing
       SignedBeaconBlock block = importNextBlockWithAllAttestations();
       trackBlockAndVotes(block.getBeaconBlock().orElseThrow());
     }
@@ -362,7 +363,8 @@ class ConfirmationRuleTest {
     );
     trackBlockAndVotes(nexBlockWithMixedAttest.getBeaconBlock().orElseThrow());
 
-    for (int i = 0; i < 32; i++) {
+    // max 6 blocks to recover
+    for (int i = 0; i < 6; i++) {
       SignedBeaconBlock block = importNextBlockWithAllAttestations();
       trackBlockAndVotes(block.getBeaconBlock().orElseThrow());
     }
@@ -469,6 +471,7 @@ class ConfirmationRuleTest {
         forkChoice.onBlock(
             block.getBlock(), Optional.empty(), blockBroadcastValidator, executionLayer);
     assertBlockImportedSuccessfully(result, false);
+    forkChoice.processHead();
   }
 
   private void setForkChoiceNotifierForkChoiceUpdatedResult(final PayloadStatus status) {

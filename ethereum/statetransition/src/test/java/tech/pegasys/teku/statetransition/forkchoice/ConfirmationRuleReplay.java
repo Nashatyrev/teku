@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 
+import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -31,50 +32,40 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-
-import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.Stubber;
 import tech.pegasys.teku.bls.BLSConstants;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.eventthread.InlineEventThread;
-import tech.pegasys.teku.infrastructure.collections.LimitedMap;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.constants.EthConstants;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
-import tech.pegasys.teku.spec.datastructures.operations.AttestationSchema;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannelStub;
 import tech.pegasys.teku.spec.executionlayer.ForkChoiceUpdatedResult;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
-import tech.pegasys.teku.spec.generator.AttestationGenerator;
-import tech.pegasys.teku.spec.generator.ChainBuilder;
-import tech.pegasys.teku.spec.generator.ChainBuilder.BlockOptions;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
-import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
@@ -83,12 +74,12 @@ import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceUpdatedResultSubsc
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator.BroadcastValidationResult;
-import tech.pegasys.teku.storage.client.ChainUpdater;
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.storage.server.StateStorageMode;
 import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
 
+@Disabled("For manual running only")
 class ConfirmationRuleReplay {
 
   private final MetricsSystem metricsSystem = new StubMetricsSystem();
@@ -100,12 +91,8 @@ class ConfirmationRuleReplay {
   private final AvailabilityChecker<BlobSidecar> blobSidecarsAvailabilityChecker =
       mock(AvailabilityChecker.class);
 
-  private AttestationSchema<?> attestationSchema;
   private StorageSystem storageSystem;
-  private ChainBuilder chainBuilder;
-  private SignedBlockAndState genesis;
   private RecentChainData recentChainData;
-  private ConfirmationRuleUtil confirmationRuleUtil;
 
   private final ForkChoiceNotifier forkChoiceNotifier = mock(ForkChoiceNotifier.class);
   private final OptimisticHeadSubscriber optimisticSyncStateTracker =
@@ -121,11 +108,9 @@ class ConfirmationRuleReplay {
 
   private ForkChoice forkChoice;
 
-  private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
-  private static final int VALIDATOR_COUNT = 1_000_000;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
-  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 33;
-  private static final int CONFIRMATION_SLASHING_THRESHOLD = 33;
+  private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
+  private static final int CONFIRMATION_SLASHING_THRESHOLD = 25;
 
   String jsonApiEndpoint =
       "https://crimson-proud-shard.quiknode.pro/51b0281db82fc937c36866e6a80ee6235e2f7f3a";
@@ -142,7 +127,9 @@ class ConfirmationRuleReplay {
   // block skipped, recovery after 7 slots
   //  String anchorStateRoot = "0xed289ea2e127d26e57f20799512c7cf6ad1672c9dc93c394fe589352a53a1213";
 
-  String anchorStateRoot = "0xd431b7131b6ef1e74b09825d3d26c4007eaf5b9a39dfcb82a0a4963d79721857";
+  //  String anchorStateRoot = "0xd431b7131b6ef1e74b09825d3d26c4007eaf5b9a39dfcb82a0a4963d79721857";
+//  String anchorStateRoot = "0x5f39cf40f9f35640d0119093ef711e3e66594b31b3ff7f011676a4209783bb5b";
+  String anchorStateRoot = "0xc99f15b57eea955b09524f42c58d2fd89063d0477de7c559462be39d92883df7";
 
   BeaconState anchorState;
   List<SignedBeaconBlock> blocks = new ArrayList<>();
@@ -163,7 +150,7 @@ class ConfirmationRuleReplay {
                         COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR)
                     .confirmationByzantineThreshold(CONFIRMATION_BYZANTINE_THRESHOLD)
                     .confirmationSlashingThreshold(CONFIRMATION_SLASHING_THRESHOLD));
-    
+
     String fullStateUrl = jsonApiEndpoint + statePath + anchorStateRoot;
     System.out.println("Loading state from: " + fullStateUrl);
     Bytes stateBytes = BeaconCache.getCachedContent(fullStateUrl);
@@ -191,34 +178,28 @@ class ConfirmationRuleReplay {
   }
 
   private Optional<SignedBeaconBlock> loadBlock(int slot) {
-    try (var httpClient = HttpClient.newHttpClient()) {
-      Bytes ssz = BeaconCache.getCachedContent(jsonApiEndpoint + blockPath + slot);
-      if (ssz.size() < 512) { // not found error
-        return Optional.empty();
-      }
-      SignedBeaconBlock block =
-          spec.atSlot(UInt64.valueOf(slot))
-              .getSchemaDefinitions()
-              .getSignedBeaconBlockSchema()
-              .sszDeserialize(ssz);
-
-      return Optional.ofNullable(block);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    Bytes ssz = BeaconCache.getCachedContent(jsonApiEndpoint + blockPath + slot);
+    if (ssz.size() < 512) { // not found error
+      return Optional.empty();
     }
+    SignedBeaconBlock block =
+        spec.atSlot(UInt64.valueOf(slot))
+            .getSchemaDefinitions()
+            .getSignedBeaconBlockSchema()
+            .sszDeserialize(ssz);
+
+    return Optional.ofNullable(block);
   }
 
   private void setupWithSpec() {
     // Setting up spec and all dependants
     this.dataStructureUtil = new DataStructureUtil(spec);
-    this.attestationSchema = spec.getGenesisSchemaDefinitions().getAttestationSchema();
     this.storageSystem =
         InMemoryStorageSystemBuilder.create()
             .storageMode(StateStorageMode.PRUNE)
             .specProvider(spec)
             //            .numberOfValidators(VALIDATOR_COUNT)
             .build();
-    this.chainBuilder = storageSystem.chainBuilder();
     //    this.genesis = chainBuilder.generateGenesis(UInt64.ZERO, false);
     this.recentChainData = storageSystem.recentChainData();
     this.executionLayer = new ExecutionLayerChannelStub(spec, false);
@@ -236,7 +217,6 @@ class ConfirmationRuleReplay {
             DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED,
             debugDataDumper,
             metricsSystem);
-    this.confirmationRuleUtil = spec.getGenesisSpec().getConfirmationRuleUtil();
 
     // Starting and mocks
     when(transitionBlockValidator.verifyAncestorTransitionBlock(any()))
@@ -273,33 +253,6 @@ class ConfirmationRuleReplay {
       when(blobSidecarManager.createAvailabilityChecker(any()))
           .thenReturn(AvailabilityChecker.NOOP_BLOBSIDECAR);
     }
-  }
-
-  private SignedBeaconBlock importNextBlockWithAllAttestations() {
-    final ChainUpdater chainUpdater = storageSystem.chainUpdater();
-    UInt64 headSlot = chainUpdater.getHeadSlot();
-    return importNextBlockWithAllAttestations(headSlot);
-  }
-
-  private final Set<Attestation> includedAttestations =
-      Collections.newSetFromMap(LimitedMap.createNonSynchronized(VALIDATOR_COUNT * 3));
-
-  private SignedBeaconBlock importNextBlockWithAllAttestations(UInt64 headSlot) {
-    final BlockOptions epoch2BlockOptions = BlockOptions.create();
-    final UInt64 newBlockSlot = headSlot.increment();
-    List<Attestation> unaggregatedAtts =
-        chainBuilder
-            .streamValidAttestationsForBlockAtSlotOnly(newBlockSlot)
-            .filter(att -> !includedAttestations.contains(att))
-            .toList();
-    includedAttestations.addAll(unaggregatedAtts);
-    List<Attestation> attestations =
-        AttestationGenerator.groupAndAggregateAttestations(unaggregatedAtts);
-    attestations.forEach(epoch2BlockOptions::addAttestation);
-    final SignedBlockAndState epoch2Block =
-        chainBuilder.generateBlockAtSlot(newBlockSlot, epoch2BlockOptions);
-    importBlock(epoch2Block);
-    return epoch2Block.getBlock();
   }
 
   @Test
@@ -340,6 +293,7 @@ class ConfirmationRuleReplay {
       final SafeFuture<BlockImportResult> result =
           forkChoice.onBlock(block, Optional.empty(), blockBroadcastValidator, executionLayer);
       assertBlockImportedSuccessfully(result, false);
+      forkChoice.processHead();
     }
   }
 
