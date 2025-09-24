@@ -346,7 +346,7 @@ class ConfirmationRuleTest {
         chainBuilder.streamValidAttestationsForBlockAtSlotOnly(weakBlockSlot.increment()).toList();
     List<Attestation> someForLastBlock =
         allForLastBlock.stream()
-            .limit(allForLastBlock.size() * blockAttestationDeficitPercent / 100)
+            .limit((long) allForLastBlock.size() * blockAttestationDeficitPercent / 100)
             .toList();
 
     SignedBeaconBlock weakBlock = importNextBlockWithAllAttestations();
