@@ -87,14 +87,12 @@ class ConfirmationRuleTest {
 
   private final MetricsSystem metricsSystem = new StubMetricsSystem();
   private Spec spec;
-  private DataStructureUtil dataStructureUtil;
   private final BlobSidecarManager blobSidecarManager = mock(BlobSidecarManager.class);
 
   @SuppressWarnings("unchecked")
   private final AvailabilityChecker<BlobSidecar> blobSidecarsAvailabilityChecker =
       mock(AvailabilityChecker.class);
 
-  private AttestationSchema<?> attestationSchema;
   private StorageSystem storageSystem;
   private ChainBuilder chainBuilder;
   private SignedBlockAndState genesis;
@@ -120,7 +118,7 @@ class ConfirmationRuleTest {
 
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
   //  private static final int VALIDATOR_COUNT = 1_000_000;
-  private static final int VALIDATOR_COUNT = 1 << 15;
+  private static final int VALIDATOR_COUNT = 1 << 13;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 25;
@@ -143,8 +141,7 @@ class ConfirmationRuleTest {
   private void setupWithSpec(final Spec unmockedSpec) {
     // Setting up spec and all dependants
     this.spec = unmockedSpec; // spy(unmockedSpec);
-    this.dataStructureUtil = new DataStructureUtil(spec);
-    this.attestationSchema = spec.getGenesisSchemaDefinitions().getAttestationSchema();
+    DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
     this.storageSystem =
         InMemoryStorageSystemBuilder.create()
             .storageMode(StateStorageMode.PRUNE)
@@ -225,15 +222,24 @@ class ConfirmationRuleTest {
 
   private SignedBeaconBlock importNextBlockWithAttestations(
       UInt64 headSlot, List<Attestation> unaggregatedAtts) {
+    final UInt64 newBlockSlot = headSlot.increment();
+//    UInt64 blockEpoch = spec.computeEpochAtSlot(newBlockSlot);
+//    UInt64 minAttEpochForInclusion = blockEpoch.safeDecrement();
+//    UInt64 minAttSlotForInclusion = spec.computeStartSlotAtEpoch(minAttEpochForInclusion);
+    UInt64 minAttSlotForInclusion = newBlockSlot.minusMinZero(spec.slotsPerEpoch(UInt64.ZERO));
+
     List<Attestation> filteredAtts =
-        unaggregatedAtts.stream().filter(att -> !includedAttestations.contains(att)).toList();
+        unaggregatedAtts.stream()
+            .filter(att -> !includedAttestations.contains(att))
+            .filter(att -> att.getData().getSlot().isGreaterThanOrEqualTo(minAttSlotForInclusion))
+            .toList();
 
     includedAttestations.addAll(filteredAtts);
+
     List<Attestation> attestations =
         AttestationGenerator.groupAndAggregateAttestations(filteredAtts);
     final BlockOptions epoch2BlockOptions = BlockOptions.create();
     attestations.forEach(epoch2BlockOptions::addAttestation);
-    final UInt64 newBlockSlot = headSlot.increment();
     final SignedBlockAndState epoch2Block =
         chainBuilder.generateBlockAtSlot(newBlockSlot, epoch2BlockOptions);
     importBlock(epoch2Block);
@@ -290,17 +296,16 @@ class ConfirmationRuleTest {
     //    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() -
     // 2).getRoot());
 
-    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32 * 3);
+    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32 * 2);
 
     SignedBeaconBlock gapBlock = importNextBlockWithAllAttestations(slotAfterGap);
     allBlocks.add(gapBlock.getMessage());
 
     // rollback to finalized
     Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
-    // don't think this is right
     assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
 
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < 32 * 2; i++) {
       SignedBeaconBlock block = importNextBlockWithAllAttestations();
       allBlocks.add(block.getMessage());
     }
@@ -429,21 +434,22 @@ class ConfirmationRuleTest {
 
   @Test
   void getCheckpointWeight_shouldCountVotesOnlyInTheCheckpointEpoch() {
+    int slotsPerEpoch = spec.slotsPerEpoch(UInt64.ZERO);
     final BlockOptions options = BlockOptions.create();
     // 1 attestations for epoch 0
     chainBuilder
         .getAttestationGenerator()
-        .streamAttestations(genesis, UInt64.valueOf(6))
+        .streamAttestations(genesis, UInt64.valueOf(slotsPerEpoch - 1))
         .limit(1)
         .forEach(options::addAttestation);
     // 2 attestations for epoch 1
     chainBuilder
         .getAttestationGenerator()
-        .streamAttestations(genesis, UInt64.valueOf(8))
+        .streamAttestations(genesis, UInt64.valueOf(slotsPerEpoch))
         .limit(2)
         .forEach(options::addAttestation);
 
-    final SignedBlockAndState epoch1Block = chainBuilder.generateNextBlock(9, options);
+    final SignedBlockAndState epoch1Block = chainBuilder.generateNextBlock(slotsPerEpoch + 1, options);
 
     importBlock(epoch1Block);
 
