@@ -117,7 +117,8 @@ class ConfirmationRuleTest {
 
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
   //  private static final int VALIDATOR_COUNT = 1_000_000;
-  private static final int VALIDATOR_COUNT = 1 << 13;
+//  private static final int VALIDATOR_COUNT = 1 << 13;
+  private static final int VALIDATOR_COUNT = 1024;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 25;
@@ -200,13 +201,14 @@ class ConfirmationRuleTest {
   }
 
   private SignedBeaconBlock importNextBlockWithAllAttestations() {
-    final ChainUpdater chainUpdater = storageSystem.chainUpdater();
-    UInt64 headSlot = chainUpdater.getHeadSlot();
-    return importNextBlockWithAllAttestations(headSlot);
+    return importNextBlockWithAllAttestations(chainBuilder);
   }
 
-  private final Set<Attestation> includedAttestations =
-      Collections.newSetFromMap(LimitedMap.createNonSynchronized(VALIDATOR_COUNT * 3));
+  private SignedBeaconBlock importNextBlockWithAllAttestations(ChainBuilder forkBuilder) {
+    final ChainUpdater chainUpdater = storageSystem.chainUpdater();
+    UInt64 headSlot = chainUpdater.getHeadSlot();
+    return importNextBlockWithAllAttestations(headSlot, forkBuilder);
+  }
 
   private SignedBeaconBlock importNextBlockWithAllAttestations(UInt64 headSlot) {
     return importNextBlockWithAllAttestations(headSlot, chainBuilder);
@@ -214,14 +216,9 @@ class ConfirmationRuleTest {
 
   private SignedBeaconBlock importNextBlockWithAllAttestations(
       UInt64 headSlot, ChainBuilder forkBuilder) {
-    UInt64 prevHeadSlot = storageSystem.recentChainData().getHeadSlot();
     final UInt64 newBlockSlot = headSlot.increment();
-    List<Attestation> unaggregatedAtts =
-        LongStream.range(prevHeadSlot.longValue() + 1, newBlockSlot.longValue() + 1)
-            .mapToObj(UInt64::valueOf)
-            .flatMap(forkBuilder::streamValidAttestationsForBlockAtSlotOnly)
-            .toList();
-    return importNextBlockWithAttestations(headSlot, unaggregatedAtts, forkBuilder);
+    List<Attestation> blockAggregates = forkBuilder.takeValidAggregatedAttestationsForBlockAtSlot(newBlockSlot);
+    return importNextBlockWithAttestations(headSlot, blockAggregates, forkBuilder);
   }
 
   private SignedBeaconBlock importNextBlockWithAttestations(
@@ -230,22 +227,11 @@ class ConfirmationRuleTest {
   }
 
   private SignedBeaconBlock importNextBlockWithAttestations(
-      UInt64 headSlot, List<Attestation> unaggregatedAtts, ChainBuilder forkBuilder) {
+      UInt64 headSlot, List<Attestation> atts, ChainBuilder forkBuilder) {
     final UInt64 newBlockSlot = headSlot.increment();
-    UInt64 minAttSlotForInclusion = newBlockSlot.minusMinZero(spec.slotsPerEpoch(UInt64.ZERO));
 
-    List<Attestation> filteredAtts =
-        unaggregatedAtts.stream()
-            .filter(att -> !includedAttestations.contains(att))
-            .filter(att -> att.getData().getSlot().isGreaterThanOrEqualTo(minAttSlotForInclusion))
-            .toList();
-
-    includedAttestations.addAll(filteredAtts);
-
-    List<Attestation> attestations =
-        AttestationGenerator.groupAndAggregateAttestations(filteredAtts);
     final BlockOptions epoch2BlockOptions = BlockOptions.create();
-    attestations.forEach(epoch2BlockOptions::addAttestation);
+    atts.forEach(epoch2BlockOptions::addAttestation);
     final SignedBlockAndState epoch2Block =
         forkBuilder.generateBlockAtSlot(newBlockSlot, epoch2BlockOptions);
     importBlock(epoch2Block);
@@ -271,9 +257,9 @@ class ConfirmationRuleTest {
 
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
 
-    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32 * 2);
+    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32);
 
-    importNextBlockWithAllAttestations(slotAfterGap);
+    SignedBeaconBlock bN = importNextBlockWithAllAttestations(slotAfterGap);
 
     // rollback to finalized
     Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
@@ -316,7 +302,7 @@ class ConfirmationRuleTest {
 
     UInt64 weakBlockSlot = allBlocks.getLast().getSlot().increment();
     List<Attestation> allForLastBlock =
-        chainBuilder.streamValidAttestationsForBlockAtSlotOnly(weakBlockSlot.increment()).toList();
+        chainBuilder.streamValidAttestationsForBlockAtSlot(weakBlockSlot.increment()).toList();
     List<Attestation> someForLastBlock =
         allForLastBlock.stream()
             .limit((long) allForLastBlock.size() * blockAttestationDeficitPercent / 100)
@@ -326,7 +312,7 @@ class ConfirmationRuleTest {
 
     List<Attestation> someForWeakBlock =
         chainBuilder
-            .streamValidAttestationsForBlockAtSlotOnly(weakBlockSlot.increment())
+            .streamValidAttestationsForBlockAtSlot(weakBlockSlot.increment())
             .skip(someForLastBlock.size())
             .toList();
 
@@ -404,14 +390,16 @@ class ConfirmationRuleTest {
     // 1 attestations for epoch 0
     chainBuilder
         .getAttestationGenerator()
-        .streamAttestations(genesis, UInt64.valueOf(slotsPerEpoch - 1))
+        .newAttestationStream(genesis, UInt64.valueOf(slotsPerEpoch - 1))
         .limit(1)
+        .takeAggregatedLimitedForBlock()
         .forEach(options::addAttestation);
     // 2 attestations for epoch 1
     chainBuilder
         .getAttestationGenerator()
-        .streamAttestations(genesis, UInt64.valueOf(slotsPerEpoch))
+        .newAttestationStream(genesis, UInt64.valueOf(slotsPerEpoch))
         .limit(2)
+        .takeAggregatedLimitedForBlock()
         .forEach(options::addAttestation);
 
     final SignedBlockAndState epoch1Block =
@@ -428,7 +416,7 @@ class ConfirmationRuleTest {
   }
 
   @Test
-  void testShortReorg() {
+  void testShortReorg1() {
     UpdatableStore store = storageSystem.recentChainData().getStore();
     for (int i = 1; i < 63; i++) { // run 2 epochs to 'warm up' justification processing
       importNextBlockWithAllAttestations();
@@ -436,15 +424,54 @@ class ConfirmationRuleTest {
 
     // #63
     importNextBlockWithAllAttestations();
+
+    ChainBuilder forkB = chainBuilder.fork();
+
     // #64
-    importNextBlockWithAllAttestations();
+    SignedBeaconBlock b64b = importNextBlockWithAllAttestations(forkB);
     // #65
-    importNextBlockWithAllAttestations();
+    SignedBeaconBlock b65b = importNextBlockWithAllAttestations(forkB);
 
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
     // #64 is now confirmed, let's reorg it
 
+    SignedBeaconBlock b66a = importNextBlockWithAllAttestations(UInt64.valueOf(65));
+    SignedBeaconBlock b67a = importNextBlockWithAllAttestations(UInt64.valueOf(66));
+    importNextBlockWithAllAttestations(UInt64.valueOf(67));
+    importNextBlockWithAllAttestations(UInt64.valueOf(68));
   }
+
+  @Test
+  void testShortReorg2() {
+    UpdatableStore store = storageSystem.recentChainData().getStore();
+    for (int i = 1; i < 34; i++) { // run 2 epochs to 'warm up' justification processing
+      importNextBlockWithAllAttestations();
+    }
+
+    // #34
+    importNextBlockWithAllAttestations();
+
+    ChainBuilder forkB = chainBuilder.fork();
+
+    // #35 fork B
+    SignedBeaconBlock b64b = importNextBlockWithAllAttestations(forkB);
+    // #36 fork B
+    SignedBeaconBlock b65b = importNextBlockWithAllAttestations(forkB);
+
+    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
+    // #35 is now confirmed, let's reorg it
+
+    // #37
+    SignedBeaconBlock b37a = importNextBlockWithAllAttestations(UInt64.valueOf(36));
+    // #38
+    SignedBeaconBlock b38a = importNextBlockWithAllAttestations(UInt64.valueOf(37));
+    // #39
+    importNextBlockWithAllAttestations(UInt64.valueOf(38));
+    // #40
+    importNextBlockWithAllAttestations(UInt64.valueOf(39));
+  }
+
+
 
   private void assertBlockImportedSuccessfully(
       final SafeFuture<BlockImportResult> importResult, final boolean optimistically) {
@@ -473,7 +500,9 @@ class ConfirmationRuleTest {
         "Importing block: "
             + block.getSlot()
             + ", "
-            + block.getRoot()
+            + block.getRoot().toString().substring(0, 8)
+            + " ~> "
+            + block.getParentRoot().toString().substring(0, 8)
             + ", votes in block: "
             + newVotesInBlock);
     for (int i = 1; i < 4; i++) {

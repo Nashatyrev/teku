@@ -21,11 +21,14 @@ import java.util.Set;
 import static java.util.Collections.emptySet;
 
 class VoteTracker {
+
+  record EpochVoter(UInt64 epoch, UInt64 voterIndex) {}
+
   private final Spec spec;
   private final AttestationStateSelector attestationStateSelector;
 
-  final Map<Bytes32, Set<UInt64>> headBlockToVotes = new HashMap<>();
-  final Map<UInt64, Set<UInt64>> slotToVotes = new HashMap<>();
+  final Map<Bytes32, Set<EpochVoter>> headBlockToVotes = new HashMap<>();
+  final Map<UInt64, Set<EpochVoter>> slotToVotes = new HashMap<>();
 
   public VoteTracker(Spec spec, RecentChainData recentChainData) {
     this.spec = spec;
@@ -45,12 +48,18 @@ class VoteTracker {
       IndexedAttestation indexedAttestation =
           attestationUtil.getIndexedAttestation(state, attestation);
 
-      List<UInt64> listUnboxed = indexedAttestation.getAttestingIndices().asListUnboxed();
-      headBlockToVotes.computeIfAbsent(voteBlock, k -> new HashSet<>()).addAll(listUnboxed);
-      Set<UInt64> votes =
+      UInt64 assignedEpoch = spec.computeEpochAtSlot(attestation.getData().getSlot());
+      List<EpochVoter> voters =
+          indexedAttestation
+              .getAttestingIndices()
+              .streamUnboxed()
+              .map(valIdx -> new EpochVoter(assignedEpoch, valIdx))
+              .toList();
+      headBlockToVotes.computeIfAbsent(voteBlock, k -> new HashSet<>()).addAll(voters);
+      Set<EpochVoter> votes =
           slotToVotes.computeIfAbsent(attestation.getData().getSlot(), k -> new HashSet<>());
       int oldVoteCount = votes.size();
-      votes.addAll(listUnboxed);
+      votes.addAll(voters);
       int newVoteCount = votes.size();
       unseenVotersCount += newVoteCount - oldVoteCount;
     }

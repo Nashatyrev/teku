@@ -90,7 +90,7 @@ public class AttestationGenerator {
         .collect(Collectors.toList());
   }
 
-  private static Attestation aggregateAttestations(final List<Attestation> srcAttestations) {
+  public static Attestation aggregateAttestations(final List<Attestation> srcAttestations) {
     Preconditions.checkArgument(!srcAttestations.isEmpty(), "Expected at least one attestation");
 
     final AttestationSchema<? extends Attestation> attestationSchema =

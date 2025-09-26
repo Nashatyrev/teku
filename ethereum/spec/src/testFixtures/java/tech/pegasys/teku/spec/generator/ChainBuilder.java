@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.bls.BLSKeyPair;
@@ -91,7 +93,8 @@ public class ChainBuilder {
   private static final int RANDOM_BLOBS_COUNT = 2;
   private final Spec spec;
   private final List<BLSKeyPair> validatorKeys;
-  private final AttestationGenerator attestationGenerator;
+  //  private final AttestationGenerator attestationGenerator;
+  private final SlashlessAttestationGenerator slashlessAttestationGenerator;
   private final AttesterSlashingGenerator attesterSlashingGenerator;
   private final ProposerSlashingGenerator proposerSlashingGenerator;
   private final NavigableMap<UInt64, SignedBlockAndState> blocks = new TreeMap<>();
@@ -108,11 +111,13 @@ public class ChainBuilder {
       final List<BLSKeyPair> validatorKeys,
       final Map<UInt64, SignedBlockAndState> existingBlocks,
       final Map<SlotAndBlockRoot, List<BlobSidecar>> existingBlobSidecars,
+      final SlashlessAttestationGenerator slashlessAttestationGenerator,
       final Optional<UInt64> maybeEarliestBlobSidecarSlot) {
     this.spec = spec;
     this.validatorKeys = validatorKeys;
     this.blobsUtil = new BlobsUtil(spec, NoOpKZG.INSTANCE);
-    this.attestationGenerator = new AttestationGenerator(spec, validatorKeys);
+    //    this.attestationGenerator = new AttestationGenerator(spec, validatorKeys);
+    this.slashlessAttestationGenerator = slashlessAttestationGenerator;
     this.attesterSlashingGenerator = new AttesterSlashingGenerator(spec, validatorKeys);
     this.proposerSlashingGenerator = new ProposerSlashingGenerator(spec, validatorKeys);
     this.blockProposalTestUtil = new BlockProposalTestUtil(spec);
@@ -138,7 +143,12 @@ public class ChainBuilder {
 
   public static ChainBuilder create(final Spec spec, final List<BLSKeyPair> validatorKeys) {
     return new ChainBuilder(
-        spec, validatorKeys, Collections.emptyMap(), Collections.emptyMap(), Optional.empty());
+        spec,
+        validatorKeys,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        new SlashlessAttestationGenerator(new AttestationGenerator(spec, validatorKeys), spec),
+        Optional.empty());
   }
 
   public Optional<SignedBeaconBlock> getBlock(final Bytes32 blockRoot) {
@@ -170,7 +180,13 @@ public class ChainBuilder {
    * @return An independent copy of this ChainBuilder
    */
   public ChainBuilder fork() {
-    return new ChainBuilder(spec, validatorKeys, blocks, blobSidecars, earliestBlobSidecarSlot);
+    return new ChainBuilder(
+        spec,
+        validatorKeys,
+        blocks,
+        blobSidecars,
+        slashlessAttestationGenerator,
+        earliestBlobSidecarSlot);
   }
 
   public List<BLSKeyPair> getValidatorKeys() {
@@ -506,25 +522,55 @@ public class ChainBuilder {
         .flatMap(this::streamValidAttestationsWithTargetBlock);
   }
 
-  public Stream<Attestation> streamValidAttestationsForBlockAtSlotOnly(final UInt64 slot) {
+  public List<Attestation> takeValidAggregatedAttestationsForBlockAtSlot(final UInt64 slot) {
     // Calculate bounds for valid head blocks
     final UInt64 currentEpoch = spec.computeEpochAtSlot(slot);
     final UInt64 prevEpoch =
         currentEpoch.compareTo(UInt64.ZERO) == 0 ? currentEpoch : currentEpoch.minus(UInt64.ONE);
     final UInt64 minBlockSlot = spec.computeStartSlotAtEpoch(prevEpoch);
 
-    SignedBlockAndState blockAndStateAtSlot = getLatestBlockAndStateAtSlot(slot);
+    // Calculate valid assigned slots to be included in a block at the given slot
+    final UInt64 slotsPerEpoch = UInt64.valueOf(spec.getGenesisSpecConfig().getSlotsPerEpoch());
+    final UInt64 minAssignedSlot =
+        slot.compareTo(slotsPerEpoch) <= 0 ? UInt64.ZERO : slot.minus(slotsPerEpoch);
+    final int minInclusionDiff = spec.getSpecConfig(currentEpoch).getMinAttestationInclusionDelay();
+    final UInt64 maxAssignedSlot = slot.minusMinZero(minInclusionDiff);
 
-    if (blockAndStateAtSlot == null) {
-      return Stream.empty();
-    }
-
-    if (blockAndStateAtSlot.getSlot().compareTo(minBlockSlot) < 0) {
-      return Stream.empty();
-    }
-
-    return attestationGenerator.streamAttestations(blockAndStateAtSlot, slot.decrement());
+    // Generate stream of consistent, valid attestations for inclusion
+    return LongStream.rangeClosed(minAssignedSlot.longValue(), maxAssignedSlot.longValue())
+        .mapToObj(UInt64::valueOf)
+        .map(s -> Pair.of(s, getLatestBlockAndStateAtSlot(s)))
+        .filter(p -> p.getValue() != null)
+        .filter(p -> p.getKey().compareTo(minBlockSlot) >= 0)
+        .map(
+            attestHead ->
+                slashlessAttestationGenerator.newAttestationStream(
+                    attestHead.getValue(), attestHead.getKey()))
+        .reduce(SlashlessAttestationGenerator.AttestationStream::concat)
+        .orElseGet(slashlessAttestationGenerator::emptyAttestationStream)
+        .takeAggregatedLimitedForBlock();
   }
+
+  //  public Stream<Attestation> streamValidAttestationsForBlockAtSlotOnly(final UInt64 slot) {
+  //    // Calculate bounds for valid head blocks
+  //    final UInt64 currentEpoch = spec.computeEpochAtSlot(slot);
+  //    final UInt64 prevEpoch =
+  //        currentEpoch.compareTo(UInt64.ZERO) == 0 ? currentEpoch :
+  // currentEpoch.minus(UInt64.ONE);
+  //    final UInt64 minBlockSlot = spec.computeStartSlotAtEpoch(prevEpoch);
+  //
+  //    SignedBlockAndState blockAndStateAtSlot = getLatestBlockAndStateAtSlot(slot);
+  //
+  //    if (blockAndStateAtSlot == null) {
+  //      return Stream.empty();
+  //    }
+  //
+  //    if (blockAndStateAtSlot.getSlot().compareTo(minBlockSlot) < 0) {
+  //      return Stream.empty();
+  //    }
+  //
+  //    return attestationGenerator.streamAttestations(blockAndStateAtSlot, slot.decrement());
+  //  }
 
   /**
    * Utility for streaming valid attestations with a specific target block.
@@ -534,11 +580,14 @@ public class ChainBuilder {
    */
   public Stream<Attestation> streamValidAttestationsWithTargetBlock(
       final StateAndBlockSummary attestedHead) {
-    return attestationGenerator.streamAttestations(attestedHead, attestedHead.getSlot());
+    return slashlessAttestationGenerator
+        .newAttestationStream(attestedHead, attestedHead.getSlot())
+        .takeAll()
+        .stream();
   }
 
-  public AttestationGenerator getAttestationGenerator() {
-    return attestationGenerator;
+  public SlashlessAttestationGenerator getAttestationGenerator() {
+    return slashlessAttestationGenerator;
   }
 
   public AttesterSlashing createAttesterSlashingForAttestation(
