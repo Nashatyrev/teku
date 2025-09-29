@@ -416,7 +416,7 @@ class ConfirmationRuleTest {
   }
 
   @Test
-  void testShortReorg1() {
+  void testShortReorgWhenForkBlockIsTheFirstInEpoch() {
     UpdatableStore store = storageSystem.recentChainData().getStore();
     for (int i = 1; i < 63; i++) { // run 2 epochs to 'warm up' justification processing
       importNextBlockWithAllAttestations();
@@ -428,47 +428,59 @@ class ConfirmationRuleTest {
     ChainBuilder forkB = chainBuilder.fork();
 
     // #64
-    SignedBeaconBlock b64b = importNextBlockWithAllAttestations(forkB);
+    importNextBlockWithAllAttestations(forkB);
     // #65
-    SignedBeaconBlock b65b = importNextBlockWithAllAttestations(forkB);
+    importNextBlockWithAllAttestations(forkB);
 
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
     // #64 is now confirmed, let's reorg it
 
-    SignedBeaconBlock b66a = importNextBlockWithAllAttestations(UInt64.valueOf(65));
-    SignedBeaconBlock b67a = importNextBlockWithAllAttestations(UInt64.valueOf(66));
+    importNextBlockWithAllAttestations(UInt64.valueOf(65));
+    importNextBlockWithAllAttestations(UInt64.valueOf(66));
     importNextBlockWithAllAttestations(UInt64.valueOf(67));
-    importNextBlockWithAllAttestations(UInt64.valueOf(68));
+    SignedBeaconBlock b69a = importNextBlockWithAllAttestations(UInt64.valueOf(68));
+
+    // check the reorg happened
+    assertThat(storageSystem.getChainHead().getRoot()).isEqualTo(b69a.getRoot());
+    // check that confirmed block is reset to finalized after being reorged
+    Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
+    assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
   }
 
   @Test
-  void testShortReorg2() {
+  void testShortReorgWhenForkBlockInMiddleOfEpoch() {
     UpdatableStore store = storageSystem.recentChainData().getStore();
-    for (int i = 1; i < 34; i++) { // run 2 epochs to 'warm up' justification processing
+    for (int i = 1; i < 66; i++) { // run 2 epochs to 'warm up' justification processing
       importNextBlockWithAllAttestations();
     }
 
-    // #34
-    importNextBlockWithAllAttestations();
+    // #66
+    SignedBeaconBlock b66 = importNextBlockWithAllAttestations();
 
     ChainBuilder forkB = chainBuilder.fork();
 
-    // #35 fork B
-    SignedBeaconBlock b64b = importNextBlockWithAllAttestations(forkB);
-    // #36 fork B
-    SignedBeaconBlock b65b = importNextBlockWithAllAttestations(forkB);
+    // #67 fork B
+    SignedBeaconBlock b67b = importNextBlockWithAllAttestations(forkB);
+    // #68 fork B
+    importNextBlockWithAllAttestations(forkB);
 
-    assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
-    // #35 is now confirmed, let's reorg it
+    assertThat(store.getConfirmedRoot()).isEqualTo(b67b.getRoot());
+    // #67 is now confirmed, let's reorg it
 
-    // #37
-    SignedBeaconBlock b37a = importNextBlockWithAllAttestations(UInt64.valueOf(36));
-    // #38
-    SignedBeaconBlock b38a = importNextBlockWithAllAttestations(UInt64.valueOf(37));
-    // #39
-    importNextBlockWithAllAttestations(UInt64.valueOf(38));
-    // #40
-    importNextBlockWithAllAttestations(UInt64.valueOf(39));
+    // #69
+    importNextBlockWithAllAttestations(UInt64.valueOf(68));
+    // #70
+    importNextBlockWithAllAttestations(UInt64.valueOf(69));
+    // #71
+    importNextBlockWithAllAttestations(UInt64.valueOf(70));
+    // #72
+    SignedBeaconBlock b72a = importNextBlockWithAllAttestations(UInt64.valueOf(71));
+
+    // check the reorg happened
+    assertThat(storageSystem.getChainHead().getRoot()).isEqualTo(b72a.getRoot());
+    // check that confirmed block is reset to finalized after being reorged
+    Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
+    assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
   }
 
 
