@@ -1,14 +1,19 @@
+/*
+ * Copyright Consensys Software Inc., 2025
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tech.pegasys.teku.spec.generator;
 
-import org.apache.commons.lang3.ObjectUtils;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
-import tech.pegasys.teku.spec.datastructures.operations.Attestation;
-import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
-import tech.pegasys.teku.spec.datastructures.operations.IndexedAttestation;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
-import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
+import static com.google.common.base.Preconditions.checkArgument;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -21,8 +26,13 @@ import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-
-import static com.google.common.base.Preconditions.checkArgument;
+import org.apache.commons.lang3.ObjectUtils;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
+import tech.pegasys.teku.spec.datastructures.operations.Attestation;
+import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
+import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
 
 public class SlashlessAttestationGenerator {
 
@@ -165,7 +175,8 @@ public class SlashlessAttestationGenerator {
       Iterator<AttestationWithIndex> it = attestations.iterator();
       while (it.hasNext()) {
         AttestationWithIndex attWithIdx = it.next();
-        List<Attestation> aggregationList = groupedAttestations.get(attWithIdx.attestation().getData());
+        List<Attestation> aggregationList =
+            groupedAttestations.get(attWithIdx.attestation().getData());
         if (aggregationList == null) {
           if (groupedAttestations.size() == limit) {
             break;

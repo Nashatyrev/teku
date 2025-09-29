@@ -40,7 +40,9 @@ public abstract class AbstractMutableBeaconState<
   protected AbstractMutableBeaconState(final T backingImmutableView, final boolean builder) {
     super(backingImmutableView);
     this.transitionCaches =
-        builder ? TransitionCaches.createNewEmpty() : backingImmutableView.getTransitionCaches().copy();
+        builder
+            ? TransitionCaches.createNewEmpty()
+            : backingImmutableView.getTransitionCaches().copy();
     this.slotCaches = builder ? SlotCaches.getNoOp() : backingImmutableView.getSlotCaches().copy();
     this.builder = builder;
   }

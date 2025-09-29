@@ -91,7 +91,7 @@ public class BLS {
   public static boolean verify(
       final BLSPublicKey publicKey, final Bytes message, final BLSSignature signature) {
     if (BLSConstants.verificationDisabled) {
-//      LOG.warn("Skipping bls verification.");
+      //      LOG.warn("Skipping bls verification.");
       return true;
     }
     try {
@@ -185,7 +185,7 @@ public class BLS {
   public static boolean fastAggregateVerify(
       final List<BLSPublicKey> publicKeys, final Bytes message, final BLSSignature signature) {
     if (BLSConstants.verificationDisabled) {
-//      LOG.warn("Skipping bls verification.");
+      //      LOG.warn("Skipping bls verification.");
       return true;
     }
 
@@ -279,7 +279,7 @@ public class BLS {
       final boolean doublePairing,
       final boolean parallel) {
     if (BLSConstants.verificationDisabled) {
-//      LOG.warn("Skipping bls verification.");
+      //      LOG.warn("Skipping bls verification.");
       return true;
     }
     try {
@@ -412,7 +412,7 @@ public class BLS {
    */
   public static boolean completeBatchVerify(final List<BatchSemiAggregate> preparedSignatures) {
     if (BLSConstants.verificationDisabled) {
-//      LOG.warn("Skipping bls verification.");
+      //      LOG.warn("Skipping bls verification.");
       return true;
     }
     return getBlsImpl().completeBatchVerify(preparedSignatures);
@@ -450,7 +450,7 @@ public class BLS {
       final BLSSignature signature,
       final String dst) {
     if (BLSConstants.verificationDisabled) {
-//      LOG.warn("Skipping bls verification.");
+      //      LOG.warn("Skipping bls verification.");
       return true;
     }
     return signature.getSignature().verify(publicKey.getPublicKey(), message, dst);

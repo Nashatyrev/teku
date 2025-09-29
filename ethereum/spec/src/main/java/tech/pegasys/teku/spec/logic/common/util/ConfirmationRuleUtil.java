@@ -14,9 +14,9 @@
 package tech.pegasys.teku.spec.logic.common.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Predicate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
-import com.google.common.base.Predicate;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
@@ -239,14 +237,15 @@ public class ConfirmationRuleUtil {
     //    ))
 
     Map<Bytes32, Boolean> isAncestorCache = new HashMap<>();
-    Predicate<Bytes32> isAncestorCached = voteRoot -> {
-      Boolean b = isAncestorCache.get(voteRoot);
-      if (b == null) {
-        b = isAncestor(store, voteRoot, blockRoot);
-        isAncestorCache.put(voteRoot, b);
-      }
-      return b;
-    };
+    Predicate<Bytes32> isAncestorCached =
+        voteRoot -> {
+          Boolean b = isAncestorCache.get(voteRoot);
+          if (b == null) {
+            b = isAncestor(store, voteRoot, blockRoot);
+            isAncestorCache.put(voteRoot, b);
+          }
+          return b;
+        };
 
     SszList<Validator> validators = referenceCheckpointState.getValidators();
     UInt64 attestationScore =
@@ -275,14 +274,14 @@ public class ConfirmationRuleUtil {
 
   private UInt64 getNetWeightForState(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
-//    UInt64 weightFast =
-//        getNetWeightForStateFast(store, blockRoot, referenceCheckpointState).orElseThrow();
+    //    UInt64 weightFast =
+    //        getNetWeightForStateFast(store, blockRoot, referenceCheckpointState).orElseThrow();
     UInt64 weightSlow = getNetWeightForStateSlow(store, blockRoot, referenceCheckpointState);
-//    checkState(
-//        weightFast.equals(weightSlow),
-//        "Weights doesnt match fast {} != slow {}",
-//        weightFast,
-//        weightSlow);
+    //    checkState(
+    //        weightFast.equals(weightSlow),
+    //        "Weights doesnt match fast {} != slow {}",
+    //        weightFast,
+    //        weightSlow);
     return weightSlow;
   }
 
@@ -364,9 +363,10 @@ public class ConfirmationRuleUtil {
     return new Checkpoint(epoch, getCheckpointBlock(store, root, epoch));
   }
 
-
   LRUCache<Pair<Bytes32, UInt64>, CheckpointFast> blockCheckpointCache = LRUCache.create(10000);
-  private CheckpointFast getCheckpointFastForBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
+
+  private CheckpointFast getCheckpointFastForBlock(
+      ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
     return blockCheckpointCache.get(
         Pair.of(root, epoch),
         __ -> CheckpointFast.fromCheckpoint(getCheckpointForBlock(store, root, epoch)));
@@ -387,10 +387,7 @@ public class ConfirmationRuleUtil {
     }
   }
 
-  record CheckpointFast(
-      int epoch,
-      Bytes32 root
-  ) {
+  record CheckpointFast(int epoch, Bytes32 root) {
     static CheckpointFast fromCheckpoint(Checkpoint checkpoint) {
       return new CheckpointFast(checkpoint.getEpoch().intValue(), checkpoint.getRoot());
     }
@@ -444,7 +441,8 @@ public class ConfirmationRuleUtil {
                             return false;
                           }
                           CheckpointFast voteTarget =
-                              getCheckpointFastForBlock(store, vote.getNextRoot(), vote.getNextEpoch());
+                              getCheckpointFastForBlock(
+                                  store, vote.getNextRoot(), vote.getNextEpoch());
                           return voteTarget.equals(checkpointFast);
                         })
                     .mapToObj(
@@ -459,19 +457,20 @@ public class ConfirmationRuleUtil {
   public UInt64 getCheckpointWeight(
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
 
-//    UInt64 checkpointSlot =
-//        store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
-//    UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
-//    if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
-//      // just checking implementation compatibility
-//      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false, false);
-//      UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
-//      checkState(
-//          weightFast.equals(weightSlow),
-//          "Slow and fast algorithms don't match: {} != {}",
-//          weightSlow,
-//          weightFast);
-//    }
+    //    UInt64 checkpointSlot =
+    //        store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
+    //    UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
+    //    if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
+    //      // just checking implementation compatibility
+    //      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false,
+    // false);
+    //      UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
+    //      checkState(
+    //          weightFast.equals(weightSlow),
+    //          "Slow and fast algorithms don't match: {} != {}",
+    //          weightSlow,
+    //          weightFast);
+    //    }
 
     UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, true, true);
     return weightSlow;
@@ -502,15 +501,19 @@ public class ConfirmationRuleUtil {
       ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
     return checkpointJustificationIndicator(store, checkpoint, checkpointStateStore, 2);
   }
+
   // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
   private boolean willNoConflictingCheckpointBeJustified(
       ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
     return checkpointJustificationIndicator(store, checkpoint, checkpointStateStore, 1);
   }
 
-    // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+  // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
   private boolean checkpointJustificationIndicator(
-      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore, int multiplier) {
+      ReadOnlyStore store,
+      Checkpoint checkpoint,
+      CheckpointStateStore checkpointStateStore,
+      int multiplier) {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -903,7 +906,7 @@ public class ConfirmationRuleUtil {
     // FIX+ME (spec): confirmed_block_epoch is not defined
     //
     //        confirmed_root = store.finalized_checkpoint.root
-//    UInt64 confirmedBlockEpoch = getBlockEpochCached(store, confirmedRoot);
+    //    UInt64 confirmedBlockEpoch = getBlockEpochCached(store, confirmedRoot);
     if (!hasProtoarrayBlock(store, confirmedRoot)
         || getBlockEpoch(store, confirmedRoot).increment().isLessThan(currentEpoch)
         || !isAncestor(store, head, confirmedRoot)) {
@@ -924,9 +927,10 @@ public class ConfirmationRuleUtil {
         store.getForkChoiceStrategy().blockSlot(confirmedRoot).orElseThrow();
     //    prev_unrealized_justified_checkpoint_slot =
     // store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
-    Optional<UInt64> prevUnrealizedJustifiedCeckpointSlot = store
-        .getForkChoiceStrategy()
-        .blockSlot(store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot());
+    Optional<UInt64> prevUnrealizedJustifiedCeckpointSlot =
+        store
+            .getForkChoiceStrategy()
+            .blockSlot(store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot());
     if (prevUnrealizedJustifiedCeckpointSlot.isEmpty()) {
       return confirmedRoot;
     }

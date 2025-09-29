@@ -234,7 +234,7 @@ public class BeaconStateMutators {
       final UInt64 amount) {
     final Validator validator =
         miscHelpers.getValidatorFromDeposit(pubkey, withdrawalCredentials, amount);
-//    LOG.debug("Adding new validator with index {} to state", state.getValidators().size());
+    //    LOG.debug("Adding new validator with index {} to state", state.getValidators().size());
     state.getValidators().append(validator);
     state.getBalances().appendElement(amount);
   }

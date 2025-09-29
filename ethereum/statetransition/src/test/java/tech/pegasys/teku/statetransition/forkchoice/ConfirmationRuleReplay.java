@@ -128,7 +128,7 @@ class ConfirmationRuleReplay {
   //  String anchorStateRoot = "0xed289ea2e127d26e57f20799512c7cf6ad1672c9dc93c394fe589352a53a1213";
 
   //  String anchorStateRoot = "0xd431b7131b6ef1e74b09825d3d26c4007eaf5b9a39dfcb82a0a4963d79721857";
-//  String anchorStateRoot = "0x5f39cf40f9f35640d0119093ef711e3e66594b31b3ff7f011676a4209783bb5b";
+  //  String anchorStateRoot = "0x5f39cf40f9f35640d0119093ef711e3e66594b31b3ff7f011676a4209783bb5b";
   String anchorStateRoot = "0xc99f15b57eea955b09524f42c58d2fd89063d0477de7c559462be39d92883df7";
 
   BeaconState anchorState;

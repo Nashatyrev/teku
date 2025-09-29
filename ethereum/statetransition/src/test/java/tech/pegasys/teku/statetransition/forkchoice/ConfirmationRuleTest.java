@@ -18,19 +18,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
-
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +37,6 @@ import org.mockito.stubbing.Stubber;
 import tech.pegasys.teku.bls.BLSConstants;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.eventthread.InlineEventThread;
-import tech.pegasys.teku.infrastructure.collections.LimitedMap;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -55,13 +49,11 @@ import tech.pegasys.teku.spec.datastructures.blocks.Eth1Data;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
-import tech.pegasys.teku.spec.datastructures.operations.AttestationSchema;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannelStub;
 import tech.pegasys.teku.spec.executionlayer.ForkChoiceUpdatedResult;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
-import tech.pegasys.teku.spec.generator.AttestationGenerator;
 import tech.pegasys.teku.spec.generator.ChainBuilder;
 import tech.pegasys.teku.spec.generator.ChainBuilder.BlockOptions;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
@@ -117,7 +109,7 @@ class ConfirmationRuleTest {
 
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
   //  private static final int VALIDATOR_COUNT = 1_000_000;
-//  private static final int VALIDATOR_COUNT = 1 << 13;
+  //  private static final int VALIDATOR_COUNT = 1 << 13;
   private static final int VALIDATOR_COUNT = 1024;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
@@ -217,7 +209,8 @@ class ConfirmationRuleTest {
   private SignedBeaconBlock importNextBlockWithAllAttestations(
       UInt64 headSlot, ChainBuilder forkBuilder) {
     final UInt64 newBlockSlot = headSlot.increment();
-    List<Attestation> blockAggregates = forkBuilder.takeValidAggregatedAttestationsForBlockAtSlot(newBlockSlot);
+    List<Attestation> blockAggregates =
+        forkBuilder.takeValidAggregatedAttestationsForBlockAtSlot(newBlockSlot);
     return importNextBlockWithAttestations(headSlot, blockAggregates, forkBuilder);
   }
 
@@ -482,8 +475,6 @@ class ConfirmationRuleTest {
     Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
     assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
   }
-
-
 
   private void assertBlockImportedSuccessfully(
       final SafeFuture<BlockImportResult> importResult, final boolean optimistically) {

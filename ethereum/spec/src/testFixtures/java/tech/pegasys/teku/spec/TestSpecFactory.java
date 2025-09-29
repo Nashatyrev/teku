@@ -253,7 +253,7 @@ public class TestSpecFactory {
     return createMainnetElectra(__ -> {});
   }
 
-    public static Spec createMainnetElectra(final Consumer<SpecConfigBuilder> configAdapter) {
+  public static Spec createMainnetElectra(final Consumer<SpecConfigBuilder> configAdapter) {
     final SpecConfigAndParent<? extends SpecConfig> specConfig =
         getElectraSpecConfig(Eth2Network.MAINNET, configAdapter);
     return create(specConfig, SpecMilestone.ELECTRA);
