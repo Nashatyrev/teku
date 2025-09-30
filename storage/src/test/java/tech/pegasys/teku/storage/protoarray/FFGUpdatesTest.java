@@ -169,7 +169,7 @@ public class FFGUpdatesTest {
     //               7   8
     //               |   |
     //               9  10
-    forkChoice.processAttestation(store, unsigned(0), getHash(1), unsigned(0));
+    forkChoice.processAttestation(store, unsigned(0), getHash(1), unsigned(0), unsigned(0));
 
     // Ensure that if we start at 0 we find 9 (just: 0, fin: 0).
     //
@@ -208,7 +208,7 @@ public class FFGUpdatesTest {
     //               7   8
     //               |   |
     //               9  10
-    forkChoice.processAttestation(store, unsigned(1), getHash(2), unsigned(0));
+    forkChoice.processAttestation(store, unsigned(1), getHash(2), unsigned(0), unsigned(0));
 
     // Ensure that if we start at 0 we find 10 (just: 0, fin: 0).
     //

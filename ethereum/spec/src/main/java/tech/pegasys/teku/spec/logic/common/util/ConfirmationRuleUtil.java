@@ -871,15 +871,6 @@ public class ConfirmationRuleUtil {
     return confirmedRoot;
   }
 
-  private LRUCache<Bytes32, UInt64> signleBlockRootToEpochCache =
-      LRUCache.<Bytes32, UInt64>create(1);
-
-  // the previous confirmed root was evicted due to finalization of a later block
-  // this is a hacky way to preserve it for just one iteration
-  private UInt64 getBlockEpochCached(ReadOnlyStore store, Bytes32 blockRoot) {
-    return signleBlockRootToEpochCache.get(blockRoot, root -> getBlockEpoch(store, root));
-  }
-
   // def get_latest_confirmed(store: Store) -> Root:
   public Bytes32 getLatestConfirmed(
       ReadOnlyStore store,
@@ -960,7 +951,6 @@ public class ConfirmationRuleUtil {
           findLatestConfirmedDescendant(store, confirmedRoot, head, checkpointStateStore);
     }
     // put to cache
-    getBlockEpochCached(store, confirmedRoot);
     return confirmedRoot;
   }
 }

@@ -21,27 +21,30 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 public class VoteTracker {
 
   public static final VoteTracker DEFAULT =
-      new VoteTracker(Bytes32.ZERO, Bytes32.ZERO, UInt64.ZERO);
+      new VoteTracker(Bytes32.ZERO, Bytes32.ZERO, UInt64.ZERO, UInt64.ZERO);
 
   private final Bytes32 currentRoot;
   private final Bytes32 nextRoot;
   private final UInt64 nextEpoch;
+  private final UInt64 nextSlot;
   private final boolean nextEquivocating;
   private final boolean currentEquivocating;
 
-  public VoteTracker(final Bytes32 currentRoot, final Bytes32 nextRoot, final UInt64 nextEpoch) {
-    this(currentRoot, nextRoot, nextEpoch, false, false);
+  public VoteTracker(final Bytes32 currentRoot, final Bytes32 nextRoot, final UInt64 nextEpoch, UInt64 nextSlot) {
+    this(currentRoot, nextRoot, nextEpoch, nextSlot, false, false);
   }
 
   public VoteTracker(
       final Bytes32 currentRoot,
       final Bytes32 nextRoot,
       final UInt64 nextEpoch,
+      final UInt64 nextSlot,
       final boolean nextEquivocating,
       final boolean currentEquivocating) {
     this.currentRoot = currentRoot;
     this.nextRoot = nextRoot;
     this.nextEpoch = nextEpoch;
+    this.nextSlot = nextSlot;
     this.nextEquivocating = nextEquivocating;
     this.currentEquivocating = currentEquivocating;
   }
@@ -58,6 +61,10 @@ public class VoteTracker {
     return nextEpoch;
   }
 
+  public UInt64 getNextSlot() {
+    return nextSlot;
+  }
+
   public boolean isNextEquivocating() {
     return nextEquivocating;
   }
@@ -71,7 +78,7 @@ public class VoteTracker {
   }
 
   public VoteTracker createNextEquivocating() {
-    return new VoteTracker(currentRoot, nextRoot, nextEpoch, true, false);
+    return new VoteTracker(currentRoot, nextRoot, nextEpoch, nextSlot, true, false);
   }
 
   @Override

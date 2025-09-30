@@ -95,7 +95,7 @@ public class VotesTest {
     // 8          0
     //           / \
     // 9        2   1 <- +vote
-    forkChoice.processAttestation(store, unsigned(0), getHash(1), unsigned(2));
+    forkChoice.processAttestation(store, unsigned(0), getHash(1), unsigned(2), unsigned(0));
 
     // Ensure that the head is now 1, because 1 has a vote.
     //
@@ -112,7 +112,7 @@ public class VotesTest {
     // 8            0
     //             / \
     // 9   +vote-> 2   1
-    forkChoice.processAttestation(store, unsigned(1), getHash(2), unsigned(2));
+    forkChoice.processAttestation(store, unsigned(1), getHash(2), unsigned(2), unsigned(0));
 
     // Ensure that the head is 2 since 1 and 2 both have a vote
     //
@@ -152,7 +152,7 @@ public class VotesTest {
     // 9       2   1 <- -vote
     //             |
     // 10          3 <- +vote
-    forkChoice.processAttestation(store, unsigned(0), getHash(3), unsigned(3));
+    forkChoice.processAttestation(store, unsigned(0), getHash(3), unsigned(3), unsigned(0));
 
     // Ensure that the head is still 2
     //
@@ -174,7 +174,7 @@ public class VotesTest {
     // 9  -vote-> 2   1 <- +vote
     //                |
     // 10             3
-    forkChoice.processAttestation(store, unsigned(1), getHash(1), unsigned(3));
+    forkChoice.processAttestation(store, unsigned(1), getHash(1), unsigned(3), unsigned(0));
 
     // Ensure that the head is now 3
     //
@@ -280,8 +280,8 @@ public class VotesTest {
     // 16              4
     //                / \
     // 17  +2 vote-> 5   6
-    forkChoice.processAttestation(store, unsigned(0), getHash(5), unsigned(4));
-    forkChoice.processAttestation(store, unsigned(1), getHash(5), unsigned(4));
+    forkChoice.processAttestation(store, unsigned(0), getHash(5), unsigned(4), unsigned(0));
+    forkChoice.processAttestation(store, unsigned(1), getHash(5), unsigned(4), unsigned(0));
 
     // Add blocks 7, 8 and 9. Adding these blocks helps test the `best_descendant`
     // functionality.
@@ -378,8 +378,8 @@ public class VotesTest {
     // 19            8
     //              /
     // 20          9 <- +2 votes
-    forkChoice.processAttestation(store, unsigned(0), getHash(9), unsigned(5));
-    forkChoice.processAttestation(store, unsigned(1), getHash(9), unsigned(5));
+    forkChoice.processAttestation(store, unsigned(0), getHash(9), unsigned(5), unsigned(0));
+    forkChoice.processAttestation(store, unsigned(1), getHash(9), unsigned(5), unsigned(0));
 
     // Add block 10
     //
@@ -429,8 +429,8 @@ public class VotesTest {
     // 19            8
     //              / \
     // 20          9   10 <- +2 votes
-    forkChoice.processAttestation(store, unsigned(2), getHash(10), unsigned(5));
-    forkChoice.processAttestation(store, unsigned(3), getHash(10), unsigned(5));
+    forkChoice.processAttestation(store, unsigned(2), getHash(10), unsigned(5), unsigned(0));
+    forkChoice.processAttestation(store, unsigned(3), getHash(10), unsigned(5), unsigned(0));
 
     // Check the head is now 10. (due to lexicographical ordering
     // (when blocks have the same amount of votes))
@@ -504,7 +504,7 @@ public class VotesTest {
     // Add 1 validator
     balances = new ArrayList<>(List.of(ONE, ONE, ONE, ONE, ONE));
     // Add 1 vote to 10 (total: 2 good, 1 equivocated)
-    forkChoice.processAttestation(store, unsigned(4), getHash(10), unsigned(5));
+    forkChoice.processAttestation(store, unsigned(4), getHash(10), unsigned(5), unsigned(0));
 
     // Ensure the head is 10 back
     //
