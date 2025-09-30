@@ -183,9 +183,12 @@ class ProtoArrayTest {
     addValidBlock(2, block2a, block1a);
     addValidBlock(2, block2b, block1b);
 
-    voteUpdater.putVote(UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
     protoArray.applyScoreChanges(
         computeDeltas(), UInt64.valueOf(5), GENESIS_CHECKPOINT, GENESIS_CHECKPOINT);
 
@@ -208,9 +211,12 @@ class ProtoArrayTest {
     addOptimisticBlock(2, block2a, block1a);
     addOptimisticBlock(2, block2b, block1b);
 
-    voteUpdater.putVote(UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
     protoArray.applyScoreChanges(
         computeDeltas(), UInt64.valueOf(5), GENESIS_CHECKPOINT, GENESIS_CHECKPOINT);
 
@@ -233,9 +239,12 @@ class ProtoArrayTest {
     addOptimisticBlock(2, block2a, block1a);
     addOptimisticBlock(2, block2b, block1b);
 
-    voteUpdater.putVote(UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
     protoArray.applyScoreChanges(
         computeDeltas(), UInt64.valueOf(5), GENESIS_CHECKPOINT, GENESIS_CHECKPOINT);
 
@@ -260,9 +269,12 @@ class ProtoArrayTest {
     addOptimisticBlock(2, block2a, block1a);
     addOptimisticBlock(2, block2b, block1b);
 
-    voteUpdater.putVote(UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
-    voteUpdater.putVote(UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ZERO, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.ONE, new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
+    voteUpdater.putVote(
+        UInt64.valueOf(2), new VoteTracker(Bytes32.ZERO, block1b, UInt64.ZERO, UInt64.ZERO));
     protoArray.applyScoreChanges(
         computeDeltas(), UInt64.valueOf(5), GENESIS_CHECKPOINT, GENESIS_CHECKPOINT);
 

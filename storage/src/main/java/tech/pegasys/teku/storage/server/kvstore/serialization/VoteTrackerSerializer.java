@@ -40,7 +40,7 @@ class VoteTrackerSerializer implements KvStoreSerializer<VoteTracker> {
             currentEquivocating = reader.readBoolean();
           }
           return new VoteTracker(
-              currentRoot, nextRoot, nextEpoch,nextSlot, nextEquivocating, currentEquivocating);
+              currentRoot, nextRoot, nextEpoch, nextSlot, nextEquivocating, currentEquivocating);
         });
   }
 

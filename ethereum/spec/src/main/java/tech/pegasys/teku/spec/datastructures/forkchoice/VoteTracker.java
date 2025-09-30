@@ -30,7 +30,8 @@ public class VoteTracker {
   private final boolean nextEquivocating;
   private final boolean currentEquivocating;
 
-  public VoteTracker(final Bytes32 currentRoot, final Bytes32 nextRoot, final UInt64 nextEpoch, UInt64 nextSlot) {
+  public VoteTracker(
+      final Bytes32 currentRoot, final Bytes32 nextRoot, final UInt64 nextEpoch, UInt64 nextSlot) {
     this(currentRoot, nextRoot, nextEpoch, nextSlot, false, false);
   }
 

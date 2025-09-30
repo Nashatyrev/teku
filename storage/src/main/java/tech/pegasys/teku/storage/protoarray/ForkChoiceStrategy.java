@@ -161,7 +161,8 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
     try {
       votes.forEachDeferredVote(
           (blockRoot, validatorIndex) ->
-              processAttestation(voteUpdater, validatorIndex, blockRoot, targetEpoch, votes.getSlot()));
+              processAttestation(
+                  voteUpdater, validatorIndex, blockRoot, targetEpoch, votes.getSlot()));
     } finally {
       votesLock.writeLock().unlock();
     }
@@ -241,7 +242,8 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
     }
 
     if (targetEpoch.isGreaterThan(vote.getNextEpoch()) || vote.equals(VoteTracker.DEFAULT)) {
-      VoteTracker newVote = new VoteTracker(vote.getCurrentRoot(), blockRoot, targetEpoch, assignedSlot);
+      VoteTracker newVote =
+          new VoteTracker(vote.getCurrentRoot(), blockRoot, targetEpoch, assignedSlot);
       voteUpdater.putVote(validatorIndex, newVote);
     }
   }
