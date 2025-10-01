@@ -16,17 +16,26 @@ package tech.pegasys.teku.spec.logic.common.util;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
+import org.bouncycastle.util.Store;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -285,8 +294,182 @@ public class ConfirmationRuleUtil {
     return weightSlow;
   }
 
+  private NavigableMap<UInt64, UInt64> calculateBlockAttestationScoreByAssignedSlot(
+      ReadOnlyStore store, Bytes32 blockRoot, BeaconState balanceSource) {
+    return store.calculateFromAllVotes(
+        votes -> {
+          NavigableMap<UInt64, UInt64> ret = new TreeMap<>();
+          IntStream.range(0, votes.length)
+              .filter(
+                  validatorIndex -> {
+                    VoteTracker vote = votes[validatorIndex];
+                    return vote != null
+                        && !vote.equals(VoteTracker.DEFAULT)
+                        && !vote.isEquivocating()
+                        && vote.getNextRoot().equals(blockRoot);
+                  })
+              .forEach(
+                  validatorIndex -> {
+                    VoteTracker vote = votes[validatorIndex];
+                    UInt64 effectiveBalance =
+                        balanceSource.getValidators().get(validatorIndex).getEffectiveBalance();
+                    ret.compute(
+                        vote.getNextSlot(),
+                        (slot, sum) -> (sum == null ? UInt64.ZERO : sum).plus(effectiveBalance));
+                  });
+          return ret;
+        });
+  }
+
+  // def compute_chain_prefix_support_between_slots(
+  //        store: Store, block_root: Root, balance_source: BeaconState, first_slot: Slot,
+  // last_slot: Slot) -> Gwei:
+  private UInt64 computeChainPrefixSupportBetweenSlots(
+      NavigableMap<UInt64, UInt64> supportBySlot, UInt64 firstSlot, UInt64 lastSlot) {
+    //    head = get_head(store)
+    //    head_state = store.block_states[head]
+    //    support = Gwei(0)
+    //    for slot in range(first_slot, last_slot + 1):
+    //        committee = get_committee_at_slot(head_state, get_block_slot(store, block_root))
+    //        for validator_index in committee:
+    //            if (store.latest_messages[validator_index].root == block_root
+    //                and validator_index not in store.equivocating_indices):
+    //                support += balance_source.validators[validator_index].effective_balance
+    //
+    //    return support
+
+    // Different algo with Slot in a Vote
+    return supportBySlot.subMap(firstSlot, true, lastSlot, true).values().stream()
+        .reduce(UInt64.ZERO, UInt64::plus);
+  }
+
+  // def compute_honest_parent_support(store: Store, block_root: Root, weighting_checkpoint_state:
+  // State) -> Gwei:
+  private UInt64 computeHonestParentSupport(
+      ReadOnlyStore store, Bytes32 blockRoot, BeaconState weightingCheckpointState) {
+
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    //    block = store.blocks[block_root]
+    //    parent_block = store.blocks[block.parent_root]
+    //    if parent_block.slot + 1 == block.slot:
+    //        return Gwei(0)
+    UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
+    Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
+    UInt64 parentSlot = forkChoiceStrategy.blockSlot(parentRoot).orElseThrow();
+    if (parentSlot.increment().equals(blockSlot)) {
+      return UInt64.ZERO;
+    }
+
+    NavigableMap<UInt64, UInt64> parentSupportBySlot =
+        calculateBlockAttestationScoreByAssignedSlot(store, parentRoot, weightingCheckpointState);
+
+    //    parent_support = compute_chain_prefix_support_between_slots(
+    //        store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot +
+    // 1),
+    // Slot(block.slot - 1))
+    UInt64 parentSupport =
+        computeChainPrefixSupportBetweenSlots(
+            parentSupportBySlot, parentSlot.increment(), blockSlot.decrement());
+    //    parent_maximum_support = estimate_committee_weight_between_slots(
+    //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
+    UInt64 parentMaximumSupport =
+        estimateCommitteeWeightBetweenSlots(
+            weightingCheckpointState, parentSlot.increment(), blockSlot.decrement());
+
+    //    parent_support_inclusive = parent_support + compute_chain_prefix_support_between_slots(
+    //        store, block_root.parent_root, weighting_checkpoint_state, Slot(block.slot - 1),
+    // Slot(block.slot))
+    UInt64 parentSupportInclusive =
+        parentSupport.plus(computeChainPrefixSupportBetweenSlots(
+            parentSupportBySlot, blockSlot.decrement(), blockSlot));
+    //    parent_maximum_support_inclusive = estimate_committee_weight_between_slots(
+    //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot))
+    UInt64 parentMaximumSupportInclusive =
+        estimateCommitteeWeightBetweenSlots(
+            weightingCheckpointState, parentSlot.increment(), blockSlot);
+    //    return max(
+    //        Gwei(max(0, parent_support - parent_maximum_support // 100 *
+    // CONFIRMATION_BYZANTINE_THRESHOLD)),
+    //        Gwei(max(0, parent_support_inclusive -
+    //                 parent_maximum_support_inclusive // 100 * CONFIRMATION_BYZANTINE_THRESHOLD))
+    //    )
+    return ObjectUtils.max(
+        parentSupport.minusMinZero(
+            parentMaximumSupport
+                .dividedBy(100)
+                .times(specConfig.getConfirmationByzantineThreshold())),
+        parentSupportInclusive.minusMinZero(
+            parentMaximumSupportInclusive
+                .dividedBy(100)
+                .times(specConfig.getConfirmationByzantineThreshold())));
+  }
+
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
-  private boolean isOneConfirmed(
+  private boolean isOneConfirmedNew(
+      final ReadOnlyStore store,
+      final Bytes32 blockRoot,
+      final CheckpointStateStore checkpointStateStore) {
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    //    current_slot = get_current_slot(store)
+    //    block = store.blocks[block_root]
+    //    parent_block = store.blocks[block.parent_root]
+    Bytes32 parentBlockRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
+    UInt64 parentBlockSlot = forkChoiceStrategy.blockSlot(parentBlockRoot).orElseThrow();
+
+    //    if (miscHelpers.isFirstSlotInEpoch(currentSlot)) {
+    //        weighting_checkpoint = store.prev_slot_unrealized_justified_checkpoint
+    //    else:
+    //        weighting_checkpoint = store.prev_slot_justified_checkpoint
+    Checkpoint weightingCheckpoint =
+        isFirstEpochSlot(getCurrentSlot(store))
+            ? store.getPrevSlotUnrealizedJustifiedCheckpoint()
+            : store.getPrevSlotJustifiedCheckpoint();
+    //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
+    BeaconState weightingCheckpointState = checkpointStateStore.getState(weightingCheckpoint);
+    //    support = get_weight(store, block_root, weighting_checkpoint_state)
+    UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState);
+    //    maximum_support = get_committee_weight_between_slots(
+    //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
+    UInt64 maximumSupport =
+        estimateCommitteeWeightBetweenSlots(
+            weightingCheckpointState,
+            parentBlockSlot.increment(),
+            getCurrentSlot(store).decrement());
+
+    //    proposer_score = get_proposer_score(store)
+    BeaconState proposerBoostState = checkpointStateStore.getState(store.getJustifiedCheckpoint());
+    UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(proposerBoostState);
+
+    //     honest_parent_support = compute_honest_parent_support(store, block_root,
+    // weighting_checkpoint_state)
+    UInt64 honestParentSupport = computeHonestParentSupport(store, blockRoot, weightingCheckpointState);
+
+    //    # Returns whether the following condition is true using only integer arithmetic
+    //    # support / maximum_support >
+    //    # 0.5 * (1 + (proposer_score - honest_parent_support) / maximum_support) +
+    // CONFIRMATION_BYZANTINE_THRESHOLD / 100
+    //
+    //    # 2 * support >
+    //    # maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) + proposer_score -
+    // honest_parent_support
+    //    return (
+    //            2 * support >
+    //            maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD +
+    //            proposer_score - honest_parent_support
+    //    )
+    return support
+        .times(2)
+        .isGreaterThan(
+            maximumSupport
+                .plus(
+                    maximumSupport
+                        .dividedBy(50)
+                        .times(specConfig.getConfirmationByzantineThreshold()))
+                .plus(proposerScore).minus(honestParentSupport));
+  }
+
+  // def is_one_confirmed(store: Store, block_root: Root) -> bool:
+  private boolean isOneConfirmedOld(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
       final CheckpointStateStore checkpointStateStore) {
@@ -351,7 +534,15 @@ public class ConfirmationRuleUtil {
                 .plus(proposerScore));
   }
 
-  /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
+  private boolean isOneConfirmed(
+      final ReadOnlyStore store,
+      final Bytes32 blockRoot,
+      final CheckpointStateStore checkpointStateStore) {
+    return isOneConfirmedNew(store, blockRoot, checkpointStateStore);
+  }
+
+
+    /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
   private Bytes32 getCheckpointBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
     UInt64 epochFirstSlot = miscHelpers.computeStartSlotAtEpoch(epoch);
     return store.getForkChoiceStrategy().getAncestor(root, epochFirstSlot).orElseThrow();
