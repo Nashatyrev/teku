@@ -351,37 +351,41 @@ public class ConfirmationRuleUtil {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     //    block = store.blocks[block_root]
     //    parent_block = store.blocks[block.parent_root]
-    //    if parent_block.slot + 1 == block.slot:
-    //        return Gwei(0)
+
     UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
     Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
     UInt64 parentSlot = forkChoiceStrategy.blockSlot(parentRoot).orElseThrow();
-    if (parentSlot.increment().equals(blockSlot)) {
-      return UInt64.ZERO;
-    }
 
     NavigableMap<UInt64, UInt64> parentSupportBySlot =
         calculateBlockAttestationScoreByAssignedSlot(store, parentRoot, weightingCheckpointState);
-
-    //    parent_support = compute_chain_prefix_support_between_slots(
-    //        store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot +
-    // 1),
-    // Slot(block.slot - 1))
-    UInt64 parentSupport =
-        computeChainPrefixSupportBetweenSlots(
-            parentSupportBySlot, parentSlot.increment(), blockSlot.decrement());
-    //    parent_maximum_support = estimate_committee_weight_between_slots(
-    //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
-    UInt64 parentMaximumSupport =
-        estimateCommitteeWeightBetweenSlots(
-            weightingCheckpointState, parentSlot.increment(), blockSlot.decrement());
+    final UInt64 parentSupport;
+    final UInt64 parentMaximumSupport;
+    //    if parent_block.slot + 1 == block.slot:
+    if (parentSlot.increment().equals(blockSlot)) {
+      //        parent_support = Gwei(0)
+      parentSupport = UInt64.ZERO;
+      //        parent_maximum_support = Gwei(0)
+      parentMaximumSupport = UInt64.ZERO;
+    } else {
+      // else:
+      //   parent_support = compute_chain_prefix_support_between_slots(
+      //     store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot +
+      //     1), Slot(block.slot - 1))
+      //   parent_maximum_support = estimate_committee_weight_between_slots(weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
+      parentSupport =
+          computeChainPrefixSupportBetweenSlots(
+              parentSupportBySlot, parentSlot.increment(), blockSlot.decrement());
+      parentMaximumSupport =
+          estimateCommitteeWeightBetweenSlots(
+              weightingCheckpointState, parentSlot.increment(), blockSlot.decrement());
+    }
 
     //    parent_support_inclusive = parent_support + compute_chain_prefix_support_between_slots(
     //        store, block_root.parent_root, weighting_checkpoint_state, Slot(block.slot - 1),
     // Slot(block.slot))
     UInt64 parentSupportInclusive =
         parentSupport.plus(computeChainPrefixSupportBetweenSlots(
-            parentSupportBySlot, blockSlot.decrement(), blockSlot));
+            parentSupportBySlot, blockSlot, blockSlot));
     //    parent_maximum_support_inclusive = estimate_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot))
     UInt64 parentMaximumSupportInclusive =
