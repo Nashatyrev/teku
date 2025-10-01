@@ -129,12 +129,13 @@ class ConfirmationRuleReplay {
 
   //  String anchorStateRoot = "0xd431b7131b6ef1e74b09825d3d26c4007eaf5b9a39dfcb82a0a4963d79721857";
   //  String anchorStateRoot = "0x5f39cf40f9f35640d0119093ef711e3e66594b31b3ff7f011676a4209783bb5b";
-  String anchorStateRoot = "0xc99f15b57eea955b09524f42c58d2fd89063d0477de7c559462be39d92883df7";
+//  String anchorStateRoot = "0xc99f15b57eea955b09524f42c58d2fd89063d0477de7c559462be39d92883df7";
+  String anchorStateRoot = "0x8e032084e38fb529199e1cd6874b61ffbe0cf65686b626405254a508ac20aa0f";
 
   BeaconState anchorState;
   List<SignedBeaconBlock> blocks = new ArrayList<>();
 
-  static final int numberOfBlockToLoad = 105;
+  static final int numberOfBlockToLoad = 1000;
 
   VoteTracker voteTracker;
 

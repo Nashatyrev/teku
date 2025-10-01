@@ -56,6 +56,7 @@ import tech.pegasys.teku.spec.executionlayer.ForkChoiceUpdatedResult;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
 import tech.pegasys.teku.spec.generator.ChainBuilder;
 import tech.pegasys.teku.spec.generator.ChainBuilder.BlockOptions;
+import tech.pegasys.teku.spec.generator.SlashlessAttestationGenerator;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
@@ -192,21 +193,21 @@ class ConfirmationRuleTest {
     }
   }
 
-  private SignedBeaconBlock importNextBlockWithAllAttestations() {
+  private SignedBlockAndState importNextBlockWithAllAttestations() {
     return importNextBlockWithAllAttestations(chainBuilder);
   }
 
-  private SignedBeaconBlock importNextBlockWithAllAttestations(ChainBuilder forkBuilder) {
+  private SignedBlockAndState importNextBlockWithAllAttestations(ChainBuilder forkBuilder) {
     final ChainUpdater chainUpdater = storageSystem.chainUpdater();
     UInt64 headSlot = chainUpdater.getHeadSlot();
     return importNextBlockWithAllAttestations(headSlot, forkBuilder);
   }
 
-  private SignedBeaconBlock importNextBlockWithAllAttestations(UInt64 headSlot) {
+  private SignedBlockAndState importNextBlockWithAllAttestations(UInt64 headSlot) {
     return importNextBlockWithAllAttestations(headSlot, chainBuilder);
   }
 
-  private SignedBeaconBlock importNextBlockWithAllAttestations(
+  private SignedBlockAndState importNextBlockWithAllAttestations(
       UInt64 headSlot, ChainBuilder forkBuilder) {
     final UInt64 newBlockSlot = headSlot.increment();
     List<Attestation> blockAggregates =
@@ -214,12 +215,12 @@ class ConfirmationRuleTest {
     return importNextBlockWithAttestations(headSlot, blockAggregates, forkBuilder);
   }
 
-  private SignedBeaconBlock importNextBlockWithAttestations(
+  private SignedBlockAndState importNextBlockWithAttestations(
       UInt64 headSlot, List<Attestation> unaggregatedAtts) {
     return importNextBlockWithAttestations(headSlot, unaggregatedAtts, chainBuilder);
   }
 
-  private SignedBeaconBlock importNextBlockWithAttestations(
+  private SignedBlockAndState importNextBlockWithAttestations(
       UInt64 headSlot, List<Attestation> atts, ChainBuilder forkBuilder) {
     final UInt64 newBlockSlot = headSlot.increment();
 
@@ -228,7 +229,7 @@ class ConfirmationRuleTest {
     final SignedBlockAndState epoch2Block =
         forkBuilder.generateBlockAtSlot(newBlockSlot, epoch2BlockOptions);
     importBlock(epoch2Block);
-    return epoch2Block.getBlock();
+    return epoch2Block;
   }
 
   @Test
@@ -252,7 +253,7 @@ class ConfirmationRuleTest {
 
     UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32);
 
-    SignedBeaconBlock bN = importNextBlockWithAllAttestations(slotAfterGap);
+    SignedBeaconBlock bN = importNextBlockWithAllAttestations(slotAfterGap).getBlock();
 
     // rollback to finalized
     Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
@@ -286,32 +287,30 @@ class ConfirmationRuleTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {10, 15, 50, 90})
+  @ValueSource(ints = {10, 15, 20, 30, 50, 60, 70, 90, 100})
   void testFirstEpochBlockAttestationDeficit(int blockAttestationDeficitPercent) {
     UpdatableStore store = storageSystem.recentChainData().getStore();
-    for (int i = 1; i < 64; i++) { // run 2 epochs to 'warm up' justification processing
+    for (int i = 1; i < 63; i++) { // run 2 epochs to 'warm up' justification processing
       importNextBlockWithAllAttestations();
     }
 
-    UInt64 weakBlockSlot = allBlocks.getLast().getSlot().increment();
-    List<Attestation> allForLastBlock =
-        chainBuilder.streamValidAttestationsForBlockAtSlot(weakBlockSlot.increment()).toList();
-    List<Attestation> someForLastBlock =
-        allForLastBlock.stream()
-            .limit((long) allForLastBlock.size() * blockAttestationDeficitPercent / 100)
-            .toList();
+    SignedBlockAndState block63 = importNextBlockWithAllAttestations();
+    SignedBlockAndState weakBlock64 = importNextBlockWithAllAttestations();
 
-    importNextBlockWithAllAttestations();
-
-    List<Attestation> someForWeakBlock =
+    int votesPerSlotCount = VALIDATOR_COUNT / spec.getGenesisSpecConfig().getSlotsPerEpoch();
+    int votesForWeakBlockCount =
+        votesPerSlotCount - votesPerSlotCount * blockAttestationDeficitPercent / 100;
+    SlashlessAttestationGenerator.AttestationStream votesForWeakBlock =
         chainBuilder
-            .streamValidAttestationsForBlockAtSlot(weakBlockSlot.increment())
-            .skip(someForLastBlock.size())
-            .toList();
+            .getAttestationGenerator()
+            .newAttestationStream(weakBlock64, UInt64.valueOf(64))
+            .limit(votesForWeakBlockCount);
+    SlashlessAttestationGenerator.AttestationStream remainingVotesForBlock63 =
+        chainBuilder.getAttestationGenerator().newAttestationStream(block63, UInt64.valueOf(64));
+    List<Attestation> block65Atts =
+        votesForWeakBlock.concat(remainingVotesForBlock63).takeAggregatedLimitedForBlock();
 
-    importNextBlockWithAttestations(
-        weakBlockSlot,
-        Stream.concat(someForWeakBlock.stream(), someForLastBlock.stream()).toList());
+    importNextBlockWithAttestations(UInt64.valueOf(64), block65Atts);
 
     // max 6 blocks to recover
     for (int i = 0; i < 6; i++) {
@@ -431,7 +430,7 @@ class ConfirmationRuleTest {
     importNextBlockWithAllAttestations(UInt64.valueOf(65));
     importNextBlockWithAllAttestations(UInt64.valueOf(66));
     importNextBlockWithAllAttestations(UInt64.valueOf(67));
-    SignedBeaconBlock b69a = importNextBlockWithAllAttestations(UInt64.valueOf(68));
+    SignedBeaconBlock b69a = importNextBlockWithAllAttestations(UInt64.valueOf(68)).getBlock();
 
     // check the reorg happened
     assertThat(storageSystem.getChainHead().getRoot()).isEqualTo(b69a.getRoot());
@@ -448,12 +447,12 @@ class ConfirmationRuleTest {
     }
 
     // #66
-    SignedBeaconBlock b66 = importNextBlockWithAllAttestations();
+    SignedBeaconBlock b66 = importNextBlockWithAllAttestations().getBlock();
 
     ChainBuilder forkB = chainBuilder.fork();
 
     // #67 fork B
-    SignedBeaconBlock b67b = importNextBlockWithAllAttestations(forkB);
+    SignedBeaconBlock b67b = importNextBlockWithAllAttestations(forkB).getBlock();
     // #68 fork B
     importNextBlockWithAllAttestations(forkB);
 
@@ -467,7 +466,7 @@ class ConfirmationRuleTest {
     // #71
     importNextBlockWithAllAttestations(UInt64.valueOf(70));
     // #72
-    SignedBeaconBlock b72a = importNextBlockWithAllAttestations(UInt64.valueOf(71));
+    SignedBeaconBlock b72a = importNextBlockWithAllAttestations(UInt64.valueOf(71)).getBlock();
 
     // check the reorg happened
     assertThat(storageSystem.getChainHead().getRoot()).isEqualTo(b72a.getRoot());
