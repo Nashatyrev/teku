@@ -368,14 +368,14 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                               justifiedCheckpoint);
                       nodeSlot.ifPresent(lastProcessHeadSlot::set);
                       updateConfirmationRuleStore(
-                          maybeJustifiedCheckpointState.orElseThrow(), headRoot);
+                          maybeJustifiedCheckpointState.orElseThrow(), headRoot, nodeSlot);
                       notifyForkChoiceUpdatedAndOptimisticSyncingChanged(
                           isPreProposal ? nodeSlot : Optional.empty());
                       return true;
                     }));
   }
 
-  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 optimisticHeadRoot) {
+  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 optimisticHeadRoot, Optional<UInt64> nodeSlot) {
     final SpecVersion specVersion = spec.atSlot(justifiedState.getSlot());
     ConfirmationRuleUtil confirmationRuleUtil = specVersion.getConfirmationRuleUtil();
 
@@ -418,7 +418,10 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     int uniqStatesRequested =
         new HashSet<>(trackingCheckpointStateStore.getRequestedCheckpoints()).size();
     System.err.println(
-        "updateConfirmationRuleStore: head="
+        "updateConfirmationRuleStore: "
+            + "slot="
+            + nodeSlot.orElse(UInt64.ZERO)
+            + ", head="
             + headSlot.map(UInt64::toString).orElse("NaN")
             + ",("
             + headRoot.toString().substring(0, 8)
