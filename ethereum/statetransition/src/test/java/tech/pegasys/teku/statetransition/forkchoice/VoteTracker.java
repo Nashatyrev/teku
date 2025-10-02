@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.infrastructure.collections.LimitedMap;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
@@ -39,8 +40,8 @@ class VoteTracker {
   private final Spec spec;
   private final AttestationStateSelector attestationStateSelector;
 
-  final Map<Bytes32, Set<EpochVoter>> headBlockToVotes = new HashMap<>();
-  final Map<UInt64, Set<EpochVoter>> slotToVotes = new HashMap<>();
+  final Map<Bytes32, Set<EpochVoter>> headBlockToVotes = LimitedMap.createNonSynchronized(100);
+  final Map<UInt64, Set<EpochVoter>> slotToVotes = LimitedMap.createNonSynchronized(100);
 
   public VoteTracker(Spec spec, RecentChainData recentChainData) {
     this.spec = spec;
@@ -85,4 +86,6 @@ class VoteTracker {
   public int getVoteCountInSlot(UInt64 slot) {
     return slotToVotes.getOrDefault(slot, emptySet()).size();
   }
+
+
 }

@@ -30,13 +30,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,6 +81,7 @@ import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator.BroadcastValidationResult;
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.storage.server.StateStorageMode;
+import tech.pegasys.teku.storage.storageSystem.FileBackedStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
 
@@ -129,13 +135,15 @@ class ConfirmationRuleReplay {
 
   //  String anchorStateRoot = "0xd431b7131b6ef1e74b09825d3d26c4007eaf5b9a39dfcb82a0a4963d79721857";
   //  String anchorStateRoot = "0x5f39cf40f9f35640d0119093ef711e3e66594b31b3ff7f011676a4209783bb5b";
-//  String anchorStateRoot = "0xc99f15b57eea955b09524f42c58d2fd89063d0477de7c559462be39d92883df7";
+  //  String anchorStateRoot = "0xc99f15b57eea955b09524f42c58d2fd89063d0477de7c559462be39d92883df7";
   String anchorStateRoot = "0x8e032084e38fb529199e1cd6874b61ffbe0cf65686b626405254a508ac20aa0f";
 
   BeaconState anchorState;
-  List<SignedBeaconBlock> blocks = new ArrayList<>();
+  SignedBeaconBlock anchorBlock;
 
-  static final int numberOfBlockToLoad = 1000;
+  static final int numberOfBlockToReplay = 8000;
+  Stream<SignedBeaconBlock> blockStream;
+
 
   VoteTracker voteTracker;
 
@@ -158,24 +166,18 @@ class ConfirmationRuleReplay {
     anchorState = spec.deserializeBeaconState(stateBytes);
     System.out.println("State loaded as slot: " + anchorState.getSlot());
 
-    int startSlot = anchorState.getSlot().intValue();
-    System.out.println(
-        "Loading " + numberOfBlockToLoad + " blocks starting from " + startSlot + " ...");
-    for (int i = 0; i < numberOfBlockToLoad; i++) {
-      int slot = startSlot + i;
-      System.out.print("Loading block " + slot + " ...");
-      Optional<SignedBeaconBlock> block = loadBlock(slot);
-      if (block.isPresent()) {
-        System.out.println(block.get().getRoot());
-        blocks.add(block.get());
-      } else {
-        System.out.println("<skipped>");
-      }
-    }
+    System.out.println("Loading anchorBlock...");
+    int anchorSlot = anchorState.getSlot().intValue();
+    anchorBlock = loadBlock(anchorSlot).orElseThrow();
+    System.out.println("Anchor block loaded: " + anchorBlock.getRoot());
 
     setupWithSpec();
 
     voteTracker = new VoteTracker(spec, storageSystem.recentChainData());
+
+    blockStream = IntStream.range(1, numberOfBlockToReplay)
+        .mapToObj(off -> loadBlock(anchorSlot + off))
+        .flatMap(b -> b.stream());
   }
 
   private Optional<SignedBeaconBlock> loadBlock(int slot) {
@@ -195,12 +197,18 @@ class ConfirmationRuleReplay {
   private void setupWithSpec() {
     // Setting up spec and all dependants
     this.dataStructureUtil = new DataStructureUtil(spec);
-    this.storageSystem =
-        InMemoryStorageSystemBuilder.create()
-            .storageMode(StateStorageMode.PRUNE)
-            .specProvider(spec)
-            //            .numberOfValidators(VALIDATOR_COUNT)
-            .build();
+    try {
+      this.storageSystem =
+          FileBackedStorageSystemBuilder.create()
+  //        InMemoryStorageSystemBuilder.create()
+              .storageMode(StateStorageMode.PRUNE)
+              .specProvider(spec)
+              .dataDir(Files.createTempDirectory(getClass().getSimpleName()))
+              //            .numberOfValidators(VALIDATOR_COUNT)
+              .build();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
     //    this.genesis = chainBuilder.generateGenesis(UInt64.ZERO, false);
     this.recentChainData = storageSystem.recentChainData();
     this.executionLayer = new ExecutionLayerChannelStub(spec, false);
@@ -224,8 +232,7 @@ class ConfirmationRuleReplay {
         .thenReturn(SafeFuture.completedFuture(PayloadValidationResult.VALID));
     setForkChoiceNotifierForkChoiceUpdatedResult(PayloadStatus.VALID);
 
-    SignedBlockAndState anchorBlockAndState =
-        new SignedBlockAndState(blocks.getFirst(), anchorState);
+    SignedBlockAndState anchorBlockAndState = new SignedBlockAndState(anchorBlock, anchorState);
     AnchorPoint anchorPoint = AnchorPoint.fromInitialBlockAndState(spec, anchorBlockAndState);
     UInt64 anchorTime = spec.computeTimeAtSlot(anchorState, anchorState.getSlot());
     recentChainData.initializeFromAnchorPoint(anchorPoint, anchorTime);
@@ -262,15 +269,16 @@ class ConfirmationRuleReplay {
     SpecVersion specVersion = spec.atSlot(anchorState.getSlot());
 
     Map<UInt64, List<Attestation>> slotAttestations = new HashMap<>();
-    for (SignedBeaconBlock block : blocks) {
-      for (Attestation attestation :
-          block.getBeaconBlock().orElseThrow().getBody().getAttestations()) {
-        List<Attestation> attestations =
-            slotAttestations.computeIfAbsent(
-                attestation.getData().getSlot(), k -> new ArrayList<>());
-        attestations.add(attestation);
-      }
-    }
+    blockStream.forEach(
+        block -> {
+          for (Attestation attestation :
+              block.getBeaconBlock().orElseThrow().getBody().getAttestations()) {
+            List<Attestation> attestations =
+                slotAttestations.computeIfAbsent(
+                    attestation.getData().getSlot(), k -> new ArrayList<>());
+            attestations.add(attestation);
+          }
+        });
 
     for (int i = 0; i < 32; i++) {
       UInt64 slot = anchorSlot.plus(i);
@@ -283,10 +291,17 @@ class ConfirmationRuleReplay {
 
   @Test
   void replay() {
-    for (SignedBeaconBlock block : blocks) {
-      if (block == blocks.getFirst()) {
-        continue;
+    Iterator<SignedBeaconBlock> blockIterator = blockStream.iterator();
+    int lastSlot = anchorBlock.getSlot().intValue();
+
+    while (blockIterator.hasNext()) {
+      SignedBeaconBlock block = blockIterator.next();
+
+      for (int slot = lastSlot + 1; slot < block.getSlot().intValue(); slot++) {
+        // empty slots
+        forkChoice.processHead(UInt64.valueOf(slot));
       }
+      lastSlot = block.getSlot().intValue();
 
       trackVotes(block.getBeaconBlock().orElseThrow());
 
@@ -294,12 +309,24 @@ class ConfirmationRuleReplay {
       final SafeFuture<BlockImportResult> result =
           forkChoice.onBlock(block, Optional.empty(), blockBroadcastValidator, executionLayer);
       assertBlockImportedSuccessfully(result, false);
-      forkChoice.processHead();
+
+      forkChoice.processHead(block.getSlot());
     }
+
+    blockStream.forEach(
+        block -> {
+        });
   }
 
   void trackVotes(BeaconBlock block) {
-    int newVotesInBlock = voteTracker.updateVotes(block.getBeaconBlock().orElseThrow());
+    String votesInBlockString;
+    int newVotesInBlock = 0;
+    try {
+      newVotesInBlock = voteTracker.updateVotes(block.getBeaconBlock().orElseThrow());
+      votesInBlockString = "" + newVotesInBlock;
+    } catch (Exception e) {
+      votesInBlockString = e.toString();
+    }
     System.err.println(
         "Importing block: "
             + block.getSlot()
