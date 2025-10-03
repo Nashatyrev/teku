@@ -386,8 +386,8 @@ public class ConfirmationRuleUtil {
     //        store, block_root.parent_root, weighting_checkpoint_state, Slot(block.slot - 1),
     // Slot(block.slot))
     UInt64 parentSupportInclusive =
-        parentSupport.plus(computeChainPrefixSupportBetweenSlots(
-            parentSupportBySlot, blockSlot, blockSlot));
+        computeChainPrefixSupportBetweenSlots(
+            parentSupportBySlot, parentSlot.increment(), blockSlot);
     //    parent_maximum_support_inclusive = estimate_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot))
     UInt64 parentMaximumSupportInclusive =
@@ -1123,16 +1123,19 @@ public class ConfirmationRuleUtil {
     if (prevUnrealizedJustifiedCeckpointSlot.isEmpty()) {
       return confirmedRoot;
     }
-    UInt64 prevUnrealizedJustifiedCeckpointEpoch =
-        store.getPrevSlotUnrealizedJustifiedCheckpoint().getEpoch();
-    boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
     //    if (get_current_slot(store) % SLOTS_PER_EPOCH == 0
     //        and store.prev_slot_unrealized_justified_checkpoint.epoch + 1 == current_epoch
     //        and confirmed_block_slot < prev_unrealized_justified_checkpoint_slot):
     // FIX+ME (spec): isFirstEpochSlot
-    if (isFirstEpochSlot
-        && prevUnrealizedJustifiedCeckpointEpoch.increment().equals(currentEpoch)
-        && confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot.get())) {
+    UInt64 prevUnrealizedJustifiedCeckpointEpoch =
+        store.getPrevSlotUnrealizedJustifiedCheckpoint().getEpoch();
+    boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
+    boolean isPrevUnrealizedJustifiedCeckpointTooOld =
+        prevUnrealizedJustifiedCeckpointEpoch.increment().isLessThan(currentEpoch);
+    boolean isNewConfirmedBlockGreater =
+        confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot.get());
+    if (isFirstEpochSlot&& !isPrevUnrealizedJustifiedCeckpointTooOld
+        && isNewConfirmedBlockGreater) {
       //        confirmed_root = store.prev_slot_unrealized_justified_checkpoint.root
       confirmedRoot = store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot();
     }
