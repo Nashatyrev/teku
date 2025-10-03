@@ -371,7 +371,9 @@ public class ConfirmationRuleUtil {
       //   parent_support = compute_chain_prefix_support_between_slots(
       //     store, block_root.parent_root, weighting_checkpoint_state, Slot(parent_block.slot +
       //     1), Slot(block.slot - 1))
-      //   parent_maximum_support = estimate_committee_weight_between_slots(weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(block.slot - 1))
+      //   parent_maximum_support =
+      // estimate_committee_weight_between_slots(weighting_checkpoint_state, Slot(parent_block.slot
+      // + 1), Slot(block.slot - 1))
       parentSupport =
           computeChainPrefixSupportBetweenSlots(
               parentSupportBySlot, parentSlot.increment(), blockSlot.decrement());
@@ -446,7 +448,8 @@ public class ConfirmationRuleUtil {
 
     //     honest_parent_support = compute_honest_parent_support(store, block_root,
     // weighting_checkpoint_state)
-    UInt64 honestParentSupport = computeHonestParentSupport(store, blockRoot, weightingCheckpointState);
+    UInt64 honestParentSupport =
+        computeHonestParentSupport(store, blockRoot, weightingCheckpointState);
 
     //    # Returns whether the following condition is true using only integer arithmetic
     //    # support / maximum_support >
@@ -469,7 +472,8 @@ public class ConfirmationRuleUtil {
                     maximumSupport
                         .dividedBy(50)
                         .times(specConfig.getConfirmationByzantineThreshold()))
-                .plus(proposerScore).minus(honestParentSupport));
+                .plus(proposerScore)
+                .minus(honestParentSupport));
   }
 
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
@@ -545,8 +549,7 @@ public class ConfirmationRuleUtil {
     return isOneConfirmedNew(store, blockRoot, checkpointStateStore);
   }
 
-
-    /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
+  /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
   private Bytes32 getCheckpointBlock(ReadOnlyStore store, Bytes32 root, UInt64 epoch) {
     UInt64 epochFirstSlot = miscHelpers.computeStartSlotAtEpoch(epoch);
     return store.getForkChoiceStrategy().getAncestor(root, epochFirstSlot).orElseThrow();
