@@ -16,11 +16,8 @@ package tech.pegasys.teku.spec.logic.common.util;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -28,14 +25,12 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
-import org.bouncycastle.util.Store;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -218,13 +213,13 @@ public class ConfirmationRuleUtil {
   }
 
   /** Fast prototype, but doesn't account referenceCheckpointState and thus is NOT spec compliant */
-  private Optional<UInt64> getNetWeightForStateFast(
+  private Optional<UInt64> getAttestationScoreFast(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
     return store.getForkChoiceStrategy().getNetWeight(blockRoot);
   }
 
   /** Slow but spec compliant prototype */
-  private UInt64 getNetWeightForStateSlow(
+  private UInt64 getAttestationScoreSlow(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
 
     //     unslashed_and_active_indices = [
@@ -281,11 +276,11 @@ public class ConfirmationRuleUtil {
     return attestationScore;
   }
 
-  private UInt64 getNetWeightForState(
+  private UInt64 getAttestationScore(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
-    //    UInt64 weightFast =
-    //        getNetWeightForStateFast(store, blockRoot, referenceCheckpointState).orElseThrow();
-    UInt64 weightSlow = getNetWeightForStateSlow(store, blockRoot, referenceCheckpointState);
+    //        UInt64 weightFast =
+    //            getAttestationScoreFast(store, blockRoot, referenceCheckpointState).orElseThrow();
+    UInt64 weightSlow = getAttestationScoreSlow(store, blockRoot, referenceCheckpointState);
     //    checkState(
     //        weightFast.equals(weightSlow),
     //        "Weights doesnt match fast {} != slow {}",
@@ -433,7 +428,7 @@ public class ConfirmationRuleUtil {
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
     BeaconState weightingCheckpointState = checkpointStateStore.getState(weightingCheckpoint);
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
-    UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState);
+    UInt64 support = getAttestationScore(store, blockRoot, weightingCheckpointState);
     //    maximum_support = get_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     UInt64 maximumSupport =
@@ -503,7 +498,7 @@ public class ConfirmationRuleUtil {
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
     BeaconState weightingCheckpointState = checkpointStateStore.getState(weightingCheckpoint);
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
-    UInt64 support = getNetWeightForState(store, blockRoot, weightingCheckpointState);
+    UInt64 support = getAttestationScore(store, blockRoot, weightingCheckpointState);
     //    maximum_support = get_committee_weight_between_slots(
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     // FIX-ME (spec): if make end_slot exclusive then need to remove '- 1'
@@ -579,7 +574,7 @@ public class ConfirmationRuleUtil {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 checkpointSlot = forkChoiceStrategy.blockSlot(checkpoint.getRoot()).orElseThrow();
     if (isFirstEpochSlot(checkpointSlot)) {
-      return getNetWeightForState(store, checkpoint.getRoot(), checkpointState);
+      return getAttestationScore(store, checkpoint.getRoot(), checkpointState);
     } else {
       throw new UnsupportedOperationException("Not implemented");
     }
