@@ -19,6 +19,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 
@@ -91,24 +92,24 @@ class ConfirmationRuleReplay {
   private final MetricsSystem metricsSystem = new StubMetricsSystem();
   private Spec spec;
   private DataStructureUtil dataStructureUtil;
-  private final BlobSidecarManager blobSidecarManager = mock(BlobSidecarManager.class);
+  private final BlobSidecarManager blobSidecarManager = mock(BlobSidecarManager.class, withSettings().stubOnly());
 
   @SuppressWarnings("unchecked")
   private final AvailabilityChecker<BlobSidecar> blobSidecarsAvailabilityChecker =
-      mock(AvailabilityChecker.class);
+      mock(AvailabilityChecker.class, withSettings().stubOnly());
 
   private StorageSystem storageSystem;
   private RecentChainData recentChainData;
 
-  private final ForkChoiceNotifier forkChoiceNotifier = mock(ForkChoiceNotifier.class);
+  private final ForkChoiceNotifier forkChoiceNotifier = mock(ForkChoiceNotifier.class, withSettings().stubOnly());
   private final OptimisticHeadSubscriber optimisticSyncStateTracker =
-      mock(OptimisticHeadSubscriber.class);
+      mock(OptimisticHeadSubscriber.class, withSettings().stubOnly());
   private ExecutionLayerChannelStub executionLayer;
   private final BlockBroadcastValidator blockBroadcastValidator =
-      mock(BlockBroadcastValidator.class);
+      mock(BlockBroadcastValidator.class, withSettings().stubOnly());
   private final MergeTransitionBlockValidator transitionBlockValidator =
-      mock(MergeTransitionBlockValidator.class);
-  private final DebugDataDumper debugDataDumper = mock(DebugDataDumper.class);
+      mock(MergeTransitionBlockValidator.class, withSettings().stubOnly());
+  private final DebugDataDumper debugDataDumper = mock(DebugDataDumper.class, withSettings().stubOnly());
 
   private final InlineEventThread eventThread = new InlineEventThread();
 
@@ -312,10 +313,6 @@ class ConfirmationRuleReplay {
 
       forkChoice.processHead(block.getSlot());
     }
-
-    blockStream.forEach(
-        block -> {
-        });
   }
 
   void trackVotes(BeaconBlock block) {
