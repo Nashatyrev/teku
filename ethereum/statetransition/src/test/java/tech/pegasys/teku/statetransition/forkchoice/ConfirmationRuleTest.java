@@ -507,20 +507,31 @@ class ConfirmationRuleTest {
             + block.getParentRoot().toString().substring(0, 8)
             + ", votes in block: "
             + newVotesInBlock);
-    for (int i = 1; i < 4; i++) {
-      if (block.getSlot().intValue() <= i) {
+
+    int blocksPrinted = 0;
+    for (int slot = block.getSlot().intValue() - 1; slot > 0; slot--) {
+      if (blocksPrinted == 3) {
         break;
       }
-      UInt64 slot = block.getSlot().minus(i);
-      Optional<SignedBeaconBlock> slotBlock =
-          storageSystem.combinedChainDataClient().getBlockAtSlotExact(slot).join();
-      System.err.println(
-          "\tSlot/block votes/slot votes:\t"
-              + slot
-              + "\t"
-              + slotBlock.map(b -> voteTracker.getVoteCountForBlock(b.getRoot())).orElse(0)
-              + "\t"
-              + voteTracker.getVoteCountInSlot(slot));
+
+      Optional<SignedBeaconBlock> mbSlotBlock =
+          storageSystem.combinedChainDataClient().getBlockAtSlotExact(UInt64.valueOf(slot)).join();
+      int voteCountInSlot = voteTracker.getVoteCountInSlot(UInt64.valueOf(slot));
+      if (mbSlotBlock.isPresent()) {
+        SignedBeaconBlock slotBlock = mbSlotBlock.get();
+        System.err.println(
+            "\tSlot/block votes/slot votes:\t"
+                + slot
+                + "\t"
+                + voteTracker.getVoteCountForBlock(slotBlock.getRoot())
+                + "\t"
+                + voteCountInSlot);
+        blocksPrinted++;
+      } else {
+        if (voteCountInSlot > 0) {
+          System.err.println("\tSlot             slot votes:\t" + slot + "\t\t" + voteCountInSlot);
+        }
+      }
     }
   }
 
