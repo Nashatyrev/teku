@@ -411,6 +411,11 @@ public class ConfirmationRuleUtil {
       final Bytes32 blockRoot,
       final CheckpointStateStore checkpointStateStore) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+
+    UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
+    if (blockSlot.equals(getCurrentSlot(store))) {
+      return false;
+    }
     //    current_slot = get_current_slot(store)
     //    block = store.blocks[block_root]
     //    parent_block = store.blocks[block.parent_root]
