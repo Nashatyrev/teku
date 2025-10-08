@@ -47,6 +47,8 @@ import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 
 public class ConfirmationRuleUtil {
 
+  private static final boolean DEBUG_PRINT = true;
+
   public interface CheckpointStateStore {
 
     BeaconState getState(Checkpoint checkpoint);
@@ -451,6 +453,36 @@ public class ConfirmationRuleUtil {
     UInt64 honestParentSupport =
         computeHonestParentSupport(store, blockRoot, weightingCheckpointState);
 
+    if (DEBUG_PRINT) {
+      double qLeft = support.doubleValue() / maximumSupport.doubleValue();
+      double qRight =
+          0.5d
+                  * (1.0d
+                      + (proposerScore.doubleValue() - honestParentSupport.doubleValue())
+                          / maximumSupport.doubleValue())
+              + specConfig.getConfirmationByzantineThreshold() / 100.0d;
+      System.err.println(
+          "    "
+              + blockSlot
+              + ": "
+              + qLeft
+              + " <> "
+              + qRight
+              + " ("
+              + uint2str(support)
+              + " / "
+              + uint2str(maximumSupport)
+              + " <> 0.5 * (1 + ("
+              + uint2str(proposerScore)
+              + " - "
+              + uint2str(honestParentSupport)
+              + ") / "
+              + uint2str(maximumSupport)
+              + ") + "
+              + specConfig.getConfirmationByzantineThreshold() / 100.0d
+              + ")");
+    }
+
     //    # Returns whether the following condition is true using only integer arithmetic
     //    # support / maximum_support >
     //    # 0.5 * (1 + (proposer_score - honest_parent_support) / maximum_support) +
@@ -474,6 +506,10 @@ public class ConfirmationRuleUtil {
                         .times(specConfig.getConfirmationByzantineThreshold()))
                 .plus(proposerScore)
                 .minus(honestParentSupport));
+  }
+
+  private static String uint2str(UInt64 uint) {
+    return String.format("%,d", uint.longValue());
   }
 
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
@@ -1134,7 +1170,8 @@ public class ConfirmationRuleUtil {
         prevUnrealizedJustifiedCeckpointEpoch.increment().isLessThan(currentEpoch);
     boolean isNewConfirmedBlockGreater =
         confirmedBlockSlot.isLessThan(prevUnrealizedJustifiedCeckpointSlot.get());
-    if (isFirstEpochSlot&& !isPrevUnrealizedJustifiedCeckpointTooOld
+    if (isFirstEpochSlot
+        && !isPrevUnrealizedJustifiedCeckpointTooOld
         && isNewConfirmedBlockGreater) {
       //        confirmed_root = store.prev_slot_unrealized_justified_checkpoint.root
       confirmedRoot = store.getPrevSlotUnrealizedJustifiedCheckpoint().getRoot();
