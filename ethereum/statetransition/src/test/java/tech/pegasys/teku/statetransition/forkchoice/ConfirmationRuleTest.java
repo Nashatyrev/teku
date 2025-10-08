@@ -209,15 +209,28 @@ class ConfirmationRuleTest {
 
   private SignedBlockAndState importNextBlockWithAllAttestations(
       UInt64 headSlot, ChainBuilder forkBuilder) {
+    return importNextBlockWithPartialAttestations(headSlot, forkBuilder, 100);
+  }
+
+  private SignedBlockAndState importNextBlockWithPartialAttestations(
+      int participationRatePercents) {
+    return importNextBlockWithPartialAttestations(
+        storageSystem.chainUpdater().getHeadSlot(), chainBuilder, participationRatePercents);
+  }
+
+  private SignedBlockAndState importNextBlockWithPartialAttestations(
+      UInt64 headSlot, ChainBuilder forkBuilder, int participationRatePercents) {
     final UInt64 newBlockSlot = headSlot.increment();
     List<Attestation> blockAggregates =
         forkBuilder.takeValidAggregatedAttestationsForBlockAtSlot(newBlockSlot);
+        forkBuilder.takeValidAggregatedAttestationsForBlockAtSlot(
+            newBlockSlot, participationRatePercents);
     return importNextBlockWithAttestations(headSlot, blockAggregates, forkBuilder);
   }
 
   private SignedBlockAndState importNextBlockWithAttestations(
-      UInt64 headSlot, List<Attestation> unaggregatedAtts) {
-    return importNextBlockWithAttestations(headSlot, unaggregatedAtts, chainBuilder);
+      UInt64 headSlot, List<Attestation> attestations) {
+    return importNextBlockWithAttestations(headSlot, attestations, chainBuilder);
   }
 
   private SignedBlockAndState importNextBlockWithAttestations(
@@ -238,26 +251,39 @@ class ConfirmationRuleTest {
       importNextBlockWithAllAttestations();
     }
 
-    assertThat(allBlocks.get(allBlocks.size() - 2).getRoot())
-        .isEqualTo(storageSystem.recentChainData().getStore().getConfirmedRoot());
+    for (int i = 0; i < 64; i++) {
+      importNextBlockWithAllAttestations();
+      assertThat(allBlocks.get(allBlocks.size() - 2).getRoot())
+          .isEqualTo(storageSystem.recentChainData().getStore().getConfirmedRoot());
+    }
   }
 
   @Test
   void testSeveralEpochsEmptySlotGap() {
     UpdatableStore store = storageSystem.recentChainData().getStore();
-    for (int i = 0; i < 64; i++) {
+    for (int i = 1; i < 64; i++) {
       importNextBlockWithAllAttestations();
     }
+    SignedBlockAndState b64 = importNextBlockWithAllAttestations();
 
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
 
-    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(32);
+    UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(62);
+    // drain all attestations - it was black out after all
+    for (int slot = 64; slot < slotAfterGap.intValue(); slot++) {
+      chainBuilder
+          .getAttestationGenerator()
+          .newAttestationStream(b64, UInt64.valueOf(slot))
+          .takeAll();
+    }
 
-    SignedBeaconBlock bN = importNextBlockWithAllAttestations(slotAfterGap).getBlock();
+    SignedBeaconBlock b127 = importNextBlockWithAllAttestations(slotAfterGap).getBlock();
 
     // rollback to finalized
     Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
     assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
+
+    SignedBeaconBlock b128 = importNextBlockWithAllAttestations().getBlock();
 
     for (int i = 0; i < 32 * 2; i++) {
       importNextBlockWithAllAttestations();

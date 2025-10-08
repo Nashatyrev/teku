@@ -522,6 +522,10 @@ public class ChainBuilder {
   }
 
   public List<Attestation> takeValidAggregatedAttestationsForBlockAtSlot(final UInt64 slot) {
+    return takeValidAggregatedAttestationsForBlockAtSlot(slot, 100);
+  }
+
+  public List<Attestation> takeValidAggregatedAttestationsForBlockAtSlot(final UInt64 slot, int participationRatePercents) {
     // Calculate bounds for valid head blocks
     final UInt64 currentEpoch = spec.computeEpochAtSlot(slot);
     final UInt64 prevEpoch =
@@ -547,6 +551,7 @@ public class ChainBuilder {
                     attestHead.getValue(), attestHead.getKey()))
         .reduce(SlashlessAttestationGenerator.AttestationStream::concat)
         .orElseGet(slashlessAttestationGenerator::emptyAttestationStream)
+        .filter(ai -> ai.validatorIndex().longValue() % 100 < participationRatePercents)
         .takeAggregatedLimitedForBlock();
   }
 

@@ -62,7 +62,7 @@ public class SlashlessAttestationGenerator {
     }
   }
 
-  record AttestationWithIndex(Attestation attestation, UInt64 validatorIndex) {}
+  public record AttestationWithIndex(Attestation attestation, UInt64 validatorIndex) {}
 
   private final AttestationGenerator attestationGenerator;
   private final Spec spec;
@@ -141,8 +141,8 @@ public class SlashlessAttestationGenerator {
       return new AttestationStream(streamTransformer.apply(attestations), this.earliesEpoch);
     }
 
-    public AttestationStream filter(Predicate<Attestation> predicate) {
-      return transform(s -> s.filter(ai -> predicate.test(ai.attestation())));
+    public AttestationStream filter(Predicate<AttestationWithIndex> predicate) {
+      return transform(s -> s.filter(ai -> predicate.test(ai)));
     }
 
     public AttestationStream limit(int limit) {
