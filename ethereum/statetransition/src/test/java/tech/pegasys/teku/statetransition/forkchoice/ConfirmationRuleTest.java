@@ -110,8 +110,8 @@ class ConfirmationRuleTest {
 
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
   //  private static final int VALIDATOR_COUNT = 1_000_000;
-  //  private static final int VALIDATOR_COUNT = 1 << 13;
-  private static final int VALIDATOR_COUNT = 1024;
+    private static final int VALIDATOR_COUNT = 1 << 13;
+//  private static final int VALIDATOR_COUNT = 1024;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 25;
@@ -222,7 +222,6 @@ class ConfirmationRuleTest {
       UInt64 headSlot, ChainBuilder forkBuilder, int participationRatePercents) {
     final UInt64 newBlockSlot = headSlot.increment();
     List<Attestation> blockAggregates =
-        forkBuilder.takeValidAggregatedAttestationsForBlockAtSlot(newBlockSlot);
         forkBuilder.takeValidAggregatedAttestationsForBlockAtSlot(
             newBlockSlot, participationRatePercents);
     return importNextBlockWithAttestations(headSlot, blockAggregates, forkBuilder);
@@ -294,26 +293,37 @@ class ConfirmationRuleTest {
 
   @Test
   void testOneEmptySlotGap() {
+    int participationRatePercent = 100;
+
     UpdatableStore store = storageSystem.recentChainData().getStore();
     for (int i = 0; i < 16; i++) {
-      importNextBlockWithAllAttestations();
+      importNextBlockWithPartialAttestations(participationRatePercent);
     }
 
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
 
     UInt64 slotAfterGap = allBlocks.getLast().getSlot().plus(1);
 
-    importNextBlockWithAllAttestations(slotAfterGap);
+    importNextBlockWithPartialAttestations(slotAfterGap, chainBuilder, participationRatePercent);
 
     for (int i = 0; i < 16; i++) {
-      importNextBlockWithAllAttestations();
+      importNextBlockWithPartialAttestations(participationRatePercent);
     }
 
     assertThat(store.getConfirmedRoot()).isEqualTo(allBlocks.get(allBlocks.size() - 2).getRoot());
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {10, 15, 20, 30, 50, 60, 70, 90, 100})
+  @ValueSource(ints = {100, 95, 90, 85, 80, 75, 70, 60, 50})
+  void testParticipationRate(int participationRatePercent) {
+    for (int i = 0; i < 64; i++) {
+      importNextBlockWithPartialAttestations(participationRatePercent);
+    }
+  }
+
+
+    @ParameterizedTest
+  @ValueSource(ints = {10, 15, 20, 30, 35, 40, 50, 60, 70, 90, 100})
   void testFirstEpochBlockAttestationDeficit(int blockAttestationDeficitPercent) {
     UpdatableStore store = storageSystem.recentChainData().getStore();
     for (int i = 1; i < 63; i++) { // run 2 epochs to 'warm up' justification processing
