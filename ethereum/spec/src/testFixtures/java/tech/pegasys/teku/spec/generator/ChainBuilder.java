@@ -525,7 +525,8 @@ public class ChainBuilder {
     return takeValidAggregatedAttestationsForBlockAtSlot(slot, 100);
   }
 
-  public List<Attestation> takeValidAggregatedAttestationsForBlockAtSlot(final UInt64 slot, int participationRatePercents) {
+  public List<Attestation> takeValidAggregatedAttestationsForBlockAtSlot(
+      final UInt64 slot, int participationRatePercents) {
     // Calculate bounds for valid head blocks
     final UInt64 currentEpoch = spec.computeEpochAtSlot(slot);
     final UInt64 prevEpoch =
@@ -539,6 +540,11 @@ public class ChainBuilder {
     final int minInclusionDiff = spec.getSpecConfig(currentEpoch).getMinAttestationInclusionDelay();
     final UInt64 maxAssignedSlot = slot.minusMinZero(minInclusionDiff);
 
+    int validatorCount = getLatestBlockAndState().getState().getValidators().size();
+    int validatorPerSlotCount = validatorCount / spec.getSlotsPerEpoch(slot);
+    int inactiveValidatorPerSlotCount =
+        validatorPerSlotCount - validatorPerSlotCount * participationRatePercents / 100;
+
     // Generate stream of consistent, valid attestations for inclusion
     return LongStream.rangeClosed(minAssignedSlot.longValue(), maxAssignedSlot.longValue())
         .mapToObj(UInt64::valueOf)
@@ -547,34 +553,13 @@ public class ChainBuilder {
         .filter(p -> p.getKey().compareTo(minBlockSlot) >= 0)
         .map(
             attestHead ->
-                slashlessAttestationGenerator.newAttestationStream(
-                    attestHead.getValue(), attestHead.getKey()))
+                slashlessAttestationGenerator
+                    .newAttestationStream(attestHead.getValue(), attestHead.getKey())
+                    .takeAndDrop(inactiveValidatorPerSlotCount))
         .reduce(SlashlessAttestationGenerator.AttestationStream::concat)
         .orElseGet(slashlessAttestationGenerator::emptyAttestationStream)
-        .filter(ai -> ai.validatorIndex().longValue() % 100 < participationRatePercents)
         .takeAggregatedLimitedForBlock();
   }
-
-  //  public Stream<Attestation> streamValidAttestationsForBlockAtSlotOnly(final UInt64 slot) {
-  //    // Calculate bounds for valid head blocks
-  //    final UInt64 currentEpoch = spec.computeEpochAtSlot(slot);
-  //    final UInt64 prevEpoch =
-  //        currentEpoch.compareTo(UInt64.ZERO) == 0 ? currentEpoch :
-  // currentEpoch.minus(UInt64.ONE);
-  //    final UInt64 minBlockSlot = spec.computeStartSlotAtEpoch(prevEpoch);
-  //
-  //    SignedBlockAndState blockAndStateAtSlot = getLatestBlockAndStateAtSlot(slot);
-  //
-  //    if (blockAndStateAtSlot == null) {
-  //      return Stream.empty();
-  //    }
-  //
-  //    if (blockAndStateAtSlot.getSlot().compareTo(minBlockSlot) < 0) {
-  //      return Stream.empty();
-  //    }
-  //
-  //    return attestationGenerator.streamAttestations(blockAndStateAtSlot, slot.decrement());
-  //  }
 
   /**
    * Utility for streaming valid attestations with a specific target block.

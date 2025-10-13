@@ -154,6 +154,19 @@ public class SlashlessAttestationGenerator {
       return new AttestationStream(Stream.concat(attestations, other.attestations), minSlot);
     }
 
+    public AttestationStream takeAndDrop(int count) {
+      int[] dropCounter = new int[1];
+      return transform(s -> s.filter(ai -> {
+        dropCounter[0]++;
+        if (dropCounter[0] <= count) {
+          recordVote(ai);
+          return false;
+        } else {
+          return true;
+        }
+      } ));
+    }
+
     public List<Attestation> takeAll() {
       return attestations
           .filter(SlashlessAttestationGenerator.this::recordVote)
