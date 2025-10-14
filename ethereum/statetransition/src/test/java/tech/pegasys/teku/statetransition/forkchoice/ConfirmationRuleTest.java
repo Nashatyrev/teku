@@ -31,7 +31,9 @@ import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.ValueSources;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.Stubber;
 import tech.pegasys.teku.bls.BLSConstants;
@@ -110,8 +112,8 @@ class ConfirmationRuleTest {
 
   private static final UInt64 validatorBalance = EthConstants.ETH_TO_GWEI.times(32);
   //  private static final int VALIDATOR_COUNT = 1_000_000;
-    private static final int VALIDATOR_COUNT = 1 << 13;
-//  private static final int VALIDATOR_COUNT = 1024;
+  private static final int VALIDATOR_COUNT = 1 << 13;
+  //  private static final int VALIDATOR_COUNT = 1024;
   private static final int COMMITTEE_WEIGHT_ESTIMATION_ADJUSTMENT_FACTOR = 5;
   private static final int CONFIRMATION_BYZANTINE_THRESHOLD = 25;
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 25;
@@ -314,15 +316,26 @@ class ConfirmationRuleTest {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {100, 95, 90, 85, 80, 75, 70, 60, 50})
-  void testParticipationRate(int participationRatePercent) {
+  @CsvSource({
+    "100, 1", "96, 1", "95, 2", "90, 2", "85, 3", "80, 5", /*"75, 55", */"70, 64",
+  })
+  // with 75% confirmation lag fluctuates between 51 to 55
+  void testParticipationRate(int participationRatePercent, int expectedConfirmedDistanceFromHead) {
+    UpdatableStore store = storageSystem.recentChainData().getStore();
     for (int i = 0; i < 64; i++) {
-      importNextBlockWithPartialAttestations(participationRatePercent);
+      SignedBlockAndState blockAndState = importNextBlockWithPartialAttestations(participationRatePercent);
+      int expectedConfirmedSlot =
+          Math.max(0, blockAndState.getBlock().getSlot().intValue() - expectedConfirmedDistanceFromHead);
+      Bytes32 expectedConfirmedRoot =
+          store
+              .getForkChoiceStrategy()
+              .getBlockRootsAtSlot(UInt64.valueOf(expectedConfirmedSlot))
+              .getFirst();
+      assertThat(store.getConfirmedRoot()).isEqualTo(expectedConfirmedRoot);
     }
   }
 
-
-    @ParameterizedTest
+  @ParameterizedTest
   @ValueSource(ints = {10, 15, 20, 30, 35, 40, 50, 60, 70, 90, 100})
   void testFirstEpochBlockAttestationDeficit(int blockAttestationDeficitPercent) {
     UpdatableStore store = storageSystem.recentChainData().getStore();
