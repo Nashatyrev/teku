@@ -31,7 +31,6 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,7 +41,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.apache.tuweni.bytes.Bytes;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +81,6 @@ import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator.Broa
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.storage.server.StateStorageMode;
 import tech.pegasys.teku.storage.storageSystem.FileBackedStorageSystemBuilder;
-import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
 
 @Disabled("For manual running only")
@@ -92,7 +89,8 @@ class ConfirmationRuleReplay {
   private final MetricsSystem metricsSystem = new StubMetricsSystem();
   private Spec spec;
   private DataStructureUtil dataStructureUtil;
-  private final BlobSidecarManager blobSidecarManager = mock(BlobSidecarManager.class, withSettings().stubOnly());
+  private final BlobSidecarManager blobSidecarManager =
+      mock(BlobSidecarManager.class, withSettings().stubOnly());
 
   @SuppressWarnings("unchecked")
   private final AvailabilityChecker<BlobSidecar> blobSidecarsAvailabilityChecker =
@@ -101,7 +99,8 @@ class ConfirmationRuleReplay {
   private StorageSystem storageSystem;
   private RecentChainData recentChainData;
 
-  private final ForkChoiceNotifier forkChoiceNotifier = mock(ForkChoiceNotifier.class, withSettings().stubOnly());
+  private final ForkChoiceNotifier forkChoiceNotifier =
+      mock(ForkChoiceNotifier.class, withSettings().stubOnly());
   private final OptimisticHeadSubscriber optimisticSyncStateTracker =
       mock(OptimisticHeadSubscriber.class, withSettings().stubOnly());
   private ExecutionLayerChannelStub executionLayer;
@@ -109,7 +108,8 @@ class ConfirmationRuleReplay {
       mock(BlockBroadcastValidator.class, withSettings().stubOnly());
   private final MergeTransitionBlockValidator transitionBlockValidator =
       mock(MergeTransitionBlockValidator.class, withSettings().stubOnly());
-  private final DebugDataDumper debugDataDumper = mock(DebugDataDumper.class, withSettings().stubOnly());
+  private final DebugDataDumper debugDataDumper =
+      mock(DebugDataDumper.class, withSettings().stubOnly());
 
   private final InlineEventThread eventThread = new InlineEventThread();
 
@@ -145,7 +145,6 @@ class ConfirmationRuleReplay {
   static final int numberOfBlockToReplay = 8000;
   Stream<SignedBeaconBlock> blockStream;
 
-
   VoteTracker voteTracker;
 
   @BeforeEach
@@ -176,9 +175,10 @@ class ConfirmationRuleReplay {
 
     voteTracker = new VoteTracker(spec, storageSystem.recentChainData());
 
-    blockStream = IntStream.range(1, numberOfBlockToReplay)
-        .mapToObj(off -> loadBlock(anchorSlot + off))
-        .flatMap(b -> b.stream());
+    blockStream =
+        IntStream.range(1, numberOfBlockToReplay)
+            .mapToObj(off -> loadBlock(anchorSlot + off))
+            .flatMap(b -> b.stream());
   }
 
   private Optional<SignedBeaconBlock> loadBlock(int slot) {
@@ -201,7 +201,7 @@ class ConfirmationRuleReplay {
     try {
       this.storageSystem =
           FileBackedStorageSystemBuilder.create()
-  //        InMemoryStorageSystemBuilder.create()
+              //        InMemoryStorageSystemBuilder.create()
               .storageMode(StateStorageMode.PRUNE)
               .specProvider(spec)
               .dataDir(Files.createTempDirectory(getClass().getSimpleName()))

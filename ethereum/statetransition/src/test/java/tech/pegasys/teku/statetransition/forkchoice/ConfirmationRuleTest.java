@@ -25,7 +25,6 @@ import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_C
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.jupiter.params.provider.ValueSources;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.Stubber;
 import tech.pegasys.teku.bls.BLSConstants;
@@ -317,15 +315,17 @@ class ConfirmationRuleTest {
 
   @ParameterizedTest
   @CsvSource({
-    "100, 1", "96, 1", "95, 2", "90, 2", "85, 3", "80, 5", /*"75, 55", */"70, 64",
+    "100, 1", "96, 1", "95, 2", "90, 2", "85, 3", "80, 5", /*"75, 55", */ "70, 64",
   })
   // with 75% confirmation lag fluctuates between 51 to 55
   void testParticipationRate(int participationRatePercent, int expectedConfirmedDistanceFromHead) {
     UpdatableStore store = storageSystem.recentChainData().getStore();
     for (int i = 0; i < 64; i++) {
-      SignedBlockAndState blockAndState = importNextBlockWithPartialAttestations(participationRatePercent);
+      SignedBlockAndState blockAndState =
+          importNextBlockWithPartialAttestations(participationRatePercent);
       int expectedConfirmedSlot =
-          Math.max(0, blockAndState.getBlock().getSlot().intValue() - expectedConfirmedDistanceFromHead);
+          Math.max(
+              0, blockAndState.getBlock().getSlot().intValue() - expectedConfirmedDistanceFromHead);
       Bytes32 expectedConfirmedRoot =
           store
               .getForkChoiceStrategy()

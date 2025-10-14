@@ -156,15 +156,18 @@ public class SlashlessAttestationGenerator {
 
     public AttestationStream takeAndDrop(int count) {
       int[] dropCounter = new int[1];
-      return transform(s -> s.filter(ai -> {
-        dropCounter[0]++;
-        if (dropCounter[0] <= count) {
-          recordVote(ai);
-          return false;
-        } else {
-          return true;
-        }
-      } ));
+      return transform(
+          s ->
+              s.filter(
+                  ai -> {
+                    dropCounter[0]++;
+                    if (dropCounter[0] <= count) {
+                      recordVote(ai);
+                      return false;
+                    } else {
+                      return true;
+                    }
+                  }));
     }
 
     public List<Attestation> takeAll() {

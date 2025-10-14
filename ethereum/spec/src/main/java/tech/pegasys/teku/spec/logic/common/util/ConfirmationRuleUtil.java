@@ -27,7 +27,6 @@ import java.util.Optional;
 import java.util.TreeMap;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
@@ -431,9 +430,7 @@ public class ConfirmationRuleUtil {
     //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
     UInt64 maximumSupport =
         estimateCommitteeWeightBetweenSlots(
-            state,
-            parentBlockSlot.increment(),
-            getCurrentSlot(store).decrement());
+            state, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
 
     //    proposer_score = get_proposer_score(store)
     BeaconState proposerBoostState = checkpointStateStore.getState(store.getJustifiedCheckpoint());
@@ -441,8 +438,7 @@ public class ConfirmationRuleUtil {
 
     //     honest_parent_support = compute_honest_parent_support(store, block_root,
     // weighting_checkpoint_state)
-    UInt64 honestParentSupport =
-        computeHonestParentSupport(store, blockRoot, state);
+    UInt64 honestParentSupport = computeHonestParentSupport(store, blockRoot, state);
 
     if (DEBUG_PRINT) {
       double qLeft = support.doubleValue() / maximumSupport.doubleValue();
@@ -523,9 +519,7 @@ public class ConfirmationRuleUtil {
     // FIX-ME (spec): if make end_slot exclusive then need to remove '- 1'
     UInt64 maximumSupport =
         estimateCommitteeWeightBetweenSlots(
-            state,
-            parentBlockSlot.increment(),
-            getCurrentSlot(store).decrement());
+            state, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
 
     // FIX+ME (spec): is it ok that maximumSupport can be less than actual support???
     // checkState(support.isLessThanOrEqualTo(maximumSupport));
@@ -1131,9 +1125,7 @@ public class ConfirmationRuleUtil {
     //    prev_unrealized_justified_checkpoint_slot =
     // store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
     Optional<UInt64> prevUnrealizedJustifiedCeckpointSlot =
-        store
-            .getForkChoiceStrategy()
-            .blockSlot(store.getPrevEpochJustifiedCheckpoint().getRoot());
+        store.getForkChoiceStrategy().blockSlot(store.getPrevEpochJustifiedCheckpoint().getRoot());
     if (prevUnrealizedJustifiedCeckpointSlot.isEmpty()) {
       return confirmedRoot;
     }

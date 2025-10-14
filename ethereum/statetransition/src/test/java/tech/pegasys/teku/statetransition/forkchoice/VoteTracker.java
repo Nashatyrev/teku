@@ -15,7 +15,6 @@ package tech.pegasys.teku.statetransition.forkchoice;
 
 import static java.util.Collections.emptySet;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -86,6 +85,4 @@ class VoteTracker {
   public int getVoteCountInSlot(UInt64 slot) {
     return slotToVotes.getOrDefault(slot, emptySet()).size();
   }
-
-
 }
