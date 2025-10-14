@@ -202,12 +202,6 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
   }
 
   @Override
-  public void setPrevSlotUnrealizedJustifiedCheckpoint(
-      Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
-    this.prevSlotUnrealizedJustifiedCheckpoint = Optional.of(prevSlotUnrealizedJustifiedCheckpoint);
-  }
-
-  @Override
   public void setPrevSlotHead(Bytes32 prevSlotHead) {
     this.prevSlotHead = Optional.of(prevSlotHead);
   }
@@ -388,12 +382,6 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
   @Override
   public Checkpoint getPrevEpochJustifiedCheckpoint() {
     return prevSlotJustifiedCheckpoint.orElseGet(store::getPrevEpochJustifiedCheckpoint);
-  }
-
-  @Override
-  public Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint() {
-    return prevSlotUnrealizedJustifiedCheckpoint.orElseGet(
-        store::getPrevSlotUnrealizedJustifiedCheckpoint);
   }
 
   @Override

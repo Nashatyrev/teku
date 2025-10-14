@@ -368,14 +368,15 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                               justifiedCheckpoint);
                       nodeSlot.ifPresent(lastProcessHeadSlot::set);
                       updateConfirmationRuleStore(
-                          maybeJustifiedCheckpointState.orElseThrow(), headRoot, nodeSlot);
+                          maybeJustifiedCheckpointState.orElseThrow(), headRoot);
+
                       notifyForkChoiceUpdatedAndOptimisticSyncingChanged(
                           isPreProposal ? nodeSlot : Optional.empty());
                       return true;
                     }));
   }
 
-  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 optimisticHeadRoot, Optional<UInt64> nodeSlot) {
+  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 optimisticHeadRoot) {
     final SpecVersion specVersion = spec.atSlot(justifiedState.getSlot());
     ConfirmationRuleUtil confirmationRuleUtil = specVersion.getConfirmationRuleUtil();
 
@@ -417,10 +418,13 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     Optional<UInt64> latestConfirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmed);
     int uniqStatesRequested =
         new HashSet<>(trackingCheckpointStateStore.getRequestedCheckpoints()).size();
+
+    UInt64 currentSlot = confirmationRuleUtil.getCurrentSlot(storeTransaction);
+
     System.err.println(
         "updateConfirmationRuleStore: "
             + "slot="
-            + nodeSlot.orElse(UInt64.ZERO)
+            + currentSlot
             + ", head="
             + headSlot.map(UInt64::toString).orElse("NaN")
             + ",("
@@ -444,9 +448,12 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevEpochJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
-    Checkpoint unrealizedJustifiedCheckpoint =
-        confirmationRuleUtil.getUnrealizedJustifiedCheckpoint(storeTransaction);
-    storeTransaction.setPrevSlotUnrealizedJustifiedCheckpoint(unrealizedJustifiedCheckpoint);
+    boolean isLastEpochSlot = confirmationRuleUtil.isFirstEpochSlot(currentSlot.increment());
+    if (isLastEpochSlot) {
+      Checkpoint unrealizedJustifiedCheckpoint =
+          confirmationRuleUtil.getUnrealizedJustifiedCheckpoint(storeTransaction);
+      storeTransaction.setPrevEpochJustifiedCheckpoint(unrealizedJustifiedCheckpoint);
+    }
     // store.prev_slot_head = get_head(store)
     // FIXME probbaly deviate from spec: headRoot is actually this slot head
     //    may be we need to o this in on_slot handler ???

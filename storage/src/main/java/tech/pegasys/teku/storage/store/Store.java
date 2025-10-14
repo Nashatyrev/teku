@@ -610,16 +610,6 @@ class Store extends CacheableStore {
   }
 
   @Override
-  public Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint() {
-    readLock.lock();
-    try {
-      return prevSlotUnrealizedJustifiedCheckpoint;
-    } finally {
-      readLock.unlock();
-    }
-  }
-
-  @Override
   public Bytes32 getPrevSlotHead() {
     readLock.lock();
     try {

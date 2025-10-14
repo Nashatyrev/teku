@@ -146,8 +146,6 @@ public interface ReadOnlyStore extends TimeProvider {
 
   Checkpoint getPrevEpochJustifiedCheckpoint();
 
-  Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint();
-
   Bytes32 getPrevSlotHead();
 
   <R> R calculateFromAllVotes(Function<VoteTracker[], R> processor);
