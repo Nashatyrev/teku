@@ -431,7 +431,7 @@ public class ConfirmationRuleUtil {
     Checkpoint weightingCheckpoint =
         isFirstEpochSlot(getCurrentSlot(store))
             ? store.getPrevSlotUnrealizedJustifiedCheckpoint()
-            : store.getPrevSlotJustifiedCheckpoint();
+            : store.getPrevEpochJustifiedCheckpoint();
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
     BeaconState weightingCheckpointState = checkpointStateStore.getState(weightingCheckpoint);
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
@@ -535,7 +535,7 @@ public class ConfirmationRuleUtil {
     Checkpoint weightingCheckpoint =
         isFirstEpochSlot(getCurrentSlot(store))
             ? store.getPrevSlotUnrealizedJustifiedCheckpoint()
-            : store.getPrevSlotJustifiedCheckpoint();
+            : store.getPrevEpochJustifiedCheckpoint();
     //    weighting_checkpoint_state = store.checkpoint_states[weighting_checkpoint]
     BeaconState weightingCheckpointState = checkpointStateStore.getState(weightingCheckpoint);
     //    support = get_weight(store, block_root, weighting_checkpoint_state)

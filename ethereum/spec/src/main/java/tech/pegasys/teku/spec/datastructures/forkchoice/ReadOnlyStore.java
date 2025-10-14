@@ -144,7 +144,7 @@ public interface ReadOnlyStore extends TimeProvider {
   // Confirmation Rule fields
   Bytes32 getConfirmedRoot();
 
-  Checkpoint getPrevSlotJustifiedCheckpoint();
+  Checkpoint getPrevEpochJustifiedCheckpoint();
 
   Checkpoint getPrevSlotUnrealizedJustifiedCheckpoint();
 

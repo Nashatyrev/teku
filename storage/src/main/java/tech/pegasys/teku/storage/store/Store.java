@@ -600,7 +600,7 @@ class Store extends CacheableStore {
   }
 
   @Override
-  public Checkpoint getPrevSlotJustifiedCheckpoint() {
+  public Checkpoint getPrevEpochJustifiedCheckpoint() {
     readLock.lock();
     try {
       return prevSlotJustifiedCheckpoint;
