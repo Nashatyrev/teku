@@ -118,6 +118,31 @@ public class ConfirmationRuleUtil {
     return startFullEpoch.isLessThan(endFullEpoch);
   }
 
+  // implements the following spec statement:
+  //        store.unrealized_justified_checkpoint
+  public Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
+    // FIXME alternative view of store.unrealized_justified_checkpoint. Need to double check
+    Checkpoint ret =
+        store.getForkChoiceStrategy().getChainHeads(true).stream()
+            .map(
+                head -> {
+                  return head.getCheckpoints().getUnrealizedJustifiedCheckpoint();
+                })
+            .max(Comparator.comparing(Checkpoint::getEpoch))
+            .orElseThrow();
+
+    // FIXME: hack around initial ZERO checkpoints
+    if (ret.getRoot().equals(Bytes32.ZERO)) {
+      Bytes32 genesisBlockRoot =
+          store.getForkChoiceStrategy().getBlockRootsAtSlot(UInt64.ZERO).getFirst();
+      return new Checkpoint(UInt64.ZERO, genesisBlockRoot);
+    } else {
+      return ret;
+    }
+  }
+
+
+
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
    * both). FIX+ME: spec: name function estimate* instead of get* FIX+ME (spec): better do
@@ -702,24 +727,10 @@ public class ConfirmationRuleUtil {
     return totalActiveBalance.dividedBy(specConfig.getSlotsPerEpoch()).times(slotsPassed);
   }
 
-  // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  private boolean willCurrentEpochCheckpointBeJustified(
-      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
-    return checkpointJustificationIndicator(store, checkpoint, checkpointStateStore, 2);
-  }
-
-  // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  private boolean willNoConflictingCheckpointBeJustified(
-      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
-    return checkpointJustificationIndicator(store, checkpoint, checkpointStateStore, 1);
-  }
-
-  // def will_current_epoch_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  private boolean checkpointJustificationIndicator(
+  private UInt64 computeHonestFfgSupport(
       ReadOnlyStore store,
       Checkpoint checkpoint,
-      CheckpointStateStore checkpointStateStore,
-      int multiplier) {
+      BeaconState state) {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -728,18 +739,13 @@ public class ConfirmationRuleUtil {
     //    current_slot = get_current_slot(store)
     UInt64 currentSlot = getCurrentSlot(store);
     //    current_epoch = compute_epoch_at_slot(current_slot)
-    //
-    //    store_target_checkpoint_state(store, checkpoint)
-    //    checkpoint_state = store.checkpoint_states[checkpoint]
-    // FIX+ME (spec): to fix approach to retrieve state
-    BeaconState checkpointState = checkpointStateStore.getState(checkpoint);
 
     //    total_active_balance = get_total_active_balance(checkpoint_state)
-    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(checkpointState);
+    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(state);
     //
     //    # compute FFG support for checkpoint
     //    ffg_support_for_checkpoint = get_checkpoint_weight(store, checkpoint, checkpoint_state)
-    UInt64 ffgSupportForCheckpoint = getCheckpointWeight(store, checkpoint, checkpointState);
+    UInt64 ffgSupportForCheckpoint = getCheckpointWeight(store, checkpoint, state);
     //
     //    # compute total FFG weight till current slot
     //    ffg_weight_till_now = get_ffg_weight_till_slot(current_slot, current_epoch,
@@ -779,53 +785,36 @@ public class ConfirmationRuleUtil {
     //   (min_honest_ffg_support + remaining_honest_ffg_weight) / total_active_balance >= 2 / 3
     //    return 3 * (min_honest_ffg_support + remaining_honest_ffg_weight) >= 2 *
     // total_active_balance
-    return minHonestFfgSupport
-        .plus(remainingHonestFfgWeight)
-        .times(3)
-        .isGreaterThanOrEqualTo(totalActiveBalance.times(multiplier));
+    return minHonestFfgSupport.plus(remainingHonestFfgWeight);
   }
 
-  public Checkpoint getUnrealizedJustifiedCheckpoint(ReadOnlyStore store) {
-    // FIXME alternative view of store.unrealized_justified_checkpoint. Need to double check
-    Checkpoint ret =
-        store.getForkChoiceStrategy().getChainHeads(true).stream()
-            .map(
-                head -> {
-                  return head.getCheckpoints().getUnrealizedJustifiedCheckpoint();
-                })
-            .max(Comparator.comparing(Checkpoint::getEpoch))
-            .orElseThrow();
+  // def will_no_conflicting_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
+  private boolean willNoConflictingCheckpointBeJustified(
+      ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
 
-    // FIXME: hack around initial ZERO checkpoints
-    if (ret.getRoot().equals(Bytes32.ZERO)) {
-      Bytes32 genesisBlockRoot =
-          store.getForkChoiceStrategy().getBlockRootsAtSlot(UInt64.ZERO).getFirst();
-      return new Checkpoint(UInt64.ZERO, genesisBlockRoot);
-    } else {
-      return ret;
+    checkArgument(checkpoint.getEpoch().equals(getCurrentEpochStore(store)));
+
+    if (checkpoint.equals(getUnrealizedJustifiedCheckpoint(store))) {
+      // optimization shortcut
+      return true;
     }
+
+    BeaconState state = checkpointStateStore.getState(checkpoint);
+    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(state);
+    UInt64 honestFfgSupport = computeHonestFfgSupport(store, checkpoint, state);
+    return honestFfgSupport.times(3).isGreaterThanOrEqualTo(totalActiveBalance);
   }
 
   // def will_checkpoint_be_justified(store: Store, checkpoint: Checkpoint) -> bool:
-  private boolean willCheckpointBeJustified(
+  private boolean willCurrentEpochCheckpointBeJustified(
       ReadOnlyStore store, Checkpoint checkpoint, CheckpointStateStore checkpointStateStore) {
-    //    if checkpoint == store.justified_checkpoint:
-    //        return True
-    if (checkpoint.equals(store.getJustifiedCheckpoint())) {
-      return true;
-    }
-    //    if checkpoint == store.unrealized_justified_checkpoint:
-    //        return True
-    if (checkpoint.equals(getUnrealizedJustifiedCheckpoint(store))) {
-      return true;
-    }
-    //    if checkpoint.epoch == get_current_epoch_store(store):
-    //        return will_current_epoch_checkpoint_be_justified(store, checkpoint)
-    if (checkpoint.getEpoch().equals(getCurrentEpochStore(store))) {
-      return willCurrentEpochCheckpointBeJustified(store, checkpoint, checkpointStateStore);
-    }
-    //    return False
-    return false;
+
+    checkArgument(checkpoint.getEpoch().equals(getCurrentEpochStore(store)));
+
+    BeaconState state = checkpointStateStore.getState(checkpoint);
+    UInt64 totalActiveBalance = beaconStateAccessors.getTotalActiveBalance(state);
+    UInt64 honestFfgSupport = computeHonestFfgSupport(store, checkpoint, state);
+    return honestFfgSupport.times(3).isGreaterThanOrEqualTo(totalActiveBalance.times(2));
   }
 
   private boolean hasProtoarrayBlock(ReadOnlyStore store, Bytes32 blockRoot) {
@@ -1040,7 +1029,7 @@ public class ConfirmationRuleUtil {
           // # current epoch checkpoint will be justified
           // if not will_checkpoint_be_justified(store, checkpoint):
           //     break
-          if (!willCheckpointBeJustified(store, checkpoint, checkpointStateStore)) {
+          if (!willCurrentEpochCheckpointBeJustified(store, checkpoint, checkpointStateStore)) {
             break;
           }
         }
