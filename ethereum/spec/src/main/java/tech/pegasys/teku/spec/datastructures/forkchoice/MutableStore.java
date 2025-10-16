@@ -91,7 +91,7 @@ public interface MutableStore extends ReadOnlyStore {
 
   void setConfirmedRoot(Bytes32 confirmedRoot);
 
-  void setPrevEpochJustifiedCheckpoint(Checkpoint prevEpochJustifiedCheckpoint);
+  void setPrevEpochUnrealizedJustifiedCheckpoint(Checkpoint prevEpochJustifiedCheckpoint);
 
   void setPrevSlotHead(Bytes32 prevSlotHead);
 }

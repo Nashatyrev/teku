@@ -446,13 +446,13 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             + t
             + " ms");
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
-    storeTransaction.setPrevEpochJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
+    storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
     boolean isLastEpochSlot = confirmationRuleUtil.isFirstEpochSlot(currentSlot.increment());
     if (isLastEpochSlot) {
       Checkpoint unrealizedJustifiedCheckpoint =
           confirmationRuleUtil.getUnrealizedJustifiedCheckpoint(storeTransaction);
-      storeTransaction.setPrevEpochJustifiedCheckpoint(unrealizedJustifiedCheckpoint);
+      storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(unrealizedJustifiedCheckpoint);
     }
     // store.prev_slot_head = get_head(store)
     // FIXME probbaly deviate from spec: headRoot is actually this slot head

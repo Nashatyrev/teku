@@ -124,7 +124,7 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   }
 
   @Override
-  public Checkpoint getPrevEpochJustifiedCheckpoint() {
+  public Checkpoint getPrevEpochUnrealizedJustifiedCheckpoint() {
     return prevSlotJustifiedCheckpoint;
   }
 
@@ -351,7 +351,7 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   }
 
   @Override
-  public void setPrevEpochJustifiedCheckpoint(Checkpoint prevEpochJustifiedCheckpoint) {
+  public void setPrevEpochUnrealizedJustifiedCheckpoint(Checkpoint prevEpochJustifiedCheckpoint) {
     this.prevSlotJustifiedCheckpoint = prevEpochJustifiedCheckpoint;
   }
 
