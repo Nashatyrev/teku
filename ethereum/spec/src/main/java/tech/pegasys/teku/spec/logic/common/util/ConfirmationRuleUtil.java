@@ -24,9 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Optional;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 import java.util.stream.Stream;
+
+import jnr.ffi.annotations.In;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
@@ -263,62 +268,66 @@ public class ConfirmationRuleUtil {
     return store.getForkChoiceStrategy().getNetWeight(blockRoot);
   }
 
+  private UInt64 sumUnslashedBalances(
+      ReadOnlyStore store, Set<Integer> validatorIndices, BeaconState referenceCheckpointState) {
+
+    List<UInt64> effectiveActiveUnslashedBalances =
+        beaconStateUtil.getEffectiveActiveUnslashedBalances(
+            referenceCheckpointState, getCurrentEpochStore(store));
+    return IntStream.range(0, effectiveActiveUnslashedBalances.size())
+        .filter(i -> !effectiveActiveUnslashedBalances.get(i).isZero())
+        .filter(i -> validatorIndices.contains(i))
+        .mapToObj(validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
+        .reduce(UInt64.ZERO, UInt64::plus);
+  }
+
+  private class IsAncestorCachedChecker {
+    private final ReadOnlyStore store;
+    private final Bytes32 ancestorRoot;
+    private final Map<Bytes32, Boolean> isAncestorCache = new HashMap<>();
+
+    public IsAncestorCachedChecker(ReadOnlyStore store, Bytes32 ancestorRoot) {
+      this.store = store;
+      this.ancestorRoot = ancestorRoot;
+    }
+
+    public boolean isDescendant(Bytes32 descendantRoot) {
+      Boolean b = isAncestorCache.get(descendantRoot);
+      if (b == null) {
+        b = isAncestor(store, descendantRoot, ancestorRoot);
+        isAncestorCache.put(descendantRoot, b);
+      }
+      return b;
+    }
+  }
+
+  private record IndexedVote(int index, VoteTracker vote) {
+    public boolean isNotEquivocating() {
+      return vote() != null && !vote().equals(VoteTracker.DEFAULT) && !vote().isEquivocating();
+    }
+  }
+
+  private Set<Integer> filterNonEquivocatingValidatorVotes(
+      ReadOnlyStore store, Predicate<IndexedVote> filter) {
+    return store.calculateFromAllVotes(
+        votes ->
+            IntStream.range(0, votes.length)
+                .mapToObj(i -> new IndexedVote(i, votes[i]))
+                .filter(iv -> iv.isNotEquivocating() && filter.apply(iv))
+                .map(iv -> iv.index)
+                .collect(Collectors.toUnmodifiableSet()));
+  }
+
   /** Slow but spec compliant prototype */
   private UInt64 getAttestationScoreSlow(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
 
-    //     unslashed_and_active_indices = [
-    //        i for i in get_active_validator_indices(state, get_current_epoch(state))
-    //        if not state.validators[i].slashed
-    //    ]
-    List<UInt64> effectiveActiveUnslashedBalances =
-        beaconStateUtil.getEffectiveActiveUnslashedBalances(
-            referenceCheckpointState, getCurrentEpochStore(store));
-    IntStream effectiveActiveUnslashedIndicesStream =
-        IntStream.range(0, effectiveActiveUnslashedBalances.size())
-            .filter(i -> !effectiveActiveUnslashedBalances.get(i).isZero());
-
-    //    attestation_score = Gwei(sum(
-    //        state.validators[i].effective_balance for i in unslashed_and_active_indices
-    //        if (i in store.latest_messages
-    //            and i not in store.equivocating_indices
-    //            and is_ancestor(store, store.latest_messages[i].root, root))
-    //    ))
-
-    Map<Bytes32, Boolean> isAncestorCache = new HashMap<>();
-    Predicate<Bytes32> isAncestorCached =
-        voteRoot -> {
-          Boolean b = isAncestorCache.get(voteRoot);
-          if (b == null) {
-            b = isAncestor(store, voteRoot, blockRoot);
-            isAncestorCache.put(voteRoot, b);
-          }
-          return b;
-        };
-
-    SszList<Validator> validators = referenceCheckpointState.getValidators();
-    UInt64 attestationScore =
-        store.calculateFromAllVotes(
-            votes ->
-                effectiveActiveUnslashedIndicesStream
-                    .filter(
-                        validatorIndex -> {
-                          if (validatorIndex >= votes.length) {
-                            return false;
-                          }
-                          VoteTracker vote = votes[validatorIndex];
-                          return vote != null
-                              && !vote.equals(VoteTracker.DEFAULT)
-                              && !vote.isEquivocating()
-                              && isAncestorCached.apply(vote.getNextRoot());
-                        })
-                    .mapToObj(
-                        validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
-                    .reduce(UInt64.ZERO, UInt64::plus));
-
-    // FIX+ME (spec): should we add proposer boost or not?  NO
-    // https://github.com/mkalinin/confirmation-rule/pull/24
-    return attestationScore;
+    IsAncestorCachedChecker isAncestorChecker = new IsAncestorCachedChecker(store, blockRoot);
+    Set<Integer> filteredValidatorIndices =
+        filterNonEquivocatingValidatorVotes(
+            store, iv -> isAncestorChecker.isDescendant(iv.vote().getNextRoot()));
+    UInt64 ret = sumUnslashedBalances(store, filteredValidatorIndices, referenceCheckpointState);
+    return ret;
   }
 
   private UInt64 getAttestationScore(
@@ -331,6 +340,50 @@ public class ConfirmationRuleUtil {
     //        "Weights doesnt match fast {} != slow {}",
     //        weightFast,
     //        weightSlow);
+    return weightSlow;
+  }
+
+  /** Naive slow spec-like implementation */
+  private UInt64 getCheckpointWeightSlow(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+
+    CheckpointFast checkpointFast = CheckpointFast.fromCheckpoint(checkpoint);
+    Set<Integer> filteredValidatorIndices =
+        filterNonEquivocatingValidatorVotes(
+            store, iv -> {
+              if (!store.getForkChoiceStrategy().contains(iv.vote().getNextRoot())) {
+                // vote block was finalized and pruned from protoarray
+                return false;
+              }
+              CheckpointFast voteTarget =
+                  getCheckpointFastForBlock(
+                      store, iv.vote().getNextRoot(), iv.vote().getNextEpoch());
+              return voteTarget.equals(checkpointFast);
+
+            });
+    return sumUnslashedBalances(store, filteredValidatorIndices, checkpointState);
+  }
+
+  @VisibleForTesting
+  public UInt64 getCheckpointWeight(
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
+
+    //    UInt64 checkpointSlot =
+    //        store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
+    //    UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
+    //    if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
+    //      // just checking implementation compatibility
+    //      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false,
+    // false);
+    //      UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
+    //      checkState(
+    //          weightFast.equals(weightSlow),
+    //          "Slow and fast algorithms don't match: {} != {}",
+    //          weightSlow,
+    //          weightFast);
+    //    }
+
+    UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState);
     return weightSlow;
   }
 
@@ -674,89 +727,6 @@ public class ConfirmationRuleUtil {
     static CheckpointFast fromCheckpoint(Checkpoint checkpoint) {
       return new CheckpointFast(checkpoint.getEpoch().intValue(), checkpoint.getRoot());
     }
-  }
-
-  /** Naive slow spec-like implementation */
-  private UInt64 getCheckpointWeightSlow(
-      ReadOnlyStore store,
-      Checkpoint checkpoint,
-      BeaconState checkpointState,
-      boolean includeEquivocative,
-      boolean includeSlashed) {
-
-    //     if get_current_slot(store) <= compute_start_slot_at_epoch(checkpoint.epoch):
-    //        return Gwei(0)
-    if (getCurrentSlot(store)
-        .isLessThanOrEqualTo(miscHelpers.computeStartSlotAtEpoch(checkpoint.getEpoch()))) {
-      return UInt64.ZERO;
-    }
-    //    checkpoint_weight = 0
-    //    for validator_index, latest_message in store.latest_messages.items():
-    //        vote_target = get_checkpoint_for_block(store, latest_message.root,
-    // latest_message.epoch)
-    //        # checkpoint matches vote's target
-    //        if checkpoint == vote_target:
-    //            checkpoint_weight +=
-    // checkpoint_state.validators[validator_index].effective_balance
-    // FIXME (spec): nit: more function style
-    SszList<Validator> validators = checkpointState.getValidators();
-    CheckpointFast checkpointFast = CheckpointFast.fromCheckpoint(checkpoint);
-    UInt64 checkpointWeight =
-        store.calculateFromAllVotes(
-            votes ->
-                IntStream.range(0, votes.length)
-                    .filter(
-                        validatorIndex -> {
-                          VoteTracker vote = votes[validatorIndex];
-                          return vote != null && !vote.equals(VoteTracker.DEFAULT);
-                        })
-                    .filter(
-                        validatorIndex -> {
-                          VoteTracker vote = votes[validatorIndex];
-                          if (!includeEquivocative && vote.isEquivocating()) {
-                            return false;
-                          }
-                          if (!includeSlashed && validators.get(validatorIndex).isSlashed()) {
-                            return false;
-                          }
-                          if (!store.getForkChoiceStrategy().contains(vote.getNextRoot())) {
-                            // vote block was finalized and pruned from protoarray
-                            return false;
-                          }
-                          CheckpointFast voteTarget =
-                              getCheckpointFastForBlock(
-                                  store, vote.getNextRoot(), vote.getNextEpoch());
-                          return voteTarget.equals(checkpointFast);
-                        })
-                    .mapToObj(
-                        validatorIndex -> validators.get(validatorIndex).getEffectiveBalance())
-                    .reduce(UInt64.ZERO, UInt64::plus));
-
-    //    return Gwei(checkpoint_weight)
-    return checkpointWeight;
-  }
-
-  @VisibleForTesting
-  public UInt64 getCheckpointWeight(
-      ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
-
-    //    UInt64 checkpointSlot =
-    //        store.getForkChoiceStrategy().blockSlot(checkpoint.getRoot()).orElseThrow();
-    //    UInt64 checkpointBlockEpoch = miscHelpers.computeEpochAtSlot(checkpointSlot);
-    //    if (checkpoint.getEpoch().equals(checkpointBlockEpoch)) {
-    //      // just checking implementation compatibility
-    //      UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, false,
-    // false);
-    //      UInt64 weightFast = getCheckpointWeightFast(store, checkpoint, checkpointState);
-    //      checkState(
-    //          weightFast.equals(weightSlow),
-    //          "Slow and fast algorithms don't match: {} != {}",
-    //          weightSlow,
-    //          weightFast);
-    //    }
-
-    UInt64 weightSlow = getCheckpointWeightSlow(store, checkpoint, checkpointState, true, true);
-    return weightSlow;
   }
 
   // def get_ffg_weight_till_slot(slot: Slot, epoch: Epoch, total_active_balance: Gwei) -> Gwei:
