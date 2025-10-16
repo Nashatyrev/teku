@@ -141,7 +141,26 @@ public class ConfirmationRuleUtil {
     }
   }
 
+  private List<Bytes32> getChainRoots(
+      ReadOnlyStore store, Bytes32 ancestorRootInclusive, Bytes32 startBlockRootInclusive) {
+    return getChainRoots(
+        store,
+        store.getForkChoiceStrategy().blockSlot(ancestorRootInclusive).orElseThrow(),
+        startBlockRootInclusive);
+  }
 
+  private List<Bytes32> getChainRoots(
+      ReadOnlyStore store, UInt64 ancestorSlotInclusive, Bytes32 startBlockRootInclusive) {
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    ArrayList<Bytes32> ret = new ArrayList<>();
+    Bytes32 root = startBlockRootInclusive;
+    ret.add(root);
+    while (forkChoiceStrategy.blockSlot(root).orElseThrow().isGreaterThan(ancestorSlotInclusive)) {
+      root = forkChoiceStrategy.blockParentRoot(root).orElseThrow();
+      ret.add(root);
+    }
+    return ret.reversed();
+  }
 
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
@@ -448,7 +467,8 @@ public class ConfirmationRuleUtil {
     Bytes32 parentBlockRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
     UInt64 parentBlockSlot = forkChoiceStrategy.blockSlot(parentBlockRoot).orElseThrow();
 
-    BeaconState state = checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
+    BeaconState state =
+        checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
     UInt64 support = getAttestationScore(store, blockRoot, state);
     //    maximum_support = get_committee_weight_between_slots(
@@ -536,7 +556,8 @@ public class ConfirmationRuleUtil {
     Bytes32 parentBlockRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
     UInt64 parentBlockSlot = forkChoiceStrategy.blockSlot(parentBlockRoot).orElseThrow();
 
-    BeaconState state = checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
+    BeaconState state =
+        checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
     //    support = get_weight(store, block_root, weighting_checkpoint_state)
     UInt64 support = getAttestationScore(store, blockRoot, state);
     //    maximum_support = get_committee_weight_between_slots(
@@ -580,6 +601,37 @@ public class ConfirmationRuleUtil {
       final Bytes32 blockRoot,
       final CheckpointStateStore checkpointStateStore) {
     return isOneConfirmedNew(store, blockRoot, checkpointStateStore);
+  }
+
+  private boolean isChainReconfirmed(
+      final ReadOnlyStore store,
+      final Bytes32 confirmedRoot,
+      final CheckpointStateStore checkpointStateStore) {
+
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+
+    if (!isAncestor(
+        store, confirmedRoot, store.getPrevEpochUnrealizedJustifiedCheckpoint().getRoot())) {
+      return false;
+    }
+
+    UInt64 currentEpoch = getCurrentEpochStore(store);
+    final Bytes32 startRoot;
+    //     if store.prev_epoch_unrealized_justified_checkpoint.epoch + 1 >= current_epoch:
+    if (store
+        .getPrevEpochUnrealizedJustifiedCheckpoint()
+        .getEpoch()
+        .increment()
+        .isGreaterThanOrEqualTo(currentEpoch)) {
+      startRoot = store.getPrevEpochUnrealizedJustifiedCheckpoint().getRoot();
+    } else {
+      Checkpoint checkpoint = getCheckpointForBlock(store, confirmedRoot, currentEpoch.decrement());
+      startRoot = forkChoiceStrategy.blockParentRoot(checkpoint.getRoot()).orElseThrow();
+    }
+
+    return getChainRoots(store, startRoot, confirmedRoot).stream()
+        .skip(1)
+        .allMatch(root -> isOneConfirmed(store, root, checkpointStateStore));
   }
 
   /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
@@ -728,9 +780,7 @@ public class ConfirmationRuleUtil {
   }
 
   private UInt64 computeHonestFfgSupport(
-      ReadOnlyStore store,
-      Checkpoint checkpoint,
-      BeaconState state) {
+      ReadOnlyStore store, Checkpoint checkpoint, BeaconState state) {
 
     //    assert checkpoint.epoch == get_current_epoch_store(store)
     UInt64 currentEpoch = getCurrentEpochStore(store);
@@ -829,19 +879,6 @@ public class ConfirmationRuleUtil {
   private UInt64 getCurrentEpochStore(ReadOnlyStore store) {
     UInt64 currentSlot = getCurrentSlot(store);
     return miscHelpers.computeEpochAtSlot(currentSlot);
-  }
-
-  private List<Bytes32> getChainRoots(
-      ReadOnlyStore store, UInt64 ancestorSlot, Bytes32 startBlockRoot) {
-    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
-    ArrayList<Bytes32> ret = new ArrayList<>();
-    Bytes32 root = startBlockRoot;
-    ret.add(root);
-    while (forkChoiceStrategy.blockSlot(root).orElseThrow().isGreaterThan(ancestorSlot)) {
-      root = forkChoiceStrategy.blockParentRoot(root).orElseThrow();
-      ret.add(root);
-    }
-    return ret.reversed();
   }
 
   /**
@@ -1079,6 +1116,8 @@ public class ConfirmationRuleUtil {
     //    # revert to finalized block if the latest confirmed block:
     //    # a) from two or more epochs ago
     //    # b) doesn't belong to the canonical chain
+    //    # c) the confirmed chain starting from the previous epoch unrealized justified checkpoint
+    //    #    cannot be re-confirmed at the beginning of the current epoch
     //    #
     //    # either of the above conditions signifies that confirmation rule assumptions (at least
     // synchrony) are broken
@@ -1093,9 +1132,13 @@ public class ConfirmationRuleUtil {
     //
     //        confirmed_root = store.finalized_checkpoint.root
     //    UInt64 confirmedBlockEpoch = getBlockEpochCached(store, confirmedRoot);
+    boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
+    boolean isNotReconfirmed =
+        isFirstEpochSlot && !isChainReconfirmed(store, confirmedRoot, checkpointStateStore);
     if (!hasProtoarrayBlock(store, confirmedRoot)
         || getBlockEpoch(store, confirmedRoot).increment().isLessThan(currentEpoch)
-        || !isAncestor(store, head, confirmedRoot)) {
+        || !isAncestor(store, head, confirmedRoot)
+        || isNotReconfirmed) {
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
     }
 
@@ -1114,7 +1157,9 @@ public class ConfirmationRuleUtil {
     //    prev_unrealized_justified_checkpoint_slot =
     // store.blocks[store.prev_slot_unrealized_justified_checkpoint.root].slot
     Optional<UInt64> prevUnrealizedJustifiedCeckpointSlot =
-        store.getForkChoiceStrategy().blockSlot(store.getPrevEpochUnrealizedJustifiedCheckpoint().getRoot());
+        store
+            .getForkChoiceStrategy()
+            .blockSlot(store.getPrevEpochUnrealizedJustifiedCheckpoint().getRoot());
     if (prevUnrealizedJustifiedCeckpointSlot.isEmpty()) {
       return confirmedRoot;
     }
@@ -1124,7 +1169,6 @@ public class ConfirmationRuleUtil {
     // FIX+ME (spec): isFirstEpochSlot
     UInt64 prevUnrealizedJustifiedCeckpointEpoch =
         store.getPrevEpochUnrealizedJustifiedCheckpoint().getEpoch();
-    boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
     boolean isPrevUnrealizedJustifiedCeckpointTooOld =
         prevUnrealizedJustifiedCeckpointEpoch.increment().isLessThan(currentEpoch);
     boolean isNewConfirmedBlockGreater =
