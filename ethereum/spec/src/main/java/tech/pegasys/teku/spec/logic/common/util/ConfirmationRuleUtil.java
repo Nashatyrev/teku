@@ -17,6 +17,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
+import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -28,15 +29,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.LongStream;
 import java.util.stream.Stream;
-
-import jnr.ffi.annotations.In;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
-import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
@@ -44,7 +41,6 @@ import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyForkChoiceStrate
 import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyStore;
 import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
-import tech.pegasys.teku.spec.datastructures.state.Validator;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
@@ -167,6 +163,26 @@ public class ConfirmationRuleUtil {
     return ret.reversed();
   }
 
+  private record IndexedVote(UInt64 index, VoteTracker vote) {
+    public boolean isNotEquivocating() {
+      return vote() != null && !vote().equals(VoteTracker.DEFAULT) && !vote().isEquivocating();
+    }
+  }
+
+  private Stream<IndexedVote> streamIndexedVotes(ReadOnlyStore store) {
+    return store.calculateFromAllVotes(
+        votes ->
+            IntStream.range(0, votes.length)
+                .mapToObj(i -> new IndexedVote(UInt64.valueOf(i), votes[i])));
+  }
+
+  private Set<UInt64> filterNonEquivocatingValidatorVotes(
+      ReadOnlyStore store, Predicate<IndexedVote> filter) {
+    return streamIndexedVotes(store)
+        .filter(iv -> iv.isNotEquivocating() && filter.apply(iv))
+        .map(iv -> iv.index)
+        .collect(Collectors.toUnmodifiableSet());
+  }
   /**
    * Returns the total weight of committees between ``start_slot`` and ``end_slot`` (inclusive of
    * both). FIX+ME: spec: name function estimate* instead of get* FIX+ME (spec): better do
@@ -269,15 +285,15 @@ public class ConfirmationRuleUtil {
   }
 
   private UInt64 sumUnslashedBalances(
-      ReadOnlyStore store, Set<Integer> validatorIndices, BeaconState referenceCheckpointState) {
+      ReadOnlyStore store, Set<UInt64> validatorIndices, BeaconState referenceCheckpointState) {
 
     List<UInt64> effectiveActiveUnslashedBalances =
         beaconStateUtil.getEffectiveActiveUnslashedBalances(
             referenceCheckpointState, getCurrentEpochStore(store));
     return IntStream.range(0, effectiveActiveUnslashedBalances.size())
         .filter(i -> !effectiveActiveUnslashedBalances.get(i).isZero())
-        .filter(i -> validatorIndices.contains(i))
-        .mapToObj(validatorIndex -> effectiveActiveUnslashedBalances.get(validatorIndex))
+        .filter(i -> validatorIndices.contains(UInt64.valueOf(i)))
+        .mapToObj(effectiveActiveUnslashedBalances::get)
         .reduce(UInt64.ZERO, UInt64::plus);
   }
 
@@ -301,29 +317,12 @@ public class ConfirmationRuleUtil {
     }
   }
 
-  private record IndexedVote(int index, VoteTracker vote) {
-    public boolean isNotEquivocating() {
-      return vote() != null && !vote().equals(VoteTracker.DEFAULT) && !vote().isEquivocating();
-    }
-  }
-
-  private Set<Integer> filterNonEquivocatingValidatorVotes(
-      ReadOnlyStore store, Predicate<IndexedVote> filter) {
-    return store.calculateFromAllVotes(
-        votes ->
-            IntStream.range(0, votes.length)
-                .mapToObj(i -> new IndexedVote(i, votes[i]))
-                .filter(iv -> iv.isNotEquivocating() && filter.apply(iv))
-                .map(iv -> iv.index)
-                .collect(Collectors.toUnmodifiableSet()));
-  }
-
   /** Slow but spec compliant prototype */
   private UInt64 getAttestationScoreSlow(
       ReadOnlyStore store, Bytes32 blockRoot, BeaconState referenceCheckpointState) {
 
     IsAncestorCachedChecker isAncestorChecker = new IsAncestorCachedChecker(store, blockRoot);
-    Set<Integer> filteredValidatorIndices =
+    Set<UInt64> filteredValidatorIndices =
         filterNonEquivocatingValidatorVotes(
             store, iv -> isAncestorChecker.isDescendant(iv.vote().getNextRoot()));
     UInt64 ret = sumUnslashedBalances(store, filteredValidatorIndices, referenceCheckpointState);
@@ -348,7 +347,7 @@ public class ConfirmationRuleUtil {
       ReadOnlyStore store, Checkpoint checkpoint, BeaconState checkpointState) {
 
     CheckpointFast checkpointFast = CheckpointFast.fromCheckpoint(checkpoint);
-    Set<Integer> filteredValidatorIndices =
+    Set<UInt64> filteredValidatorIndices =
         filterNonEquivocatingValidatorVotes(
             store, iv -> {
               if (!store.getForkChoiceStrategy().contains(iv.vote().getNextRoot())) {
@@ -504,7 +503,7 @@ public class ConfirmationRuleUtil {
   }
 
   // def is_one_confirmed(store: Store, block_root: Root) -> bool:
-  private boolean isOneConfirmedNew(
+  private boolean isOneConfirmed(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
       final CheckpointStateStore checkpointStateStore) {
@@ -595,65 +594,6 @@ public class ConfirmationRuleUtil {
 
   private static String uint2str(UInt64 uint) {
     return String.format("%,d", uint.longValue());
-  }
-
-  // def is_one_confirmed(store: Store, block_root: Root) -> bool:
-  private boolean isOneConfirmedOld(
-      final ReadOnlyStore store,
-      final Bytes32 blockRoot,
-      final CheckpointStateStore checkpointStateStore) {
-    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
-    //    current_slot = get_current_slot(store)
-    //    block = store.blocks[block_root]
-    //    parent_block = store.blocks[block.parent_root]
-    Bytes32 parentBlockRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
-    UInt64 parentBlockSlot = forkChoiceStrategy.blockSlot(parentBlockRoot).orElseThrow();
-
-    BeaconState state =
-        checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
-    //    support = get_weight(store, block_root, weighting_checkpoint_state)
-    UInt64 support = getAttestationScore(store, blockRoot, state);
-    //    maximum_support = get_committee_weight_between_slots(
-    //        weighting_checkpoint_state, Slot(parent_block.slot + 1), Slot(current_slot - 1))
-    // FIX-ME (spec): if make end_slot exclusive then need to remove '- 1'
-    UInt64 maximumSupport =
-        estimateCommitteeWeightBetweenSlots(
-            state, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
-
-    // FIX+ME (spec): is it ok that maximumSupport can be less than actual support???
-    // checkState(support.isLessThanOrEqualTo(maximumSupport));
-    //    proposer_score = get_proposer_score(store)
-    // FIX+ME: here we deviate from spec. get_proposer_score() uses store.justified_checkpoint state
-    BeaconState proposerBoostState = checkpointStateStore.getState(store.getJustifiedCheckpoint());
-    UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(proposerBoostState);
-    //
-    //    # Returns whether the following condition is true using only integer arithmetic
-    //    # support / maximum_support >
-    //    # 0.5 * (1 + proposer_score / maximum_support) + CONFIRMATION_BYZANTINE_THRESHOLD / 100
-    //
-    //    # 2 * support > maximum_support * (1 + 2 * CONFIRMATION_BYZANTINE_THRESHOLD / 100) +
-    // proposer_score
-    //    return (
-    //        2 * support >
-    //        maximum_support + maximum_support // 50 * CONFIRMATION_BYZANTINE_THRESHOLD +
-    // proposer_score
-    //    )
-    return support
-        .times(2)
-        .isGreaterThan(
-            maximumSupport
-                .plus(
-                    maximumSupport
-                        .dividedBy(50)
-                        .times(specConfig.getConfirmationByzantineThreshold()))
-                .plus(proposerScore));
-  }
-
-  private boolean isOneConfirmed(
-      final ReadOnlyStore store,
-      final Bytes32 blockRoot,
-      final CheckpointStateStore checkpointStateStore) {
-    return isOneConfirmedNew(store, blockRoot, checkpointStateStore);
   }
 
   private boolean isChainReconfirmed(
