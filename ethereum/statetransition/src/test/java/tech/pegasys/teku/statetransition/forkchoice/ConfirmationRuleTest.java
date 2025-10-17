@@ -370,7 +370,7 @@ class ConfirmationRuleTest {
   }
 
   @Test
-  void getCheckpointWeight_shouldCountEquivocatingVotesAndShouldntCountProposerBoost() {
+  void getCheckpointWeight_shouldNotCountEquivocatingVotesAndShouldntCountProposerBoost() {
     final ChainBuilder forkChain = chainBuilder.fork();
     final SignedBlockAndState forkBlock =
         forkChain.generateNextBlock(
@@ -420,8 +420,8 @@ class ConfirmationRuleTest {
         confirmationRuleUtil.getCheckpointWeight(
             recentChainData.getStore(), genesisCheckpoint, state);
 
-    // 2 of 3 votes are equivocating, but should still count
-    assertThat(checkpointWeight).isEqualTo(validatorBalance.times(3));
+    // 2 of 3 votes are equivocating and should NOT be count
+    assertThat(checkpointWeight).isEqualTo(validatorBalance);
   }
 
   @Test
