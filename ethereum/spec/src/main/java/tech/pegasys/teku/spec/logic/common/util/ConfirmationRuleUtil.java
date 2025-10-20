@@ -23,14 +23,12 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-import org.apache.commons.lang3.ObjectUtils;
+
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
@@ -175,8 +173,7 @@ public class ConfirmationRuleUtil {
         votes ->
             IntStream.range(0, votes.length)
                 .mapToObj(i -> new IndexedVote(UInt64.valueOf(i), votes[i]))
-                .filter(IndexedVote::isNotNull)
-    );
+                .filter(IndexedVote::isNotNull));
   }
 
   private Set<UInt64> filterNonEquivocatingValidatorVotes(
@@ -187,44 +184,8 @@ public class ConfirmationRuleUtil {
         .collect(Collectors.toUnmodifiableSet());
   }
 
-  private Set<UInt64> computeEquivocatingIndices(ReadOnlyStore store) {
-    return streamIndexedVotes(store)
-        .filter(iv -> iv.vote().isEquivocating())
-        .map(iv -> iv.index)
-        .collect(Collectors.toSet());
-  }
-
-  // def get_slot_committee(store: Store, slot: Slot) -> Sequence[ValidatorIndex]:
-  private Set<UInt64> getSlotCommittee(
-      ReadOnlyStore store, UInt64 slot, BeaconState shufflingState) {
-    //    # Use post state of the head block as a source of shuffling.
-    //    # It is safe because if the head is one epoch older than the current epoch,
-    //    # this code won't be executed.
-    //    head_state = store.block_states[get_head(store)]
-    //    indices = []
-    //    committees_count = get_committee_count_per_slot(head_state, compute_epoch_at_slot(slot))
-    UInt64 committeeCount =
-        beaconStateAccessors.getCommitteeCountPerSlot(
-            shufflingState, miscHelpers.computeEpochAtSlot(slot));
-    //    for i in range(committees_count):
-    //        indices.append(get_beacon_committee(state, slot, CommitteeIndex(i)))
-    Set<UInt64> indices =
-        Stream.iterate(UInt64.ZERO, idx -> idx.isLessThan(committeeCount), UInt64::increment)
-            .map(
-                committeeIndex ->
-                    beaconStateAccessors.getBeaconCommittee(shufflingState, slot, committeeIndex))
-            .flatMap(IntCollection::stream)
-            .map(UInt64::valueOf)
-            .collect(Collectors.toSet());
-    //    return indices
-    return indices;
-  }
-
-  private Set<UInt64> getSlotsCommittee(
-      ReadOnlyStore store, UInt64 firstSlot, UInt64 lastSlot, BeaconState shufflingSource) {
-    return Stream.iterate(firstSlot, idx -> idx.isLessThanOrEqualTo(lastSlot), UInt64::increment)
-        .flatMap(slot -> getSlotCommittee(store, slot, shufflingSource).stream())
-        .collect(Collectors.toSet());
+  private List<IndexedVote> getEquivocatingVotes(ReadOnlyStore store) {
+    return streamIndexedVotes(store).filter(iv -> iv.vote().isEquivocating()).toList();
   }
 
   /**
@@ -327,28 +288,26 @@ public class ConfirmationRuleUtil {
   private UInt64 getEquivocationScore(
       ReadOnlyStore store,
       BeaconState balanceSource,
-      BeaconState shufflingSource,
       UInt64 firstSlot,
       UInt64 lastSlot) {
 
-    Set<UInt64> equivocatingValidatorIndices = computeEquivocatingIndices(store);
+    List<IndexedVote> equivocatingVotes = getEquivocatingVotes(store);
 
-    if (equivocatingValidatorIndices.isEmpty()) {
+    if (equivocatingVotes.isEmpty()) {
       return UInt64.ZERO;
     }
-
-    //    committee_indices = set()
-    //    for slot in range(first_slot, last_slot + 1):
-    //        committee_indices.update(get_slot_committee(store, slot))
-    Set<UInt64> committeeIndices = getSlotsCommittee(store, firstSlot, lastSlot, shufflingSource);
 
     //    equivocating_indices = committee_indices.intersection(store.equivocating_indices)
     //    return Gwei(
     //        sum(balance_source.validators[i].effective_balance for i in equivocating_indices)
     //    )
-    return equivocatingValidatorIndices.stream()
-        .filter(committeeIndices::contains)
-        .map(valIdx -> balanceSource.getValidators().get(valIdx.intValue()).getEffectiveBalance())
+    return equivocatingVotes.stream()
+        //        .filter(committeeIndices::contains)
+        .filter(
+            iv ->
+                iv.vote().getNextSlot().isGreaterThanOrEqualTo(firstSlot)
+                    && iv.vote().getNextSlot().isLessThanOrEqualTo(lastSlot))
+        .map(iv -> balanceSource.getValidators().get(iv.index().intValue()).getEffectiveBalance())
         .reduce(UInt64.ZERO, UInt64::plus);
   }
 
@@ -357,7 +316,6 @@ public class ConfirmationRuleUtil {
   private UInt64 computeAdversarialWeight(
       ReadOnlyStore store,
       BeaconState balanceSource,
-      BeaconState shufflingSource,
       UInt64 firstSlot,
       UInt64 lastSlot) {
     //    maximum_weight = estimate_committee_weight_between_slots(balance_source, first_slot,
@@ -370,7 +328,7 @@ public class ConfirmationRuleUtil {
     //    # Discount total weight of equivocating validators
     //    equivocation_score = get_equivocation_score(store, balance_source, first_slot, last_slot)
     UInt64 equivocationScore =
-        getEquivocationScore(store, balanceSource, shufflingSource, firstSlot, lastSlot);
+        getEquivocationScore(store, balanceSource, firstSlot, lastSlot);
     //    if max_adversarial_weight > equivocation_score:
     //        return Gwei(max_adversarial_weight - equivocation_score)
     //    else:
@@ -383,15 +341,12 @@ public class ConfirmationRuleUtil {
   UInt64 getBlockSupportInSlots(
       ReadOnlyStore store,
       BeaconState balanceSource,
-      BeaconState shufflingSource,
       Bytes32 blockRoot,
       UInt64 firstSlot,
       UInt64 lastSlot) {
     //    committees = []
     //    for slot in range(first_slot, last_slot + 1):
     //        committees.append(get_slot_committee(store, slot))
-    Set<UInt64> committees = getSlotsCommittee(store, firstSlot, lastSlot, shufflingSource);
-
     //    unslashed_and_active_committee_indices = [
     //        i for i in get_active_validator_indices(balance_source,
     // get_current_epoch(balance_source))
@@ -406,7 +361,11 @@ public class ConfirmationRuleUtil {
     //    ))
     Set<UInt64> supportValidators =
         filterNonEquivocatingValidatorVotes(
-            store, iv -> iv.vote.getNextRoot().equals(blockRoot) && committees.contains(iv.index));
+            store,
+            iv ->
+                iv.vote.getNextRoot().equals(blockRoot)
+                    && iv.vote().getNextSlot().isGreaterThanOrEqualTo(firstSlot)
+                    && iv.vote().getNextSlot().isLessThanOrEqualTo(firstSlot));
     return sumUnslashedBalances(store, supportValidators, balanceSource);
   }
 
@@ -415,7 +374,6 @@ public class ConfirmationRuleUtil {
   private UInt64 computeEmptySlotSupportDiscount(
       ReadOnlyStore store,
       BeaconState balanceSource,
-      BeaconState shufflingSource,
       Bytes32 blockRoot) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     //    # No empty slot
@@ -436,7 +394,6 @@ public class ConfirmationRuleUtil {
         getBlockSupportInSlots(
             store,
             balanceSource,
-            shufflingSource,
             parentRoot,
             parentSlot.increment(),
             blockSlot.decrement());
@@ -444,7 +401,7 @@ public class ConfirmationRuleUtil {
     //        store, balance_source, parent_block.slot + 1, block.slot - 1)
     UInt64 adversarialWeight =
         computeAdversarialWeight(
-            store, balanceSource, shufflingSource, parentSlot.increment(), blockSlot.decrement());
+            store, balanceSource, parentSlot.increment(), blockSlot.decrement());
     //    if parent_support_in_empty_slots > adversarial_weight:
     //        return parent_support_in_empty_slots - adversarial_weight
     //    else:
@@ -456,19 +413,21 @@ public class ConfirmationRuleUtil {
   private UInt64 getSupportDiscount(
       ReadOnlyStore store,
       BeaconState balanceSource,
-      BeaconState shufflingSource,
       Bytes32 blockRoot) {
     //    # Empty slot support discount
     //    empty_slot_support = compute_empty_slot_support_discount(store, balance_source,
     // block_root)
-    UInt64 emptySlotSupport = computeEmptySlotSupportDiscount(store, balanceSource, shufflingSource, blockRoot);
+    UInt64 emptySlotSupport =
+        computeEmptySlotSupportDiscount(store, balanceSource, blockRoot);
     //    # Parent block support during the block's slot
     //    parent_block_support = get_block_support_in_slots(
     //        balance_source, block.parent_root, block.slot, block.slot)
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
     Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
-    UInt64 parentBlockSupport = getBlockSupportInSlots(store, balanceSource, shufflingSource, parentRoot, blockSlot, blockSlot);
+    UInt64 parentBlockSupport =
+        getBlockSupportInSlots(
+            store, balanceSource, parentRoot, blockSlot, blockSlot);
     //    return empty_slot_support + parent_block_support
     return emptySlotSupport.plus(parentBlockSupport);
   }
@@ -600,45 +559,44 @@ public class ConfirmationRuleUtil {
 
     BeaconState balanceSource =
         checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
-    // TODO should be head state as per spec
-    BeaconState shufflingSource = balanceSource;
     UInt64 support = getAttestationScore(store, blockRoot, balanceSource);
     UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(balanceSource);
     UInt64 maximumSupport =
         estimateCommitteeWeightBetweenSlots(
             balanceSource, parentBlockSlot.increment(), getCurrentSlot(store).decrement());
-    UInt64 supportDiscount = getSupportDiscount(store, balanceSource, shufflingSource, blockRoot);
-    UInt64 adversarialWeight = computeAdversarialWeight(
-        store, balanceSource, shufflingSource, blockSlot, getCurrentSlot(store).decrement());
+    UInt64 supportDiscount = getSupportDiscount(store, balanceSource, blockRoot);
+    UInt64 adversarialWeight =
+        computeAdversarialWeight(
+            store, balanceSource, blockSlot, getCurrentSlot(store).decrement());
 
     if (DEBUG_PRINT) {
-//      double qLeft = support.doubleValue() / maximumSupport.doubleValue();
-//      double qRight =
-//          0.5d
-//                  * (1.0d
-//                      + (proposerScore.doubleValue() - honestParentSupport.doubleValue())
-//                          / maximumSupport.doubleValue())
-//              + specConfig.getConfirmationByzantineThreshold() / 100.0d;
-//      System.err.println(
-//          "    "
-//              + blockSlot
-//              + ": "
-//              + qLeft
-//              + " <> "
-//              + qRight
-//              + " ("
-//              + uint2str(support)
-//              + " / "
-//              + uint2str(maximumSupport)
-//              + " <> 0.5 * (1 + ("
-//              + uint2str(proposerScore)
-//              + " - "
-//              + uint2str(honestParentSupport)
-//              + ") / "
-//              + uint2str(maximumSupport)
-//              + ") + "
-//              + specConfig.getConfirmationByzantineThreshold() / 100.0d
-//              + ")");
+      //      double qLeft = support.doubleValue() / maximumSupport.doubleValue();
+      //      double qRight =
+      //          0.5d
+      //                  * (1.0d
+      //                      + (proposerScore.doubleValue() - honestParentSupport.doubleValue())
+      //                          / maximumSupport.doubleValue())
+      //              + specConfig.getConfirmationByzantineThreshold() / 100.0d;
+      //      System.err.println(
+      //          "    "
+      //              + blockSlot
+      //              + ": "
+      //              + qLeft
+      //              + " <> "
+      //              + qRight
+      //              + " ("
+      //              + uint2str(support)
+      //              + " / "
+      //              + uint2str(maximumSupport)
+      //              + " <> 0.5 * (1 + ("
+      //              + uint2str(proposerScore)
+      //              + " - "
+      //              + uint2str(honestParentSupport)
+      //              + ") / "
+      //              + uint2str(maximumSupport)
+      //              + ") + "
+      //              + specConfig.getConfirmationByzantineThreshold() / 100.0d
+      //              + ")");
     }
 
     // (support - proposer_score - adversarial_weight + support_discount) / maximum_support > 1/2
