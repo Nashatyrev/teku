@@ -17,7 +17,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
-import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -28,7 +27,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.cache.LRUCache;
@@ -286,10 +284,7 @@ public class ConfirmationRuleUtil {
   // def get_equivocation_score(store: Store, balance_source: BeaconState, first_slot: Slot,
   // last_slot: Slot) -> Gwei:
   private UInt64 getEquivocationScore(
-      ReadOnlyStore store,
-      BeaconState balanceSource,
-      UInt64 firstSlot,
-      UInt64 lastSlot) {
+      ReadOnlyStore store, BeaconState balanceSource, UInt64 firstSlot, UInt64 lastSlot) {
 
     List<IndexedVote> equivocatingVotes = getEquivocatingVotes(store);
 
@@ -314,10 +309,7 @@ public class ConfirmationRuleUtil {
   // def compute_adversarial_weight(store: Store, balance_source: BeaconState, first_slot: Slot,
   // last_slot: Slot) -> Gwei:
   private UInt64 computeAdversarialWeight(
-      ReadOnlyStore store,
-      BeaconState balanceSource,
-      UInt64 firstSlot,
-      UInt64 lastSlot) {
+      ReadOnlyStore store, BeaconState balanceSource, UInt64 firstSlot, UInt64 lastSlot) {
     //    maximum_weight = estimate_committee_weight_between_slots(balance_source, first_slot,
     // last_slot)
     UInt64 maximumWeight = estimateCommitteeWeightBetweenSlots(balanceSource, firstSlot, lastSlot);
@@ -327,8 +319,7 @@ public class ConfirmationRuleUtil {
 
     //    # Discount total weight of equivocating validators
     //    equivocation_score = get_equivocation_score(store, balance_source, first_slot, last_slot)
-    UInt64 equivocationScore =
-        getEquivocationScore(store, balanceSource, firstSlot, lastSlot);
+    UInt64 equivocationScore = getEquivocationScore(store, balanceSource, firstSlot, lastSlot);
     //    if max_adversarial_weight > equivocation_score:
     //        return Gwei(max_adversarial_weight - equivocation_score)
     //    else:
@@ -372,9 +363,7 @@ public class ConfirmationRuleUtil {
   // def compute_empty_slot_support_discount(store: Store, balance_source: BeaconState, block_root:
   // Root) -> Gwei:
   private UInt64 computeEmptySlotSupportDiscount(
-      ReadOnlyStore store,
-      BeaconState balanceSource,
-      Bytes32 blockRoot) {
+      ReadOnlyStore store, BeaconState balanceSource, Bytes32 blockRoot) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
     //    # No empty slot
     UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
@@ -392,11 +381,7 @@ public class ConfirmationRuleUtil {
     //        balance_source, block.parent_root, parent_block.slot + 1, block.slot - 1)
     UInt64 parentSupportInEmptySlots =
         getBlockSupportInSlots(
-            store,
-            balanceSource,
-            parentRoot,
-            parentSlot.increment(),
-            blockSlot.decrement());
+            store, balanceSource, parentRoot, parentSlot.increment(), blockSlot.decrement());
     //    adversarial_weight = compute_adversarial_weight(
     //        store, balance_source, parent_block.slot + 1, block.slot - 1)
     UInt64 adversarialWeight =
@@ -411,14 +396,11 @@ public class ConfirmationRuleUtil {
 
   // def get_support_discount(store: Store, balance_source: BeaconState, block_root: Root) -> Gwei:
   private UInt64 getSupportDiscount(
-      ReadOnlyStore store,
-      BeaconState balanceSource,
-      Bytes32 blockRoot) {
+      ReadOnlyStore store, BeaconState balanceSource, Bytes32 blockRoot) {
     //    # Empty slot support discount
     //    empty_slot_support = compute_empty_slot_support_discount(store, balance_source,
     // block_root)
-    UInt64 emptySlotSupport =
-        computeEmptySlotSupportDiscount(store, balanceSource, blockRoot);
+    UInt64 emptySlotSupport = computeEmptySlotSupportDiscount(store, balanceSource, blockRoot);
     //    # Parent block support during the block's slot
     //    parent_block_support = get_block_support_in_slots(
     //        balance_source, block.parent_root, block.slot, block.slot)
@@ -426,8 +408,7 @@ public class ConfirmationRuleUtil {
     UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
     Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
     UInt64 parentBlockSupport =
-        getBlockSupportInSlots(
-            store, balanceSource, parentRoot, blockSlot, blockSlot);
+        getBlockSupportInSlots(store, balanceSource, parentRoot, blockSlot, blockSlot);
     //    return empty_slot_support + parent_block_support
     return emptySlotSupport.plus(parentBlockSupport);
   }

@@ -446,7 +446,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
             + t
             + " ms");
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
-    storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(storeTransaction.getJustifiedCheckpoint());
+    storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(
+        storeTransaction.getJustifiedCheckpoint());
     // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
     boolean isLastEpochSlot = confirmationRuleUtil.isFirstEpochSlot(currentSlot.increment());
     if (isLastEpochSlot) {
