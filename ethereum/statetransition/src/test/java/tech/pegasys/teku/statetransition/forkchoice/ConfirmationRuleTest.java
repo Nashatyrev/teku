@@ -540,7 +540,7 @@ class ConfirmationRuleTest {
         forkChoice.onBlock(
             block.getBlock(), Optional.empty(), blockBroadcastValidator, executionLayer);
     assertBlockImportedSuccessfully(result, false);
-    forkChoice.processHead();
+    forkChoice.processHead().join();
     trackBlockAndVotes(block.getBeaconBlock().orElseThrow());
   }
 
