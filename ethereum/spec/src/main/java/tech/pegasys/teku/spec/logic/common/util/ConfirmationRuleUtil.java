@@ -1038,12 +1038,10 @@ public class ConfirmationRuleUtil {
     //        confirmed_root = store.finalized_checkpoint.root
     //    UInt64 confirmedBlockEpoch = getBlockEpochCached(store, confirmedRoot);
     boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
-    boolean isNotReconfirmed =
-        isFirstEpochSlot && !isChainReconfirmed(store, confirmedRoot, checkpointStateStore);
     if (!hasProtoarrayBlock(store, confirmedRoot)
         || getBlockEpoch(store, confirmedRoot).increment().isLessThan(currentEpoch)
         || !isAncestor(store, head, confirmedRoot)
-        || isNotReconfirmed) {
+        || isFirstEpochSlot && !isChainReconfirmed(store, confirmedRoot, checkpointStateStore)) {
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
     }
 
