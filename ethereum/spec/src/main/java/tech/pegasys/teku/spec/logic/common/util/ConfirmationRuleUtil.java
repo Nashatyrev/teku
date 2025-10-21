@@ -296,6 +296,7 @@ public class ConfirmationRuleUtil {
     //    return Gwei(
     //        sum(balance_source.validators[i].effective_balance for i in equivocating_indices)
     //    )
+    // TODO: different from spec: doesn't count equivocating validators without latest votes
     return equivocatingVotes.stream()
         //        .filter(committeeIndices::contains)
         .filter(
@@ -551,33 +552,23 @@ public class ConfirmationRuleUtil {
             store, balanceSource, blockSlot, getCurrentSlot(store).decrement());
 
     if (DEBUG_PRINT) {
-      //      double qLeft = support.doubleValue() / maximumSupport.doubleValue();
-      //      double qRight =
-      //          0.5d
-      //                  * (1.0d
-      //                      + (proposerScore.doubleValue() - honestParentSupport.doubleValue())
-      //                          / maximumSupport.doubleValue())
-      //              + specConfig.getConfirmationByzantineThreshold() / 100.0d;
-      //      System.err.println(
-      //          "    "
-      //              + blockSlot
-      //              + ": "
-      //              + qLeft
-      //              + " <> "
-      //              + qRight
-      //              + " ("
-      //              + uint2str(support)
-      //              + " / "
-      //              + uint2str(maximumSupport)
-      //              + " <> 0.5 * (1 + ("
-      //              + uint2str(proposerScore)
-      //              + " - "
-      //              + uint2str(honestParentSupport)
-      //              + ") / "
-      //              + uint2str(maximumSupport)
-      //              + ") + "
-      //              + specConfig.getConfirmationByzantineThreshold() / 100.0d
-      //              + ")");
+      String floatForm = String.format("1/2 <> %.4f - %.4f + %.4f - %.4f",
+          support.doubleValue() / maximumSupport.doubleValue(),
+          proposerScore.doubleValue() / maximumSupport.doubleValue() / 2,
+          supportDiscount.doubleValue() / maximumSupport.doubleValue() / 2,
+          adversarialWeight.doubleValue() / maximumSupport.doubleValue()
+      );
+
+      String intForm =
+          String.format(
+              "1/2 <> (support %,d - 0.5 * proposer_score %,d + 0.5 * support_discount %,d - adversary_weight %,d) / max_support %,d",
+              support.longValue(),
+              proposerScore.longValue(),
+              supportDiscount.longValue(),
+              adversarialWeight.longValue(),
+              maximumSupport.longValue());
+
+      System.err.println("    " + blockSlot + ": " + floatForm + " <== " + intForm);
     }
 
     // (support - proposer_score - adversarial_weight + support_discount) / maximum_support > 1/2
