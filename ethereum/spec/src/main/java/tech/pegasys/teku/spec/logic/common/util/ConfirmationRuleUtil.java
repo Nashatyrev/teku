@@ -328,7 +328,24 @@ public class ConfirmationRuleUtil {
     return maxAdversarialWeight.minusMinZero(equivocationScore);
   }
 
-  // def get_block_support_in_slots(balance_source: BeaconState, block_root: Root, first_slot: Slot,
+  private UInt64 getAdversarialWeight(
+      ReadOnlyStore store, BeaconState balanceSource, Bytes32 blockRoot) {
+    UInt64 currentSlot = getCurrentSlot(store);
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
+    Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
+
+    UInt64 blockEpoch = getBlockEpoch(store, blockRoot);
+    UInt64 parentEpoch = getBlockEpoch(store, parentRoot);
+    if (blockEpoch.isGreaterThan(parentEpoch)){
+      UInt64 firstSlot = miscHelpers.computeStartSlotAtEpoch(blockEpoch);
+      return computeAdversarialWeight(store, balanceSource, firstSlot, currentSlot.decrement());
+    } else {
+      return computeAdversarialWeight(store, balanceSource, blockSlot, currentSlot.decrement());
+    }
+  }
+
+    // def get_block_support_in_slots(balance_source: BeaconState, block_root: Root, first_slot: Slot,
   // last_slot: Slot) -> Gwei:
   UInt64 getBlockSupportInSlots(
       ReadOnlyStore store,
