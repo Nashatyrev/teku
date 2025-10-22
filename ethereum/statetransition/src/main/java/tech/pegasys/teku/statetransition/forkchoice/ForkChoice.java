@@ -405,6 +405,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
     // store.confirmed_root = get_latest_confirmed(store)
     // FIXME temp spec deviation: taking justified state for now
+    // TODO implement get_checkpoint_state() as per spec
     ConfirmationRuleUtil.CheckpointStateStore checkpointStateStore = (__) -> justifiedState;
     ConfirmationRuleUtil.TrackingCheckpointStateStore trackingCheckpointStateStore =
         new ConfirmationRuleUtil.TrackingCheckpointStateStore(checkpointStateStore);

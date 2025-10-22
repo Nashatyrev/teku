@@ -588,7 +588,8 @@ public class ConfirmationRuleUtil {
   private boolean isOneConfirmed(
       final ReadOnlyStore store,
       final Bytes32 blockRoot,
-      final CheckpointStateStore checkpointStateStore) {
+      final BeaconState balanceSource,
+      final BeaconState shufflingSource) {
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
 
     UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
@@ -601,10 +602,6 @@ public class ConfirmationRuleUtil {
     Bytes32 parentBlockRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
     UInt64 parentBlockSlot = forkChoiceStrategy.blockSlot(parentBlockRoot).orElseThrow();
 
-    BeaconState balanceSource =
-        checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
-    // TODO should be head state as per spec
-    BeaconState shufflingSource = balanceSource;
     UInt64 support = getAttestationScore(store, blockRoot, balanceSource);
     UInt64 proposerScore = beaconStateAccessors.getProposerBoostAmount(balanceSource);
     UInt64 maximumSupport =
@@ -650,7 +647,8 @@ public class ConfirmationRuleUtil {
   private boolean isChainReconfirmed(
       final ReadOnlyStore store,
       final Bytes32 confirmedRoot,
-      final CheckpointStateStore checkpointStateStore) {
+      final BeaconState balanceSource,
+      final BeaconState shufflingSource) {
 
     if (!IS_CHAIN_RECONFIRM_ENABLED) {
       return true;
@@ -679,7 +677,7 @@ public class ConfirmationRuleUtil {
 
     return getChainRoots(store, startRoot, confirmedRoot).stream()
         .skip(1)
-        .allMatch(root -> isOneConfirmed(store, root, checkpointStateStore));
+        .allMatch(root -> isOneConfirmed(store, root, balanceSource,shufflingSource));
   }
 
   /** Compute the checkpoint block for epoch ``epoch`` in the chain of block ``root`` */
@@ -928,9 +926,10 @@ public class ConfirmationRuleUtil {
     boolean isFirstEpochSlot = isFirstEpochSlot(getCurrentSlot(store));
     // FIX+ME sepc deviation with getCheckpointForBlock
     // https://github.com/mkalinin/confirmation-rule/pull/22
+    Checkpoint headCheckpoint = getCheckpointForBlock(store, headBlockRoot, currentEpoch);
     boolean willNoConflictingCheckpointBeJustified =
         willNoConflictingCheckpointBeJustified(
-            store, getCheckpointForBlock(store, headBlockRoot, currentEpoch), checkpointStateStore);
+            store, headCheckpoint, checkpointStateStore);
     Checkpoint prevHeadUnrealizedJustifiedCheckpoint =
         forkChoiceStrategy
             .getBlockData(store.getPrevSlotHead())
@@ -947,6 +946,11 @@ public class ConfirmationRuleUtil {
             .getUnrealizedJustifiedCheckpoint();
     boolean isCurrHeadUnrealizedJustifiedCheckpointOld =
         currHeadUnrealizedJustifiedCheckpoint.getEpoch().increment().isLessThan(currentEpoch);
+
+    BeaconState balanceSource =
+        checkpointStateStore.getState(store.getPrevEpochUnrealizedJustifiedCheckpoint());
+    BeaconState shufflingSource =
+        checkpointStateStore.getState(headCheckpoint);
 
     // FIXME (spec) needs deobfuscation and explanation
     if (isConfirmedBlockFromPreviousEpoch
@@ -988,7 +992,7 @@ public class ConfirmationRuleUtil {
         }
         // if not is_one_confirmed(store, block_root):
         //     break
-        if (!isOneConfirmed(store, blockRoot, checkpointStateStore)) {
+        if (!isOneConfirmed(store, blockRoot, balanceSource, shufflingSource)) {
           break;
         }
         // confirmed_root = block_root
@@ -1037,7 +1041,7 @@ public class ConfirmationRuleUtil {
         }
         // if not is_one_confirmed(store, block_root):
         //    break
-        if (!isOneConfirmed(store, blockRoot, checkpointStateStore)) {
+        if (!isOneConfirmed(store, blockRoot, balanceSource, shufflingSource)) {
           break;
         }
         // tentative_confirmed_root = block_root
@@ -1101,7 +1105,8 @@ public class ConfirmationRuleUtil {
     if (!hasProtoarrayBlock(store, confirmedRoot)
         || getBlockEpoch(store, confirmedRoot).increment().isLessThan(currentEpoch)
         || !isAncestor(store, head, confirmedRoot)
-        || isFirstEpochSlot && !isChainReconfirmed(store, confirmedRoot, checkpointStateStore)) {
+        // FIXME when enable isChainReconfirmed() back need to replace nulls with states
+        || isFirstEpochSlot && !isChainReconfirmed(store, confirmedRoot, null, null)) {
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
     }
 
