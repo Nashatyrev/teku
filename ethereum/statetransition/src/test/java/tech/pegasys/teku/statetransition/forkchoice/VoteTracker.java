@@ -18,6 +18,7 @@ import static java.util.Collections.emptySet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.LimitedMap;
@@ -54,9 +55,12 @@ class VoteTracker {
     for (Attestation attestation :
         block.getBeaconBlock().orElseThrow().getBody().getAttestations()) {
       Bytes32 voteBlock = attestation.getData().getBeaconBlockRoot();
-      BeaconState state = null;
-      state =
-          attestationStateSelector.getStateToValidate(attestation.getData()).join().orElseThrow();
+      Optional<BeaconState> maybeState = attestationStateSelector.getStateToValidate(attestation.getData()).join();
+      if (maybeState.isEmpty()) {
+        // may happen when attestation for an uncle block
+        return 0;
+      }
+      BeaconState state = maybeState.orElseThrow();
       IndexedAttestation indexedAttestation =
           attestationUtil.getIndexedAttestation(state, attestation);
 
