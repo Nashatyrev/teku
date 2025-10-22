@@ -43,6 +43,7 @@ import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 
 public class ConfirmationRuleUtil {
 
+  private static final boolean IS_CHAIN_RECONFIRM_ENABLED = false;
   private static final boolean DEBUG_PRINT = true;
 
   public interface CheckpointStateStore {
@@ -590,6 +591,10 @@ public class ConfirmationRuleUtil {
       final ReadOnlyStore store,
       final Bytes32 confirmedRoot,
       final CheckpointStateStore checkpointStateStore) {
+
+    if (!IS_CHAIN_RECONFIRM_ENABLED) {
+      return true;
+    }
 
     ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
 
