@@ -49,30 +49,6 @@ public class ConfirmationRuleUtil {
   private static final boolean IS_CHAIN_RECONFIRM_ENABLED = false;
   private static final boolean DEBUG_PRINT = true;
 
-  public interface CheckpointStateStore {
-
-    BeaconState getState(Checkpoint checkpoint);
-  }
-
-  public static class TrackingCheckpointStateStore implements CheckpointStateStore {
-    private final CheckpointStateStore delegate;
-    private final List<Checkpoint> requestedCheckpoints = new ArrayList<>();
-
-    public TrackingCheckpointStateStore(CheckpointStateStore delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public BeaconState getState(Checkpoint checkpoint) {
-      requestedCheckpoints.add(checkpoint);
-      return delegate.getState(checkpoint);
-    }
-
-    public List<Checkpoint> getRequestedCheckpoints() {
-      return requestedCheckpoints;
-    }
-  }
-
   private final SpecConfig specConfig;
   private final BeaconStateAccessors beaconStateAccessors;
   private final BeaconStateUtil beaconStateUtil;
