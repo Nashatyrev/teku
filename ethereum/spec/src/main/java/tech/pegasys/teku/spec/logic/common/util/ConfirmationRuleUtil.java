@@ -17,6 +17,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Predicate;
+import com.google.common.base.Suppliers;
 import it.unimi.dsi.fastutil.ints.IntCollection;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -927,9 +929,9 @@ public class ConfirmationRuleUtil {
     // FIX+ME sepc deviation with getCheckpointForBlock
     // https://github.com/mkalinin/confirmation-rule/pull/22
     Checkpoint headCheckpoint = getCheckpointForBlock(store, headBlockRoot, currentEpoch);
-    boolean willNoConflictingCheckpointBeJustified =
+    Supplier<Boolean> willNoConflictingCheckpointBeJustified = Suppliers.memoize(() ->
         willNoConflictingCheckpointBeJustified(
-            store, headCheckpoint, checkpointStateStore);
+            store, headCheckpoint, checkpointStateStore));
     Checkpoint prevHeadUnrealizedJustifiedCheckpoint =
         forkChoiceStrategy
             .getBlockData(store.getPrevSlotHead())
@@ -956,7 +958,7 @@ public class ConfirmationRuleUtil {
     if (isConfirmedBlockFromPreviousEpoch
         && !isPrevHeadSourceTooOld
         && (isFirstEpochSlot
-            || (willNoConflictingCheckpointBeJustified
+            || (willNoConflictingCheckpointBeJustified.get()
                 && !(isPrevHeadUnrealizedJustifiedCheckpointOld
                     && isCurrHeadUnrealizedJustifiedCheckpointOld)))) {
 
@@ -1063,7 +1065,7 @@ public class ConfirmationRuleUtil {
               .isLessThan(currentEpoch);
       if (isTentativeInCurrentEpoch
           || (!isTentativeVoutingSourceTooOld
-              && (isFirstEpochSlot || willNoConflictingCheckpointBeJustified))) {
+              && (isFirstEpochSlot || willNoConflictingCheckpointBeJustified.get()))) {
         // confirmed_root = tentative_confirmed_root
         confirmedRoot = tentativeConfirmedRoot;
       }
