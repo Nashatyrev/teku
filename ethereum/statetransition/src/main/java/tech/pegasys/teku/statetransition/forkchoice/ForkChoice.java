@@ -73,6 +73,7 @@ import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndV
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.StateTransitionException;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason;
+import tech.pegasys.teku.spec.logic.common.util.CheckpointStateStore;
 import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.statetransition.attestation.DeferredAttestations;
@@ -404,11 +405,17 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     }
 
     // store.confirmed_root = get_latest_confirmed(store)
-    // FIXME temp spec deviation: taking justified state for now
-    // TODO implement get_checkpoint_state() as per spec
-    ConfirmationRuleUtil.CheckpointStateStore checkpointStateStore = (__) -> justifiedState;
-    ConfirmationRuleUtil.TrackingCheckpointStateStore trackingCheckpointStateStore =
-        new ConfirmationRuleUtil.TrackingCheckpointStateStore(checkpointStateStore);
+    CheckpointStateStore checkpointStateStore =
+        checkpoint ->
+            recentChainData
+                .retrieveCheckpointState(checkpoint)
+                .join()
+                .orElseThrow(
+                    () ->
+                        new RuntimeException(
+                            "No checkpoint state found for checkpoint " + checkpoint));
+    CheckpointStateStore.Tracking trackingCheckpointStateStore =
+        new CheckpointStateStore.Tracking(new CheckpointStateStore.Caching(checkpointStateStore));
     long s = System.currentTimeMillis();
     Bytes32 latestConfirmed =
         confirmationRuleUtil.getLatestConfirmed(
