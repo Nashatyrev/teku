@@ -451,7 +451,20 @@ public class ConfirmationRuleUtil {
   // def get_support_discount(store: Store, balance_source: BeaconState, block_root: Root) -> Gwei:
   private UInt64 getSupportDiscount(
       ReadOnlyStore store, BeaconState balanceSource, BeaconState shufflingSource, Bytes32 blockRoot) {
-    return computeEmptySlotSupportDiscount(store, balanceSource, shufflingSource, blockRoot);
+    //   block = store.blocks[block_root]
+    //    # Empty slot support discount
+    //    empty_slot_support = compute_empty_slot_support_discount(store, balance_source,
+    // block_root)
+    UInt64 emptySlotSupport = computeEmptySlotSupportDiscount(store, balanceSource, shufflingSource, blockRoot);
+    //    # Parent block support during the block's slot
+    //    parent_block_support = get_block_support_in_slots(
+    //        balance_source, balance_source, block.parent_root, block.slot, block.slot)
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = store.getForkChoiceStrategy();
+    UInt64 blockSlot = forkChoiceStrategy.blockSlot(blockRoot).orElseThrow();
+    Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(blockRoot).orElseThrow();
+    UInt64 parentBlockSupport = getBlockSupportInSlots(store, balanceSource, parentRoot, blockSlot, blockSlot);
+    //    return empty_slot_support + parent_block_support
+    return emptySlotSupport.plus(parentBlockSupport);
   }
 
   /** Fast prototype, but doesn't account referenceCheckpointState and thus is NOT spec compliant */
