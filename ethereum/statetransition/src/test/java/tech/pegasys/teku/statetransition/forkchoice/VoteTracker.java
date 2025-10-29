@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.collections.LimitedMap;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
@@ -33,9 +35,9 @@ import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
 import tech.pegasys.teku.statetransition.validation.AttestationStateSelector;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
-class VoteTracker {
+public class VoteTracker {
 
-  record EpochVoter(UInt64 epoch, UInt64 voterIndex) {}
+  public record EpochVoter(UInt64 epoch, UInt64 voterIndex) {}
 
   private final Spec spec;
   private final AttestationStateSelector attestationStateSelector;
@@ -49,37 +51,43 @@ class VoteTracker {
         new AttestationStateSelector(spec, recentChainData, new StubMetricsSystem());
   }
 
-  int updateVotes(BeaconBlock block) {
-    AttestationUtil attestationUtil = spec.atSlot(block.getSlot()).getAttestationUtil();
-    int unseenVotersCount = 0;
-    for (Attestation attestation :
-        block.getBeaconBlock().orElseThrow().getBody().getAttestations()) {
-      Bytes32 voteBlock = attestation.getData().getBeaconBlockRoot();
-      Optional<BeaconState> maybeState = attestationStateSelector.getStateToValidate(attestation.getData()).join();
-      if (maybeState.isEmpty()) {
-        // may happen when attestation for an uncle block
-        return 0;
-      }
-      BeaconState state = maybeState.orElseThrow();
-      IndexedAttestation indexedAttestation =
-          attestationUtil.getIndexedAttestation(state, attestation);
-
-      UInt64 assignedEpoch = spec.computeEpochAtSlot(attestation.getData().getSlot());
-      List<EpochVoter> voters =
-          indexedAttestation
-              .getAttestingIndices()
-              .streamUnboxed()
-              .map(valIdx -> new EpochVoter(assignedEpoch, valIdx))
-              .toList();
-      headBlockToVotes.computeIfAbsent(voteBlock, k -> new HashSet<>()).addAll(voters);
-      Set<EpochVoter> votes =
-          slotToVotes.computeIfAbsent(attestation.getData().getSlot(), k -> new HashSet<>());
-      int oldVoteCount = votes.size();
-      votes.addAll(voters);
-      int newVoteCount = votes.size();
-      unseenVotersCount += newVoteCount - oldVoteCount;
+  Set<EpochVoter> updateVote(Attestation attestation) {
+    AttestationUtil attestationUtil =
+        spec.atSlot(attestation.getData().getSlot()).getAttestationUtil();
+    Bytes32 voteBlock = attestation.getData().getBeaconBlockRoot();
+    Optional<BeaconState> maybeState =
+        attestationStateSelector.getStateToValidate(attestation.getData()).join();
+    if (maybeState.isEmpty()) {
+      // may happen when attestation for an uncle block
+      return emptySet();
     }
-    return unseenVotersCount;
+    BeaconState state = maybeState.orElseThrow();
+    IndexedAttestation indexedAttestation =
+        attestationUtil.getIndexedAttestation(state, attestation);
+
+    UInt64 assignedEpoch = spec.computeEpochAtSlot(attestation.getData().getSlot());
+    Set<EpochVoter> votes =
+        indexedAttestation
+            .getAttestingIndices()
+            .streamUnboxed()
+            .map(valIdx -> new EpochVoter(assignedEpoch, valIdx))
+            .collect(Collectors.toSet());
+    headBlockToVotes.computeIfAbsent(voteBlock, k -> new HashSet<>()).addAll(votes);
+    Set<EpochVoter> existingVotes =
+        slotToVotes.computeIfAbsent(attestation.getData().getSlot(), k -> new HashSet<>());
+    votes.removeAll(existingVotes);
+    existingVotes.addAll(votes);
+    return votes;
+  }
+
+  Set<EpochVoter> updateVotes(BeaconBlock block) {
+    return updateVotes(block.getBeaconBlock().orElseThrow().getBody().getAttestations().asList());
+  }
+
+  Set<EpochVoter> updateVotes(List<Attestation> attestations) {
+    return attestations.stream()
+        .map(att -> updateVote(att))
+        .collect(HashSet::new, Set::addAll, Set::addAll);
   }
 
   public int getVoteCountForBlock(Bytes32 blockRoot) {

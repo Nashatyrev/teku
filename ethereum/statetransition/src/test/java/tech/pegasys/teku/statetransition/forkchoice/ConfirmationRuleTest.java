@@ -546,7 +546,7 @@ class ConfirmationRuleTest {
 
   private void trackBlockAndVotes(BeaconBlock block) {
     allBlocks.add(block);
-    int newVotesInBlock = voteTracker.updateVotes(block.getBeaconBlock().orElseThrow());
+    int newVotesInBlock = voteTracker.updateVotes(block.getBeaconBlock().orElseThrow()).size();
     System.err.println(
         "Importing block: "
             + block.getSlot()

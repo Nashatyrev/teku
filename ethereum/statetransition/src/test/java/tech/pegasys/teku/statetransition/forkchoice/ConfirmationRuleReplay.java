@@ -23,22 +23,20 @@ import static org.mockito.Mockito.withSettings;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED;
 
+import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
@@ -57,6 +55,7 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.TestSpecFactory;
+import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -75,6 +74,8 @@ import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice.OptimisticHeadSubscriber;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceUpdatedResultSubscriber.ForkChoiceUpdatedResultNotification;
+import tech.pegasys.teku.statetransition.forkchoice.replay.BeaconCache;
+import tech.pegasys.teku.statetransition.forkchoice.replay.XatuConnector;
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator;
 import tech.pegasys.teku.statetransition.validation.BlockBroadcastValidator.BroadcastValidationResult;
@@ -315,11 +316,79 @@ class ConfirmationRuleReplay {
     }
   }
 
+  @Test
+  void printTrueRandom() {
+    Random random = new Random();
+    Stream.generate(() -> random.nextInt(2_000_000))
+        .limit(778)
+        .sorted()
+        .forEach(i -> System.out.println(i));
+  }
+
+  @Test
+  void replayWithXatuAttestations() throws Exception {
+    XatuConnector xatuConnector = XatuConnector.createDefault();
+    xatuConnector.connect();
+
+    Iterator<SignedBeaconBlock> blockIterator = blockStream.iterator();
+    int lastSlot = anchorBlock.getSlot().intValue();
+    BlockingQueue<XatuConnector.SlotAttestations> slotAttestationsQueue =
+        xatuConnector.streamAttestationsReceivedDuringNextSlots(UInt64.valueOf(lastSlot));
+
+    while (blockIterator.hasNext()) {
+      SignedBeaconBlock block = blockIterator.next();
+
+      for (int slot = lastSlot + 1; slot <= block.getSlot().intValue(); slot++) {
+        // process slot start
+        XatuConnector.SlotAttestations attestations =
+            slotAttestationsQueue.poll(1, TimeUnit.MINUTES);
+        if (attestations == null) {
+          System.err.println("No attestations are retrieved, trying with a longer timeout");
+          attestations = slotAttestationsQueue.poll(1, TimeUnit.HOURS);
+
+          if (attestations == null) {
+            throw new RuntimeException("No attestations were retrieved");
+          }
+        }
+
+        UInt64 attestationsReceiveSlot = UInt64.valueOf(slot - 1);
+        if (!attestationsReceiveSlot.equals(attestations.slot())) {
+          throw new RuntimeException(attestationsReceiveSlot + " != " + attestations.slot());
+        }
+        trackVotes(attestations.attestations(), attestationsReceiveSlot);
+        attestations
+            .attestations()
+            .forEach(
+                attestation -> {
+                  forkChoice.onAttestation(ValidatableAttestation.from(spec, attestation));
+                });
+        forkChoice.onTick(
+            storageSystem.recentChainData().computeTimeAtSlot(UInt64.valueOf(slot)).times(1000),
+            Optional.empty());
+        storageSystem.chainUpdater().advanceCurrentSlotToAtLeast(UInt64.valueOf(slot));
+        forkChoice.processHead(UInt64.valueOf(slot));
+      }
+
+      // process block
+      trackVotes(block.getBeaconBlock().orElseThrow());
+
+      final SafeFuture<BlockImportResult> result =
+          forkChoice.onBlock(block, Optional.empty(), blockBroadcastValidator, executionLayer);
+      assertBlockImportedSuccessfully(result, false);
+
+      //      forkChoice.processHead(block.getSlot());
+
+      lastSlot = block.getSlot().intValue();
+    }
+  }
+
   void trackVotes(BeaconBlock block) {
     String votesInBlockString;
     int newVotesInBlock = 0;
     try {
-      newVotesInBlock = voteTracker.updateVotes(block.getBeaconBlock().orElseThrow());
+      Set<VoteTracker.EpochVoter> newVotes =
+          voteTracker.updateVotes(block.getBeaconBlock().orElseThrow());
+      newVotesInBlock = newVotes.size();
       votesInBlockString = "" + newVotesInBlock;
     } catch (Exception e) {
       votesInBlockString = e.toString();
@@ -331,8 +400,26 @@ class ConfirmationRuleReplay {
             + block.getRoot()
             + ", votes in block: "
             + newVotesInBlock);
+    printVotesStat(block.getSlot());
+  }
+
+  void trackVotes(List<Attestation> attestations, UInt64 receivedSlot) {
+    String votesInBlockString;
+    int newVotesInSlot = 0;
+    try {
+      Set<VoteTracker.EpochVoter> newVotes = voteTracker.updateVotes(attestations);
+      newVotesInSlot = newVotes.size();
+      votesInBlockString = "" + newVotesInSlot;
+    } catch (Exception e) {
+      votesInBlockString = e.toString();
+    }
+    System.err.println("New votes from prev slot: " + receivedSlot + ", " + newVotesInSlot);
+    printVotesStat(receivedSlot.increment());
+  }
+
+  void printVotesStat(UInt64 fromSlot) {
     for (int i = 1; i < 4; i++) {
-      UInt64 slot = block.getSlot().minus(i);
+      UInt64 slot = fromSlot.minus(i);
       Optional<SignedBeaconBlock> slotBlock =
           storageSystem.combinedChainDataClient().getBlockAtSlotExact(slot).join();
       System.err.println(
@@ -404,48 +491,5 @@ class ConfirmationRuleReplay {
 
   private void processHead(final UInt64 slot) {
     assertThat(forkChoice.processHead(slot)).isCompleted();
-  }
-
-  private static class BeaconCache {
-
-    private static final HttpClient CLIENT = HttpClient.newHttpClient();
-    private static final String cachePath = "./work.dir/http.cache";
-
-    public static Bytes getCachedContent(String url) {
-      try {
-        Path file = getCachedFile(url, Path.of(cachePath));
-        byte[] bytes = Files.readAllBytes(file);
-        return Bytes.wrap(bytes);
-      } catch (Exception e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    /**
-     * Downloads a URL once and caches it in the given directory. Subsequent calls return the same
-     * cached file.
-     *
-     * @param url Full HTTP/HTTPS URL of the resource (e.g. SSZ block)
-     * @param cacheDir Local directory for cached files
-     * @return Path to the cached file
-     */
-    public static Path getCachedFile(String url, Path cacheDir) throws Exception {
-      Files.createDirectories(cacheDir);
-
-      // Create a deterministic filename from SHA-256 of the URL
-      String hash =
-          HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(url.getBytes()));
-      Path target = cacheDir.resolve(hash);
-
-      if (Files.notExists(target)) {
-        HttpRequest req =
-            HttpRequest.newBuilder(URI.create(url))
-                .header("Accept", "application/octet-stream") // or application/json
-                .build();
-        byte[] body = CLIENT.send(req, HttpResponse.BodyHandlers.ofByteArray()).body();
-        Files.write(target, body);
-      }
-      return target;
-    }
   }
 }
