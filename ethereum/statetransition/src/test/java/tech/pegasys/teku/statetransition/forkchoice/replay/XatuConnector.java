@@ -64,7 +64,7 @@ public class XatuConnector implements AutoCloseable {
 
   private final int retriesCount = 100;
   private final int retriesIntervalSec = 30;
-  private final long slotTimeShiftMs = 12000;
+  private final long slotTimeShiftMs = 0;
 
   private final String url;
   private final String user;
