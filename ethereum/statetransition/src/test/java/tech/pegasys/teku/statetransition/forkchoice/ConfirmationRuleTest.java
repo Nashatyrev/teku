@@ -524,6 +524,26 @@ class ConfirmationRuleTest {
     assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
   }
 
+  @Test
+  void emptyFirstSlotInEveryEpochNeverConfirms() {
+    UpdatableStore store = storageSystem.recentChainData().getStore();
+
+    importNextBlockWithAllAttestations(UInt64.valueOf(62));
+
+    for(int epochD = 0; epochD < 4; epochD++) {
+      UInt64 firstEpochSlot = confirmationRuleUtil.getCurrentSlot(store).increment();
+      // skipping block at the first epoch slot
+      storageSystem.chainUpdater().advanceCurrentSlotToAtLeast(firstEpochSlot);
+      for(int i = 0; i < spec.getSlotsPerEpoch(firstEpochSlot) - 1; i++) {
+        importNextBlockWithAllAttestations(firstEpochSlot.plus(i));
+      }
+    }
+
+    // confirmed block never advances
+    Bytes32 finalizedRoot = store.getFinalizedCheckpoint().getRoot();
+    assertThat(store.getConfirmedRoot()).isEqualTo(finalizedRoot);
+  }
+
   private void assertBlockImportedSuccessfully(
       final SafeFuture<BlockImportResult> importResult, final boolean optimistically) {
     assertThat(importResult).isCompleted();
