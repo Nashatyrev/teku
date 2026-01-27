@@ -429,30 +429,6 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
     UInt64 currentSlot = confirmationRuleUtil.getCurrentSlot(storeTransaction);
 
-    System.err.println(
-        "updateConfirmationRuleStore: "
-            + "slot="
-            + currentSlot
-            + ", head="
-            + headSlot.map(UInt64::toString).orElse("NaN")
-            + ",("
-            + headRoot.toString().substring(0, 8)
-            + "), confirmed="
-            + latestConfirmedSlot.map(UInt64::toString).orElse("NaN")
-            + "(-"
-            + headSlot.orElseThrow().minus(latestConfirmedSlot.orElseThrow())
-            + "),("
-            + latestConfirmed.toString().substring(0, 8)
-            + "), states requested/uniq: "
-            + (uniqStatesRequested > 2 ? "####" : "")
-            + trackingCheckpointStateStore.getRequestedCheckpoints().size()
-            + "/"
-            + uniqStatesRequested
-            + ", justified="
-            + toStr(storeTransaction.getJustifiedCheckpoint())
-            + " in "
-            + t
-            + " ms");
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(
         storeTransaction.getJustifiedCheckpoint());
@@ -468,14 +444,6 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
     //    may be we need to o this in on_slot handler ???
     storeTransaction.setPrevSlotHead(headRoot);
     storeTransaction.commit();
-  }
-
-  private static String toStr(Checkpoint checkpoint) {
-    return "Checkpoint["
-        + checkpoint.getEpoch()
-        + ", "
-        + checkpoint.getRoot().toString().substring(0, 8)
-        + "]";
   }
 
   private Bytes32 updateHeadTransaction(
@@ -902,8 +870,6 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       }
     }
 
-    // FIXME we probably shouldn't call processHead() every block
-    // however may leav in prototype if it's just a matter of performance
     if (!result.isBlockOnCanonicalChain() && shouldApplyProposerBoost) {
       // This is likely a reorging block that requires a full processHead to update the head.
       // Running processHead here will ensure:
