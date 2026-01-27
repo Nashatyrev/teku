@@ -125,32 +125,6 @@ public abstract class BeaconStateAccessors {
             });
   }
 
-  public IntList getActiveNonSlashedValidatorIndices(final BeaconState state, final UInt64 epoch) {
-    final UInt64 stateEpoch = getCurrentEpoch(state);
-    final UInt64 maxLookaheadEpoch = getMaxLookaheadEpoch(stateEpoch);
-    checkArgument(
-        epoch.isLessThanOrEqualTo(maxLookaheadEpoch),
-        "Cannot get active validator indices from an epoch beyond the seed lookahead period. Requested epoch %s from state in epoch %s",
-        epoch,
-        stateEpoch);
-    return BeaconStateCache.getTransitionCaches(state)
-        .getActiveValidators()
-        .get(
-            epoch,
-            e -> {
-              SszList<Validator> validators = state.getValidators();
-              return IntList.of(
-                  IntStream.range(0, validators.size())
-                      .filter(
-                          index -> {
-                            Validator validator = validators.get(index);
-                            return predicates.isActiveValidator(validator, epoch)
-                                && !validator.isSlashed();
-                          })
-                      .toArray());
-            });
-  }
-
   public UInt64 getMaxLookaheadEpoch(final BeaconState state) {
     return getMaxLookaheadEpoch(getCurrentEpoch(state));
   }
