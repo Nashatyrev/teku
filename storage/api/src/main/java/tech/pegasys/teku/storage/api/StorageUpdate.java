@@ -47,6 +47,10 @@ public class StorageUpdate {
   private final boolean optimisticTransitionBlockRootSet;
   private final Optional<Bytes32> optimisticTransitionBlockRoot;
   private final Optional<Bytes32> latestCanonicalBlockRoot;
+  private final Optional<Bytes32> confirmedRoot;
+  private final Optional<Checkpoint> prevSlotJustifiedCheckpoint;
+  private final Optional<Checkpoint> prevSlotUnrealizedJustifiedCheckpoint;
+  private final Optional<Bytes32> prevSlotHead;
   private final boolean blobSidecarsEnabled;
   private final boolean sidecarsEnabled;
   private final boolean isEmpty;
@@ -65,6 +69,10 @@ public class StorageUpdate {
       final boolean optimisticTransitionBlockRootSet,
       final Optional<Bytes32> optimisticTransitionBlockRoot,
       final Optional<Bytes32> latestCanonicalBlockRoot,
+      Optional<Bytes32> confirmedRoot,
+      Optional<Checkpoint> prevSlotJustifiedCheckpoint,
+      Optional<Checkpoint> prevSlotUnrealizedJustifiedCheckpoint,
+      Optional<Bytes32> prevSlotHead,
       @NonUpdating final boolean blobSidecarsEnabled,
       @NonUpdating final boolean sidecarsEnabled) {
     this.genesisTime = genesisTime;
@@ -80,6 +88,10 @@ public class StorageUpdate {
     this.optimisticTransitionBlockRootSet = optimisticTransitionBlockRootSet;
     this.optimisticTransitionBlockRoot = optimisticTransitionBlockRoot;
     this.latestCanonicalBlockRoot = latestCanonicalBlockRoot;
+    this.confirmedRoot = confirmedRoot;
+    this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
+    this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
+    this.prevSlotHead = prevSlotHead;
     this.blobSidecarsEnabled = blobSidecarsEnabled;
     this.sidecarsEnabled = sidecarsEnabled;
     checkArgument(
@@ -98,7 +110,11 @@ public class StorageUpdate {
             && blobSidecars.isEmpty()
             && maybeEarliestBlobSidecarSlot.isEmpty()
             && latestCanonicalBlockRoot.isEmpty()
-            && !optimisticTransitionBlockRootSet;
+            && !optimisticTransitionBlockRootSet
+            && confirmedRoot.isEmpty()
+            && prevSlotJustifiedCheckpoint.isEmpty()
+            && prevSlotUnrealizedJustifiedCheckpoint.isEmpty()
+            && prevSlotHead.isEmpty();
   }
 
   public boolean isEmpty() {
@@ -111,6 +127,22 @@ public class StorageUpdate {
 
   public Optional<Checkpoint> getJustifiedCheckpoint() {
     return justifiedCheckpoint;
+  }
+
+  public Optional<Bytes32> getConfirmedRoot() {
+    return confirmedRoot;
+  }
+
+  public Optional<Checkpoint> getPrevSlotJustifiedCheckpoint() {
+    return prevSlotJustifiedCheckpoint;
+  }
+
+  public Optional<Checkpoint> getPrevSlotUnrealizedJustifiedCheckpoint() {
+    return prevSlotUnrealizedJustifiedCheckpoint;
+  }
+
+  public Optional<Bytes32> getPrevSlotHead() {
+    return prevSlotHead;
   }
 
   public Optional<Checkpoint> getFinalizedCheckpoint() {

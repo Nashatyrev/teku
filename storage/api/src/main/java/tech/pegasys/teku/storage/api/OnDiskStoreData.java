@@ -32,4 +32,8 @@ public record OnDiskStoreData(
     Checkpoint bestJustifiedCheckpoint,
     Map<Bytes32, StoredBlockMetadata> blockInformation,
     Map<UInt64, VoteTracker> votes,
+    Bytes32 confirmedRoot,
+    Checkpoint prevSlotJustifiedCheckpoint,
+    Checkpoint prevSlotUnrealizedJustifiedCheckpoint,
+    Bytes32 prevSlotHead,
     Optional<Bytes32> latestCanonicalBlockRoot) {}

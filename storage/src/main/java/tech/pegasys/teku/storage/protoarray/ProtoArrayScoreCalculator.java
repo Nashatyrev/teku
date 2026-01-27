@@ -112,6 +112,7 @@ class ProtoArrayScoreCalculator {
               vote.getNextRoot(),
               vote.getNextRoot(),
               vote.getNextEpoch(),
+              vote.getNextSlot(),
               vote.isNextEquivocating(),
               vote.isNextEquivocating());
       store.putVote(validatorIndex, newVote);

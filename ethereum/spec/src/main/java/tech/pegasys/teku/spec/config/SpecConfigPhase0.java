@@ -115,6 +115,9 @@ public class SpecConfigPhase0 implements SpecConfig {
   private final int attestationSubnetCount;
   private final int attestationSubnetExtraBits;
   private final int attestationSubnetPrefixBits;
+  private final int committeeWeightEstimationAdjustmentFactor;
+  private final int confirmationByzantineThreshold;
+  private final int confirmationSlashingThreshold;
   private final int reorgMaxEpochsSinceFinalization;
   private final int reorgHeadWeightThreshold;
   private final int reorgParentWeightThreshold;
@@ -197,6 +200,9 @@ public class SpecConfigPhase0 implements SpecConfig {
       final int attestationSubnetCount,
       final int attestationSubnetExtraBits,
       final int attestationSubnetPrefixBits,
+      final int committeeWeightEstimationAdjustmentFactor,
+      final int confirmationByzantineThreshold,
+      final int confirmationSlashingThreshold,
       final int reorgMaxEpochsSinceFinalization,
       final int reorgHeadWeightThreshold,
       final int reorgParentWeightThreshold,
@@ -271,6 +277,9 @@ public class SpecConfigPhase0 implements SpecConfig {
     this.attestationSubnetCount = attestationSubnetCount;
     this.attestationSubnetExtraBits = attestationSubnetExtraBits;
     this.attestationSubnetPrefixBits = attestationSubnetPrefixBits;
+    this.committeeWeightEstimationAdjustmentFactor = committeeWeightEstimationAdjustmentFactor;
+    this.confirmationByzantineThreshold = confirmationByzantineThreshold;
+    this.confirmationSlashingThreshold = confirmationSlashingThreshold;
     this.reorgMaxEpochsSinceFinalization = reorgMaxEpochsSinceFinalization;
     this.reorgHeadWeightThreshold = reorgHeadWeightThreshold;
     this.reorgParentWeightThreshold = reorgParentWeightThreshold;
@@ -674,6 +683,21 @@ public class SpecConfigPhase0 implements SpecConfig {
   }
 
   @Override
+  public int getCommitteeWeightEstimationAdjustmentFactor() {
+    return committeeWeightEstimationAdjustmentFactor;
+  }
+
+  @Override
+  public int getConfirmationByzantineThreshold() {
+    return confirmationByzantineThreshold;
+  }
+
+  @Override
+  public int getConfirmationSlashingThreshold() {
+    return confirmationSlashingThreshold;
+  }
+
+  @Override
   public SpecMilestone getMilestone() {
     return SpecMilestone.PHASE0;
   }
@@ -727,6 +751,10 @@ public class SpecConfigPhase0 implements SpecConfig {
         && attestationSubnetCount == that.attestationSubnetCount
         && attestationSubnetExtraBits == that.attestationSubnetExtraBits
         && attestationSubnetPrefixBits == that.attestationSubnetPrefixBits
+        && committeeWeightEstimationAdjustmentFactor
+            == that.committeeWeightEstimationAdjustmentFactor
+        && confirmationByzantineThreshold == that.confirmationByzantineThreshold
+        && confirmationSlashingThreshold == that.confirmationSlashingThreshold
         && ttfbTimeout == that.ttfbTimeout
         && respTimeout == that.respTimeout
         && attestationPropagationSlotRange == that.attestationPropagationSlotRange
@@ -827,6 +855,9 @@ public class SpecConfigPhase0 implements SpecConfig {
         bellatrixForkEpoch,
         capellaForkVersion,
         capellaForkEpoch,
-        attestationSubnetPrefixBits);
+        attestationSubnetPrefixBits,
+        committeeWeightEstimationAdjustmentFactor,
+        confirmationByzantineThreshold,
+        confirmationSlashingThreshold);
   }
 }

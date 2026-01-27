@@ -23,6 +23,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import java.net.ConnectException;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -72,6 +73,8 @@ import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndV
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.StateTransitionException;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason;
+import tech.pegasys.teku.spec.logic.common.util.CheckpointStateStore;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.statetransition.attestation.DeferredAttestations;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
@@ -310,7 +313,7 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
   public void onTick(
       final UInt64 currentTimeMillis, final Optional<TickProcessingPerformance> performanceRecord) {
-    final UpdatableStore store = recentChainData.getStore();
+    final ReadOnlyStore store = recentChainData.getStore();
     final UInt64 slotAtStartOfTick = spec.getCurrentSlot(store);
     tickProcessor.onTick(currentTimeMillis).join();
     performanceRecord.ifPresent(TickProcessingPerformance::tickProcessorComplete);
@@ -358,19 +361,92 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
                             justifiedCheckpoint::getRoot);
                         return false;
                       }
-                      updateHeadTransaction(
-                          nodeSlot,
-                          maybeJustifiedCheckpointState.orElseThrow(),
-                          finalizedCheckpoint,
-                          justifiedCheckpoint);
+                      Bytes32 headRoot =
+                          updateHeadTransaction(
+                              nodeSlot,
+                              maybeJustifiedCheckpointState.orElseThrow(),
+                              finalizedCheckpoint,
+                              justifiedCheckpoint);
                       nodeSlot.ifPresent(lastProcessHeadSlot::set);
+                      updateConfirmationRuleStore(
+                          maybeJustifiedCheckpointState.orElseThrow(), headRoot);
+
                       notifyForkChoiceUpdatedAndOptimisticSyncingChanged(
                           isPreProposal ? nodeSlot : Optional.empty());
                       return true;
                     }));
   }
 
-  private void updateHeadTransaction(
+  private void updateConfirmationRuleStore(BeaconState justifiedState, Bytes32 optimisticHeadRoot) {
+    final SpecVersion specVersion = spec.atSlot(justifiedState.getSlot());
+    ConfirmationRuleUtil confirmationRuleUtil = specVersion.getConfirmationRuleUtil();
+
+    StoreTransaction storeTransaction = recentChainData.startStoreTransaction();
+
+    ReadOnlyForkChoiceStrategy forkChoiceStrategy = storeTransaction.getForkChoiceStrategy();
+    Bytes32 headRoot = optimisticHeadRoot;
+    // retrieving non-optimistic head. In unhappy case we shoud stop on justified block
+    while (true) {
+      Optional<Boolean> maybeIsOptimistic = forkChoiceStrategy.isOptimistic(headRoot);
+      if (maybeIsOptimistic.isEmpty()) {
+        // no non-optimistic heads yet
+        System.err.println("Non-optimistic head not found. Topmost root: " + headRoot);
+        return;
+      } else if (!maybeIsOptimistic.get()) {
+        // found non-optimistic head
+        break;
+      }
+      Bytes32 parentRoot = forkChoiceStrategy.blockParentRoot(headRoot).orElseThrow();
+      if (parentRoot.isZero()) {
+        // headRoot is the genesis block
+        break;
+      }
+      headRoot = parentRoot;
+    }
+
+    // store.confirmed_root = get_latest_confirmed(store)
+    CheckpointStateStore checkpointStateStore =
+        checkpoint ->
+            recentChainData
+                .retrieveCheckpointState(checkpoint)
+                .join()
+                .orElseThrow(
+                    () ->
+                        new RuntimeException(
+                            "No checkpoint state found for checkpoint " + checkpoint));
+    CheckpointStateStore.Tracking trackingCheckpointStateStore =
+        new CheckpointStateStore.Tracking(new CheckpointStateStore.Caching(checkpointStateStore));
+    long s = System.currentTimeMillis();
+    Bytes32 latestConfirmed =
+        confirmationRuleUtil.getLatestConfirmed(
+            storeTransaction, headRoot, trackingCheckpointStateStore);
+    long t = System.currentTimeMillis() - s;
+    storeTransaction.setConfirmedRoot(latestConfirmed);
+    Optional<UInt64> headSlot = forkChoiceStrategy.blockSlot(headRoot);
+    Optional<UInt64> latestConfirmedSlot = forkChoiceStrategy.blockSlot(latestConfirmed);
+    int uniqStatesRequested =
+        new HashSet<>(trackingCheckpointStateStore.getRequestedCheckpoints()).size();
+
+    UInt64 currentSlot = confirmationRuleUtil.getCurrentSlot(storeTransaction);
+
+    // store.prev_slot_justified_checkpoint = store.justified_checkpoint
+    storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(
+        storeTransaction.getJustifiedCheckpoint());
+    // store.prev_slot_unrealized_justified_checkpoint = store.store.unrealized_justified_checkpoint
+    boolean isLastEpochSlot = confirmationRuleUtil.isFirstEpochSlot(currentSlot.increment());
+    if (isLastEpochSlot) {
+      Checkpoint unrealizedJustifiedCheckpoint =
+          confirmationRuleUtil.getUnrealizedJustifiedCheckpoint(storeTransaction);
+      storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(unrealizedJustifiedCheckpoint);
+    }
+    // store.prev_slot_head = get_head(store)
+    // FIXME probbaly deviate from spec: headRoot is actually this slot head
+    //    may be we need to o this in on_slot handler ???
+    storeTransaction.setPrevSlotHead(headRoot);
+    storeTransaction.commit();
+  }
+
+  private Bytes32 updateHeadTransaction(
       final Optional<UInt64> nodeSlot,
       final BeaconState justifiedState,
       final Checkpoint finalizedCheckpoint,
@@ -415,6 +491,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       // successful updateHead call
       transaction.commit();
     }
+
+    return headBlockRoot;
   }
 
   /**

@@ -25,6 +25,7 @@ import tech.pegasys.teku.spec.logic.common.operations.validation.OperationValida
 import tech.pegasys.teku.spec.logic.common.util.AttestationUtil;
 import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlockProposalUtil;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
 import tech.pegasys.teku.spec.logic.common.util.LightClientUtil;
 import tech.pegasys.teku.spec.logic.common.util.SyncCommitteeUtil;
@@ -61,6 +62,7 @@ public class SpecLogicAltair extends AbstractSpecLogic {
       final EpochProcessorAltair epochProcessor,
       final BlockProcessorAltair blockProcessor,
       final ForkChoiceUtil forkChoiceUtil,
+      final ConfirmationRuleUtil confirmationRuleUtil,
       final BlockProposalUtil blockProposalUtil,
       final SyncCommitteeUtil syncCommitteeUtil,
       final LightClientUtil lightClientUtil,
@@ -79,6 +81,7 @@ public class SpecLogicAltair extends AbstractSpecLogic {
         epochProcessor,
         blockProcessor,
         forkChoiceUtil,
+        confirmationRuleUtil,
         blockProposalUtil,
         Optional.empty(),
         Optional.of(stateUpgrade));
@@ -163,6 +166,8 @@ public class SpecLogicAltair extends AbstractSpecLogic {
     final ForkChoiceUtil forkChoiceUtil =
         new ForkChoiceUtil(
             config, beaconStateAccessors, epochProcessor, attestationUtil, miscHelpers);
+    final ConfirmationRuleUtil confirmationRuleUtil =
+        new ConfirmationRuleUtil(config, beaconStateAccessors, beaconStateUtil, miscHelpers);
     final BlockProposalUtil blockProposalUtil =
         new BlockProposalUtil(schemaDefinitions, blockProcessor);
 
@@ -185,6 +190,7 @@ public class SpecLogicAltair extends AbstractSpecLogic {
         epochProcessor,
         blockProcessor,
         forkChoiceUtil,
+        confirmationRuleUtil,
         blockProposalUtil,
         syncCommitteeUtil,
         lightClientUtil,

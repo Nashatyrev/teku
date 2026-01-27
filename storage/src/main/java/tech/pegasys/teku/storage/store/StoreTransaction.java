@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.function.Function;
 import javax.annotation.CheckReturnValue;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,6 +44,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
 import tech.pegasys.teku.spec.datastructures.execution.SlotAndExecutionPayloadSummary;
 import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyForkChoiceStrategy;
+import tech.pegasys.teku.spec.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.CheckpointState;
@@ -74,6 +76,11 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
   Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars = new HashMap<>();
   Optional<UInt64> maybeEarliestBlobSidecarTransactionSlot = Optional.empty();
   Optional<Bytes32> maybeLatestCanonicalBlockRoot = Optional.empty();
+  Optional<Bytes32> confirmedRoot = Optional.empty();
+  Optional<Checkpoint> prevSlotJustifiedCheckpoint = Optional.empty();
+  Optional<Checkpoint> prevSlotUnrealizedJustifiedCheckpoint = Optional.empty();
+  Optional<Bytes32> prevSlotHead = Optional.empty();
+
   private final UpdatableStore.StoreUpdateHandler updateHandler;
 
   StoreTransaction(
@@ -182,6 +189,21 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
   public void removeProposerBoostRoot() {
     proposerBoostRoot = Optional.empty();
     proposerBoostRootSet = true;
+  }
+
+  @Override
+  public void setConfirmedRoot(Bytes32 confirmedRoot) {
+    this.confirmedRoot = Optional.of(confirmedRoot);
+  }
+
+  @Override
+  public void setPrevEpochUnrealizedJustifiedCheckpoint(Checkpoint prevEpochJustifiedCheckpoint) {
+    this.prevSlotJustifiedCheckpoint = Optional.of(prevEpochJustifiedCheckpoint);
+  }
+
+  @Override
+  public void setPrevSlotHead(Bytes32 prevSlotHead) {
+    this.prevSlotHead = Optional.of(prevSlotHead);
   }
 
   @Override
@@ -350,6 +372,26 @@ class StoreTransaction implements UpdatableStore.StoreTransaction {
     } finally {
       lock.readLock().unlock();
     }
+  }
+
+  @Override
+  public Bytes32 getConfirmedRoot() {
+    return confirmedRoot.orElseGet(store::getConfirmedRoot);
+  }
+
+  @Override
+  public Checkpoint getPrevEpochUnrealizedJustifiedCheckpoint() {
+    return prevSlotJustifiedCheckpoint.orElseGet(store::getPrevEpochUnrealizedJustifiedCheckpoint);
+  }
+
+  @Override
+  public Bytes32 getPrevSlotHead() {
+    return prevSlotHead.orElseGet(store::getPrevSlotHead);
+  }
+
+  @Override
+  public <R> R calculateFromAllVotes(Function<VoteTracker[], R> processor) {
+    return store.calculateFromAllVotes(processor);
   }
 
   @Override

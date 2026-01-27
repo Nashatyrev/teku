@@ -148,7 +148,8 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
                       voteUpdater,
                       validatorIndex,
                       attestation.getData().getBeaconBlockRoot(),
-                      attestation.getData().getTarget().getEpoch()));
+                      attestation.getData().getTarget().getEpoch(),
+                      attestation.getData().getSlot()));
     } finally {
       votesLock.writeLock().unlock();
     }
@@ -160,7 +161,8 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
     try {
       votes.forEachDeferredVote(
           (blockRoot, validatorIndex) ->
-              processAttestation(voteUpdater, validatorIndex, blockRoot, targetEpoch));
+              processAttestation(
+                  voteUpdater, validatorIndex, blockRoot, targetEpoch, votes.getSlot()));
     } finally {
       votesLock.writeLock().unlock();
     }
@@ -231,7 +233,8 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
       final VoteUpdater voteUpdater,
       final UInt64 validatorIndex,
       final Bytes32 blockRoot,
-      final UInt64 targetEpoch) {
+      final UInt64 targetEpoch,
+      final UInt64 assignedSlot) {
     VoteTracker vote = voteUpdater.getVote(validatorIndex);
     // Not updating anything for equivocated validators
     if (vote.isEquivocating()) {
@@ -239,7 +242,8 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
     }
 
     if (targetEpoch.isGreaterThan(vote.getNextEpoch()) || vote.equals(VoteTracker.DEFAULT)) {
-      VoteTracker newVote = new VoteTracker(vote.getCurrentRoot(), blockRoot, targetEpoch);
+      VoteTracker newVote =
+          new VoteTracker(vote.getCurrentRoot(), blockRoot, targetEpoch, assignedSlot);
       voteUpdater.putVote(validatorIndex, newVote);
     }
   }
@@ -333,10 +337,38 @@ public class ForkChoiceStrategy implements BlockMetadataStore, ReadOnlyForkChoic
   }
 
   @Override
-  public Optional<UInt64> getWeight(final Bytes32 blockRoot) {
+  public Optional<UInt64> getWeight(Bytes32 blockRoot) {
     protoArrayLock.readLock().lock();
     try {
       return getProtoNode(blockRoot).map(ProtoNode::getWeight);
+    } finally {
+      protoArrayLock.readLock().unlock();
+    }
+  }
+
+  private boolean isAncestor(final Bytes32 ancestor, final Bytes32 descendant) {
+    UInt64 ancestorSlot = blockSlot(ancestor).orElseThrow();
+    Optional<Bytes32> mbAncestor = getAncestor(descendant, ancestorSlot);
+    return mbAncestor.map(a -> a.equals(ancestor)).orElse(false);
+  }
+
+  @Override
+  public Optional<UInt64> getNetWeight(Bytes32 blockRoot) {
+    protoArrayLock.readLock().lock();
+    try {
+      Optional<UInt64> mbRawWeight = getProtoNode(blockRoot).map(ProtoNode::getWeight);
+      UInt64 proposerBootInRawWeight =
+          proposerBoostRoot
+              .map(
+                  boostRoot -> {
+                    if (isAncestor(blockRoot, boostRoot)) {
+                      return proposerBoostAmount;
+                    } else {
+                      return UInt64.ZERO;
+                    }
+                  })
+              .orElse(UInt64.ZERO);
+      return mbRawWeight.map(rawWeight -> rawWeight.minus(proposerBootInRawWeight));
     } finally {
       protoArrayLock.readLock().unlock();
     }

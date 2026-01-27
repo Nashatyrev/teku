@@ -33,7 +33,8 @@ public class VoteTrackerSerializerPropertyTest {
         new VoteTracker(
             Bytes32.wrap(currentRootBytes),
             Bytes32.wrap(nextRootBytes),
-            UInt64.fromLongBits(nextEpoch));
+            UInt64.fromLongBits(nextEpoch),
+            UInt64.ZERO);
     final byte[] serialized = VOTE_TRACKER_SERIALIZER.serialize(value);
     final VoteTracker deserialized = VOTE_TRACKER_SERIALIZER.deserialize(serialized);
     assertThat(deserialized).isEqualTo(value);

@@ -179,6 +179,12 @@ public interface SpecConfig extends NetworkingSpecConfig {
 
   int getReorgParentWeightThreshold();
 
+  int getCommitteeWeightEstimationAdjustmentFactor();
+
+  int getConfirmationByzantineThreshold();
+
+  int getConfirmationSlashingThreshold();
+
   // Casters
   default Optional<SpecConfigAltair> toVersionAltair() {
     return Optional.empty();

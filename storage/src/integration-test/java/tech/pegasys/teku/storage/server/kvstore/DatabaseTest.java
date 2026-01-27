@@ -254,6 +254,10 @@ public class DatabaseTest {
             false,
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
             true,
             false));
     database.update(
@@ -269,6 +273,10 @@ public class DatabaseTest {
             Map.of(),
             Map.of(),
             false,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             true,
@@ -422,6 +430,10 @@ public class DatabaseTest {
             false,
             Optional.empty(),
             Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
             true,
             false));
     database.update(
@@ -437,6 +449,10 @@ public class DatabaseTest {
             Map.of(blobSidecar3_0.getBlockRoot(), blobSidecar3_0.getSlot()),
             Map.of(),
             false,
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
+            Optional.empty(),
             Optional.empty(),
             Optional.empty(),
             true,
@@ -1638,6 +1654,10 @@ public class DatabaseTest {
             .bestJustifiedCheckpoint(data.bestJustifiedCheckpoint())
             .blockInformation(data.blockInformation())
             .votes(data.votes())
+            .confirmedRoot(data.confirmedRoot())
+            .prevSlotJustifiedCheckpoint(data.prevSlotJustifiedCheckpoint())
+            .prevSlotUnrealizedJustifiedCheckpoint(data.prevSlotUnrealizedJustifiedCheckpoint())
+            .prevSlotHead(data.prevSlotHead())
             .asyncRunner(mock(AsyncRunner.class))
             .blockProvider(mock(BlockProvider.class))
             .stateProvider(mock(StateAndBlockSummaryProvider.class))

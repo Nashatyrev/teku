@@ -52,27 +52,45 @@ public class CompatibilityTestData {
           .put(
               UInt64.ZERO,
               new VoteTracker(
-                  Bytes32.fromHexString("0x01"), Bytes32.fromHexString("0x02"), UInt64.ONE))
+                  Bytes32.fromHexString("0x01"),
+                  Bytes32.fromHexString("0x02"),
+                  UInt64.ONE,
+                  UInt64.ZERO))
           .put(
               UInt64.ONE,
               new VoteTracker(
-                  Bytes32.fromHexString("0x03"), Bytes32.fromHexString("0x04"), UInt64.ONE))
+                  Bytes32.fromHexString("0x03"),
+                  Bytes32.fromHexString("0x04"),
+                  UInt64.ONE,
+                  UInt64.ZERO))
           .put(
               UInt64.valueOf(2),
               new VoteTracker(
-                  Bytes32.fromHexString("0x05"), Bytes32.fromHexString("0x06"), UInt64.ONE))
+                  Bytes32.fromHexString("0x05"),
+                  Bytes32.fromHexString("0x06"),
+                  UInt64.ONE,
+                  UInt64.ZERO))
           .put(
               UInt64.valueOf(3),
               new VoteTracker(
-                  Bytes32.fromHexString("0x07"), Bytes32.fromHexString("0x08"), UInt64.ONE))
+                  Bytes32.fromHexString("0x07"),
+                  Bytes32.fromHexString("0x08"),
+                  UInt64.ONE,
+                  UInt64.ZERO))
           .put(
               UInt64.valueOf(4),
               new VoteTracker(
-                  Bytes32.fromHexString("0x09"), Bytes32.fromHexString("0x10"), UInt64.ONE))
+                  Bytes32.fromHexString("0x09"),
+                  Bytes32.fromHexString("0x10"),
+                  UInt64.ONE,
+                  UInt64.ZERO))
           .put(
               UInt64.valueOf(5),
               new VoteTracker(
-                  Bytes32.fromHexString("0x11"), Bytes32.fromHexString("0x12"), UInt64.ONE))
+                  Bytes32.fromHexString("0x11"),
+                  Bytes32.fromHexString("0x12"),
+                  UInt64.ONE,
+                  UInt64.ZERO))
           .build();
 
   public static final List<BLSPublicKey> PUBLIC_KEYS =

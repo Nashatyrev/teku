@@ -54,6 +54,10 @@ public class StoreBuilder {
   private Checkpoint justifiedCheckpoint;
   private Checkpoint bestJustifiedCheckpoint;
   private Map<UInt64, VoteTracker> votes;
+  private Bytes32 confirmedRoot;
+  private Checkpoint prevSlotJustifiedCheckpoint;
+  private Checkpoint prevSlotUnrealizedJustifiedCheckpoint;
+  private Bytes32 prevSlotHead;
   private Optional<SlotAndExecutionPayloadSummary> finalizedOptimisticTransitionPayload =
       Optional.empty();
   private ForkChoiceStrategy forkChoiceStrategy = null;
@@ -92,6 +96,11 @@ public class StoreBuilder {
         anchor.getCheckpoint(),
         blockInfo,
         new HashMap<>(),
+        anchor.getRoot(),
+        anchor.getCheckpoint(),
+        // FIXME (spec) not specified in the spec
+        anchor.getCheckpoint(),
+        anchor.getRoot(),
         Optional.empty());
   }
 
@@ -105,6 +114,10 @@ public class StoreBuilder {
         .bestJustifiedCheckpoint(data.bestJustifiedCheckpoint())
         .blockInformation(data.blockInformation())
         .votes(data.votes())
+        .confirmedRoot(data.confirmedRoot())
+        .prevSlotJustifiedCheckpoint(data.prevSlotJustifiedCheckpoint())
+        .prevSlotUnrealizedJustifiedCheckpoint(data.prevSlotUnrealizedJustifiedCheckpoint())
+        .prevSlotHead(data.prevSlotHead())
         .latestCanonicalBlockRoot(data.latestCanonicalBlockRoot());
   }
 
@@ -128,6 +141,10 @@ public class StoreBuilder {
           bestJustifiedCheckpoint,
           blockInfoByRoot,
           votes,
+          confirmedRoot,
+          prevSlotJustifiedCheckpoint,
+          prevSlotUnrealizedJustifiedCheckpoint,
+          prevSlotHead,
           storeConfig,
           forkChoiceStrategy);
     }
@@ -148,6 +165,10 @@ public class StoreBuilder {
         blockInfoByRoot,
         latestCanonicalBlockRoot,
         votes,
+        confirmedRoot,
+        prevSlotJustifiedCheckpoint,
+        prevSlotUnrealizedJustifiedCheckpoint,
+        prevSlotHead,
         storeConfig);
   }
 
@@ -163,6 +184,10 @@ public class StoreBuilder {
     checkState(bestJustifiedCheckpoint != null, "Best justified checkpoint must be defined");
     checkState(latestFinalized != null, "Latest finalized anchor must be defined");
     checkState(votes != null, "Votes must be defined");
+    checkState(confirmedRoot != null);
+    checkState(prevSlotJustifiedCheckpoint != null);
+    checkState(prevSlotUnrealizedJustifiedCheckpoint != null);
+    checkState(prevSlotHead != null);
     checkState(!blockInfoByRoot.isEmpty(), "Block data must be supplied");
   }
 
@@ -276,6 +301,31 @@ public class StoreBuilder {
   public StoreBuilder votes(final Map<UInt64, VoteTracker> votes) {
     checkNotNull(votes);
     this.votes = votes;
+    return this;
+  }
+
+  public StoreBuilder confirmedRoot(Bytes32 confirmedRoot) {
+    checkNotNull(confirmedRoot);
+    this.confirmedRoot = confirmedRoot;
+    return this;
+  }
+
+  public StoreBuilder prevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
+    checkNotNull(prevSlotJustifiedCheckpoint);
+    this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
+    return this;
+  }
+
+  public StoreBuilder prevSlotUnrealizedJustifiedCheckpoint(
+      Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+    checkNotNull(prevSlotUnrealizedJustifiedCheckpoint);
+    this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
+    return this;
+  }
+
+  public StoreBuilder prevSlotHead(Bytes32 prevSlotHead) {
+    checkNotNull(prevSlotHead);
+    this.prevSlotHead = prevSlotHead;
     return this;
   }
 }

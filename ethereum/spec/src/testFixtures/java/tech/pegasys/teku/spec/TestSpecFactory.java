@@ -225,6 +225,12 @@ public class TestSpecFactory {
     return create(configAndParent, SpecMilestone.BELLATRIX);
   }
 
+  public static Spec createMainnetBellatrix(final Consumer<SpecConfigBuilder> configAdapter) {
+    final SpecConfigAndParent<? extends SpecConfig> specConfig =
+        getBellatrixSpecConfig(Eth2Network.MAINNET, configAdapter);
+    return create(specConfig, SpecMilestone.BELLATRIX);
+  }
+
   public static Spec createMainnetAltair() {
     final SpecConfigAndParent<? extends SpecConfig> specConfig =
         getAltairSpecConfig(Eth2Network.MAINNET);
@@ -244,8 +250,12 @@ public class TestSpecFactory {
   }
 
   public static Spec createMainnetElectra() {
+    return createMainnetElectra(__ -> {});
+  }
+
+  public static Spec createMainnetElectra(final Consumer<SpecConfigBuilder> configAdapter) {
     final SpecConfigAndParent<? extends SpecConfig> specConfig =
-        getElectraSpecConfig(Eth2Network.MAINNET);
+        getElectraSpecConfig(Eth2Network.MAINNET, configAdapter);
     return create(specConfig, SpecMilestone.ELECTRA);
   }
 

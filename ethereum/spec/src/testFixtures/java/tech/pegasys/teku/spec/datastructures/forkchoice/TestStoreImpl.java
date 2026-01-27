@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -52,6 +53,10 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   protected Map<Bytes32, BlockCheckpoints> blockCheckpoints;
   protected Map<Checkpoint, BeaconState> checkpointStates;
   protected Map<UInt64, VoteTracker> votes;
+  protected Bytes32 confirmedRoot;
+  protected Checkpoint prevSlotJustifiedCheckpoint;
+  protected Checkpoint prevSlotUnrealizedJustifiedCheckpoint;
+  protected Bytes32 prevSlotHead;
   protected Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars;
   protected Optional<UInt64> earliestBlobSidecarSlot;
   protected Optional<Bytes32> latestCanonicalBlockRoot;
@@ -111,6 +116,21 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   @Override
   public Checkpoint getJustifiedCheckpoint() {
     return justifiedCheckpoint;
+  }
+
+  @Override
+  public Bytes32 getConfirmedRoot() {
+    return confirmedRoot;
+  }
+
+  @Override
+  public Checkpoint getPrevEpochUnrealizedJustifiedCheckpoint() {
+    return prevSlotJustifiedCheckpoint;
+  }
+
+  @Override
+  public Bytes32 getPrevSlotHead() {
+    return prevSlotHead;
   }
 
   @Override
@@ -326,6 +346,21 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   }
 
   @Override
+  public void setConfirmedRoot(Bytes32 confirmedRoot) {
+    this.confirmedRoot = confirmedRoot;
+  }
+
+  @Override
+  public void setPrevEpochUnrealizedJustifiedCheckpoint(Checkpoint prevEpochJustifiedCheckpoint) {
+    this.prevSlotJustifiedCheckpoint = prevEpochJustifiedCheckpoint;
+  }
+
+  @Override
+  public void setPrevSlotHead(Bytes32 prevSlotHead) {
+    this.prevSlotHead = prevSlotHead;
+  }
+
+  @Override
   public void setFinalizedCheckpoint(
       final Checkpoint finalizedCheckpoint, final boolean fromOptimisticBlock) {
     this.finalizedCheckpoint = finalizedCheckpoint;
@@ -358,6 +393,11 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   public VoteTracker getVote(final UInt64 validatorIndex) {
     VoteTracker vote = votes.get(validatorIndex);
     return vote != null ? vote : VoteTracker.DEFAULT;
+  }
+
+  @Override
+  public <R> R calculateFromAllVotes(Function<VoteTracker[], R> processor) {
+    throw new UnsupportedOperationException("Not implemented");
   }
 
   @Override
@@ -477,7 +517,12 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
     }
 
     @Override
-    public Optional<UInt64> getWeight(final Bytes32 blockRoot) {
+    public Optional<UInt64> getWeight(Bytes32 blockRoot) {
+      throw new UnsupportedOperationException("Not implemented");
+    }
+
+    @Override
+    public Optional<UInt64> getNetWeight(Bytes32 blockRoot) {
       throw new UnsupportedOperationException("Not implemented");
     }
   }

@@ -149,7 +149,13 @@ public class RandomChainBuilderForkChoiceStrategy implements ReadOnlyForkChoiceS
   }
 
   @Override
-  public Optional<UInt64> getWeight(final Bytes32 blockRoot) {
+  public Optional<UInt64> getWeight(Bytes32 blockRoot) {
+    // We don't track weight so return 0 for all known blocks.
+    return getBlock(blockRoot).map(block -> UInt64.ZERO);
+  }
+
+  @Override
+  public Optional<UInt64> getNetWeight(Bytes32 blockRoot) {
     // We don't track weight so return 0 for all known blocks.
     return getBlock(blockRoot).map(block -> UInt64.ZERO);
   }

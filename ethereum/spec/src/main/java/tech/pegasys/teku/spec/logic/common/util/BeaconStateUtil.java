@@ -136,15 +136,19 @@ public class BeaconStateUtil {
   }
 
   public List<UInt64> getEffectiveActiveUnslashedBalances(final BeaconState state) {
+    return getEffectiveActiveUnslashedBalances(state, beaconStateAccessors.getCurrentEpoch(state));
+  }
+
+  public List<UInt64> getEffectiveActiveUnslashedBalances(final BeaconState state, UInt64 epoch) {
     return BeaconStateCache.getTransitionCaches(state)
         .getEffectiveBalances()
         .get(
-            beaconStateAccessors.getCurrentEpoch(state),
-            epoch ->
+            epoch,
+            e ->
                 state.getValidators().stream()
                     .map(
                         validator ->
-                            predicates.isActiveValidator(validator, epoch) && !validator.isSlashed()
+                            predicates.isActiveValidator(validator, e) && !validator.isSlashed()
                                 ? validator.getEffectiveBalance()
                                 : UInt64.ZERO)
                     .toList());

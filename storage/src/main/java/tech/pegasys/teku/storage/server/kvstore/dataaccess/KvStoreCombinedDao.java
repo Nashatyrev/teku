@@ -115,6 +115,14 @@ public interface KvStoreCombinedDao extends AutoCloseable {
 
   Map<UInt64, VoteTracker> getVotes();
 
+  Optional<Bytes32> getConfirmedRoot();
+
+  Optional<Checkpoint> getPrevSlotJustifiedCheckpoint();
+
+  Optional<Checkpoint> getPrevSlotUnrealizedJustifiedCheckpoint();
+
+  Optional<Bytes32> getPrevSlotHead();
+
   @MustBeClosed
   Stream<DepositsFromBlockEvent> streamDepositsFromBlocks();
 
@@ -206,6 +214,14 @@ public interface KvStoreCombinedDao extends AutoCloseable {
     void setAnchor(Checkpoint anchorPoint);
 
     void setJustifiedCheckpoint(Checkpoint checkpoint);
+
+    void setConfirmedRoot(Bytes32 confirmedRoot);
+
+    void setPrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint);
+
+    void setPrevSlotUnrealizedJustifiedCheckpoint(Checkpoint prevSlotUnrealizedJustifiedCheckpoint);
+
+    void setPrevSlotHead(Bytes32 prevSlotHead);
 
     void setBestJustifiedCheckpoint(Checkpoint checkpoint);
 

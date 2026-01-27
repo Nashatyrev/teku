@@ -372,7 +372,7 @@ public class ForkChoiceStrategyTest extends AbstractBlockMetadataStoreTest {
     assertThat(strategy.contains(block4.getRoot())).isTrue();
 
     final VoteUpdater transaction = storageSystem.recentChainData().startVoteUpdate();
-    strategy.processAttestation(transaction, ZERO, block3.getRoot(), block3Epoch);
+    strategy.processAttestation(transaction, ZERO, block3.getRoot(), block3Epoch, ZERO);
 
     final BeaconState block3State = block3.getState();
 
@@ -467,7 +467,7 @@ public class ForkChoiceStrategyTest extends AbstractBlockMetadataStoreTest {
     final SignedBlockAndState block1 = storageSystem.chainUpdater().addNewBestBlock();
     final VoteUpdater transaction1 = storageSystem.recentChainData().startVoteUpdate();
     final UInt64 block1Epoch = spec.computeEpochAtSlot(block1.getSlot());
-    strategy.processAttestation(transaction1, ZERO, block1.getRoot(), block1Epoch);
+    strategy.processAttestation(transaction1, ZERO, block1.getRoot(), block1Epoch, ZERO);
     transaction1.commit();
 
     // Mark our Validator as going to be equivocated like when AttesterSlashing received
@@ -479,7 +479,7 @@ public class ForkChoiceStrategyTest extends AbstractBlockMetadataStoreTest {
     final SignedBlockAndState block2 = storageSystem.chainUpdater().addNewBestBlock();
     final VoteUpdater transaction3 = storageSystem.recentChainData().startVoteUpdate();
     final UInt64 block2Epoch = spec.computeEpochAtSlot(block2.getSlot());
-    strategy.processAttestation(transaction3, ZERO, block2.getRoot(), block2Epoch);
+    strategy.processAttestation(transaction3, ZERO, block2.getRoot(), block2Epoch, ZERO);
 
     final BeaconState block2State = block2.getState();
     final List<UInt64> effectiveBalances =

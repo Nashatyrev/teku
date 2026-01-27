@@ -88,4 +88,10 @@ public interface MutableStore extends ReadOnlyStore {
   void removeProposerBoostRoot();
 
   void removeFinalizedOptimisticTransitionPayload();
+
+  void setConfirmedRoot(Bytes32 confirmedRoot);
+
+  void setPrevEpochUnrealizedJustifiedCheckpoint(Checkpoint prevEpochJustifiedCheckpoint);
+
+  void setPrevSlotHead(Bytes32 prevSlotHead);
 }

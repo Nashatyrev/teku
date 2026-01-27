@@ -127,6 +127,22 @@ public class V4HotKvStoreDao {
     return db.getAll(schema.getColumnVotes());
   }
 
+  public Optional<Bytes32> getConfirmedRoot() {
+    return db.get(schema.getVariableConfirmedRoot());
+  }
+
+  public Optional<Checkpoint> getPrevSlotJustifiedCheckpoint() {
+    return db.get(schema.getVariablePrevSlotJustifiedCheckpoint());
+  }
+
+  public Optional<Checkpoint> getPrevSlotUnrealizedJustifiedCheckpoint() {
+    return db.get(schema.getVariablePrevSlotUnrealizedJustifiedCheckpoint());
+  }
+
+  public Optional<Bytes32> getPrevSlotHead() {
+    return db.get(schema.getVariablePrevSlotHead());
+  }
+
   @MustBeClosed
   public Stream<DepositsFromBlockEvent> streamDepositsFromBlocks() {
     return db.stream(schema.getColumnDepositsFromBlockEvents()).map(ColumnEntry::getValue);
@@ -214,6 +230,29 @@ public class V4HotKvStoreDao {
     @Override
     public void setJustifiedCheckpoint(final Checkpoint checkpoint) {
       transaction.put(schema.getVariableJustifiedCheckpoint(), checkpoint);
+    }
+
+    @Override
+    public void setConfirmedRoot(Bytes32 confirmedRoot) {
+      transaction.put(schema.getVariableConfirmedRoot(), confirmedRoot);
+    }
+
+    @Override
+    public void setPrevSlotJustifiedCheckpoint(Checkpoint prevSlotJustifiedCheckpoint) {
+      transaction.put(schema.getVariablePrevSlotJustifiedCheckpoint(), prevSlotJustifiedCheckpoint);
+    }
+
+    @Override
+    public void setPrevSlotUnrealizedJustifiedCheckpoint(
+        Checkpoint prevSlotUnrealizedJustifiedCheckpoint) {
+      transaction.put(
+          schema.getVariablePrevSlotUnrealizedJustifiedCheckpoint(),
+          prevSlotUnrealizedJustifiedCheckpoint);
+    }
+
+    @Override
+    public void setPrevSlotHead(Bytes32 prevSlotHead) {
+      transaction.put(schema.getVariablePrevSlotHead(), prevSlotHead);
     }
 
     @Override

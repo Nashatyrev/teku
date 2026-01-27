@@ -413,6 +413,21 @@ public class DelegatingSpecConfig implements SpecConfig {
   }
 
   @Override
+  public int getCommitteeWeightEstimationAdjustmentFactor() {
+    return specConfig.getCommitteeWeightEstimationAdjustmentFactor();
+  }
+
+  @Override
+  public int getConfirmationByzantineThreshold() {
+    return specConfig.getConfirmationByzantineThreshold();
+  }
+
+  @Override
+  public int getConfirmationSlashingThreshold() {
+    return specConfig.getConfirmationSlashingThreshold();
+  }
+
+  @Override
   public int getProposerScoreBoost() {
     return specConfig.getProposerScoreBoost();
   }

@@ -29,7 +29,7 @@ public class VoteTrackerSerializerTest {
   private static final UInt64 EXPECTED_NEXT_EPOCH = UInt64.valueOf(4669978815449698508L);
 
   private static final VoteTracker VOTES_NO_EQUIVOCATION =
-      new VoteTracker(EXPECTED_CURRENT_ROOT, EXPECTED_NEXT_ROOT, EXPECTED_NEXT_EPOCH);
+      new VoteTracker(EXPECTED_CURRENT_ROOT, EXPECTED_NEXT_ROOT, EXPECTED_NEXT_EPOCH, UInt64.ZERO);
 
   private final VoteTrackerSerializer serializer = new VoteTrackerSerializer();
 
