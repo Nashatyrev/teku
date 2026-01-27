@@ -17,6 +17,7 @@ import com.google.errorprone.annotations.MustBeClosed;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -30,7 +31,7 @@ import tech.pegasys.teku.ethtests.finder.TestDefinition;
  * <p>The test case is disabled as the tests run via the generated classes in CI, but it still runs
  * without removing the @Disabled in IntelliJ.
  */
-// @Disabled
+@Disabled
 public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
 
   /**
@@ -41,14 +42,13 @@ public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
    *
    * <p>May be overridden by the ENV_TEST_TYPE environment variable.
    */
-  private static final String TEST_TYPE = "fork_choice";
+  private static final String TEST_TYPE = "";
 
   /**
    * Filter test to run to those from the specified spec. One of general, minimal or mainnet
    *
    * <p>May be overridden by the ENV_SPEC environment variable.
    */
-  //  private static final String SPEC = "minimal";
   private static final String SPEC = "";
 
   /**
@@ -56,7 +56,6 @@ public class ManualReferenceTestRunner extends Eth2ReferenceTestCase {
    *
    * <p>May be overridden by the ENV_MILESTONE environment variable.
    */
-  //  private static final String MILESTONE = "altair";
   private static final String MILESTONE = "";
 
   /**
