@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -15,18 +15,20 @@ package tech.pegasys.teku.statetransition.validation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
+import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
 
 public class ElectraAttestationValidatorTest extends DenebAttestationValidatorTest {
 
   @Override
-  public Spec createSpec() {
-    return TestSpecFactory.createMinimalElectra();
+  public Spec createSpec(final Consumer<SpecConfigBuilder> configAdapter) {
+    return TestSpecFactory.createMinimalElectra(configAdapter);
   }
 
   @Test
@@ -82,7 +84,8 @@ public class ElectraAttestationValidatorTest extends DenebAttestationValidatorTe
     assertThat(validate(wrongAttestation))
         .isEqualTo(
             InternalValidationResult.reject(
-                "Rejecting attestation because attestation data index must be 0"));
+                "Attestation data index must be 0 for Electra, but was %s.",
+                wrongAttestation.getData().getIndex()));
   }
 
   @Test
@@ -113,6 +116,7 @@ public class ElectraAttestationValidatorTest extends DenebAttestationValidatorTe
     assertThat(validate(wrongAttestation))
         .isEqualTo(
             InternalValidationResult.reject(
-                "Rejecting attestation because attestation data index must be 0"));
+                "Attestation data index must be 0 for Electra, but was %s.",
+                wrongAttestation.getData().getIndex()));
   }
 }

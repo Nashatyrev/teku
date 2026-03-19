@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -23,12 +23,6 @@ import java.util.Optional;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
-import tech.pegasys.teku.spec.config.SpecConfigAltair;
-import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
-import tech.pegasys.teku.spec.config.SpecConfigCapella;
-import tech.pegasys.teku.spec.config.SpecConfigDeneb;
-import tech.pegasys.teku.spec.config.SpecConfigElectra;
-import tech.pegasys.teku.spec.config.SpecConfigFulu;
 
 public enum SpecMilestone {
   PHASE0,
@@ -37,7 +31,9 @@ public enum SpecMilestone {
   CAPELLA,
   DENEB,
   ELECTRA,
-  FULU;
+  FULU,
+  GLOAS,
+  HEZE;
 
   /**
    * Returns true if this milestone is at or after the supplied milestone ({@code other})
@@ -59,6 +55,14 @@ public enum SpecMilestone {
 
   public boolean isLessThan(final SpecMilestone other) {
     return compareTo(other) < 0;
+  }
+
+  /**
+   * Returns true if this milestone is in the [{@code start}, {@code end}] range (start included,
+   * end included).
+   */
+  public boolean isBetween(final SpecMilestone start, final SpecMilestone end) {
+    return isGreaterThanOrEqualTo(start) && isLessThanOrEqualTo(end);
   }
 
   /** Returns the milestone prior to this milestone */
@@ -131,13 +135,14 @@ public enum SpecMilestone {
       final SpecConfig specConfig, final SpecMilestone milestone) {
     return switch (milestone) {
       case PHASE0 -> Optional.of(specConfig.getGenesisForkVersion());
-      case ALTAIR -> specConfig.toVersionAltair().map(SpecConfigAltair::getAltairForkVersion);
-      case BELLATRIX ->
-          specConfig.toVersionBellatrix().map(SpecConfigBellatrix::getBellatrixForkVersion);
-      case CAPELLA -> specConfig.toVersionCapella().map(SpecConfigCapella::getCapellaForkVersion);
-      case DENEB -> specConfig.toVersionDeneb().map(SpecConfigDeneb::getDenebForkVersion);
-      case ELECTRA -> specConfig.toVersionElectra().map(SpecConfigElectra::getElectraForkVersion);
-      case FULU -> specConfig.toVersionFulu().map(SpecConfigFulu::getFuluForkVersion);
+      case ALTAIR -> specConfig.toVersionAltair().map(SpecConfig::getAltairForkVersion);
+      case BELLATRIX -> specConfig.toVersionBellatrix().map(SpecConfig::getBellatrixForkVersion);
+      case CAPELLA -> specConfig.toVersionCapella().map(SpecConfig::getCapellaForkVersion);
+      case DENEB -> specConfig.toVersionDeneb().map(SpecConfig::getDenebForkVersion);
+      case ELECTRA -> specConfig.toVersionElectra().map(SpecConfig::getElectraForkVersion);
+      case FULU -> specConfig.toVersionFulu().map(SpecConfig::getFuluForkVersion);
+      case GLOAS -> specConfig.toVersionGloas().map(SpecConfig::getGloasForkVersion);
+      case HEZE -> specConfig.toVersionHeze().map(SpecConfig::getHezeForkVersion);
     };
   }
 
@@ -147,13 +152,14 @@ public enum SpecMilestone {
           // Phase0 can only ever start at epoch 0 - no non-zero slot is valid. However, another
           // fork may also be configured to start at epoch 0, effectively overriding phase0
           Optional.of(UInt64.ZERO);
-      case ALTAIR -> specConfig.toVersionAltair().map(SpecConfigAltair::getAltairForkEpoch);
-      case BELLATRIX ->
-          specConfig.toVersionBellatrix().map(SpecConfigBellatrix::getBellatrixForkEpoch);
-      case CAPELLA -> specConfig.toVersionCapella().map(SpecConfigCapella::getCapellaForkEpoch);
-      case DENEB -> specConfig.toVersionDeneb().map(SpecConfigDeneb::getDenebForkEpoch);
-      case ELECTRA -> specConfig.toVersionElectra().map(SpecConfigElectra::getElectraForkEpoch);
-      case FULU -> specConfig.toVersionFulu().map(SpecConfigFulu::getFuluForkEpoch);
+      case ALTAIR -> specConfig.toVersionAltair().map(SpecConfig::getAltairForkEpoch);
+      case BELLATRIX -> specConfig.toVersionBellatrix().map(SpecConfig::getBellatrixForkEpoch);
+      case CAPELLA -> specConfig.toVersionCapella().map(SpecConfig::getCapellaForkEpoch);
+      case DENEB -> specConfig.toVersionDeneb().map(SpecConfig::getDenebForkEpoch);
+      case ELECTRA -> specConfig.toVersionElectra().map(SpecConfig::getElectraForkEpoch);
+      case FULU -> specConfig.toVersionFulu().map(SpecConfig::getFuluForkEpoch);
+      case GLOAS -> specConfig.toVersionGloas().map(SpecConfig::getGloasForkEpoch);
+      case HEZE -> specConfig.toVersionHeze().map(SpecConfig::getHezeForkEpoch);
     };
   }
 

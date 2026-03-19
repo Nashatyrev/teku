@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -22,6 +22,8 @@ public class KzgTests {
       ImmutableMap.<String, TestExecutor>builder()
           .put("kzg/blob_to_kzg_commitment", new KzgBlobToCommitmentTestExecutor())
           .put("kzg/compute_blob_kzg_proof", new KzgComputeBlobProofTestExecutor())
+          .put("kzg/compute_challenge", TestExecutor.IGNORE_TESTS)
+          .put("kzg/compute_verify_cell_kzg_proof_batch_challenge", TestExecutor.IGNORE_TESTS)
           // no KZG interface on CL side, EL responsibility
           .put("kzg/compute_kzg_proof", TestExecutor.IGNORE_TESTS)
           // actually uses verify_blob_kzg_proof_batch KZG interface

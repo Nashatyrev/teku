@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -35,6 +35,7 @@ import tech.pegasys.teku.spec.TestSpecInvocationContextProvider;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.BlobIdentifier;
+import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityCheckerFactory;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 @SuppressWarnings("JavaCase")
@@ -61,9 +62,15 @@ public class BlobSidecarsByRootValidatorTest {
           case DENEB -> TestSpecFactory.createMinimalWithDenebForkEpoch(currentForkEpoch);
           case ELECTRA -> TestSpecFactory.createMinimalWithElectraForkEpoch(currentForkEpoch);
           case FULU -> TestSpecFactory.createMinimalWithFuluForkEpoch(currentForkEpoch);
+          case GLOAS -> TestSpecFactory.createMinimalWithGloasForkEpoch(currentForkEpoch);
+          case HEZE -> TestSpecFactory.createMinimalWithHezeForkEpoch(currentForkEpoch);
         };
     currentForkFirstSlot = spec.computeStartSlotAtEpoch(currentForkEpoch);
     dataStructureUtil = new DataStructureUtil(spec);
+    spec.reinitializeForTesting(
+        AvailabilityCheckerFactory.NOOP_BLOB_SIDECAR,
+        AvailabilityCheckerFactory.NOOP_DATACOLUMN_SIDECAR,
+        kzg);
     when(kzg.verifyBlobKzgProof(any(), any(), any())).thenReturn(true);
   }
 
@@ -75,7 +82,7 @@ public class BlobSidecarsByRootValidatorTest {
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(block1, 0);
 
-    validator = new BlobSidecarsByRootValidator(peer, spec, kzg, List.of(blobIdentifier1_0));
+    validator = new BlobSidecarsByRootValidator(peer, spec, List.of(blobIdentifier1_0));
     assertDoesNotThrow(() -> validator.validate(blobSidecar1_0));
   }
 
@@ -88,7 +95,7 @@ public class BlobSidecarsByRootValidatorTest {
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(block1, 0);
 
-    validator = new BlobSidecarsByRootValidator(peer, spec, kzg, List.of(blobIdentifier2_0));
+    validator = new BlobSidecarsByRootValidator(peer, spec, List.of(blobIdentifier2_0));
     assertThatThrownBy(() -> validator.validate(blobSidecar1_0))
         .isExactlyInstanceOf(BlobSidecarsResponseInvalidResponseException.class)
         .hasMessageContaining(
@@ -106,7 +113,7 @@ public class BlobSidecarsByRootValidatorTest {
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(block1, 0);
 
-    validator = new BlobSidecarsByRootValidator(peer, spec, kzg, List.of(blobIdentifier1_0));
+    validator = new BlobSidecarsByRootValidator(peer, spec, List.of(blobIdentifier1_0));
     assertThatThrownBy(() -> validator.validate(blobSidecar1_0))
         .isExactlyInstanceOf(BlobSidecarsResponseInvalidResponseException.class)
         .hasMessageContaining(
@@ -124,7 +131,7 @@ public class BlobSidecarsByRootValidatorTest {
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(block1, 0);
     final BlobSidecar blobSidecar1_0_modified = breakInclusionProof(blobSidecar1_0);
 
-    validator = new BlobSidecarsByRootValidator(peer, spec, kzg, List.of(blobIdentifier1_0));
+    validator = new BlobSidecarsByRootValidator(peer, spec, List.of(blobIdentifier1_0));
     assertThatThrownBy(() -> validator.validate(blobSidecar1_0_modified))
         .isExactlyInstanceOf(BlobSidecarsResponseInvalidResponseException.class)
         .hasMessageContaining(
@@ -141,7 +148,7 @@ public class BlobSidecarsByRootValidatorTest {
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(block1, 0);
 
-    validator = new BlobSidecarsByRootValidator(peer, spec, kzg, List.of(blobIdentifier1_0));
+    validator = new BlobSidecarsByRootValidator(peer, spec, List.of(blobIdentifier1_0));
     assertDoesNotThrow(() -> validator.validate(blobSidecar1_0));
     assertThatThrownBy(() -> validator.validate(blobSidecar1_0))
         .isExactlyInstanceOf(BlobSidecarsResponseInvalidResponseException.class)

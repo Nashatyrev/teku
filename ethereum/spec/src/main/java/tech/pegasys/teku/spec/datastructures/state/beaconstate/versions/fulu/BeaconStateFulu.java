@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -30,7 +30,7 @@ public interface BeaconStateFulu extends BeaconStateElectra {
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
-                    "Expected an Fulu state but got: " + state.getClass().getSimpleName()));
+                    "Expected a Fulu state but got: " + state.getClass().getSimpleName()));
   }
 
   private static <T extends SszData> void addItems(

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -16,11 +16,13 @@ package tech.pegasys.teku.spec.config;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes;
+import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.ethereum.execution.types.Eth1Address;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
+import tech.pegasys.teku.spec.logic.common.statetransition.blockvalidator.BatchSignatureVerifier;
 
 public interface SpecConfig extends NetworkingSpecConfig {
   // Non-configurable constants
@@ -55,12 +57,36 @@ public interface SpecConfig extends NetworkingSpecConfig {
 
   UInt64 getCapellaForkEpoch();
 
+  Bytes4 getDenebForkVersion();
+
+  UInt64 getDenebForkEpoch();
+
+  Bytes4 getElectraForkVersion();
+
+  UInt64 getElectraForkEpoch();
+
+  Bytes4 getFuluForkVersion();
+
+  UInt64 getFuluForkEpoch();
+
+  Bytes4 getGloasForkVersion();
+
+  UInt64 getGloasForkEpoch();
+
+  Bytes4 getHezeForkVersion();
+
+  UInt64 getHezeForkEpoch();
+
   // Config: Time parameters
   int getSecondsPerSlot();
 
-  default int getMillisPerSlot() {
-    return getSecondsPerSlot() * 1000;
-  }
+  int getProposerReorgCutoffBps();
+
+  int getAttestationDueBps();
+
+  int getAggregateDueBps();
+
+  int getSlotDurationMillis();
 
   int getSecondsPerEth1Block();
 
@@ -210,5 +236,17 @@ public interface SpecConfig extends NetworkingSpecConfig {
     return Optional.empty();
   }
 
+  default Optional<SpecConfigGloas> toVersionGloas() {
+    return Optional.empty();
+  }
+
+  default Optional<SpecConfigHeze> toVersionHeze() {
+    return Optional.empty();
+  }
+
   SpecMilestone getMilestone();
+
+  BLSSignatureVerifier getBLSSignatureVerifier();
+
+  BatchSignatureVerifier createBatchSignatureVerifier();
 }

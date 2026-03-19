@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -17,7 +17,7 @@ import static tech.pegasys.teku.infrastructure.logging.StatusLogger.STATUS_LOG;
 import static tech.pegasys.teku.storage.server.StateStorageMode.MINIMAL;
 import static tech.pegasys.teku.storage.server.StateStorageMode.NOT_SET;
 import static tech.pegasys.teku.storage.server.StateStorageMode.PRUNE;
-import static tech.pegasys.teku.storage.server.VersionedDatabaseFactory.STORAGE_MODE_PATH;
+import static tech.pegasys.teku.storage.server.VersionedDatabaseFactory.STORAGE_MODE_FILENAME;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -39,6 +39,7 @@ public class StorageConfiguration {
   public static final Duration DEFAULT_BLOCK_PRUNING_INTERVAL = Duration.ofMinutes(15);
   public static final int DEFAULT_BLOCK_PRUNING_LIMIT = 5000;
   public static final Duration DEFAULT_BLOBS_PRUNING_INTERVAL = Duration.ofMinutes(1);
+  public static final Duration DEFAULT_DATA_COLUMN_PRUNING_INTERVAL = Duration.ofMinutes(1);
   public static final Duration DEFAULT_STATE_PRUNING_INTERVAL = Duration.ofMinutes(5);
   public static final long DEFAULT_STORAGE_RETAINED_SLOTS = 0;
   public static final int DEFAULT_STATE_PRUNING_LIMIT = 1;
@@ -46,6 +47,8 @@ public class StorageConfiguration {
   // 60/12 = 5 blocks/slots per minute * 6 max blobs per block = 30 blobs per minute at maximum,
   // This value prunes blobs by slots, using 12 to allow for catch up.
   public static final int DEFAULT_BLOBS_PRUNING_LIMIT = 12;
+
+  public static final int DEFAULT_DATA_COLUMN_PRUNING_LIMIT = 12;
 
   // Max limit we have tested so far without seeing perf degradation
   public static final int MAX_STATE_PRUNE_LIMIT = 100;
@@ -62,12 +65,15 @@ public class StorageConfiguration {
   private final int blockPruningLimit;
   private final Duration statePruningInterval;
   private final Duration blobsPruningInterval;
+  private final Duration dataColumnPruningInterval;
   private final int blobsPruningLimit;
+  private final int dataColumnPruningLimit;
   private final String blobsArchivePath;
   private final long retainedSlots;
   private final int statePruningLimit;
 
   private final int stateRebuildTimeoutSeconds;
+  private final boolean forceClearDb;
 
   private StorageConfiguration(
       final Eth1Address eth1DepositContract,
@@ -80,12 +86,15 @@ public class StorageConfiguration {
       final int blockPruningLimit,
       final Duration blobsPruningInterval,
       final int blobsPruningLimit,
+      final Duration dataColumnPruningInterval,
+      final int dataColumnPruningLimit,
       final String blobsArchivePath,
       final int stateRebuildTimeoutSeconds,
       final long retainedSlots,
       final Duration statePruningInterval,
       final int statePruningLimit,
-      final Spec spec) {
+      final Spec spec,
+      final boolean forceClearDb) {
     this.eth1DepositContract = eth1DepositContract;
     this.dataStorageMode = dataStorageMode;
     this.dataStorageFrequency = dataStorageFrequency;
@@ -97,11 +106,14 @@ public class StorageConfiguration {
     this.blobsPruningInterval = blobsPruningInterval;
     this.blobsPruningLimit = blobsPruningLimit;
     this.blobsArchivePath = blobsArchivePath;
+    this.dataColumnPruningInterval = dataColumnPruningInterval;
+    this.dataColumnPruningLimit = dataColumnPruningLimit;
     this.stateRebuildTimeoutSeconds = stateRebuildTimeoutSeconds;
     this.retainedSlots = retainedSlots;
     this.statePruningInterval = statePruningInterval;
     this.statePruningLimit = statePruningLimit;
     this.spec = spec;
+    this.forceClearDb = forceClearDb;
   }
 
   public static Builder builder() {
@@ -152,6 +164,14 @@ public class StorageConfiguration {
     return blobsPruningLimit;
   }
 
+  public Duration getDataColumnPruningInterval() {
+    return dataColumnPruningInterval;
+  }
+
+  public int getDataColumnPruningLimit() {
+    return dataColumnPruningLimit;
+  }
+
   public Optional<String> getBlobsArchivePath() {
     return Optional.ofNullable(blobsArchivePath);
   }
@@ -172,6 +192,10 @@ public class StorageConfiguration {
     return spec;
   }
 
+  public boolean isForceClearDb() {
+    return forceClearDb;
+  }
+
   public static final class Builder {
     private static final Logger LOG = LogManager.getLogger();
     private Eth1Address eth1DepositContract;
@@ -186,11 +210,14 @@ public class StorageConfiguration {
     private int blockPruningLimit = DEFAULT_BLOCK_PRUNING_LIMIT;
     private Duration blobsPruningInterval = DEFAULT_BLOBS_PRUNING_INTERVAL;
     private int blobsPruningLimit = DEFAULT_BLOBS_PRUNING_LIMIT;
+    private Duration dataColumnPruningInterval = DEFAULT_DATA_COLUMN_PRUNING_INTERVAL;
+    private int dataColumnPruningLimit = DEFAULT_DATA_COLUMN_PRUNING_LIMIT;
     private String blobsArchivePath = null;
     private int stateRebuildTimeoutSeconds = DEFAULT_STATE_REBUILD_TIMEOUT_SECONDS;
     private Duration statePruningInterval = DEFAULT_STATE_PRUNING_INTERVAL;
     private long retainedSlots = DEFAULT_STORAGE_RETAINED_SLOTS;
     private int statePruningLimit = DEFAULT_STATE_PRUNING_LIMIT;
+    private boolean forceClearDb = false;
 
     private Builder() {}
 
@@ -283,6 +310,24 @@ public class StorageConfiguration {
       return this;
     }
 
+    public Builder dataColumnPruningInterval(final Duration dataColumnPruningInterval) {
+      if (dataColumnPruningInterval.isNegative() || dataColumnPruningInterval.isZero()) {
+        throw new InvalidConfigurationException(
+            "DataColumn sidecar pruning interval must be positive");
+      }
+      this.dataColumnPruningInterval = dataColumnPruningInterval;
+      return this;
+    }
+
+    public Builder dataColumnPruningLimit(final int dataColumnPruningLimit) {
+      if (dataColumnPruningLimit < 0) {
+        throw new InvalidConfigurationException(
+            String.format("Invalid dataColumnPruningLimit: %d", dataColumnPruningLimit));
+      }
+      this.dataColumnPruningLimit = dataColumnPruningLimit;
+      return this;
+    }
+
     public Builder blobsArchivePath(final String blobsArchivePath) {
       if (blobsArchivePath != null) {
         File file = Path.of(blobsArchivePath).toFile();
@@ -326,6 +371,11 @@ public class StorageConfiguration {
       return this;
     }
 
+    public Builder forceClearDb(final boolean forceClearDb) {
+      this.forceClearDb = forceClearDb;
+      return this;
+    }
+
     public StorageConfiguration build() {
       determineDataStorageMode();
       validateStatePruningConfiguration();
@@ -340,12 +390,15 @@ public class StorageConfiguration {
           blockPruningLimit,
           blobsPruningInterval,
           blobsPruningLimit,
+          dataColumnPruningInterval,
+          dataColumnPruningLimit,
           blobsArchivePath,
           stateRebuildTimeoutSeconds,
           retainedSlots,
           statePruningInterval,
           statePruningLimit,
-          spec);
+          spec,
+          forceClearDb);
     }
 
     private void determineDataStorageMode() {
@@ -357,7 +410,7 @@ public class StorageConfiguration {
         try {
           storageModeFromStoredFile =
               DatabaseStorageModeFileHelper.readStateStorageMode(
-                  beaconDataDirectory.resolve(STORAGE_MODE_PATH));
+                  beaconDataDirectory.resolve(STORAGE_MODE_FILENAME));
         } catch (final DatabaseStorageException e) {
           if (dataStorageMode == NOT_SET) {
             throw e;

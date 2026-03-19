@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,14 +13,15 @@
 
 package tech.pegasys.teku.services.beaconchain;
 
-import static tech.pegasys.teku.networks.EphemeryNetwork.MAX_EPHEMERY_SLOT;
-
 import tech.pegasys.teku.ethereum.events.SlotEventsChannel;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.service.serviceutils.Service;
 
 public class EphemerySlotValidationService extends Service implements SlotEventsChannel {
+  private static final int PERIOD = 28;
+  private static final long PERIOD_IN_SECONDS = (PERIOD * 24 * 60 * 60);
+  static final long MAX_EPHEMERY_SLOT = (PERIOD_IN_SECONDS / 12) - 1;
 
   @Override
   public void onSlot(final UInt64 slot) {

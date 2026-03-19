@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -21,6 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.ssz.primitive.SszBit;
+import tech.pegasys.teku.infrastructure.ssz.primitive.SszBoolean;
 import tech.pegasys.teku.infrastructure.ssz.primitive.SszByte;
 import tech.pegasys.teku.infrastructure.ssz.primitive.SszBytes32;
 import tech.pegasys.teku.infrastructure.ssz.primitive.SszBytes4;
@@ -41,6 +42,8 @@ public class SszPrimitiveTest implements SszDataTestBase {
         SszByte.of(255),
         SszByte.of(127),
         SszByte.of(128),
+        SszBoolean.of(true),
+        SszBoolean.of(false),
         SszUInt64.of(UInt64.ZERO),
         SszUInt64.of(UInt64.ONE),
         SszUInt64.of(UInt64.fromLongBits(Long.MAX_VALUE)),

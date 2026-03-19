@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
+import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.ethereum.performance.trackers.BlockPublishingPerformance;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.ssz.SszCollection;
@@ -32,26 +33,29 @@ import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockContainer;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.versions.fulu.BlockContentsFulu;
-import tech.pegasys.teku.spec.datastructures.execution.BlobsCellBundle;
+import tech.pegasys.teku.spec.datastructures.execution.BlobsBundle;
 import tech.pegasys.teku.spec.datastructures.execution.BuilderPayloadOrFallbackData;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGProof;
+import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityCheckerFactory;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 public class BlockFactoryFuluTest extends AbstractBlockFactoryTest {
 
-  private final Spec spec = TestSpecFactory.createMinimalFulu();
+  private final Spec spec =
+      TestSpecFactory.createMinimalFulu(
+          builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP));
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
 
   @Test
   void shouldCreateBlockContents() {
 
-    final BlobsCellBundle blobsCellBundle = prepareBlobsCellBundle(spec, 3);
+    final BlobsBundle blobsBundle = prepareBlobsBundle(spec, 3);
 
     final BlockContainer blockContainer =
         assertBlockCreated(1, spec, false, state -> prepareValidPayload(spec, state), false)
@@ -62,10 +66,10 @@ public class BlockFactoryFuluTest extends AbstractBlockFactoryTest {
         .hasValueSatisfying(blobKzgCommitments -> assertThat(blobKzgCommitments).hasSize(3));
     assertThat(blockContainer.getBlobs())
         .map(SszCollection::asList)
-        .hasValue(blobsCellBundle.getBlobs());
+        .hasValue(blobsBundle.getBlobs());
     assertThat(blockContainer.getKzgProofs())
         .map(proofs -> proofs.stream().map(SszKZGProof::getKZGProof).toList())
-        .hasValue(blobsCellBundle.getProofs());
+        .hasValue(blobsBundle.getProofs());
   }
 
   @Test
@@ -123,7 +127,7 @@ public class BlockFactoryFuluTest extends AbstractBlockFactoryTest {
   @Test
   void shouldCreateValidDataColumnSidecarsForBlockContents() {
     final int blobsCount = 3;
-    final BlobsCellBundle blobsCellBundle = prepareBlobsCellBundle(spec, blobsCount);
+    final BlobsBundle blobsBundle = prepareBlobsBundle(spec, blobsCount);
 
     final BlockAndDataColumnSidecars blockAndDataColumnSidecars =
         createBlockAndDataColumnSidecars(false, spec);
@@ -148,20 +152,20 @@ public class BlockFactoryFuluTest extends AbstractBlockFactoryTest {
         .forEach(
             index -> {
               final DataColumnSidecar dataColumnSidecar = dataColumnSidecars.get(index);
-              // check sidecar is created using the prepared BlobsCellBundle
+              // check sidecar is created using the prepared BlobsBundle
               assertThat(
-                      dataColumnSidecar.getSszKZGProofs().stream()
+                      dataColumnSidecar.getKzgProofs().stream()
                           .map(SszKZGProof::getKZGProof)
                           .toList())
                   .isEqualTo(
                       IntStream.range(0, expectedCommitments.size())
                           .mapToObj(
                               blobIndex ->
-                                  blobsCellBundle
+                                  blobsBundle
                                       .getProofs()
                                       .get(blobIndex * CELLS_PER_EXT_BLOB + index))
                           .toList());
-              assertThat(dataColumnSidecar.getSszKZGCommitments()).isEqualTo(expectedCommitments);
+              assertThat(dataColumnSidecar.getMaybeKzgCommitments()).contains(expectedCommitments);
             });
   }
 
@@ -171,6 +175,10 @@ public class BlockFactoryFuluTest extends AbstractBlockFactoryTest {
     when(kzg.computeCells(any()))
         .thenReturn(
             IntStream.range(0, 128).mapToObj(__ -> dataStructureUtil.randomKZGCell()).toList());
+    spec.reinitializeForTesting(
+        AvailabilityCheckerFactory.NOOP_BLOB_SIDECAR,
+        AvailabilityCheckerFactory.NOOP_DATACOLUMN_SIDECAR,
+        kzg);
     return new BlockFactoryFulu(
         spec,
         new BlockOperationSelectorFactory(
@@ -181,13 +189,14 @@ public class BlockFactoryFuluTest extends AbstractBlockFactoryTest {
             voluntaryExitPool,
             blsToExecutionChangePool,
             syncCommitteeContributionPool,
+            payloadAttestationPool,
             depositProvider,
             eth1DataCache,
             graffitiBuilder,
             forkChoiceNotifier,
             executionLayer,
+            executionPayloadBidManager,
             metricsSystem,
-            timeProvider),
-        kzg);
+            timeProvider));
   }
 }

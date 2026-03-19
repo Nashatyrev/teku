@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -29,8 +29,9 @@ import tech.pegasys.teku.ethereum.pow.api.DepositTreeSnapshot;
 import tech.pegasys.teku.ethereum.pow.api.DepositsFromBlockEvent;
 import tech.pegasys.teku.ethereum.pow.api.MinGenesisTimeBlockEvent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.kzg.KZGProof;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
@@ -97,6 +98,11 @@ public class NoOpDatabase implements Database {
 
   @Override
   public Optional<Bytes32> getLatestCanonicalBlockRoot() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<UInt64> getCustodyGroupCount() {
     return Optional.empty();
   }
 
@@ -210,6 +216,11 @@ public class NoOpDatabase implements Database {
   }
 
   @Override
+  public Optional<SignedBeaconBlock> getNonCanonicalBlockByRoot(final Bytes32 blockRoot) {
+    return Optional.empty();
+  }
+
+  @Override
   public List<SignedBeaconBlock> getNonCanonicalBlocksAtSlot(final UInt64 slot) {
     return new ArrayList<>();
   }
@@ -271,6 +282,11 @@ public class NoOpDatabase implements Database {
   @Override
   public long getBlobSidecarColumnCount() {
     return 0L;
+  }
+
+  @Override
+  public long getSidecarColumnCount() {
+    return 0;
   }
 
   @Override
@@ -357,11 +373,6 @@ public class NoOpDatabase implements Database {
   }
 
   @Override
-  public Optional<UInt64> getFirstSamplerIncompleteSlot() {
-    return Optional.empty();
-  }
-
-  @Override
   public Optional<DataColumnSidecar> getSidecar(final DataColumnSlotAndIdentifier identifier) {
     return Optional.empty();
   }
@@ -391,10 +402,25 @@ public class NoOpDatabase implements Database {
   }
 
   @Override
-  public void setFirstCustodyIncompleteSlot(final UInt64 slot) {}
+  public Optional<UInt64> getEarliestAvailableDataColumnSlot() {
+    return Optional.empty();
+  }
 
   @Override
-  public void setFirstSamplerIncompleteSlot(final UInt64 slot) {}
+  public void setEarliestAvailableDataColumnSlot(final UInt64 slot) {}
+
+  @Override
+  public Optional<UInt64> getLastDataColumnSidecarsProofsSlot() {
+    return Optional.empty();
+  }
+
+  @Override
+  public Optional<List<List<KZGProof>>> getDataColumnSidecarsProofs(final UInt64 slot) {
+    return Optional.empty();
+  }
+
+  @Override
+  public void setFirstCustodyIncompleteSlot(final UInt64 slot) {}
 
   @Override
   public void addSidecar(final DataColumnSidecar sidecar) {}
@@ -403,7 +429,7 @@ public class NoOpDatabase implements Database {
   public void addNonCanonicalSidecar(final DataColumnSidecar sidecar) {}
 
   @Override
-  public void pruneAllSidecars(final UInt64 tillSlotInclusive) {}
+  public void pruneAllSidecars(final UInt64 tillSlotInclusive, final int pruneLimit) {}
 
   @Override
   public void close() {}

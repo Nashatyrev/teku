@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,6 +12,8 @@
  */
 
 package tech.pegasys.teku.spec.config;
+
+import static tech.pegasys.teku.spec.networks.Eth2Network.EPHEMERY;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -31,12 +33,13 @@ import tech.pegasys.teku.spec.networks.Eth2Presets;
 
 public class SpecConfigLoader {
   private static final Logger LOG = LogManager.getLogger();
+  public static final String EPHEMERY_CONFIG_URL = "https://ephemery.dev/latest/config.yaml";
   private static final List<String> AVAILABLE_PRESETS =
-      List.of("phase0", "altair", "bellatrix", "capella", "deneb", "electra", "fulu");
+      List.of(
+          "phase0", "altair", "bellatrix", "capella", "deneb", "electra", "fulu", "gloas", "heze");
   private static final List<String> BUILTIN_NETWORKS =
       List.of(
           "chiado",
-          "ephemery",
           "gnosis",
           "holesky",
           "hoodi",
@@ -192,6 +195,12 @@ public class SpecConfigLoader {
   }
 
   private static InputStream loadConfigurationFile(final String source) throws IOException {
+    if (source.equals(EPHEMERY.configName())) {
+      return getConfigLoader()
+          .load(EPHEMERY_CONFIG_URL)
+          .orElseThrow(
+              () -> new FileNotFoundException("Could not load spec config from " + source));
+    }
     return getConfigLoader()
         .load(source, CONFIG_PATH + source + ".yaml")
         .orElseThrow(() -> new FileNotFoundException("Could not load spec config from " + source));

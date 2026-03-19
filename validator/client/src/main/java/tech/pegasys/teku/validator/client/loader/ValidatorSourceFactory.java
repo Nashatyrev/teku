@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -24,6 +24,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.ThrottlingTaskQueue;
 import tech.pegasys.teku.infrastructure.async.ThrottlingTaskQueueWithPriority;
 import tech.pegasys.teku.infrastructure.metrics.TekuMetricCategory;
 import tech.pegasys.teku.service.serviceutils.layout.DataDirLayout;
@@ -240,9 +241,11 @@ public class ValidatorSourceFactory {
       externalSignerTaskQueue =
           ThrottlingTaskQueueWithPriority.create(
               config.getValidatorExternalSignerConcurrentRequestLimit(),
+              ThrottlingTaskQueue.DEFAULT_MAXIMUM_QUEUE_SIZE,
               metricsSystem,
               TekuMetricCategory.VALIDATOR,
-              "external_signer_request_queue_size");
+              "external_signer_request_queue_size",
+              "external_signer_request_queue_rejected");
     }
 
     return externalSignerTaskQueue;

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -148,7 +148,6 @@ final class RustKZG implements KZG {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
   public List<KZGCellAndProof> computeCellsAndProofs(final Bytes blob) {
     final CellsAndProofs cellsAndProofs = library.computeCellsAndKZGProofs(blob.toArrayUnsafe());
     final Stream<KZGCell> kzgCellStream =

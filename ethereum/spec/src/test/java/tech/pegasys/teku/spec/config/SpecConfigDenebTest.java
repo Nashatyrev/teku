@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -86,8 +86,6 @@ public class SpecConfigDenebTest {
 
     return new SpecConfigDenebImpl(
         capellaConfig,
-        dataStructureUtil.randomBytes4(),
-        dataStructureUtil.randomUInt64(),
         dataStructureUtil.randomPositiveInt(),
         dataStructureUtil.randomPositiveInt(),
         dataStructureUtil.randomPositiveInt(),

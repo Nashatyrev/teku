@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2022
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -17,13 +17,15 @@ import java.util.List;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
-import tech.pegasys.teku.kzg.KZG;
+import tech.pegasys.teku.networking.eth2.peers.DataColumnSidecarSignatureValidator;
+import tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods.DataColumnSidecarsResponseInvalidResponseException.InvalidResponseType;
 import tech.pegasys.teku.networking.p2p.peer.Peer;
 import tech.pegasys.teku.networking.p2p.rpc.RpcResponseListener;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.DataColumnsByRootIdentifier;
 import tech.pegasys.teku.spec.datastructures.util.DataColumnIdentifier;
+import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 public class DataColumnSidecarsByRootListenerValidatingProxy
     extends DataColumnSidecarsByRootValidator implements RpcResponseListener<DataColumnSidecar> {
@@ -34,16 +36,17 @@ public class DataColumnSidecarsByRootListenerValidatingProxy
       final Peer peer,
       final Spec spec,
       final RpcResponseListener<DataColumnSidecar> listener,
-      final KZG kzg,
       final MetricsSystem metricsSystem,
       final TimeProvider timeProvider,
-      final List<DataColumnsByRootIdentifier> expectedByRootIdentifiers) {
+      final DataColumnSidecarSignatureValidator dataColumnSidecarSignatureValidator,
+      final List<DataColumnsByRootIdentifier> expectedByRootIdentifiers,
+      final CombinedChainDataClient combinedChainDataClient) {
     super(
         peer,
         spec,
-        kzg,
         metricsSystem,
         timeProvider,
+        dataColumnSidecarSignatureValidator,
         expectedByRootIdentifiers.stream()
             .flatMap(
                 byRootIdentifier ->
@@ -51,16 +54,24 @@ public class DataColumnSidecarsByRootListenerValidatingProxy
                         .map(
                             column ->
                                 new DataColumnIdentifier(byRootIdentifier.getBlockRoot(), column)))
-            .toList());
+            .toList(),
+        combinedChainDataClient);
     this.listener = listener;
   }
 
   @Override
   public SafeFuture<?> onResponse(final DataColumnSidecar dataColumnSidecar) {
-    return SafeFuture.of(
-        () -> {
-          validate(dataColumnSidecar);
-          return listener.onResponse(dataColumnSidecar);
-        });
+    return validate(dataColumnSidecar)
+        .thenCompose(__ -> verifySignature(dataColumnSidecar))
+        .thenCompose(
+            signatureValidation -> {
+              if (signatureValidation) {
+                return SafeFuture.COMPLETE;
+              }
+              return SafeFuture.failedFuture(
+                  new DataColumnSidecarsResponseInvalidResponseException(
+                      peer, InvalidResponseType.DATA_COLUMN_SIDECAR_HEADER_INVALID_SIGNATURE));
+            })
+        .thenCompose(__ -> listener.onResponse(dataColumnSidecar));
   }
 }

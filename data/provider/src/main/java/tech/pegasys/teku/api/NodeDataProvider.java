@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,21 +13,28 @@
 
 package tech.pegasys.teku.api;
 
+import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 import static tech.pegasys.teku.statetransition.validatorcache.ActiveValidatorCache.TRACKED_EPOCHS;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.api.exceptions.BadRequestException;
 import tech.pegasys.teku.api.exceptions.ServiceUnavailableException;
 import tech.pegasys.teku.api.migrated.ValidatorLivenessAtEpoch;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.attestation.ProcessedAttestationListener;
+import tech.pegasys.teku.spec.datastructures.epbs.versions.gloas.PayloadAttestationMessage;
 import tech.pegasys.teku.spec.datastructures.metadata.ObjectAndMetaData;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
@@ -35,18 +42,23 @@ import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedBlsToExecutionChange;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
+import tech.pegasys.teku.spec.datastructures.state.Validator;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.statetransition.OperationAddedSubscriber;
 import tech.pegasys.teku.statetransition.OperationPool;
 import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
 import tech.pegasys.teku.statetransition.attestation.AttestationManager;
 import tech.pegasys.teku.statetransition.blobs.BlockBlobSidecarsTrackersPool;
 import tech.pegasys.teku.statetransition.blobs.BlockBlobSidecarsTrackersPool.NewBlobSidecarSubscriber;
+import tech.pegasys.teku.statetransition.datacolumns.CustodyGroupCountManager;
 import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarManager;
+import tech.pegasys.teku.statetransition.datacolumns.ValidDataColumnSidecarsListener;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceNotifier;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceUpdatedResultSubscriber;
 import tech.pegasys.teku.statetransition.forkchoice.PreparedProposerInfo;
 import tech.pegasys.teku.statetransition.forkchoice.ProposersDataManager;
 import tech.pegasys.teku.statetransition.forkchoice.RegisteredValidatorInfo;
+import tech.pegasys.teku.statetransition.payloadattestation.PayloadAttestationPool;
 import tech.pegasys.teku.statetransition.synccommittee.SyncCommitteeContributionPool;
 import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
 import tech.pegasys.teku.statetransition.validatorcache.ActiveValidatorChannel;
@@ -69,6 +81,8 @@ public class NodeDataProvider {
   private final ForkChoiceNotifier forkChoiceNotifier;
   private final RecentChainData recentChainData;
   private final DataColumnSidecarManager dataColumnSidecarManager;
+  private final CustodyGroupCountManager custodyGroupCountManager;
+  private final PayloadAttestationPool payloadAttestationPool;
   private final Spec spec;
 
   public NodeDataProvider(
@@ -86,6 +100,8 @@ public class NodeDataProvider {
       final ForkChoiceNotifier forkChoiceNotifier,
       final RecentChainData recentChainData,
       final DataColumnSidecarManager dataColumnSidecarManager,
+      final CustodyGroupCountManager custodyGroupCountManager,
+      final PayloadAttestationPool payloadAttestationPool,
       final Spec spec) {
     this.attestationPool = attestationPool;
     this.attesterSlashingPool = attesterSlashingsPool;
@@ -101,6 +117,8 @@ public class NodeDataProvider {
     this.forkChoiceNotifier = forkChoiceNotifier;
     this.recentChainData = recentChainData;
     this.dataColumnSidecarManager = dataColumnSidecarManager;
+    this.custodyGroupCountManager = custodyGroupCountManager;
+    this.payloadAttestationPool = payloadAttestationPool;
     this.spec = spec;
   }
 
@@ -113,6 +131,10 @@ public class NodeDataProvider {
       final Optional<UInt64> maybeSlot, final Optional<UInt64> maybeCommitteeIndex) {
     return lookupMetaData(
         attestationPool.getAttestations(maybeSlot, maybeCommitteeIndex), maybeSlot);
+  }
+
+  public Set<UInt64> getCustodyColumnIndices() {
+    return custodyGroupCountManager.getCustodyColumnIndices();
   }
 
   private ObjectAndMetaData<List<Attestation>> lookupMetaData(
@@ -158,7 +180,46 @@ public class NodeDataProvider {
   }
 
   public SafeFuture<InternalValidationResult> postVoluntaryExit(final SignedVoluntaryExit exit) {
-    return voluntaryExitPool.addLocal(exit);
+    final Optional<SafeFuture<BeaconState>> maybeFutureState = recentChainData.getBestState();
+
+    return maybeFutureState
+        .map(
+            beaconStateSafeFuture ->
+                beaconStateSafeFuture
+                    .thenApply(
+                        state -> {
+                          final SszList<Validator> validators = state.getValidators();
+                          final int validatorId = exit.getValidatorId();
+                          if (validators.size() <= validatorId) {
+                            return InternalValidationResult.reject(
+                                "Validator index %s was not found", exit.getValidatorId());
+                          } else if (validators
+                              .get(validatorId)
+                              .getExitEpoch()
+                              .isLessThan(FAR_FUTURE_EPOCH)) {
+                            return InternalValidationResult.reject(
+                                "Validator index %s is already exiting (or exited)",
+                                exit.getValidatorId());
+                          }
+                          return InternalValidationResult.ACCEPT;
+                        })
+                    .thenApply(
+                        result -> {
+                          if (result.isAccept()) {
+                            try {
+                              // if we can't add this in a reasonable time we should fail.
+                              return voluntaryExitPool.addLocal(exit).get(5, TimeUnit.SECONDS);
+                            } catch (InterruptedException
+                                | ExecutionException
+                                | TimeoutException e) {
+                              return InternalValidationResult.reject(
+                                  "Failed to add voluntary exit for validator index %s to pool: %s",
+                                  exit.getValidatorId(), e.getMessage());
+                            }
+                          }
+                          return result;
+                        }))
+        .orElseGet(() -> SafeFuture.failedFuture(new ServiceUnavailableException()));
   }
 
   public SafeFuture<InternalValidationResult> postAttesterSlashing(
@@ -218,8 +279,7 @@ public class NodeDataProvider {
     blockBlobSidecarsTrackersPool.subscribeNewBlobSidecar(listener);
   }
 
-  public void subscribeToValidDataColumnSidecars(
-      final DataColumnSidecarManager.ValidDataColumnSidecarsListener listener) {
+  public void subscribeToValidDataColumnSidecars(final ValidDataColumnSidecarsListener listener) {
     dataColumnSidecarManager.subscribeToValidDataColumnSidecars(listener);
   }
 
@@ -254,6 +314,11 @@ public class NodeDataProvider {
 
   public void subscribeToForkChoiceUpdatedResult(final ForkChoiceUpdatedResultSubscriber listener) {
     forkChoiceNotifier.subscribeToForkChoiceUpdatedResult(listener);
+  }
+
+  public void subscribeToPayloadAttestationMessages(
+      final OperationAddedSubscriber<PayloadAttestationMessage> listener) {
+    payloadAttestationPool.subscribeOperationAdded(listener);
   }
 
   public SafeFuture<Optional<List<ValidatorLivenessAtEpoch>>> getValidatorLiveness(

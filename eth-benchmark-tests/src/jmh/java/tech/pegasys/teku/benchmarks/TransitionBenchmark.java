@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -42,10 +42,8 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannel;
-import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
-import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.block.BlockImporter;
 import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
@@ -79,8 +77,9 @@ public abstract class TransitionBenchmark {
   @Setup(Level.Trial)
   @SuppressWarnings("deprecation")
   public void init() throws Exception {
-    spec = TestSpecFactory.createMainnetAltair();
-    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.NO_OP;
+    spec =
+        TestSpecFactory.createMainnetAltair(
+            builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP));
     AsyncRunner asyncRunner = DelayedExecutorAsyncRunner.create();
 
     String blocksFile =
@@ -103,7 +102,6 @@ public abstract class TransitionBenchmark {
             spec,
             new InlineEventThread(),
             recentChainData,
-            BlobSidecarManager.NOOP,
             new NoopForkChoiceNotifier(),
             transitionBlockValidator,
             new StubMetricsSystem());

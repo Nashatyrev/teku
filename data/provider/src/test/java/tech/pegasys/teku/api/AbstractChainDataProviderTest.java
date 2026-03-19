@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -22,9 +22,11 @@ import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ZERO;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.BeforeEach;
+import tech.pegasys.teku.api.blobselector.BlobSelectorFactory;
 import tech.pegasys.teku.api.blobselector.BlobSidecarSelectorFactory;
 import tech.pegasys.teku.api.blockselector.BlockSelectorFactory;
 import tech.pegasys.teku.api.datacolumnselector.DataColumnSidecarSelectorFactory;
+import tech.pegasys.teku.api.executionpayloadselector.ExecutionPayloadSelectorFactory;
 import tech.pegasys.teku.api.stateselector.StateSelectorFactory;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
@@ -40,6 +42,7 @@ import tech.pegasys.teku.spec.datastructures.state.Validator;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.util.BeaconStateBuilderAltair;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
+import tech.pegasys.teku.storage.client.BlobReconstructionProvider;
 import tech.pegasys.teku.storage.client.BlobSidecarReconstructionProvider;
 import tech.pegasys.teku.storage.client.ChainHead;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
@@ -59,7 +62,9 @@ public abstract class AbstractChainDataProviderTest {
   protected CombinedChainDataClient combinedChainDataClient;
   protected BlockSelectorFactory blockSelectorFactory;
   protected BlobSidecarSelectorFactory blobSidecarSelectorFactory;
+  protected BlobSelectorFactory blobSelectorFactory;
   protected DataColumnSidecarSelectorFactory dataColumnSidecarSelectorFactory;
+  protected ExecutionPayloadSelectorFactory executionPayloadSelectorFactory;
   protected StateSelectorFactory stateSelectorFactory;
   protected BeaconState beaconStateInternal;
   protected SignedBlockAndState bestBlock;
@@ -69,6 +74,8 @@ public abstract class AbstractChainDataProviderTest {
       mock(CombinedChainDataClient.class);
   protected final BlobSidecarReconstructionProvider mockBlobSidecarReconstructionProvider =
       mock(BlobSidecarReconstructionProvider.class);
+  protected final BlobReconstructionProvider mockBlobReconstructionProvider =
+      mock(BlobReconstructionProvider.class);
 
   protected abstract Spec getSpec();
 
@@ -112,8 +119,14 @@ public abstract class AbstractChainDataProviderTest {
         spy(
             new BlobSidecarSelectorFactory(
                 spec, mockCombinedChainDataClient, mockBlobSidecarReconstructionProvider));
+    this.blobSelectorFactory =
+        spy(
+            new BlobSelectorFactory(
+                spec, mockCombinedChainDataClient, mockBlobReconstructionProvider));
     this.dataColumnSidecarSelectorFactory =
         spy(new DataColumnSidecarSelectorFactory(spec, mockCombinedChainDataClient));
+    this.executionPayloadSelectorFactory =
+        spy(new ExecutionPayloadSelectorFactory(spec, mockCombinedChainDataClient));
     final ChainDataProvider provider =
         new ChainDataProvider(
             spec,
@@ -122,7 +135,9 @@ public abstract class AbstractChainDataProviderTest {
             blockSelectorFactory,
             stateSelectorFactory,
             blobSidecarSelectorFactory,
+            blobSelectorFactory,
             dataColumnSidecarSelectorFactory,
+            executionPayloadSelectorFactory,
             rewardCalculatorMock);
 
     if (spec.getGenesisSpec().getMilestone().isGreaterThanOrEqualTo(SpecMilestone.ALTAIR)) {

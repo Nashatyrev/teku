@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -172,6 +172,28 @@ public class BeaconNodeDataOptions extends ValidatorClientDataOptions {
   private int blobsPruningLimit = StorageConfiguration.DEFAULT_BLOBS_PRUNING_LIMIT;
 
   @CommandLine.Option(
+      names = {"--Xdata-storage-data-column-pruning-interval"},
+      hidden = true,
+      paramLabel = "<INTEGER>",
+      description = "Interval in seconds between data column sidecars pruning",
+      fallbackValue = "true",
+      showDefaultValue = Visibility.ALWAYS,
+      arity = "0..1")
+  private long dataColumnPruningIntervalSeconds =
+      StorageConfiguration.DEFAULT_DATA_COLUMN_PRUNING_INTERVAL.toSeconds();
+
+  @CommandLine.Option(
+      names = {"--Xdata-storage-data-column-pruning-limit"},
+      hidden = true,
+      paramLabel = "<INTEGER>",
+      description =
+          "Maximum number of blocks of data column sidecars that can be pruned in each pruning session",
+      fallbackValue = "true",
+      showDefaultValue = Visibility.ALWAYS,
+      arity = "0..1")
+  private int dataColumnPruningLimit = StorageConfiguration.DEFAULT_DATA_COLUMN_PRUNING_LIMIT;
+
+  @CommandLine.Option(
       names = {"--Xdata-storage-blobs-archive-path"},
       hidden = true,
       paramLabel = "<STRING>",
@@ -201,6 +223,18 @@ public class BeaconNodeDataOptions extends ValidatorClientDataOptions {
       arity = "0..1")
   private boolean debugDataDumpingEnabled = DEFAULT_DEBUG_DATA_DUMPING_ENABLED;
 
+  @CommandLine.Option(
+      names = {"--force-clear-db"},
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description =
+          "Force deletion of the beacon chain database on startup. "
+              + "This will delete all chain data but preserve validator slashing protection. "
+              + "Use with caution - all historical chain data will be lost.",
+      fallbackValue = "true",
+      arity = "0..1")
+  private boolean forceClearDb = false;
+
   @Override
   protected DataConfig.Builder configureDataConfig(final DataConfig.Builder config) {
     return super.configureDataConfig(config)
@@ -223,10 +257,13 @@ public class BeaconNodeDataOptions extends ValidatorClientDataOptions {
                 .stateRebuildTimeoutSeconds(stateRebuildTimeoutSeconds)
                 .blobsPruningInterval(Duration.ofSeconds(blobsPruningIntervalSeconds))
                 .blobsPruningLimit(blobsPruningLimit)
+                .dataColumnPruningInterval(Duration.ofSeconds(dataColumnPruningIntervalSeconds))
+                .dataColumnPruningLimit(dataColumnPruningLimit)
                 .blobsArchivePath(blobsArchivePath)
                 .retainedSlots(dataStorageRetainedSlots)
                 .statePruningInterval(Duration.ofSeconds(statePruningIntervalSeconds))
-                .statePruningLimit(statePruningLimit));
+                .statePruningLimit(statePruningLimit)
+                .forceClearDb(forceClearDb));
     builder.sync(
         b ->
             b.fetchAllHistoricBlocks(dataStorageMode.storesAllBlocks())
@@ -235,7 +272,7 @@ public class BeaconNodeDataOptions extends ValidatorClientDataOptions {
 
   public DatabaseVersion parseDatabaseVersion() {
     if (createDbVersion == null) {
-      if (dataStorageFrequency == 1 && !DatabaseVersion.isLevelDbSupported()) {
+      if (dataStorageFrequency == 1 && !DatabaseVersion.tryLoadLeveldbNativeLibrary()) {
         throw new InvalidConfigurationException(
             "Native LevelDB support is required for archive frequency 1");
       }

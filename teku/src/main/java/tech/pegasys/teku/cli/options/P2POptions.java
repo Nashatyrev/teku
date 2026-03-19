@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,6 +14,11 @@
 package tech.pegasys.teku.cli.options;
 
 import static tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory.DEFAULT_MAX_QUEUE_SIZE_ALL_SUBNETS;
+import static tech.pegasys.teku.networking.eth2.P2PConfig.DEFAULT_COLUMN_CUSTODY_BACKFILLER_BATCH_SIZE;
+import static tech.pegasys.teku.networking.eth2.P2PConfig.DEFAULT_COLUMN_CUSTODY_BACKFILLER_POLL_PERIOD_SECONDS;
+import static tech.pegasys.teku.networking.eth2.P2PConfig.DEFAULT_DOWNLOAD_TIMEOUT_MS;
+import static tech.pegasys.teku.networking.eth2.P2PConfig.DEFAULT_RECOVERY_TIMEOUT_MS;
+import static tech.pegasys.teku.networking.eth2.P2PConfig.DEFAULT_REWORKED_COLUMN_CUSTODY_BACKFILLER;
 import static tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig.DEFAULT_P2P_PEERS_LOWER_BOUND;
 import static tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig.DEFAULT_P2P_PEERS_LOWER_BOUND_ALL_SUBNETS;
 import static tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig.DEFAULT_P2P_PEERS_UPPER_BOUND;
@@ -29,9 +34,9 @@ import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
 import tech.pegasys.teku.beacon.sync.SyncConfig;
 import tech.pegasys.teku.cli.converter.OptionalIntConverter;
-import tech.pegasys.teku.cli.util.MultilineEntriesReader;
 import tech.pegasys.teku.config.TekuConfiguration;
 import tech.pegasys.teku.infrastructure.exceptions.InvalidConfigurationException;
+import tech.pegasys.teku.infrastructure.io.MultilineEntriesReader;
 import tech.pegasys.teku.networking.eth2.P2PConfig;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryConfig;
 import tech.pegasys.teku.networking.p2p.gossip.config.GossipConfig;
@@ -39,7 +44,6 @@ import tech.pegasys.teku.networking.p2p.libp2p.MultiaddrPeerAddress;
 import tech.pegasys.teku.networking.p2p.network.config.NetworkConfig;
 
 public class P2POptions {
-
   @Mixin private final NatOptions natOptions = new NatOptions();
 
   @Option(
@@ -328,6 +332,54 @@ public class P2POptions {
       SyncConfig.DEFAULT_FORWARD_SYNC_MAX_BLOB_SIDECARS_PER_MINUTE;
 
   @Option(
+      names = {"--Xp2p-reworked-sidecar-custody-sync-enabled"},
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description = "",
+      arity = "0..1",
+      hidden = true,
+      fallbackValue = "true")
+  private boolean reworkedSidecarCustodySyncEnabled = DEFAULT_REWORKED_COLUMN_CUSTODY_BACKFILLER;
+
+  @Option(
+      names = {"--Xp2p-reworked-sidecar-custody-sync-batch-size"},
+      paramLabel = "<NUMBER>",
+      showDefaultValue = Visibility.ALWAYS,
+      description = "Backfill sync custody batch size in slots",
+      arity = "1",
+      hidden = true)
+  private Integer reworkedSidecarCustodySyncBatchSize =
+      DEFAULT_COLUMN_CUSTODY_BACKFILLER_BATCH_SIZE;
+
+  @Option(
+      names = {"--Xp2p-reworked-sidecar-custody-sync-poll-period-seconds"},
+      paramLabel = "<NUMBER>",
+      showDefaultValue = Visibility.ALWAYS,
+      description = "Backfill sync custody poll period",
+      arity = "1",
+      hidden = true)
+  private Integer reworkedSidecarCustodySyncPollPeriodSeconds =
+      DEFAULT_COLUMN_CUSTODY_BACKFILLER_POLL_PERIOD_SECONDS;
+
+  @Option(
+      names = {"--Xp2p-sidecar-cancel-timeout-ms"},
+      paramLabel = "<NUMBER>",
+      showDefaultValue = Visibility.ALWAYS,
+      description = "",
+      arity = "1",
+      hidden = true)
+  private Integer sidecarCancelTimeoutMs = DEFAULT_RECOVERY_TIMEOUT_MS;
+
+  @Option(
+      names = {"--Xp2p-sidecar-download-timeout-ms"},
+      paramLabel = "<NUMBER>",
+      showDefaultValue = Visibility.ALWAYS,
+      description = "",
+      arity = "1",
+      hidden = true)
+  private Integer sidecarDownloadTimeoutMs = DEFAULT_DOWNLOAD_TIMEOUT_MS;
+
+  @Option(
       names = {"--p2p-subscribe-all-subnets-enabled"},
       paramLabel = "<BOOLEAN>",
       showDefaultValue = Visibility.ALWAYS,
@@ -395,6 +447,16 @@ public class P2POptions {
       hidden = true,
       fallbackValue = "true")
   private boolean allTopicsFilterEnabled = P2PConfig.DEFAULT_PEER_ALL_TOPIC_FILTER_ENABLED;
+
+  @Option(
+      names = {"--Xexecution-proof-topics-enabled"},
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description = "Enable all execution proof topics",
+      arity = "0..1",
+      hidden = true,
+      fallbackValue = "true")
+  private boolean executionProofTopicEnabled = P2PConfig.DEFAULT_EXECUTION_PROOF_GOSSIP_ENABLED;
 
   @Option(
       names = {"--Xpeer-request-limit"},
@@ -477,12 +539,50 @@ public class P2POptions {
       GossipConfig.DEFAULT_FLOOD_PUBLISH_MAX_MESSAGE_SIZE_THRESHOLD;
 
   @Option(
-      names = {"--Xdas-extra-custody-group-count"},
+      names = {"--Xcustody-group-count-override"},
       paramLabel = "<NUMBER>",
-      description = "Number of extra custody groups",
+      description =
+          "Override the number of custody groups. If it's lower than node configuration requirement, "
+              + "the value is ignored. If it's higher than maximum number of custody groups, the value is set to "
+              + "allowed maximum.",
       arity = "1",
       hidden = true)
-  private int dasExtraCustodyGroupCount = P2PConfig.DEFAULT_DAS_EXTRA_CUSTODY_GROUP_COUNT;
+  private int custodyGroupCountOverride = P2PConfig.DEFAULT_CUSTODY_GROUP_COUNT_OVERRIDE;
+
+  @Option(
+      names = {"--Xdas-publish-withhold-columns-every-slots"},
+      hidden = true,
+      paramLabel = "<NUMBER>",
+      description =
+          "If set will not publish non-custodied DataColumnSidecars on block production once in configured number of slots",
+      arity = "1")
+  private int dasPublishWithholdColumnsEverySlots =
+      P2PConfig.DEFAULT_DAS_PUBLISH_WITHHOLD_COLUMNS_EVERY_SLOTS;
+
+  @Option(
+      names = {"--Xdas-disable-el-recovery"},
+      hidden = true,
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description =
+          "If set will disable attempts to recover blobs from EL to build DataColumnSidecars",
+      arity = "0..1",
+      fallbackValue = "true")
+  private boolean dasDisableElRecovery = P2PConfig.DEFAULT_DAS_DISABLE_EL_RECOVERY;
+
+  @Option(
+      names = {"--Xcolumns-data-availability-half-check-enabled"},
+      hidden = true,
+      paramLabel = "<BOOLEAN>",
+      showDefaultValue = Visibility.ALWAYS,
+      description =
+          "Enables faster block import when 50% of all sidecar columns available without waiting "
+              + "to obtain the remaining columns, which continue to download in the background. "
+              + "Works only on nodes with 50%+ columns custody requirements.",
+      arity = "0..1",
+      fallbackValue = "true")
+  private boolean columnsDataAvailabilityHalfCheckEnabled =
+      P2PConfig.DEFAULT_COLUMNS_DATA_AVAILABILITY_HALF_CHECK_ENABLED;
 
   @Option(
       names = {"--Xp2p-historical-data-max-concurrent-queries"},
@@ -495,6 +595,29 @@ public class P2POptions {
       arity = "1")
   private int historicalDataMaxConcurrentQueries =
       P2PConfig.DEFAULT_HISTORICAL_DATA_MAX_CONCURRENT_QUERIES;
+
+  @Option(
+      names = {"--Xp2p-historical-data-max-query-queue-size"},
+      hidden = true,
+      paramLabel = "<NUMBER>",
+      description =
+          "Limits the number of queries being queued when handling RPC requests. It has no effect if max-concurrent-queries is set to 0.",
+      showDefaultValue = Visibility.ALWAYS,
+      arity = "1")
+  private int historicalDataMaxQueryQueueSize = P2PConfig.DEFAULT_HISTORICAL_MAX_QUERY_QUEUE_SIZE;
+
+  @Option(
+      names = {"--Xmin-bid-increment-percentage"},
+      hidden = true,
+      paramLabel = "<INTEGER>",
+      description =
+          "Minimum bid increment percentage for execution payload bid gossip validation. "
+              + "New bids must exceed the current highest bid by at least this percentage. "
+              + "Used for DoS protection against bid spamming. Default: 1 (1%)",
+      arity = "1",
+      defaultValue = "1",
+      showDefaultValue = Visibility.ALWAYS)
+  private int minBidIncrementPercentage = P2PConfig.DEFAULT_MIN_BID_INCREMENT_PERCENTAGE;
 
   private OptionalInt getP2pLowerBound() {
     if (p2pUpperBound.isPresent() && p2pLowerBound.isPresent()) {
@@ -537,7 +660,21 @@ public class P2POptions {
       try {
         final List<String> bootnodesFromUrl =
             MultilineEntriesReader.readEntries(p2pDiscoveryBootnodesUrl);
-        bootnodes.addAll(bootnodesFromUrl);
+        for (final String bootnode : bootnodesFromUrl) {
+          if (bootnode.startsWith("- enr:-")) {
+            // clean up yaml entries
+            bootnodes.add(bootnode.substring(2));
+          } else if (bootnode.startsWith("enr")) {
+            // require they start with ENR
+            bootnodes.add(bootnode);
+          } else {
+            throw new InvalidConfigurationException(
+                String.format(
+                    "Invalid bootnode found in URL (%s): %s", p2pDiscoveryBootnodesUrl, bootnode));
+          }
+        }
+      } catch (final InvalidConfigurationException e) {
+        throw e;
       } catch (final Exception e) {
         throw new InvalidConfigurationException(
             "Error reading bootnodes from " + p2pDiscoveryBootnodesUrl, e);
@@ -567,8 +704,19 @@ public class P2POptions {
                   .peerRequestLimit(peerRequestLimit)
                   .floodPublishMaxMessageSizeThreshold(floodPublishMaxMessageSizeThreshold)
                   .gossipBlobsAfterBlockEnabled(gossipBlobsAfterBlockEnabled)
-                  .dasExtraCustodyGroupCount(dasExtraCustodyGroupCount)
-                  .historicalDataMaxConcurrentQueries(historicalDataMaxConcurrentQueries);
+                  .custodyGroupCountOverride(custodyGroupCountOverride)
+                  .dasPublishWithholdColumnsEverySlots(dasPublishWithholdColumnsEverySlots)
+                  .dasDisableElRecovery(dasDisableElRecovery)
+                  .historicalDataMaxConcurrentQueries(historicalDataMaxConcurrentQueries)
+                  .historicalDataMaxQueryQueueSize(historicalDataMaxQueryQueueSize)
+                  .executionProofTopicEnabled(executionProofTopicEnabled)
+                  .reworkedSidecarRecoveryTimeout(sidecarCancelTimeoutMs)
+                  .reworkedSidecarDownloadTimeout(sidecarDownloadTimeoutMs)
+                  .reworkedSidecarSyncPollPeriod(reworkedSidecarCustodySyncPollPeriodSeconds)
+                  .reworkedSidecarSyncBatchSize(reworkedSidecarCustodySyncBatchSize)
+                  .reworkedSidecarSyncEnabled(reworkedSidecarCustodySyncEnabled)
+                  .columnsDataAvailabilityHalfCheckEnabled(columnsDataAvailabilityHalfCheckEnabled)
+                  .minBidIncrementPercentage(minBidIncrementPercentage);
               batchVerifyQueueCapacity.ifPresent(b::batchVerifyQueueCapacity);
             })
         .discovery(

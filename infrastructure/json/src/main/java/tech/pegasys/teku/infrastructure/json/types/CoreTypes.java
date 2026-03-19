@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -28,6 +28,9 @@ public class CoreTypes {
   public static final StringValueTypeDefinition<Boolean> BOOLEAN_TYPE = new BooleanTypeDefinition();
 
   public static final StringValueTypeDefinition<Byte> BYTE_TYPE = new ByteTypeDefinition();
+
+  public static final StringValueTypeDefinition<Boolean> BOOLEAN_PRIMITIVE_TYPE =
+      new BooleanPrimitiveTypeDefinition();
 
   public static final StringValueTypeDefinition<Bytes32> BYTES32_TYPE =
       DeserializableTypeDefinition.string(Bytes32.class)

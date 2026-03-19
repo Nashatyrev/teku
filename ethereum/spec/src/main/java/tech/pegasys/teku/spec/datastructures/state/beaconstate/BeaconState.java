@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -41,6 +41,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.capella.
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.deneb.BeaconStateDeneb;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateElectra;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.fulu.BeaconStateFulu;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.gloas.BeaconStateGloas;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.phase0.BeaconStatePhase0;
 
 public interface BeaconState extends SszContainer, ValidatorStats {
@@ -195,6 +196,10 @@ public interface BeaconState extends SszContainer, ValidatorStats {
   }
 
   default Optional<BeaconStateFulu> toVersionFulu() {
+    return Optional.empty();
+  }
+
+  default Optional<BeaconStateGloas> toVersionGloas() {
     return Optional.empty();
   }
 }

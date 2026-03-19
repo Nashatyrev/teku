@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -61,6 +61,7 @@ public class StoreBuilder {
   private Optional<SlotAndExecutionPayloadSummary> finalizedOptimisticTransitionPayload =
       Optional.empty();
   private ForkChoiceStrategy forkChoiceStrategy = null;
+  private Optional<UInt64> custodyGroupCount = Optional.empty();
 
   private StoreBuilder() {}
 
@@ -101,6 +102,7 @@ public class StoreBuilder {
         // FIXME (spec) not specified in the spec
         anchor.getCheckpoint(),
         anchor.getRoot(),
+        Optional.empty(),
         Optional.empty());
   }
 
@@ -108,6 +110,7 @@ public class StoreBuilder {
     return time(data.time())
         .anchor(data.anchor())
         .genesisTime(data.genesisTime())
+        .custodyGroupCount(data.custodyGroupCount())
         .latestFinalized(data.latestFinalized())
         .finalizedOptimisticTransitionPayload(data.finalizedOptimisticTransitionPayload())
         .justifiedCheckpoint(data.justifiedCheckpoint())
@@ -139,14 +142,14 @@ public class StoreBuilder {
           finalizedOptimisticTransitionPayload,
           justifiedCheckpoint,
           bestJustifiedCheckpoint,
-          blockInfoByRoot,
           votes,
           confirmedRoot,
           prevSlotJustifiedCheckpoint,
           prevSlotUnrealizedJustifiedCheckpoint,
           prevSlotHead,
           storeConfig,
-          forkChoiceStrategy);
+          forkChoiceStrategy,
+          custodyGroupCount);
     }
     return Store.create(
         asyncRunner,
@@ -169,7 +172,8 @@ public class StoreBuilder {
         prevSlotJustifiedCheckpoint,
         prevSlotUnrealizedJustifiedCheckpoint,
         prevSlotHead,
-        storeConfig);
+        storeConfig,
+        custodyGroupCount);
   }
 
   private void assertValid() {
@@ -259,6 +263,12 @@ public class StoreBuilder {
   public StoreBuilder genesisTime(final UInt64 genesisTime) {
     checkNotNull(genesisTime);
     this.genesisTime = genesisTime;
+    return this;
+  }
+
+  public StoreBuilder custodyGroupCount(final Optional<UInt64> custodyGroupCount) {
+    checkNotNull(custodyGroupCount);
+    this.custodyGroupCount = custodyGroupCount;
     return this;
   }
 

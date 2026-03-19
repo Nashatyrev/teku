@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -127,7 +127,7 @@ public class SyncCommitteeScheduler implements ValidatorTimingChannel {
   }
 
   @Override
-  public void onAttestationCreationDue(final UInt64 slot) {
+  public void onSyncCommitteeCreationDue(final UInt64 slot) {
     // Check slot being null for the edge case of genesis slot (i.e. slot 0)
     if (lastProductionSlot != null && slot.compareTo(lastProductionSlot) <= 0) {
       LOG.debug(
@@ -142,9 +142,12 @@ public class SyncCommitteeScheduler implements ValidatorTimingChannel {
   }
 
   @Override
-  public void onAttestationAggregationDue(final UInt64 slot) {
+  public void onContributionCreationDue(final UInt64 slot) {
     getDutiesForSlot(slot).ifPresent(duties -> duties.onAggregationDue(slot));
   }
+
+  @Override
+  public void onPayloadAttestationCreationDue(final UInt64 slot) {}
 
   private Optional<PendingDuties> getDutiesForSlot(final UInt64 slot) {
     final Optional<SyncCommitteeUtil> maybeUtils = spec.getSyncCommitteeUtil(slot);
@@ -188,6 +191,12 @@ public class SyncCommitteeScheduler implements ValidatorTimingChannel {
 
   @Override
   public void onBlockProductionDue(final UInt64 slot) {}
+
+  @Override
+  public void onAttestationCreationDue(final UInt64 slot) {}
+
+  @Override
+  public void onAttestationAggregationDue(final UInt64 slot) {}
 
   @Override
   public void onAttesterSlashing(final AttesterSlashing attesterSlashing) {}

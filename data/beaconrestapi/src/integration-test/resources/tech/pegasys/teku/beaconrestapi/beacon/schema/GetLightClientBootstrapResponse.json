@@ -5,10 +5,14 @@
   "properties" : {
     "version" : {
       "type" : "string",
-      "enum" : [ "phase0", "altair", "bellatrix", "capella", "deneb", "electra", "fulu" ]
+      "enum" : [ "phase0", "altair", "bellatrix", "capella", "deneb", "electra", "fulu", "gloas", "heze" ]
     },
     "data" : {
-      "$ref" : "#/components/schemas/LightClientBootstrap"
+      "title" : "LightClientBootstrap",
+      "type" : "object",
+      "oneOf" : [ {
+        "$ref" : "#/components/schemas/LightClientBootstrap"
+      } ]
     }
   }
 }

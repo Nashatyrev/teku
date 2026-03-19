@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package tech.pegasys.teku.spec.config;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes;
-import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public interface SpecConfigDeneb extends SpecConfigCapella, NetworkingSpecConfigDeneb {
@@ -35,10 +34,6 @@ public interface SpecConfigDeneb extends SpecConfigCapella, NetworkingSpecConfig
                     "Expected Deneb spec config but got: "
                         + specConfig.getClass().getSimpleName()));
   }
-
-  Bytes4 getDenebForkVersion();
-
-  UInt64 getDenebForkEpoch();
 
   int getMaxPerEpochActivationChurnLimit();
 

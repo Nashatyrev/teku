@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -15,13 +15,17 @@ package tech.pegasys.teku.spec.config;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
+
 import org.apache.tuweni.bytes.Bytes;
+import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.ethereum.execution.types.Eth1Address;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.constants.WithdrawalPrefixes;
 import tech.pegasys.teku.spec.logic.common.helpers.MathHelpers;
+import tech.pegasys.teku.spec.logic.common.statetransition.blockvalidator.BatchSignatureVerifier;
 
 public class SpecConfigPhase0 implements SpecConfig {
   private final Map<String, Object> rawConfig;
@@ -68,6 +72,10 @@ public class SpecConfigPhase0 implements SpecConfig {
   private final int slotsPerHistoricalRoot;
   private final int minValidatorWithdrawabilityDelay;
   private final UInt64 shardCommitteePeriod;
+  private final int slotDurationMillis;
+  private final int attestationDueBps;
+  private final int aggregateDueBps;
+  private final int proposerReorgCutoffBps;
 
   // State list lengths
   private final int epochsPerHistoricalVector;
@@ -105,8 +113,6 @@ public class SpecConfigPhase0 implements SpecConfig {
   private final int maxRequestBlocks;
   private final int epochsPerSubnetSubscription;
   private final int minEpochsForBlockRequests;
-  private final int ttfbTimeout;
-  private final int respTimeout;
   private final int attestationPropagationSlotRange;
   private final int maximumGossipClockDisparity;
   private final Bytes4 messageDomainInvalidSnappy;
@@ -124,7 +130,10 @@ public class SpecConfigPhase0 implements SpecConfig {
 
   private final UInt64 maxPerEpochActivationExitChurnLimit;
 
-  // altair fork information
+  private final BLSSignatureVerifier blsSignatureVerifier;
+  private final Supplier<BatchSignatureVerifier> batchSignatureVerifierSupplier;
+
+  // altair fork
   private final Bytes4 altairForkVersion;
   private final UInt64 altairForkEpoch;
 
@@ -135,6 +144,26 @@ public class SpecConfigPhase0 implements SpecConfig {
   // capella fork
   private final Bytes4 capellaForkVersion;
   private final UInt64 capellaForkEpoch;
+
+  // deneb fork
+  private final Bytes4 denebForkVersion;
+  private final UInt64 denebForkEpoch;
+
+  // electra fork
+  private final Bytes4 electraForkVersion;
+  private final UInt64 electraForkEpoch;
+
+  // fulu fork
+  private final Bytes4 fuluForkVersion;
+  private final UInt64 fuluForkEpoch;
+
+  // gloas fork
+  private final Bytes4 gloasForkVersion;
+  private final UInt64 gloasForkEpoch;
+
+  // heze fork
+  private final Bytes4 hezeForkVersion;
+  private final UInt64 hezeForkEpoch;
 
   public SpecConfigPhase0(
       final Map<String, Object> rawConfig,
@@ -190,8 +219,6 @@ public class SpecConfigPhase0 implements SpecConfig {
       final int maxRequestBlocks,
       final int epochsPerSubnetSubscription,
       final int minEpochsForBlockRequests,
-      final int ttfbTimeout,
-      final int respTimeout,
       final int attestationPropagationSlotRange,
       final int maximumGossipClockDisparity,
       final Bytes4 messageDomainInvalidSnappy,
@@ -207,12 +234,28 @@ public class SpecConfigPhase0 implements SpecConfig {
       final int reorgHeadWeightThreshold,
       final int reorgParentWeightThreshold,
       final UInt64 maxPerEpochActivationExitChurnLimit,
+      final int slotDurationMillis,
+      final int attestationDueBps,
+      final int aggregateDueBps,
+      final int proposerReorgCutoffBps,
+      final BLSSignatureVerifier blsSignatureVerifier,
+      final Supplier<BatchSignatureVerifier> batchSignatureVerifierSupplier,
       final Bytes4 altairForkVersion,
       final UInt64 altairForkEpoch,
       final Bytes4 bellatrixForkVersion,
       final UInt64 bellatrixForkEpoch,
       final Bytes4 capellaForkVersion,
-      final UInt64 capellaForkEpoch) {
+      final UInt64 capellaForkEpoch,
+      final Bytes4 denebForkVersion,
+      final UInt64 denebForkEpoch,
+      final Bytes4 electraForkVersion,
+      final UInt64 electraForkEpoch,
+      final Bytes4 fuluForkVersion,
+      final UInt64 fuluForkEpoch,
+      final Bytes4 gloasForkVersion,
+      final UInt64 gloasForkEpoch,
+      final Bytes4 hezeForkVersion,
+      final UInt64 hezeForkEpoch) {
     this.rawConfig = rawConfig;
     this.eth1FollowDistance = eth1FollowDistance;
     this.maxCommitteesPerSlot = maxCommitteesPerSlot;
@@ -267,8 +310,6 @@ public class SpecConfigPhase0 implements SpecConfig {
     this.maxRequestBlocks = maxRequestBlocks;
     this.epochsPerSubnetSubscription = epochsPerSubnetSubscription;
     this.minEpochsForBlockRequests = minEpochsForBlockRequests;
-    this.ttfbTimeout = ttfbTimeout;
-    this.respTimeout = respTimeout;
     this.attestationPropagationSlotRange = attestationPropagationSlotRange;
     this.maximumGossipClockDisparity = maximumGossipClockDisparity;
     this.messageDomainInvalidSnappy = messageDomainInvalidSnappy;
@@ -284,12 +325,28 @@ public class SpecConfigPhase0 implements SpecConfig {
     this.reorgHeadWeightThreshold = reorgHeadWeightThreshold;
     this.reorgParentWeightThreshold = reorgParentWeightThreshold;
     this.maxPerEpochActivationExitChurnLimit = maxPerEpochActivationExitChurnLimit;
+    this.slotDurationMillis = slotDurationMillis;
+    this.attestationDueBps = attestationDueBps;
+    this.aggregateDueBps = aggregateDueBps;
+    this.proposerReorgCutoffBps = proposerReorgCutoffBps;
     this.altairForkVersion = altairForkVersion;
     this.altairForkEpoch = altairForkEpoch;
     this.bellatrixForkVersion = bellatrixForkVersion;
     this.bellatrixForkEpoch = bellatrixForkEpoch;
     this.capellaForkVersion = capellaForkVersion;
     this.capellaForkEpoch = capellaForkEpoch;
+    this.denebForkVersion = denebForkVersion;
+    this.denebForkEpoch = denebForkEpoch;
+    this.electraForkVersion = electraForkVersion;
+    this.electraForkEpoch = electraForkEpoch;
+    this.fuluForkVersion = fuluForkVersion;
+    this.fuluForkEpoch = fuluForkEpoch;
+    this.gloasForkVersion = gloasForkVersion;
+    this.gloasForkEpoch = gloasForkEpoch;
+    this.hezeForkVersion = hezeForkVersion;
+    this.hezeForkEpoch = hezeForkEpoch;
+    this.blsSignatureVerifier = blsSignatureVerifier;
+    this.batchSignatureVerifierSupplier = batchSignatureVerifierSupplier;
   }
 
   @Override
@@ -448,8 +505,78 @@ public class SpecConfigPhase0 implements SpecConfig {
   }
 
   @Override
+  public Bytes4 getDenebForkVersion() {
+    return denebForkVersion;
+  }
+
+  @Override
+  public UInt64 getDenebForkEpoch() {
+    return denebForkEpoch;
+  }
+
+  @Override
+  public Bytes4 getElectraForkVersion() {
+    return electraForkVersion;
+  }
+
+  @Override
+  public UInt64 getElectraForkEpoch() {
+    return electraForkEpoch;
+  }
+
+  @Override
+  public Bytes4 getFuluForkVersion() {
+    return fuluForkVersion;
+  }
+
+  @Override
+  public UInt64 getFuluForkEpoch() {
+    return fuluForkEpoch;
+  }
+
+  @Override
+  public Bytes4 getGloasForkVersion() {
+    return gloasForkVersion;
+  }
+
+  @Override
+  public UInt64 getGloasForkEpoch() {
+    return gloasForkEpoch;
+  }
+
+  @Override
+  public Bytes4 getHezeForkVersion() {
+    return hezeForkVersion;
+  }
+
+  @Override
+  public UInt64 getHezeForkEpoch() {
+    return hezeForkEpoch;
+  }
+
+  @Override
   public int getSecondsPerSlot() {
     return secondsPerSlot;
+  }
+
+  @Override
+  public int getProposerReorgCutoffBps() {
+    return proposerReorgCutoffBps;
+  }
+
+  @Override
+  public int getAttestationDueBps() {
+    return attestationDueBps;
+  }
+
+  @Override
+  public int getAggregateDueBps() {
+    return aggregateDueBps;
+  }
+
+  @Override
+  public int getSlotDurationMillis() {
+    return slotDurationMillis;
   }
 
   @Override
@@ -633,16 +760,6 @@ public class SpecConfigPhase0 implements SpecConfig {
   }
 
   @Override
-  public int getTtfbTimeout() {
-    return ttfbTimeout;
-  }
-
-  @Override
-  public int getRespTimeout() {
-    return respTimeout;
-  }
-
-  @Override
   public int getAttestationPropagationSlotRange() {
     return attestationPropagationSlotRange;
   }
@@ -703,6 +820,16 @@ public class SpecConfigPhase0 implements SpecConfig {
   }
 
   @Override
+  public BLSSignatureVerifier getBLSSignatureVerifier() {
+    return blsSignatureVerifier;
+  }
+
+  @Override
+  public BatchSignatureVerifier createBatchSignatureVerifier() {
+    return batchSignatureVerifierSupplier.get();
+  }
+
+  @Override
   public boolean equals(final Object o) {
     if (this == o) {
       return true;
@@ -755,8 +882,6 @@ public class SpecConfigPhase0 implements SpecConfig {
             == that.committeeWeightEstimationAdjustmentFactor
         && confirmationByzantineThreshold == that.confirmationByzantineThreshold
         && confirmationSlashingThreshold == that.confirmationSlashingThreshold
-        && ttfbTimeout == that.ttfbTimeout
-        && respTimeout == that.respTimeout
         && attestationPropagationSlotRange == that.attestationPropagationSlotRange
         && maximumGossipClockDisparity == that.maximumGossipClockDisparity
         && Objects.equals(eth1FollowDistance, that.eth1FollowDistance)
@@ -775,6 +900,16 @@ public class SpecConfigPhase0 implements SpecConfig {
         && Objects.equals(bellatrixForkEpoch, that.bellatrixForkEpoch)
         && Objects.equals(capellaForkVersion, that.capellaForkVersion)
         && Objects.equals(capellaForkEpoch, that.capellaForkEpoch)
+        && Objects.equals(denebForkVersion, that.denebForkVersion)
+        && Objects.equals(denebForkEpoch, that.denebForkEpoch)
+        && Objects.equals(electraForkVersion, that.electraForkVersion)
+        && Objects.equals(electraForkEpoch, that.electraForkEpoch)
+        && Objects.equals(fuluForkVersion, that.fuluForkVersion)
+        && Objects.equals(fuluForkEpoch, that.fuluForkEpoch)
+        && Objects.equals(gloasForkVersion, that.gloasForkVersion)
+        && Objects.equals(gloasForkEpoch, that.gloasForkEpoch)
+        && Objects.equals(hezeForkVersion, that.hezeForkVersion)
+        && Objects.equals(hezeForkEpoch, that.hezeForkEpoch)
         && Objects.equals(genesisDelay, that.genesisDelay)
         && Objects.equals(minEpochsToInactivityPenalty, that.minEpochsToInactivityPenalty)
         && Objects.equals(shardCommitteePeriod, that.shardCommitteePeriod)
@@ -840,8 +975,6 @@ public class SpecConfigPhase0 implements SpecConfig {
         maxPayloadSize,
         maxRequestBlocks,
         epochsPerSubnetSubscription,
-        ttfbTimeout,
-        respTimeout,
         attestationPropagationSlotRange,
         maximumGossipClockDisparity,
         messageDomainInvalidSnappy,
@@ -855,6 +988,16 @@ public class SpecConfigPhase0 implements SpecConfig {
         bellatrixForkEpoch,
         capellaForkVersion,
         capellaForkEpoch,
+        denebForkVersion,
+        denebForkEpoch,
+        electraForkVersion,
+        electraForkEpoch,
+        fuluForkVersion,
+        fuluForkEpoch,
+        gloasForkVersion,
+        gloasForkEpoch,
+        hezeForkVersion,
+        hezeForkEpoch,
         attestationSubnetPrefixBits,
         committeeWeightEstimationAdjustmentFactor,
         confirmationByzantineThreshold,

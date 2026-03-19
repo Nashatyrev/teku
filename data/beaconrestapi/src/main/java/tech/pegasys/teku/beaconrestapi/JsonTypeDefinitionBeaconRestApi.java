@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -25,12 +25,14 @@ import tech.pegasys.teku.api.exceptions.ServiceUnavailableException;
 import tech.pegasys.teku.beaconrestapi.addon.CapellaRestApiBuilderAddon;
 import tech.pegasys.teku.beaconrestapi.addon.DenebRestApiBuilderAddon;
 import tech.pegasys.teku.beaconrestapi.addon.FuluRestApiBuilderAddon;
+import tech.pegasys.teku.beaconrestapi.addon.GloasRestApiBuilderAddon;
 import tech.pegasys.teku.beaconrestapi.addon.LightClientRestApiBuilderAddon;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.admin.AddPeer;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.admin.Liveness;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.admin.PutLogLevel;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.admin.Readiness;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetAllBlocksAtSlot;
+import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetColumnCustodyAtSlot;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetDeposits;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetEth1Data;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetEth1DataCache;
@@ -38,6 +40,7 @@ import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetEth1VotingSumma
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetFinalizedStateSlotBefore;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetProposersData;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.beacon.GetStateByBlockRoot;
+import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.node.GetCustodyOverview;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.node.GetPeersScore;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.validatorInclusion.GetGlobalValidatorInclusion;
 import tech.pegasys.teku.beaconrestapi.handlers.tekuv1.validatorInclusion.GetValidatorInclusion;
@@ -59,6 +62,7 @@ import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStateFork;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStatePendingConsolidations;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStatePendingDeposits;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStatePendingPartialWithdrawals;
+import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStateProposerLookahead;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStateRandao;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStateRoot;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.beacon.GetStateSyncCommittees;
@@ -100,6 +104,7 @@ import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostAttesterDuties;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostBeaconCommitteeSelections;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostContributionAndProofs;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostPrepareBeaconProposer;
+import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostPtcDuties;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostRegisterValidator;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostSubscribeToBeaconCommitteeSubnet;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.validator.PostSyncCommitteeSelections;
@@ -116,7 +121,9 @@ import tech.pegasys.teku.beaconrestapi.handlers.v2.beacon.PostBlindedBlockV2;
 import tech.pegasys.teku.beaconrestapi.handlers.v2.beacon.PostBlockV2;
 import tech.pegasys.teku.beaconrestapi.handlers.v2.debug.GetChainHeadsV2;
 import tech.pegasys.teku.beaconrestapi.handlers.v2.debug.GetState;
+import tech.pegasys.teku.beaconrestapi.handlers.v2.node.GetVersionV2;
 import tech.pegasys.teku.beaconrestapi.handlers.v2.validator.GetAggregateAttestationV2;
+import tech.pegasys.teku.beaconrestapi.handlers.v2.validator.GetProposerDutiesV2;
 import tech.pegasys.teku.beaconrestapi.handlers.v2.validator.PostAggregateAndProofsV2;
 import tech.pegasys.teku.beaconrestapi.handlers.v3.validator.GetNewBlockV3;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
@@ -191,6 +198,8 @@ public class JsonTypeDefinitionBeaconRestApi implements BeaconRestApi {
             .listenAddress(config.getRestApiInterface())
             .port(config.getRestApiPort())
             .maxUrlLength(config.getMaxUrlLength())
+            .virtualThreadsEnabled(config.isRestApiVirtualThreadsEnabled())
+            .virtualThreadsMaxThreads(config.getRestApiVirtualThreadsMaxConcurrentTasks())
             .corsAllowedOrigins(config.getRestApiCorsAllowedOrigins())
             .hostAllowlist(config.getRestApiHostAllowlist())
             .exceptionHandler(
@@ -261,6 +270,7 @@ public class JsonTypeDefinitionBeaconRestApi implements BeaconRestApi {
             .endpoint(new GetStatePendingConsolidations(dataProvider, schemaCache))
             .endpoint(new GetStatePendingDeposits(dataProvider, schemaCache))
             .endpoint(new GetStatePendingPartialWithdrawals(dataProvider, schemaCache))
+            .endpoint(new GetStateProposerLookahead(dataProvider, schemaCache))
             .endpoint(new GetDepositSnapshot(eth1DataProvider))
             // Event Handler
             .endpoint(
@@ -279,6 +289,7 @@ public class JsonTypeDefinitionBeaconRestApi implements BeaconRestApi {
             .endpoint(new GetPeerById(dataProvider))
             .endpoint(new GetSyncing(dataProvider))
             .endpoint(new GetVersion())
+            .endpoint(new GetVersionV2(dataProvider))
             // Rewards Handlers
             .endpoint(new GetSyncCommitteeRewards(dataProvider))
             .endpoint(new GetBlockRewards(dataProvider))
@@ -286,6 +297,7 @@ public class JsonTypeDefinitionBeaconRestApi implements BeaconRestApi {
             // Validator Handlers
             .endpoint(new PostAttesterDuties(dataProvider))
             .endpoint(new GetProposerDuties(dataProvider))
+            .endpoint(new GetProposerDutiesV2(dataProvider))
             .endpoint(new GetNewBlockV3(dataProvider, schemaCache))
             .endpoint(new GetAttestationData(dataProvider, spec))
             .endpoint(new GetAggregateAttestation(dataProvider, spec))
@@ -299,6 +311,7 @@ public class JsonTypeDefinitionBeaconRestApi implements BeaconRestApi {
             .endpoint(new PostContributionAndProofs(dataProvider, schemaCache))
             .endpoint(new PostPrepareBeaconProposer(dataProvider))
             .endpoint(new PostRegisterValidator(dataProvider))
+            .endpoint(new PostPtcDuties(dataProvider, spec))
             // Obol DVT Methods
             .endpoint(new PostBeaconCommitteeSelections())
             .endpoint(new PostSyncCommitteeSelections())
@@ -319,6 +332,8 @@ public class JsonTypeDefinitionBeaconRestApi implements BeaconRestApi {
             .endpoint(new Readiness(dataProvider))
             .endpoint(new GetAllBlocksAtSlot(dataProvider, schemaCache))
             .endpoint(new GetPeersScore(dataProvider))
+            .endpoint(new GetCustodyOverview(dataProvider))
+            .endpoint(new GetColumnCustodyAtSlot(dataProvider))
             .endpoint(new GetProposersData(dataProvider))
             .endpoint(new GetDeposits(eth1DataProvider))
             .endpoint(new GetEth1Data(dataProvider, eth1DataProvider))
@@ -344,6 +359,7 @@ public class JsonTypeDefinitionBeaconRestApi implements BeaconRestApi {
             new CapellaRestApiBuilderAddon(spec, dataProvider, schemaCache),
             new DenebRestApiBuilderAddon(spec, dataProvider, schemaCache),
             new FuluRestApiBuilderAddon(spec, dataProvider, schemaCache),
+            new GloasRestApiBuilderAddon(spec, dataProvider, schemaCache),
             new LightClientRestApiBuilderAddon(config, dataProvider, schemaCache));
 
     RestApiBuilder builderUpdated = builder;

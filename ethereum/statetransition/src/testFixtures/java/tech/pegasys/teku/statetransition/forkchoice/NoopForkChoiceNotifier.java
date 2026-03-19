@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -34,6 +34,9 @@ public class NoopForkChoiceNotifier implements ForkChoiceNotifier {
   public void onAttestationsDue(final UInt64 slot) {}
 
   @Override
+  public void onPayloadAttestationsDue(final UInt64 slot) {}
+
+  @Override
   public void onSyncingStatusChanged(final boolean inSync) {}
 
   @Override
@@ -44,9 +47,4 @@ public class NoopForkChoiceNotifier implements ForkChoiceNotifier {
 
   @Override
   public void onTerminalBlockReached(final Bytes32 executionBlockHash) {}
-
-  @Override
-  public boolean validatorIsConnected(final UInt64 validatorIndex, final UInt64 currentSlot) {
-    return true;
-  }
 }

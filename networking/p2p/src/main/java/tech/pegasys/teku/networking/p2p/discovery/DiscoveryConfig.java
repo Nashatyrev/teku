@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -252,6 +252,12 @@ public class DiscoveryConfig {
 
     public Builder bootnodes(final List<String> bootnodes) {
       checkNotNull(bootnodes);
+      for (final String bootnode : bootnodes) {
+        if (!bootnode.startsWith("enr:-")) {
+          throw new IllegalArgumentException(
+              String.format("The bootnode (%s) does not start with `enr:-`", bootnode));
+        }
+      }
       this.bootnodes = bootnodes;
       return this;
     }

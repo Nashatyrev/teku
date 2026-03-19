@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -253,12 +253,26 @@ public class BeaconBlocksByRootIntegrationTest extends AbstractRpcMethodIntegrat
           .hasCauseInstanceOf(RpcException.class)
           .hasRootCauseInstanceOf(UnrecognizedContextBytesException.class)
           .hasMessageContaining("Must request blocks with compatible fork.");
+    } else if (milestoneToBeaconBlockBodyClass(baseMilestone)
+        .equals(milestoneToBeaconBlockBodyClass(nextMilestone))) {
+      // no changes in BeaconBlockBody, so we should receive a successful response
+      assertThat(res).isCompleted();
+      assertThat(blocks).containsExactly(block1.getBlock(), block2.getBlock());
     } else {
       assertThat(res).isCompletedExceptionally();
       assertThatThrownBy(res::get)
           .hasCauseInstanceOf(RpcException.class)
-          .hasRootCauseInstanceOf(DeserializationFailedException.class)
-          .hasMessageContaining("Failed to deserialize payload");
+          .satisfiesAnyOf(
+              ex ->
+                  assertThat(ex.getCause())
+                      .isInstanceOf(DeserializationFailedException.class)
+                      .hasMessageContaining("Failed to deserialize payload"),
+              ex ->
+                  assertThat(ex.getCause())
+                      // happens when fields are removed and the ssz length bound of the next fork
+                      // is less than the current one
+                      .isInstanceOf(RpcException.LengthOutOfBoundsException.class)
+                      .hasMessageContaining("Chunk length is not within bounds for expected type"));
     }
   }
 

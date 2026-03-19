@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -16,6 +16,7 @@ package tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.fulu;
 import static tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields.PROPOSER_LOOKAHEAD;
 
 import java.util.Optional;
+import tech.pegasys.teku.infrastructure.ssz.collections.SszMutableUInt64Vector;
 import tech.pegasys.teku.infrastructure.ssz.collections.SszUInt64Vector;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
@@ -28,7 +29,7 @@ public interface MutableBeaconStateFulu extends MutableBeaconStateElectra, Beaco
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
-                    "Expected an Electra state but got: " + state.getClass().getSimpleName()));
+                    "Expected a Fulu state but got: " + state.getClass().getSimpleName()));
   }
 
   @Override
@@ -45,7 +46,7 @@ public interface MutableBeaconStateFulu extends MutableBeaconStateElectra, Beaco
   }
 
   @Override
-  default SszUInt64Vector getProposerLookahead() {
+  default SszMutableUInt64Vector getProposerLookahead() {
     final int index = getSchema().getFieldIndex(PROPOSER_LOOKAHEAD);
     return getAnyByRef(index);
   }

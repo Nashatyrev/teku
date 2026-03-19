@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -15,7 +15,6 @@ package tech.pegasys.teku.spec.config;
 
 import java.util.Objects;
 import java.util.Optional;
-import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
@@ -30,16 +29,6 @@ public class DelegatingSpecConfigElectra extends DelegatingSpecConfigDeneb
   @Override
   public Optional<SpecConfigElectra> toVersionElectra() {
     return Optional.of(this);
-  }
-
-  @Override
-  public Bytes4 getElectraForkVersion() {
-    return specConfigElectra.getElectraForkVersion();
-  }
-
-  @Override
-  public UInt64 getElectraForkEpoch() {
-    return specConfigElectra.getElectraForkEpoch();
   }
 
   @Override

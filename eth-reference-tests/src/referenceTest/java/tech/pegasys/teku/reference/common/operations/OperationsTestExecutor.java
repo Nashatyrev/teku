@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -30,16 +30,20 @@ import tech.pegasys.teku.infrastructure.ssz.SszData;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
 import tech.pegasys.teku.infrastructure.ssz.schema.SszListSchema;
 import tech.pegasys.teku.infrastructure.time.SystemTimeProvider;
+import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.reference.TestExecutor;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockSummary;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair.BeaconBlockBodySchemaAltair;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair.SyncAggregate;
-import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayload;
+import tech.pegasys.teku.spec.datastructures.epbs.versions.gloas.PayloadAttestation;
+import tech.pegasys.teku.spec.datastructures.epbs.versions.gloas.SignedExecutionPayloadEnvelope;
+import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayloadSummary;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.ConsolidationRequest;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.DepositRequest;
 import tech.pegasys.teku.spec.datastructures.execution.versions.electra.WithdrawalRequest;
@@ -56,10 +60,12 @@ import tech.pegasys.teku.spec.logic.common.operations.validation.OperationInvali
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.status.TotalBalances;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.BlockProcessingException;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.EpochProcessingException;
+import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.ExecutionPayloadProcessingException;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.SlotProcessingException;
-import tech.pegasys.teku.spec.schemas.SchemaDefinitionsBellatrix;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsCapella;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsGloas;
 import tech.pegasys.teku.statetransition.attestation.PooledAttestation;
 import tech.pegasys.teku.statetransition.attestation.PooledAttestationWithData;
 import tech.pegasys.teku.statetransition.attestation.utils.RewardBasedAttestationSorter;
@@ -88,7 +94,9 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
     WITHDRAWAL,
     DEPOSIT_REQUEST,
     WITHDRAWAL_REQUEST,
-    CONSOLIDATION_REQUEST
+    CONSOLIDATION_REQUEST,
+    EXECUTION_PAYLOAD_BID,
+    PAYLOAD_ATTESTATION
   }
 
   public static final ImmutableMap<String, TestExecutor> OPERATIONS_TEST_TYPES =
@@ -140,6 +148,13 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
               "operations/consolidation_request",
               new OperationsTestExecutor<>(
                   "consolidation_request.ssz_snappy", Operation.CONSOLIDATION_REQUEST))
+          .put(
+              "operations/execution_payload_bid",
+              new OperationsTestExecutor<>("block.ssz_snappy", Operation.EXECUTION_PAYLOAD_BID))
+          .put(
+              "operations/payload_attestation",
+              new OperationsTestExecutor<>(
+                  "payload_attestation.ssz_snappy", Operation.PAYLOAD_ATTESTATION))
           .build();
 
   private final String dataFileName;
@@ -259,7 +274,7 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
       final OperationProcessor processor,
       final BeaconState preState) {
     assertThatThrownBy(() -> applyOperation(testDefinition, processor, preState))
-        .isInstanceOf(BlockProcessingException.class);
+        .isInstanceOfAny(BlockProcessingException.class, ExecutionPayloadProcessingException.class);
   }
 
   private BeaconState applyOperation(
@@ -328,29 +343,56 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
         final ExecutionMeta executionMeta =
             loadYaml(testDefinition, "execution.yaml", ExecutionMeta.class);
 
-        final SchemaDefinitionsBellatrix schemaDefinitionsBellatrix =
-            testDefinition
-                .getSpec()
-                .getGenesisSchemaDefinitions()
-                .toVersionBellatrix()
-                .orElseThrow();
-        final BeaconBlockBody beaconBlockBody =
-            loadSsz(
-                testDefinition,
-                dataFileName,
-                schemaDefinitionsBellatrix.getBeaconBlockBodySchema());
+        final SchemaDefinitions schemaDefinitions =
+            testDefinition.getSpec().getGenesisSchemaDefinitions();
 
-        processor.processExecutionPayload(
-            state,
-            beaconBlockBody,
-            Optional.of(
-                (latestExecutionPayloadHeader, payloadToExecute) -> executionMeta.executionValid));
+        if (schemaDefinitions.toVersionGloas().isPresent()) {
+          final SignedExecutionPayloadEnvelope signedEnvelope =
+              loadSsz(
+                  testDefinition,
+                  "signed_envelope.ssz_snappy",
+                  SchemaDefinitionsGloas.required(schemaDefinitions)
+                      .getSignedExecutionPayloadEnvelopeSchema());
+          processor.processExecutionPayload(
+              state,
+              signedEnvelope,
+              Optional.of(
+                  (latestExecutionPayloadHeader, payloadToExecute) ->
+                      executionMeta.executionValid));
+        } else {
+          final BeaconBlockBody beaconBlockBody =
+              loadSsz(testDefinition, dataFileName, schemaDefinitions.getBeaconBlockBodySchema());
+          processor.processExecutionPayload(
+              state,
+              beaconBlockBody,
+              Optional.of(
+                  (latestExecutionPayloadHeader, payloadToExecute) ->
+                      executionMeta.executionValid));
+        }
       }
       case BLS_TO_EXECUTION_CHANGE -> processBlsToExecutionChange(testDefinition, state, processor);
       case WITHDRAWAL -> processWithdrawal(testDefinition, state, processor);
       case DEPOSIT_REQUEST -> processDepositRequest(testDefinition, state, processor);
       case WITHDRAWAL_REQUEST -> processWithdrawalRequest(testDefinition, state, processor);
       case CONSOLIDATION_REQUEST -> processConsolidations(testDefinition, state, processor);
+      case EXECUTION_PAYLOAD_BID -> {
+        final BeaconBlock beaconBlock =
+            loadSsz(
+                testDefinition,
+                dataFileName,
+                testDefinition.getSpec().getGenesisSchemaDefinitions().getBeaconBlockSchema());
+        processor.processExecutionPayloadBid(state, beaconBlock);
+      }
+      case PAYLOAD_ATTESTATION -> {
+        final PayloadAttestation payloadAttestation =
+            loadSsz(
+                testDefinition,
+                dataFileName,
+                SchemaDefinitionsGloas.required(
+                        testDefinition.getSpec().getGenesisSchemaDefinitions())
+                    .getPayloadAttestationSchema());
+        processor.processPayloadAttestation(state, payloadAttestation);
+      }
       default ->
           throw new UnsupportedOperationException(
               "Operation " + operation + " not implemented in OperationTestExecutor");
@@ -364,8 +406,18 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
       throws BlockProcessingException {
     final SchemaDefinitionsCapella schemaDefinitionsCapella =
         SchemaDefinitionsCapella.required(testDefinition.getSpec().getGenesisSchemaDefinitions());
-    final ExecutionPayload executionPayload =
-        loadSsz(testDefinition, dataFileName, schemaDefinitionsCapella.getExecutionPayloadSchema());
+    final Optional<ExecutionPayloadSummary> executionPayload;
+    if (schemaDefinitionsCapella.toVersionGloas().isPresent()) {
+      // no execution payload in withdrawals tests for >= Gloas
+      executionPayload = Optional.empty();
+    } else {
+      executionPayload =
+          Optional.of(
+              loadSsz(
+                  testDefinition,
+                  dataFileName,
+                  schemaDefinitionsCapella.getExecutionPayloadSchema()));
+    }
     processor.processWithdrawals(state, executionPayload);
   }
 
@@ -382,11 +434,9 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
   private void processDepositRequest(
       final TestDefinition testDefinition,
       final MutableBeaconState state,
-      final OperationProcessor processor)
-      throws BlockProcessingException {
+      final OperationProcessor processor) {
     final SszListSchema<DepositRequest, ?> depositRequestsSchema =
-        SchemaDefinitionsElectra.required(
-                testDefinition.getSpec().forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions())
+        SchemaDefinitionsElectra.required(testDefinition.getSpec().getGenesisSchemaDefinitions())
             .getExecutionRequestsSchema()
             .getDepositRequestsSchema();
     final SszList<DepositRequest> depositRequests =
@@ -398,11 +448,9 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
   private void processWithdrawalRequest(
       final TestDefinition testDefinition,
       final MutableBeaconState state,
-      final OperationProcessor processor)
-      throws BlockProcessingException {
+      final OperationProcessor processor) {
     final SszListSchema<WithdrawalRequest, ?> withdrawalRequestsSchema =
-        SchemaDefinitionsElectra.required(
-                testDefinition.getSpec().forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions())
+        SchemaDefinitionsElectra.required(testDefinition.getSpec().getGenesisSchemaDefinitions())
             .getExecutionRequestsSchema()
             .getWithdrawalRequestsSchema();
     final SszList<WithdrawalRequest> withdrawalRequests =
@@ -414,11 +462,9 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
   private void processConsolidations(
       final TestDefinition testDefinition,
       final MutableBeaconState state,
-      final OperationProcessor processor)
-      throws BlockProcessingException {
+      final OperationProcessor processor) {
     final SszListSchema<ConsolidationRequest, ?> consolidationRequestsSchema =
-        SchemaDefinitionsElectra.required(
-                testDefinition.getSpec().forMilestone(SpecMilestone.ELECTRA).getSchemaDefinitions())
+        SchemaDefinitionsElectra.required(testDefinition.getSpec().getGenesisSchemaDefinitions())
             .getExecutionRequestsSchema()
             .getConsolidationRequestsSchema();
     final SszList<ConsolidationRequest> consolidationRequests =
@@ -454,6 +500,7 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
   public void checkBlockInclusionValidation(
       final TestDefinition testDefinition, final BeaconState state, final boolean expectInclusion) {
     final Spec spec = testDefinition.getSpec();
+    final TimeProvider timeProvider = new SystemTimeProvider();
     switch (operation) {
       case ATTESTER_SLASHING -> {
         final AttesterSlashing attesterSlashing = loadAttesterSlashing(testDefinition);
@@ -470,14 +517,14 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
       case VOLUNTARY_EXIT -> {
         final SignedVoluntaryExit voluntaryExit = loadVoluntaryExit(testDefinition);
         final VoluntaryExitValidator voluntaryExitValidator =
-            new VoluntaryExitValidator(spec, null);
+            new VoluntaryExitValidator(spec, null, timeProvider);
         checkValidationForBlockInclusion(
             voluntaryExitValidator, state, voluntaryExit, expectInclusion);
       }
       case BLS_TO_EXECUTION_CHANGE -> {
         final SignedBlsToExecutionChangeValidator blsToExecutionChangeValidator =
             new SignedBlsToExecutionChangeValidator(
-                spec, new SystemTimeProvider(), null, new SimpleSignatureVerificationService());
+                spec, timeProvider, null, new SimpleSignatureVerificationService());
         final SignedBlsToExecutionChange blsToExecutionChange =
             loadBlsToExecutionChange(testDefinition);
         checkValidationForBlockInclusion(
@@ -492,7 +539,9 @@ public class OperationsTestExecutor<T extends SszData> implements TestExecutor {
           WITHDRAWAL,
           DEPOSIT_REQUEST,
           WITHDRAWAL_REQUEST,
-          CONSOLIDATION_REQUEST -> {}
+          CONSOLIDATION_REQUEST,
+          EXECUTION_PAYLOAD_BID,
+          PAYLOAD_ATTESTATION -> {}
     }
   }
 

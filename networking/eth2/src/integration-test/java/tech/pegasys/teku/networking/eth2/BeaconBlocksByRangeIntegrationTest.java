@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -32,6 +32,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.peers.Eth2Peer;
 import tech.pegasys.teku.networking.eth2.rpc.core.RpcException;
 import tech.pegasys.teku.networking.eth2.rpc.core.RpcException.DeserializationFailedException;
+import tech.pegasys.teku.networking.eth2.rpc.core.RpcException.LengthOutOfBoundsException;
 import tech.pegasys.teku.networking.eth2.rpc.core.RpcException.UnrecognizedContextBytesException;
 import tech.pegasys.teku.networking.p2p.peer.DisconnectReason;
 import tech.pegasys.teku.networking.p2p.peer.PeerDisconnectedException;
@@ -71,7 +72,7 @@ public class BeaconBlocksByRangeIntegrationTest extends AbstractRpcMethodIntegra
     final List<SignedBeaconBlock> blocks = new ArrayList<>();
     waitFor(
         peer.requestBlocksByRange(UInt64.ONE, UInt64.ZERO, RpcResponseListener.from(blocks::add)));
-    assertThat(peer.getOutstandingRequests()).isEqualTo(0);
+    waitFor(() -> assertThat(peer.getOutstandingRequests()).isEqualTo(0));
     assertThat(blocks).isEmpty();
   }
 
@@ -228,7 +229,7 @@ public class BeaconBlocksByRangeIntegrationTest extends AbstractRpcMethodIntegra
             block1.getSlot(), UInt64.valueOf(2), RpcResponseListener.from(blocks::add));
 
     waitFor(() -> assertThat(res).isDone());
-    assertThat(peer.getOutstandingRequests()).isEqualTo(0);
+    waitFor(() -> assertThat(peer.getOutstandingRequests()).isEqualTo(0));
 
     if (nextSpecEnabledLocally && nextSpecEnabledRemotely) {
       // We should receive a successful response
@@ -240,12 +241,26 @@ public class BeaconBlocksByRangeIntegrationTest extends AbstractRpcMethodIntegra
           .hasCauseInstanceOf(RpcException.class)
           .hasRootCauseInstanceOf(UnrecognizedContextBytesException.class)
           .hasMessageContaining("Must request blocks with compatible fork.");
+    } else if (milestoneToBeaconBlockBodyClass(baseMilestone)
+        .equals(milestoneToBeaconBlockBodyClass(nextMilestone))) {
+      // no changes in BeaconBlockBody, so we should receive a successful response
+      assertThat(res).isCompleted();
+      assertThat(blocks).containsExactly(block1.getBlock(), block2.getBlock());
     } else {
       assertThat(res).isCompletedExceptionally();
       assertThatThrownBy(res::get)
           .hasCauseInstanceOf(RpcException.class)
-          .hasRootCauseInstanceOf(DeserializationFailedException.class)
-          .hasMessageContaining("Failed to deserialize payload");
+          .satisfiesAnyOf(
+              ex ->
+                  assertThat(ex.getCause())
+                      .isInstanceOf(DeserializationFailedException.class)
+                      .hasMessageContaining("Failed to deserialize payload"),
+              ex ->
+                  assertThat(ex.getCause())
+                      // happens when fields are removed and the ssz length bound of the next fork
+                      // is less than the current one
+                      .isInstanceOf(LengthOutOfBoundsException.class)
+                      .hasMessageContaining("Chunk length is not within bounds for expected type"));
     }
   }
 
@@ -255,7 +270,7 @@ public class BeaconBlocksByRangeIntegrationTest extends AbstractRpcMethodIntegra
     waitFor(
         peer.requestBlocksByRange(
             UInt64.ONE, UInt64.valueOf(10), RpcResponseListener.from(blocks::add)));
-    assertThat(peer.getOutstandingRequests()).isEqualTo(0);
+    waitFor(() -> assertThat(peer.getOutstandingRequests()).isEqualTo(0));
     return blocks;
   }
 }

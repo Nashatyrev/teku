@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -84,13 +84,14 @@ public class BlobSidecarsByRangeFuluDeprecationTest {
       TestSpecFactory.createMinimalFulu(
           builder ->
               builder
+                  .fuluForkEpoch(fuluForkEpoch)
                   .denebBuilder(
                       // save blobs for 8 epochs instead of 4096 (test performance)
                       denebBuilder -> denebBuilder.minEpochsForBlobSidecarsRequests(8))
                   .fuluBuilder(
                       fuluBuilder ->
                           fuluBuilder
-                              .fuluForkEpoch(fuluForkEpoch)
+
                               // save blobs for 8 epochs instead of 4096 (test performance)
                               .minEpochsForDataColumnSidecarsRequests(8)));
   private final UInt64 slotsPerEpoch = UInt64.valueOf(spec.getSlotsPerEpoch(ZERO));

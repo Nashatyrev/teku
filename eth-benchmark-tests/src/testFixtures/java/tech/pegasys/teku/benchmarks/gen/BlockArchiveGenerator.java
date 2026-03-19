@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -27,7 +27,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.generator.AttestationGenerator;
-import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.util.EpochAttestationSchedule;
 import tech.pegasys.teku.spec.logic.common.util.ValidatorsUtil;
@@ -38,7 +37,9 @@ import tech.pegasys.teku.storage.client.RecentChainData;
 public class BlockArchiveGenerator {
   private final int validatorCount;
   private final int epochCount;
-  private final Spec spec = TestSpecFactory.createMainnetAltair();
+  private final Spec spec =
+      TestSpecFactory.createMainnetAltair(
+          builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP));
   private final List<BLSKeyPair> validatorKeys;
   private final RecentChainData localStorage;
   private final AttestationGenerator attestationGenerator;
@@ -94,7 +95,6 @@ public class BlockArchiveGenerator {
   private BlockArchiveGenerator(final int validatorCount, final int epochCount) {
     this.validatorCount = validatorCount;
     this.epochCount = epochCount;
-    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.NO_OP;
     this.validatorsUtil = spec.getGenesisSpec().getValidatorsUtil();
     this.beaconStateAccessors = spec.getGenesisSpec().beaconStateAccessors();
 

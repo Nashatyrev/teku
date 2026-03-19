@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,6 +12,8 @@
  */
 
 package tech.pegasys.teku.validator.client.signer;
+
+import static tech.pegasys.teku.infrastructure.async.ThrottlingTaskQueue.DEFAULT_MAXIMUM_QUEUE_SIZE;
 
 import com.google.common.io.Resources;
 import java.net.MalformedURLException;
@@ -58,7 +60,12 @@ public abstract class AbstractSecureExternalSignerIntegrationTest {
   private final StubMetricsSystem metricsSystem = new StubMetricsSystem();
   private final ThrottlingTaskQueueWithPriority queue =
       ThrottlingTaskQueueWithPriority.create(
-          8, metricsSystem, TekuMetricCategory.VALIDATOR, "secureExternalSignerTest");
+          8,
+          DEFAULT_MAXIMUM_QUEUE_SIZE,
+          metricsSystem,
+          TekuMetricCategory.VALIDATOR,
+          "secureExternalSignerTest",
+          "secureExternalSignerTestRejected");
 
   static {
     try {

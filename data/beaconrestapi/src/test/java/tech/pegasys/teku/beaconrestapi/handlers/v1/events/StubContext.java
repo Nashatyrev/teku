@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,11 +14,13 @@
 package tech.pegasys.teku.beaconrestapi.handlers.v1.events;
 
 import io.javalin.config.Key;
+import io.javalin.config.MultipartConfig;
 import io.javalin.http.Context;
-import io.javalin.http.HandlerType;
 import io.javalin.http.HttpStatus;
 import io.javalin.json.JsonMapper;
 import io.javalin.plugin.ContextPlugin;
+import io.javalin.router.Endpoint;
+import io.javalin.router.Endpoints;
 import io.javalin.security.RouteRole;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,7 +46,13 @@ public class StubContext implements Context {
 
   @NotNull
   @Override
-  public String endpointHandlerPath() {
+  public Endpoints endpoints() {
+    return null;
+  }
+
+  @NotNull
+  @Override
+  public Endpoint endpoint() {
     return null;
   }
 
@@ -53,13 +61,7 @@ public class StubContext implements Context {
 
   @NotNull
   @Override
-  public HandlerType handlerType() {
-    return null;
-  }
-
-  @NotNull
-  @Override
-  public String matchedPath() {
+  public MultipartConfig multipartConfig() {
     return null;
   }
 

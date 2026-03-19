@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -469,6 +469,24 @@ class ValidatorRegistratorTest {
 
     verifyRegistrations(registrationCalls.get(0), List.of(validator1, validator2, validator3));
     verifyRegistrations(registrationCalls.get(1), List.of(validator1, validator2, validator3));
+  }
+
+  @TestTemplate
+  void shouldQueueOnlyOneRetry() {
+    SafeFuture<Void> firstAttempt = new SafeFuture<>();
+    SafeFuture<Void> secondAttempt = new SafeFuture<>();
+    when(validatorApiChannel.registerValidators(any()))
+        .thenReturn(firstAttempt)
+        .thenReturn(secondAttempt);
+
+    setOwnedValidators(validator1, validator2, validator3);
+
+    runRegistrationFlowWithSubscription(0);
+    firstAttempt.completeExceptionally(new IllegalStateException("oopsy"));
+    runRegistrationFlowWithSubscription(0);
+    secondAttempt.completeExceptionally(new IllegalStateException("oopsy"));
+
+    assertThat(stubAsyncRunner.countDelayedActions()).isOne();
   }
 
   @TestTemplate

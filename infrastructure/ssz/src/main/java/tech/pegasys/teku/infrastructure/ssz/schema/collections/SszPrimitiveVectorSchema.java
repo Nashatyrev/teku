@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -48,6 +48,8 @@ public interface SszPrimitiveVectorSchema<
     } else if (elementSchema.equals(SszPrimitiveSchemas.UINT8_SCHEMA)) {
       return (SszPrimitiveVectorSchema<PrimT, SszPrimT, ?>)
           SszByteVectorSchema.createUInt8((int) length);
+    } else if (elementSchema.equals(SszPrimitiveSchemas.BOOLEAN_SCHEMA)) {
+      return (SszPrimitiveVectorSchema<PrimT, SszPrimT, ?>) SszBooleanVectorSchema.create(length);
     } else if (elementSchema.equals(SszPrimitiveSchemas.BYTES32_SCHEMA)) {
       return (SszPrimitiveVectorSchema<PrimT, SszPrimT, ?>)
           SszBytes32VectorSchema.create((int) length);

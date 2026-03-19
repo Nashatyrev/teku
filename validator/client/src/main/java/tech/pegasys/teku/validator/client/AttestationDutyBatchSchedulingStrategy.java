@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -182,6 +182,15 @@ public class AttestationDutyBatchSchedulingStrategy
 
   @Override
   public void onAttestationAggregationDue(final UInt64 slot) {}
+
+  @Override
+  public void onSyncCommitteeCreationDue(final UInt64 slot) {}
+
+  @Override
+  public void onContributionCreationDue(final UInt64 slot) {}
+
+  @Override
+  public void onPayloadAttestationCreationDue(final UInt64 slot) {}
 
   @Override
   public void onAttesterSlashing(final AttesterSlashing attesterSlashing) {}

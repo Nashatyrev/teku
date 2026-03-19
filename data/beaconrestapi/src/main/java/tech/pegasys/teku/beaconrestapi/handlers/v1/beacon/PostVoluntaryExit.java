@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -67,9 +67,18 @@ public class PostVoluntaryExit extends RestApiEndpoint {
               if (internalValidationResult.code().equals(ValidationResultCode.IGNORE)
                   || internalValidationResult.code().equals(ValidationResultCode.REJECT)) {
                 LOG.debug(
-                    "Voluntary exit failed status {} {}",
+                    "Voluntary exit for validator id {} failed status {}: {}",
+                    exit.getMessage().getValidatorIndex(),
                     internalValidationResult.code(),
                     internalValidationResult.getDescription().orElse(""));
+                if (internalValidationResult.isIgnore()) {
+                  LOG.info(
+                      "Voluntary exit for validator id {} is already seen. It will be periodically resent as required.",
+                      exit.getMessage().getValidatorIndex());
+                  // though the API says we MUST send over network to respond 200, we've already
+                  // sent it if it's in our pool, and the pool will manage retries periodically.
+                  return AsyncApiResponse.respondWithCode(200);
+                }
                 return AsyncApiResponse.respondWithError(
                     SC_BAD_REQUEST,
                     internalValidationResult

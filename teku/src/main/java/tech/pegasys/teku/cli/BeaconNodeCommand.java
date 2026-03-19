@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -49,6 +49,7 @@ import tech.pegasys.teku.cli.options.StoreOptions;
 import tech.pegasys.teku.cli.options.ValidatorOptions;
 import tech.pegasys.teku.cli.options.ValidatorRestApiOptions;
 import tech.pegasys.teku.cli.options.WeakSubjectivityOptions;
+import tech.pegasys.teku.cli.options.ZkChainOptions;
 import tech.pegasys.teku.cli.subcommand.GenesisCommand;
 import tech.pegasys.teku.cli.subcommand.MigrateDatabaseCommand;
 import tech.pegasys.teku.cli.subcommand.PeerCommand;
@@ -172,6 +173,9 @@ public class BeaconNodeCommand implements Callable<Integer> {
 
   @Mixin(name = "Metrics")
   private final MetricsOptions metricsOptions = new MetricsOptions();
+
+  @Mixin(name = "ZK-Chain")
+  private final ZkChainOptions zkChainOptions = new ZkChainOptions();
 
   @CommandLine.Spec private CommandLine.Model.CommandSpec spec;
 
@@ -419,6 +423,7 @@ public class BeaconNodeCommand implements Callable<Integer> {
       beaconNodeDataOptions.configure(builder);
       metricsOptions.configure(builder);
       storeOptions.configure(builder);
+      zkChainOptions.configure(builder);
 
       return builder.build();
     } catch (IllegalArgumentException | NullPointerException e) {

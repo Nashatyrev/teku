@@ -1,7 +1,7 @@
 # Changelog
 
 ## Upcoming Breaking Changes
-
+ 
 ## Current Releases
 
 ## Unreleased Changes
@@ -9,7 +9,10 @@
 ### Breaking Changes
 
 ### Additions and Improvements
-- Enabling, by default, a new attestation pool implementation that improves the attestation packing during block and aggregation production. It can still be disabled by setting `--Xaggregating-attestation-pool-v2-enabled=false` if needed
-- Added `--p2p-discovery-bootnodes-url` CLI option.
+
+- Implemented PostPtcDuties rest api endpoint (gloas api).
+- Added `/eth/v2/node/version` endpoint to retrieve structured version information for both beacon node and execution client.
+- Added deprecation warning on startup for any leveldb database types.
+- Increased default timeout of Engine API Get Payload requests to 2 seconds.
 
 ### Bug Fixes

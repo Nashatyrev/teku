@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.networking.eth2.gossip.forks.versions;
 
+import java.util.function.Supplier;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -21,9 +22,10 @@ import tech.pegasys.teku.networking.eth2.gossip.topics.OperationProcessor;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetwork;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.execution.ExecutionProof;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedBlsToExecutionChange;
@@ -62,9 +64,12 @@ public class GossipForkSubscriptionsFuluBpo extends GossipForkSubscriptionsFulu 
       final OperationProcessor<SignedBlsToExecutionChange>
           signedBlsToExecutionChangeOperationProcessor,
       final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor,
+      final OperationProcessor<ExecutionProof> executionProofOperationProcessor,
       final DebugDataDumper debugDataDumper,
       final DasGossipLogger dasGossipLogger,
-      final BlobParameters bpo) {
+      final BlobParameters bpo,
+      final boolean isExecutionProofTopicEnabled,
+      final Supplier<Boolean> isSuperNodeSupplier) {
     super(
         fork,
         spec,
@@ -85,7 +90,10 @@ public class GossipForkSubscriptionsFuluBpo extends GossipForkSubscriptionsFulu 
         signedBlsToExecutionChangeOperationProcessor,
         dataColumnSidecarOperationProcessor,
         debugDataDumper,
-        dasGossipLogger);
+        dasGossipLogger,
+        executionProofOperationProcessor,
+        isExecutionProofTopicEnabled,
+        isSuperNodeSupplier);
     this.bpo = bpo;
   }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -46,17 +46,14 @@ public class MetadataMessagesFactory implements CustodyGroupCountChannel {
 
   public synchronized void updateCustodyGroupCount(final UInt64 custodyGroupCount) {
     this.custodyGroupCount = Optional.of(custodyGroupCount);
+    LOG.info("Updating custody group count {}", custodyGroupCount);
     handleUpdate();
   }
 
   @Override
   public void onGroupCountUpdate(final int custodyGroupCount, final int samplingGroupCount) {
-    // we don't care until it's synced
-  }
-
-  @Override
-  public void onCustodyGroupCountSynced(final int groupCount) {
-    updateCustodyGroupCount(UInt64.valueOf(groupCount));
+    // cgc + earliest available slot completely reflects the current synced status
+    updateCustodyGroupCount(UInt64.valueOf(custodyGroupCount));
   }
 
   private void handleUpdate() {

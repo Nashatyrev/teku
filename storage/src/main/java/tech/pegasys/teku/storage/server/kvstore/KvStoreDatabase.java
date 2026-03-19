@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -46,10 +46,11 @@ import tech.pegasys.teku.ethereum.pow.api.DepositTreeSnapshot;
 import tech.pegasys.teku.ethereum.pow.api.DepositsFromBlockEvent;
 import tech.pegasys.teku.ethereum.pow.api.MinGenesisTimeBlockEvent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.kzg.KZGProof;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockInvariants;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockSummary;
@@ -207,6 +208,11 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
+  public Optional<UInt64> getCustodyGroupCount() {
+    return dao.getCustodyGroupCount();
+  }
+
+  @Override
   public Optional<SignedBeaconBlock> getFinalizedBlockAtSlot(final UInt64 slot) {
     return dao.getFinalizedBlockAtSlot(slot);
   }
@@ -308,6 +314,11 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
+  public Optional<SignedBeaconBlock> getNonCanonicalBlockByRoot(final Bytes32 blockRoot) {
+    return dao.getNonCanonicalBlock(blockRoot);
+  }
+
+  @Override
   public List<SignedBeaconBlock> getNonCanonicalBlocksAtSlot(final UInt64 slot) {
     return dao.getNonCanonicalBlocksAtSlot(slot);
   }
@@ -395,6 +406,11 @@ public class KvStoreDatabase implements Database {
   @Override
   public long getBlobSidecarColumnCount() {
     return dao.getBlobSidecarColumnCount();
+  }
+
+  @Override
+  public long getSidecarColumnCount() {
+    return dao.getSidecarColumnCount();
   }
 
   @Override
@@ -762,6 +778,7 @@ public class KvStoreDatabase implements Database {
     final Checkpoint bestJustifiedCheckpoint = dao.getBestJustifiedCheckpoint().orElseThrow();
     final BeaconState finalizedState = dao.getLatestFinalizedState().orElseThrow();
     final Optional<Bytes32> latestCanonicalBlockRoot = dao.getLatestCanonicalBlockRoot();
+    final Optional<UInt64> custodyGroupCount = dao.getCustodyGroupCount();
 
     final Map<UInt64, VoteTracker> votes = dao.getVotes();
 
@@ -819,7 +836,8 @@ public class KvStoreDatabase implements Database {
             prevSlotJustifiedCheckpoint,
             prevSlotUnrealizedJustifiedCheckpoint,
             prevSlotHead,
-            latestCanonicalBlockRoot));
+            latestCanonicalBlockRoot,
+            custodyGroupCount));
   }
 
   @Override
@@ -1128,11 +1146,6 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
-  public Optional<UInt64> getFirstSamplerIncompleteSlot() {
-    return dao.getFirstSamplerIncompleteSlot();
-  }
-
-  @Override
   public Optional<DataColumnSidecar> getSidecar(final DataColumnSlotAndIdentifier identifier) {
     final Optional<Bytes> maybePayload = dao.getSidecar(identifier);
     return maybePayload.map(payload -> spec.deserializeSidecar(payload, identifier.slot()));
@@ -1165,17 +1178,32 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
-  public void setFirstCustodyIncompleteSlot(final UInt64 slot) {
+  public Optional<UInt64> getEarliestAvailableDataColumnSlot() {
+    return dao.getEarliestAvailableDataColumnSlot();
+  }
+
+  @Override
+  public void setEarliestAvailableDataColumnSlot(final UInt64 slot) {
     try (final FinalizedUpdater updater = finalizedUpdater()) {
-      updater.setFirstCustodyIncompleteSlot(slot);
+      updater.setEarliestAvailableDataColumnSlot(slot);
       updater.commit();
     }
   }
 
   @Override
-  public void setFirstSamplerIncompleteSlot(final UInt64 slot) {
+  public Optional<UInt64> getLastDataColumnSidecarsProofsSlot() {
+    return dao.getLastDataColumnSidecarsProofsSlot();
+  }
+
+  @Override
+  public Optional<List<List<KZGProof>>> getDataColumnSidecarsProofs(final UInt64 slot) {
+    return dao.getDataColumnSidecarsProofs(slot);
+  }
+
+  @Override
+  public void setFirstCustodyIncompleteSlot(final UInt64 slot) {
     try (final FinalizedUpdater updater = finalizedUpdater()) {
-      updater.setFirstSamplerIncompleteSlot(slot);
+      updater.setFirstCustodyIncompleteSlot(slot);
       updater.commit();
     }
   }
@@ -1197,16 +1225,63 @@ public class KvStoreDatabase implements Database {
   }
 
   @Override
-  public void pruneAllSidecars(final UInt64 tillSlotInclusive) {
+  public void pruneAllSidecars(final UInt64 tillSlotInclusive, final int pruneLimit) {
     try (final Stream<DataColumnSlotAndIdentifier> prunableIdentifiers =
             streamDataColumnIdentifiers(UInt64.ZERO, tillSlotInclusive);
         final Stream<DataColumnSlotAndIdentifier> prunableNonCanonicalIdentifiers =
-            streamNonCanonicalDataColumnIdentifiers(UInt64.ZERO, tillSlotInclusive);
-        final FinalizedUpdater updater = finalizedUpdater()) {
-      prunableIdentifiers.forEach(updater::removeSidecar);
-      prunableNonCanonicalIdentifiers.forEach(updater::removeNonCanonicalSidecar);
-      updater.commit();
+            streamNonCanonicalDataColumnIdentifiers(UInt64.ZERO, tillSlotInclusive)) {
+
+      if (pruneDataColumnSidecars(pruneLimit, prunableIdentifiers, false)) {
+        LOG.debug("Data column sidecars pruning reached the limit of {}", pruneLimit);
+      }
+      if (pruneDataColumnSidecars(pruneLimit, prunableNonCanonicalIdentifiers, true)) {
+        LOG.debug("Non-canonical data column sidecars pruning reached the limit of {}", pruneLimit);
+      }
     }
+  }
+
+  boolean pruneDataColumnSidecars(
+      final int pruneSlotLimit,
+      final Stream<DataColumnSlotAndIdentifier> dataColumnSlotAndIdentifierStream,
+      final boolean nonCanonicalBlobSidecars) {
+
+    int prunedSlots = 0;
+
+    final Map<UInt64, List<DataColumnSlotAndIdentifier>> prunableMap = new HashMap<>();
+
+    dataColumnSlotAndIdentifierStream
+        .takeWhile(
+            item -> prunableMap.size() < pruneSlotLimit || prunableMap.containsKey(item.slot()))
+        .forEach(
+            item -> prunableMap.computeIfAbsent(item.slot(), k -> new ArrayList<>()).add(item));
+
+    final List<UInt64> slots = prunableMap.keySet().stream().sorted().toList();
+
+    if (!slots.isEmpty()) {
+      LOG.debug(
+          "Pruning data column sidecars from slots {} to {}", slots.getFirst(), slots.getLast());
+      try (final FinalizedUpdater updater = finalizedUpdater()) {
+        for (final UInt64 slot : slots) {
+          final List<DataColumnSlotAndIdentifier> keys = prunableMap.get(slot);
+
+          for (final DataColumnSlotAndIdentifier key : keys) {
+            if (nonCanonicalBlobSidecars) {
+              updater.removeNonCanonicalSidecar(key);
+            } else {
+              updater.removeSidecar(key);
+            }
+          }
+
+          ++prunedSlots;
+        }
+        updater.commit();
+      }
+      LOG.debug("Pruned data column sidecars in {} slots", prunedSlots);
+    }
+
+    // `pruned` will be greater when we reach pruneLimit not on the latest DataColumnSidecar in a
+    // slot
+    return prunedSlots >= pruneSlotLimit;
   }
 
   @Override
@@ -1259,6 +1334,7 @@ public class KvStoreDatabase implements Database {
               });
 
       update.getLatestCanonicalBlockRoot().ifPresent(updater::setLatestCanonicalBlockRoot);
+      update.getCustodyGroupCount().ifPresent(updater::setCustodyGroupCount);
       update.getJustifiedCheckpoint().ifPresent(updater::setJustifiedCheckpoint);
       update.getConfirmedRoot().ifPresent(updater::setConfirmedRoot);
       update.getPrevSlotJustifiedCheckpoint().ifPresent(updater::setPrevSlotJustifiedCheckpoint);

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -21,32 +21,39 @@ import static org.mockito.Mockito.spy;
 import static tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding.SSZ_SNAPPY;
 import static tech.pegasys.teku.networking.eth2.gossip.topics.GossipTopicName.getAttestationSubnetTopicName;
 import static tech.pegasys.teku.networking.eth2.gossip.topics.GossipTopicName.getBlobSidecarSubnetTopicName;
+import static tech.pegasys.teku.networking.eth2.gossip.topics.GossipTopicName.getExecutionProofSubnetTopicName;
 import static tech.pegasys.teku.networking.eth2.gossip.topics.GossipTopicName.getSyncCommitteeSubnetTopicName;
 import static tech.pegasys.teku.spec.SpecMilestone.DENEB;
 import static tech.pegasys.teku.spec.SpecMilestone.ELECTRA;
 import static tech.pegasys.teku.spec.SpecMilestone.FULU;
+import static tech.pegasys.teku.spec.SpecMilestone.GLOAS;
+import static tech.pegasys.teku.spec.SpecMilestone.HEZE;
 import static tech.pegasys.teku.spec.constants.NetworkConstants.SYNC_COMMITTEE_SUBNET_COUNT;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestTemplate;
 import tech.pegasys.teku.infrastructure.bytes.Bytes4;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.networking.eth2.P2PConfig;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecContext;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.TestSpecInvocationContextProvider.SpecContext;
 import tech.pegasys.teku.spec.config.BlobScheduleEntry;
+import tech.pegasys.teku.spec.config.Constants;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
+import tech.pegasys.teku.spec.config.builder.FuluBuilder;
 import tech.pegasys.teku.spec.logic.versions.fulu.helpers.BlobParameters;
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
 
-@TestSpecContext(milestone = {DENEB, ELECTRA, FULU})
+@TestSpecContext(milestone = {DENEB, ELECTRA, FULU, GLOAS, HEZE})
 class Eth2GossipTopicFilterTest {
   private final UInt64 nextMilestoneForkEpoch = UInt64.valueOf(10);
   private final BlobParameters bpoFork = new BlobParameters(UInt64.valueOf(11), 64);
@@ -57,6 +64,7 @@ class Eth2GossipTopicFilterTest {
   private Bytes4 currentForkDigest;
   private Eth2GossipTopicFilter filter;
   private Bytes4 nextForkDigest;
+  private P2PConfig p2pConfig;
 
   @BeforeEach
   void setUp(final SpecContext specContext) {
@@ -65,32 +73,33 @@ class Eth2GossipTopicFilterTest {
     // current milestone is actually the previous milestone
     currentSpecMilestone = specContext.getSpecMilestone().getPreviousMilestone();
     nextSpecMilestone = specContext.getSpecMilestone();
+
+    final Consumer<FuluBuilder> fuluBuilder =
+        fb ->
+            fb.blobSchedule(
+                List.of(new BlobScheduleEntry(bpoFork.epoch(), bpoFork.maxBlobsPerBlock())));
     spec =
         switch (nextSpecMilestone) {
-          case PHASE0 -> throw new IllegalArgumentException("Phase0 is an unsupported milestone");
-          case ALTAIR -> throw new IllegalArgumentException("Altair is an unsupported milestone");
-          case BELLATRIX ->
-              throw new IllegalArgumentException("Bellatrix is an unsupported milestone");
-          case CAPELLA -> throw new IllegalArgumentException("Capella is an unsupported milestone");
+          case PHASE0, ALTAIR, BELLATRIX, CAPELLA ->
+              throw new IllegalArgumentException(nextSpecMilestone + " is a unsupported milestone");
           case DENEB -> TestSpecFactory.createMinimalWithDenebForkEpoch(nextMilestoneForkEpoch);
           case ELECTRA -> TestSpecFactory.createMinimalWithElectraForkEpoch(nextMilestoneForkEpoch);
           case FULU ->
               TestSpecFactory.createMinimalFulu(
-                  b ->
-                      b.fuluBuilder(
-                          fb ->
-                              fb.fuluForkEpoch(nextMilestoneForkEpoch)
-                                  .blobSchedule(
-                                      List.of(
-                                          new BlobScheduleEntry(
-                                              bpoFork.epoch(), bpoFork.maxBlobsPerBlock())))));
+                  b -> b.fuluBuilder(fuluBuilder).fuluForkEpoch(nextMilestoneForkEpoch));
+          case GLOAS ->
+              TestSpecFactory.createMinimalGloas(
+                  b -> b.fuluBuilder(fuluBuilder).gloasForkEpoch(nextMilestoneForkEpoch));
+          case HEZE ->
+              TestSpecFactory.createMinimalHeze(
+                  b -> b.fuluBuilder(fuluBuilder).hezeForkEpoch(nextMilestoneForkEpoch));
         };
-
+    p2pConfig = P2PConfig.builder().specProvider(spec).build();
     final StorageSystem storageSystem = InMemoryStorageSystemBuilder.buildDefault(spec);
     storageSystem.chainUpdater().initializeGenesis();
 
     recentChainData = spy(storageSystem.recentChainData());
-    filter = new Eth2GossipTopicFilter(recentChainData, SSZ_SNAPPY, spec);
+    filter = new Eth2GossipTopicFilter(recentChainData, SSZ_SNAPPY, spec, p2pConfig);
 
     currentForkDigest = recentChainData.getCurrentForkDigest().orElseThrow();
     nextForkDigest =
@@ -203,10 +212,10 @@ class Eth2GossipTopicFilterTest {
     spec =
         TestSpecFactory.createMinimalFulu(
             b ->
-                b.fuluBuilder(
-                    fb ->
-                        fb.fuluForkEpoch(nextMilestoneForkEpoch)
-                            .blobSchedule(
+                b.fuluForkEpoch(nextMilestoneForkEpoch)
+                    .fuluBuilder(
+                        fb ->
+                            fb.blobSchedule(
                                 List.of(
                                     new BlobScheduleEntry(
                                         bpoForkCustom.epoch(), bpoFork.maxBlobsPerBlock())))));
@@ -214,7 +223,7 @@ class Eth2GossipTopicFilterTest {
     storageSystem.chainUpdater().initializeGenesis();
 
     recentChainData = spy(storageSystem.recentChainData());
-    filter = new Eth2GossipTopicFilter(recentChainData, SSZ_SNAPPY, spec);
+    filter = new Eth2GossipTopicFilter(recentChainData, SSZ_SNAPPY, spec, p2pConfig);
 
     currentForkDigest = recentChainData.getCurrentForkDigest().orElseThrow();
     nextForkDigest =
@@ -227,6 +236,27 @@ class Eth2GossipTopicFilterTest {
     final String bpoTopic =
         GossipTopics.getTopic(bpoForkDigest, GossipTopicName.BEACON_BLOCK, SSZ_SNAPPY);
     assertThat(filter.isRelevantTopic(bpoTopic)).isTrue();
+  }
+
+  @TestTemplate
+  void shouldNotConsiderExecutionProofSubnetsRelevantByDefault() {
+    assumeThat(nextSpecMilestone).isEqualTo(ELECTRA);
+    for (int i = 0; i < Constants.MAX_EXECUTION_PROOF_SUBNETS; i++) {
+      assertThat(filter.isRelevantTopic(getTopicName(getExecutionProofSubnetTopicName(i))))
+          .isFalse();
+    }
+  }
+
+  @TestTemplate
+  void shouldConsiderExecutionProofSubnetsRelevantWhenEnabled() {
+    P2PConfig p2pConfigOverwritten =
+        P2PConfig.builder().specProvider(spec).executionProofTopicEnabled(true).build();
+    filter = new Eth2GossipTopicFilter(recentChainData, SSZ_SNAPPY, spec, p2pConfigOverwritten);
+    assumeThat(nextSpecMilestone).isEqualTo(ELECTRA);
+    for (int i = 0; i < Constants.MAX_EXECUTION_PROOF_SUBNETS; i++) {
+      assertThat(filter.isRelevantTopic(getTopicName(getExecutionProofSubnetTopicName(i))))
+          .isTrue();
+    }
   }
 
   private String getTopicName(final GossipTopicName name) {

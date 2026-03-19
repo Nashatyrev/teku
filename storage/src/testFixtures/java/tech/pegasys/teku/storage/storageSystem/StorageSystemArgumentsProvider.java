@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.storage.server.DatabaseVersion;
 import tech.pegasys.teku.storage.server.StateStorageMode;
@@ -47,7 +48,8 @@ public class StorageSystemArgumentsProvider implements ArgumentsProvider {
   }
 
   @Override
-  public Stream<? extends Arguments> provideArguments(final ExtensionContext context) {
+  public Stream<? extends Arguments> provideArguments(
+      final ParameterDeclarations parameters, final ExtensionContext context) {
     final Map<String, StorageSystemSupplier> storageSystems = new HashMap<>();
     for (StateStorageMode mode : getStorageModes()) {
       for (long storageFrequency : stateStorageFrequencyOptions) {

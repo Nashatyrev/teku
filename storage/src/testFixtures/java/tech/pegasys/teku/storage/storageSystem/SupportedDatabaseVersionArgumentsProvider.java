@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -22,18 +22,19 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.support.ParameterDeclarations;
 import tech.pegasys.teku.storage.server.DatabaseVersion;
 
 public class SupportedDatabaseVersionArgumentsProvider implements ArgumentsProvider {
 
   public static Collection<DatabaseVersion> supportedDatabaseVersions() {
     final List<DatabaseVersion> supportedVersions = new ArrayList<>();
-    if (DatabaseVersion.isRocksDbSupported()) {
+    if (DatabaseVersion.tryLoadRocksdbLibrary()) {
       supportedVersions.add(DatabaseVersion.V4);
       supportedVersions.add(DatabaseVersion.V5);
       supportedVersions.add(DatabaseVersion.V6);
     }
-    if (DatabaseVersion.isLevelDbSupported()) {
+    if (DatabaseVersion.tryLoadLeveldbNativeLibrary()) {
       supportedVersions.add(DatabaseVersion.LEVELDB1);
       supportedVersions.add(DatabaseVersion.LEVELDB2);
       supportedVersions.add(DatabaseVersion.LEVELDB_TREE);
@@ -47,7 +48,8 @@ public class SupportedDatabaseVersionArgumentsProvider implements ArgumentsProvi
   }
 
   @Override
-  public Stream<? extends Arguments> provideArguments(final ExtensionContext context) {
+  public Stream<? extends Arguments> provideArguments(
+      final ParameterDeclarations parameters, final ExtensionContext context) {
     return supportedDatabaseVersions().stream().map(Arguments::of);
   }
 }

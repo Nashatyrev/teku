@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -26,6 +26,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.BlockAndCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
+import tech.pegasys.teku.spec.datastructures.epbs.SignedExecutionPayloadAndState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.storage.api.FinalizedChainData;
 import tech.pegasys.teku.storage.api.StorageUpdate;
@@ -46,8 +47,10 @@ class StoreTransactionUpdates {
   private final boolean optimisticTransitionBlockRootSet;
   private final Optional<Bytes32> optimisticTransitionBlockRoot;
   private final Optional<Bytes32> latestCanonicalBlockRoot;
+  private final Optional<UInt64> custodyGroupCount;
   private final boolean blobSidecarsEnabled;
   private final boolean dataColumnSidecarsEnabled;
+  private final Map<Bytes32, SignedExecutionPayloadAndState> hotExecutionPayloadAndStates;
 
   StoreTransactionUpdates(
       final StoreTransaction tx,
@@ -62,12 +65,14 @@ class StoreTransactionUpdates {
       final boolean optimisticTransitionBlockRootSet,
       final Optional<Bytes32> optimisticTransitionBlockRoot,
       final Optional<Bytes32> latestCanonicalBlockRoot,
+      final Optional<UInt64> custodyGroupCount,
       final boolean blobSidecarsEnabled,
-      final boolean dataColumnSidecarsEnabled) {
+      final boolean dataColumnSidecarsEnabled,
+      final Map<Bytes32, SignedExecutionPayloadAndState> hotExecutionPayloadAndStates) {
     checkNotNull(tx, "Transaction is required");
     checkNotNull(finalizedChainData, "Finalized data is required");
     checkNotNull(hotBlocks, "Hot blocks are required");
-    checkNotNull(hotBlockAndStates, "Hot states are required");
+    checkNotNull(hotBlockAndStates, "Hot block states are required");
     checkNotNull(hotStatesToPersist, "Hot states to persist are required");
     checkNotNull(blobSidecars, "BlobSidecars are required");
     checkNotNull(maybeEarliestBlobSidecarSlot, "Hot maybe earliest blobSidecar slot is required");
@@ -75,6 +80,8 @@ class StoreTransactionUpdates {
     checkNotNull(stateRoots, "State roots are required");
     checkNotNull(optimisticTransitionBlockRoot, "Optimistic transition block root is required");
     checkNotNull(latestCanonicalBlockRoot, "Latest canonical block root is required");
+    checkNotNull(custodyGroupCount, "Current custody group count is required");
+    checkNotNull(hotExecutionPayloadAndStates, "Hot execution payload states are required");
 
     this.tx = tx;
     this.finalizedChainData = finalizedChainData;
@@ -88,8 +95,10 @@ class StoreTransactionUpdates {
     this.optimisticTransitionBlockRootSet = optimisticTransitionBlockRootSet;
     this.optimisticTransitionBlockRoot = optimisticTransitionBlockRoot;
     this.latestCanonicalBlockRoot = latestCanonicalBlockRoot;
+    this.custodyGroupCount = custodyGroupCount;
     this.blobSidecarsEnabled = blobSidecarsEnabled;
     this.dataColumnSidecarsEnabled = dataColumnSidecarsEnabled;
+    this.hotExecutionPayloadAndStates = hotExecutionPayloadAndStates;
   }
 
   public StorageUpdate createStorageUpdate() {
@@ -107,6 +116,7 @@ class StoreTransactionUpdates {
         optimisticTransitionBlockRootSet,
         optimisticTransitionBlockRoot,
         latestCanonicalBlockRoot,
+        custodyGroupCount,
         tx.confirmedRoot,
         tx.prevSlotJustifiedCheckpoint,
         tx.prevSlotUnrealizedJustifiedCheckpoint,
@@ -121,8 +131,9 @@ class StoreTransactionUpdates {
     tx.genesisTime.ifPresent(store::cacheGenesisTime);
     tx.justifiedCheckpoint.ifPresent(store::updateJustifiedCheckpoint);
     tx.bestJustifiedCheckpoint.ifPresent(store::updateBestJustifiedCheckpoint);
+    tx.getCustodyGroupCount().ifPresent(store::updateCustodyGroupCount);
     store.cacheBlocks(hotBlocks.values());
-    store.cacheStates(Maps.transformValues(hotBlockAndStates, this::blockAndStateAsSummary));
+    store.cacheBlockStates(Maps.transformValues(hotBlockAndStates, this::blockAndStateAsSummary));
     store.cacheBlobSidecars(blobSidecars);
     if (optimisticTransitionBlockRootSet) {
       store.cacheFinalizedOptimisticTransitionPayload(
@@ -133,8 +144,14 @@ class StoreTransactionUpdates {
     finalizedChainData.ifPresent(
         finalizedData -> store.updateFinalizedAnchor(finalizedData.getLatestFinalized()));
 
-    // Prune blocks and states
-    prunedHotBlockRoots.keySet().forEach(store::removeStateAndBlock);
+    // Prune blocks, execution payloads and states
+    prunedHotBlockRoots
+        .keySet()
+        .forEach(
+            blockRoot -> {
+              store.removeBlockAndState(blockRoot);
+              store.removeExecutionPayloadAndState(blockRoot);
+            });
 
     store.cleanupCheckpointStates(
         slotAndBlockRoot -> prunedHotBlockRoots.containsKey(slotAndBlockRoot.getBlockRoot()));
@@ -142,6 +159,8 @@ class StoreTransactionUpdates {
     if (tx.proposerBoostRootSet) {
       store.cacheProposerBoostRoot(tx.proposerBoostRoot);
     }
+
+    store.cacheExecutionPayloadAndStates(hotExecutionPayloadAndStates);
 
     store
         .getForkChoiceStrategy()

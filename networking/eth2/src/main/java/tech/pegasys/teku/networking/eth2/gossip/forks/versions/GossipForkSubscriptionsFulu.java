@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.networking.eth2.gossip.forks.versions;
 
+import java.util.function.Supplier;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
@@ -24,9 +25,10 @@ import tech.pegasys.teku.networking.eth2.gossip.topics.OperationProcessor;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryNetwork;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.execution.ExecutionProof;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedBlsToExecutionChange;
@@ -39,12 +41,12 @@ import tech.pegasys.teku.statetransition.datacolumns.log.gossip.DasGossipLogger;
 import tech.pegasys.teku.statetransition.util.DebugDataDumper;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
-// Capella because we don't need blobSidecar subscriptions
 public class GossipForkSubscriptionsFulu extends GossipForkSubscriptionsElectra {
 
   private final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor;
   private DataColumnSidecarGossipManager dataColumnSidecarGossipManager;
   public DasGossipLogger dasGossipLogger;
+  private final Supplier<Boolean> isSuperNodeSupplier;
 
   public GossipForkSubscriptionsFulu(
       final Fork fork,
@@ -69,7 +71,10 @@ public class GossipForkSubscriptionsFulu extends GossipForkSubscriptionsElectra 
           signedBlsToExecutionChangeOperationProcessor,
       final OperationProcessor<DataColumnSidecar> dataColumnSidecarOperationProcessor,
       final DebugDataDumper debugDataDumper,
-      final DasGossipLogger dasGossipLogger) {
+      final DasGossipLogger dasGossipLogger,
+      final OperationProcessor<ExecutionProof> executionProofOperationProcessor,
+      final boolean isExecutionProofTopicEnabled,
+      final Supplier<Boolean> isSuperNodeSupplier) {
     super(
         fork,
         spec,
@@ -88,9 +93,12 @@ public class GossipForkSubscriptionsFulu extends GossipForkSubscriptionsElectra 
         signedContributionAndProofOperationProcessor,
         syncCommitteeMessageOperationProcessor,
         signedBlsToExecutionChangeOperationProcessor,
-        debugDataDumper);
+        debugDataDumper,
+        executionProofOperationProcessor,
+        isExecutionProofTopicEnabled);
     this.dataColumnSidecarOperationProcessor = dataColumnSidecarOperationProcessor;
     this.dasGossipLogger = dasGossipLogger;
+    this.isSuperNodeSupplier = isSuperNodeSupplier;
   }
 
   @Override
@@ -113,7 +121,8 @@ public class GossipForkSubscriptionsFulu extends GossipForkSubscriptionsElectra 
             forkDigest);
 
     this.dataColumnSidecarGossipManager =
-        new DataColumnSidecarGossipManager(dataColumnSidecarSubnetSubscriptions, dasGossipLogger);
+        new DataColumnSidecarGossipManager(
+            dataColumnSidecarSubnetSubscriptions, dasGossipLogger, isSuperNodeSupplier);
 
     addGossipManager(dataColumnSidecarGossipManager);
   }

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -57,6 +57,11 @@ import tech.pegasys.teku.networking.p2p.network.config.GeneratingFilePrivateKeyS
 import tech.pegasys.teku.networking.p2p.network.config.NetworkConfig;
 import tech.pegasys.teku.networking.p2p.network.config.PrivateKeySource;
 import tech.pegasys.teku.networking.p2p.network.config.TypedFilePrivateKeySource;
+import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecMilestone;
+import tech.pegasys.teku.spec.SpecVersion;
+import tech.pegasys.teku.spec.TestSpecFactory;
+import tech.pegasys.teku.spec.config.SpecConfigFulu;
 
 public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
 
@@ -95,6 +100,8 @@ public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
     assertThat(syncConfig.getForwardSyncMaxPendingBatches()).isEqualTo(8);
     assertThat(syncConfig.getForwardSyncMaxBlocksPerMinute()).isEqualTo(100);
     assertThat(syncConfig.getForwardSyncMaxBlobSidecarsPerMinute()).isEqualTo(400);
+
+    assertThat(p2pConfig.getMinBidIncrementPercentage()).isEqualTo(5);
   }
 
   @Test
@@ -122,13 +129,7 @@ public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
   public void shouldReadBootnodesFromConfigurationFile(@TempDir final Path tempDir)
       throws Exception {
     final Path bootnodesFile = Files.createFile(tempDir.resolve("bootnodes.txt"));
-    final List<String> expectedBootnodes =
-        List.of(
-            "enr:-Iq4QPOida1SQLknUHJqlGuDadJO_jtQ7FnxbVGjC9WTvAaSZEMTaQcetA"
-                + "-wdOBAg8wcw3yyl0hacrZHUBzo4OO07liGAZg3XXaFgmlkgnY0gmlwhLI-72SJc2VjcDI1NmsxoQJJ3h8aUO3GJHv"
-                + "-bdvHtsQZ2OEisutelYfGjXO4lSg8BYN1ZHCCIzI",
-            "enr:-Iq4QCxbKw-XHdkvUcbd5"
-                + "-bJ8vEtyJr5jD3sg3XCwnkWXWwOEcuWWTrev8TnIcSsatTVd2LseQy1wH8u97vPGlxismiGAZerck1AgmlkgnY0gmlwhKdHDm2Jc2VjcDI1NmsxoQJJ3h8aUO3GJHv-bdvHtsQZ2OEisutelYfGjXO4lSg8BYN1ZHCCIzI");
+    final List<String> expectedBootnodes = List.of("enr:-1", "enr:-2");
     writeLinesToFile(bootnodesFile, expectedBootnodes);
 
     final Path configPath = tempDir.resolve("config.yaml");
@@ -142,6 +143,49 @@ public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
 
     final DiscoveryConfig discoConfig = tekuConfig.discovery();
     assertThat(discoConfig.getBootnodes()).isEqualTo(expectedBootnodes);
+  }
+
+  @Test
+  @DisabledOnOs(OS.WINDOWS)
+  public void shouldReadBootnodesFromYamlConfigurationFile(@TempDir final Path tempDir)
+      throws Exception {
+    final Path bootnodesFile = Files.createFile(tempDir.resolve("bootnodes.txt"));
+    final List<String> expectedBootnodes = List.of("- enr:-1", "- enr:-2");
+    writeLinesToFile(bootnodesFile, expectedBootnodes);
+
+    final Path configPath = tempDir.resolve("config.yaml");
+    Files.writeString(
+        configPath,
+        String.format("p2p-discovery-bootnodes-url: \"%s\"", bootnodesFile.toAbsolutePath()),
+        StandardCharsets.UTF_8);
+
+    final TekuConfiguration tekuConfig =
+        getTekuConfigurationFromArguments("--config-file", configPath.toAbsolutePath().toString());
+
+    final DiscoveryConfig discoConfig = tekuConfig.discovery();
+    assertThat(discoConfig.getBootnodes())
+        .isEqualTo(expectedBootnodes.stream().map(s -> s.substring(2)).toList());
+  }
+
+  @Test
+  @DisabledOnOs(OS.WINDOWS)
+  public void shouldGiveGoodErrorMessageReadingBootnodeUrl(@TempDir final Path tempDir)
+      throws Exception {
+    final Path bootnodesFile = Files.createFile(tempDir.resolve("bootnodes.txt"));
+    final List<String> expectedBootnodes = List.of("enode:");
+    writeLinesToFile(bootnodesFile, expectedBootnodes);
+
+    final Path configPath = tempDir.resolve("config.yaml");
+    Files.writeString(
+        configPath,
+        String.format("p2p-discovery-bootnodes-url: \"%s\"", bootnodesFile.toAbsolutePath()),
+        StandardCharsets.UTF_8);
+    assertThatThrownBy(
+            () ->
+                getTekuConfigurationFromArguments(
+                    "--config-file", configPath.toAbsolutePath().toString()))
+        .isInstanceOf(AssertionError.class)
+        .hasMessageContaining("Invalid bootnode found in URL");
   }
 
   @Test
@@ -359,7 +403,7 @@ public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
                 "/some/file2");
     assertThatThrownBy(tekuConfigurationSupplier::get)
         .isInstanceOf(AssertionError.class)
-        .hasMessageContaining("Only single private key option should be specified");
+        .hasMessageContaining("Only a single private key option should be specified");
   }
 
   @Test
@@ -704,5 +748,100 @@ public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
     } catch (Exception e) {
       fail("Test setup failed: " + e.getMessage(), e);
     }
+  }
+
+  @Test
+  public void allCustodySubnetsIsDisabled() {
+    final TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+
+    final Spec mainnetFulu = TestSpecFactory.createMainnetFulu();
+    final SpecVersion specVersionFulu = mainnetFulu.forMilestone(SpecMilestone.FULU);
+
+    assertThat(tekuConfiguration.p2p().getTotalCustodyGroupCount(specVersionFulu))
+        .isEqualTo(SpecConfigFulu.required(specVersionFulu.getConfig()).getCustodyRequirement());
+  }
+
+  @Test
+  public void allCustodySubnetsEnabled() {
+    final TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--p2p-subscribe-all-custody-subnets-enabled", "true");
+
+    final Spec mainnetFulu = TestSpecFactory.createMainnetFulu();
+    final SpecVersion specVersionFulu = mainnetFulu.forMilestone(SpecMilestone.FULU);
+
+    assertThat(tekuConfiguration.p2p().getTotalCustodyGroupCount(specVersionFulu))
+        .isEqualTo(SpecConfigFulu.required(specVersionFulu.getConfig()).getNumberOfCustodyGroups());
+  }
+
+  @Test
+  public void custodyGroupCountOverrideCorrectly() {
+    final TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--Xcustody-group-count-override", "20");
+
+    final Spec mainnetFulu = TestSpecFactory.createMainnetFulu();
+    final SpecVersion specVersionFulu = mainnetFulu.forMilestone(SpecMilestone.FULU);
+
+    assertThat(tekuConfiguration.p2p().getTotalCustodyGroupCount(specVersionFulu)).isEqualTo(20);
+  }
+
+  @Test
+  public void custodyGroupCountOverrideMin() {
+    final int overrideMin = 2;
+    final TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments(
+            "--Xcustody-group-count-override", String.valueOf(overrideMin));
+
+    final Spec mainnetFulu = TestSpecFactory.createMainnetFulu();
+    final SpecVersion specVersionFulu = mainnetFulu.forMilestone(SpecMilestone.FULU);
+    final int expectedCustodyRequirement =
+        SpecConfigFulu.required(specVersionFulu.getConfig()).getCustodyRequirement();
+
+    assertThat(overrideMin).isLessThan(expectedCustodyRequirement);
+    assertThat(tekuConfiguration.p2p().getTotalCustodyGroupCount(specVersionFulu))
+        .isEqualTo(expectedCustodyRequirement);
+  }
+
+  @Test
+  public void custodyGroupCountOverrideMax() {
+    final int overrideMax = 256;
+    final TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments(
+            "--Xcustody-group-count-override", String.valueOf(overrideMax));
+
+    final Spec mainnetFulu = TestSpecFactory.createMainnetFulu();
+    final SpecVersion specVersionFulu = mainnetFulu.forMilestone(SpecMilestone.FULU);
+    final int expectedCustodyRequirement =
+        SpecConfigFulu.required(specVersionFulu.getConfig()).getNumberOfCustodyGroups();
+
+    assertThat(overrideMax).isGreaterThan(expectedCustodyRequirement);
+    assertThat(tekuConfiguration.p2p().getTotalCustodyGroupCount(specVersionFulu))
+        .isEqualTo(expectedCustodyRequirement);
+  }
+
+  @Test
+  public void dasDisableElRecovery_isFalseByDefault() throws Exception {
+    final TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+
+    assertThat(tekuConfiguration.p2p().isDasDisableElRecovery()).isFalse();
+  }
+
+  @Test
+  public void dasPublishWithholdColumnsEverySlots_isEmptyByDefault() throws Exception {
+    final TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+
+    assertThat(tekuConfiguration.p2p().getDasPublishWithholdColumnsEverySlots()).isEmpty();
+  }
+
+  @Test
+  public void minBidIncrementPercentage_shouldDefaultToOne() {
+    final TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+    assertThat(tekuConfiguration.p2p().getMinBidIncrementPercentage()).isEqualTo(1);
+  }
+
+  @Test
+  public void minBidIncrementPercentage_shouldAcceptValue() {
+    final TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--Xmin-bid-increment-percentage=3");
+    assertThat(tekuConfiguration.p2p().getMinBidIncrementPercentage()).isEqualTo(3);
   }
 }

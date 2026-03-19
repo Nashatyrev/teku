@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -28,8 +28,9 @@ import tech.pegasys.teku.ethereum.pow.api.DepositTreeSnapshot;
 import tech.pegasys.teku.ethereum.pow.api.DepositsFromBlockEvent;
 import tech.pegasys.teku.ethereum.pow.api.MinGenesisTimeBlockEvent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.kzg.KZGProof;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockAndCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
@@ -159,6 +160,11 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
   }
 
   @Override
+  public Optional<UInt64> getCustodyGroupCount() {
+    return hotDao.getCustodyGroupCount();
+  }
+
+  @Override
   @MustBeClosed
   public HotUpdater hotUpdater() {
     return hotDao.hotUpdater();
@@ -262,6 +268,11 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
   }
 
   @Override
+  public long getSidecarColumnCount() {
+    return finalizedDao.getSidecarColumnCount();
+  }
+
+  @Override
   public long getNonCanonicalBlobSidecarColumnCount() {
     return finalizedDao.getNonCanonicalBlobSidecarColumnCount();
   }
@@ -273,7 +284,7 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
   }
 
   @Override
-  public Optional<? extends SignedBeaconBlock> getNonCanonicalBlock(final Bytes32 root) {
+  public Optional<SignedBeaconBlock> getNonCanonicalBlock(final Bytes32 root) {
     return finalizedDao.getNonCanonicalBlock(root);
   }
 
@@ -325,6 +336,11 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
   }
 
   @Override
+  public Optional<UInt64> getEarliestAvailableDataColumnSlot() {
+    return finalizedDao.getEarliestAvailableDataColumnSlot();
+  }
+
+  @Override
   @MustBeClosed
   public Stream<Map.Entry<Bytes32, UInt64>> getFinalizedStateRoots() {
     return finalizedDao.getFinalizedStateRoots();
@@ -339,11 +355,6 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
   @Override
   public Optional<UInt64> getFirstCustodyIncompleteSlot() {
     return finalizedDao.getFirstCustodyIncompleteSlot();
-  }
-
-  @Override
-  public Optional<UInt64> getFirstSamplerIncompleteSlot() {
-    return finalizedDao.getFirstSamplerIncompleteSlot();
   }
 
   @Override
@@ -378,7 +389,17 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
 
   @Override
   public Optional<UInt64> getEarliestDataSidecarColumnSlot() {
-    return finalizedDao.getEarliestAvailableDataColumnSlot();
+    return finalizedDao.getEarliestDataSidecarColumnSlot();
+  }
+
+  @Override
+  public Optional<UInt64> getLastDataColumnSidecarsProofsSlot() {
+    return finalizedDao.getLastDataColumnSidecarsProofsSlot();
+  }
+
+  @Override
+  public Optional<List<List<KZGProof>>> getDataColumnSidecarsProofs(final UInt64 slot) {
+    return finalizedDao.getDataColumnSidecarProofs(slot);
   }
 
   @Override
@@ -411,7 +432,6 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
 
   @Override
   public void close() throws Exception {
-    hotDao.close();
     hotDao.close();
     finalizedDao.close();
   }
@@ -527,6 +547,11 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     @Override
     public void setLatestCanonicalBlockRoot(final Bytes32 canonicalBlockRoot) {
       hotUpdater.setLatestCanonicalBlockRoot(canonicalBlockRoot);
+    }
+
+    @Override
+    public void setCustodyGroupCount(final UInt64 custodyGroupCount) {
+      hotUpdater.setCustodyGroupCount(custodyGroupCount);
     }
 
     @Override
@@ -688,6 +713,11 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     }
 
     @Override
+    public void setEarliestAvailableDataColumnSlot(final UInt64 slot) {
+      finalizedUpdater.setEarliestAvailableDataColumnSlot(slot);
+    }
+
+    @Override
     public void setEarliestBlockSlot(final UInt64 slot) {
       finalizedUpdater.setEarliestBlockSlot(slot);
     }
@@ -700,11 +730,6 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     @Override
     public void setFirstCustodyIncompleteSlot(final UInt64 slot) {
       finalizedUpdater.setFirstCustodyIncompleteSlot(slot);
-    }
-
-    @Override
-    public void setFirstSamplerIncompleteSlot(final UInt64 slot) {
-      finalizedUpdater.setFirstSamplerIncompleteSlot(slot);
     }
 
     @Override
@@ -725,6 +750,17 @@ public class KvStoreCombinedDaoAdapter implements KvStoreCombinedDao, V4Migratab
     @Override
     public void removeNonCanonicalSidecar(final DataColumnSlotAndIdentifier identifier) {
       finalizedUpdater.removeNonCanonicalSidecar(identifier);
+    }
+
+    @Override
+    public void addDataColumnSidecarsProofs(
+        final UInt64 slot, final List<List<KZGProof>> kzgProofs) {
+      finalizedUpdater.addDataColumnSidecarsProofs(slot, kzgProofs);
+    }
+
+    @Override
+    public void removeDataColumnSidecarsProofs(final UInt64 slot) {
+      finalizedUpdater.removeDataColumnSidecarsProofs(slot);
     }
 
     @Override

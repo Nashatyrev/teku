@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -28,10 +28,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
+import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.networking.eth2.Eth2P2PNetworkBuilder;
 import tech.pegasys.teku.networking.eth2.peers.Eth2Peer.PeerStatusSubscriber;
 import tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods.MetadataMessagesFactory;
@@ -46,7 +48,7 @@ import tech.pegasys.teku.networking.p2p.peer.Peer;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.statetransition.datacolumns.CustodyGroupCountManager;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarArchiveReconstructor;
 import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -60,8 +62,9 @@ public class Eth2PeerManagerTest {
       mock(CombinedChainDataClient.class);
   private final RecentChainData recentChainData = mock(RecentChainData.class);
   private final Eth2PeerFactory eth2PeerFactory = mock(Eth2PeerFactory.class);
+  private final StubMetricsSystem metricsSystem = new StubMetricsSystem();
   private final StatusMessageFactory statusMessageFactory =
-      new StatusMessageFactory(spec, recentChainData);
+      new StatusMessageFactory(spec, combinedChainDataClient, metricsSystem);
 
   private final Map<Peer, Eth2Peer> eth2Peers = new HashMap<>();
 
@@ -72,8 +75,7 @@ public class Eth2PeerManagerTest {
           spec,
           asyncRunner,
           combinedChainDataClient,
-          DataColumnSidecarByRootCustody.NOOP,
-          CustodyGroupCountManager.NOOP,
+          () -> CustodyGroupCountManager.NOOP,
           recentChainData,
           new NoOpMetricsSystem(),
           eth2PeerFactory,
@@ -83,7 +85,13 @@ public class Eth2PeerManagerTest {
           Eth2P2PNetworkBuilder.DEFAULT_ETH2_RPC_PING_INTERVAL,
           Eth2P2PNetworkBuilder.DEFAULT_ETH2_RPC_OUTSTANDING_PING_THRESHOLD,
           Eth2P2PNetworkBuilder.DEFAULT_ETH2_STATUS_UPDATE_INTERVAL,
+          DataColumnSidecarArchiveReconstructor.NOOP,
           DasReqRespLogger.NOOP);
+
+  @BeforeEach
+  public void setUp() {
+    when(combinedChainDataClient.getRecentChainData()).thenReturn(recentChainData);
+  }
 
   @Test
   public void subscribeConnect_singleListener() {

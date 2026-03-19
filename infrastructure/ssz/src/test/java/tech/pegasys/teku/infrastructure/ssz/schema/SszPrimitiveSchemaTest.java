@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -39,6 +39,7 @@ public class SszPrimitiveSchemaTest extends SszSchemaTestBase {
     return Stream.of(
         SszPrimitiveSchemas.BIT_SCHEMA,
         SszPrimitiveSchemas.BYTE_SCHEMA,
+        SszPrimitiveSchemas.BOOLEAN_SCHEMA,
         SszPrimitiveSchemas.UINT64_SCHEMA,
         SszPrimitiveSchemas.UINT256_SCHEMA,
         SszPrimitiveSchemas.BYTES4_SCHEMA,
@@ -75,6 +76,7 @@ public class SszPrimitiveSchemaTest extends SszSchemaTestBase {
   void getBitsSize_shouldReturnCorrectValue() {
     assertThat(SszPrimitiveSchemas.BIT_SCHEMA.getBitsSize()).isEqualTo(1);
     assertThat(SszPrimitiveSchemas.BYTE_SCHEMA.getBitsSize()).isEqualTo(8);
+    assertThat(SszPrimitiveSchemas.BOOLEAN_SCHEMA.getBitsSize()).isEqualTo(8);
     assertThat(SszPrimitiveSchemas.UINT64_SCHEMA.getBitsSize()).isEqualTo(64);
     assertThat(SszPrimitiveSchemas.UINT256_SCHEMA.getBitsSize()).isEqualTo(256);
     assertThat(SszPrimitiveSchemas.BYTES4_SCHEMA.getBitsSize()).isEqualTo(32);

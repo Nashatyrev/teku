@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -23,8 +23,9 @@ import tech.pegasys.teku.ethereum.pow.api.DepositTreeSnapshot;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.kzg.KZGProof;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
@@ -191,12 +192,23 @@ public class CombinedStorageChannelSplitter implements CombinedStorageChannel {
 
   @Override
   public SafeFuture<Optional<Bytes32>> getLatestCanonicalBlockRoot() {
-    return asyncRunner.runAsync(() -> queryDelegate.getLatestCanonicalBlockRoot());
+    return asyncRunner.runAsync(queryDelegate::getLatestCanonicalBlockRoot);
+  }
+
+  @Override
+  public SafeFuture<Optional<UInt64>> getCustodyGroupCount() {
+    return asyncRunner.runAsync(queryDelegate::getCustodyGroupCount);
   }
 
   @Override
   public SafeFuture<Optional<UInt64>> getFinalizedSlotByStateRoot(final Bytes32 stateRoot) {
     return asyncRunner.runAsync(() -> queryDelegate.getFinalizedSlotByStateRoot(stateRoot));
+  }
+
+  @Override
+  public SafeFuture<Optional<SignedBeaconBlock>> getNonCanonicalBlockByRoot(
+      final Bytes32 blockRoot) {
+    return asyncRunner.runAsync(() -> queryDelegate.getNonCanonicalBlockByRoot(blockRoot));
   }
 
   @Override
@@ -217,6 +229,11 @@ public class CombinedStorageChannelSplitter implements CombinedStorageChannel {
   @Override
   public SafeFuture<Optional<UInt64>> getEarliestAvailableBlobSidecarSlot() {
     return asyncRunner.runAsync(queryDelegate::getEarliestAvailableBlobSidecarSlot);
+  }
+
+  @Override
+  public SafeFuture<Optional<UInt64>> getEarliestAvailableDataColumnSlot() {
+    return asyncRunner.runAsync(queryDelegate::getEarliestAvailableDataColumnSlot);
   }
 
   @Override
@@ -269,11 +286,6 @@ public class CombinedStorageChannelSplitter implements CombinedStorageChannel {
   }
 
   @Override
-  public SafeFuture<Optional<UInt64>> getFirstSamplerIncompleteSlot() {
-    return asyncRunner.runAsync(queryDelegate::getFirstSamplerIncompleteSlot);
-  }
-
-  @Override
   public SafeFuture<Optional<DataColumnSidecar>> getSidecar(
       final DataColumnSlotAndIdentifier identifier) {
     return asyncRunner.runAsync(() -> queryDelegate.getSidecar(identifier));
@@ -291,6 +303,12 @@ public class CombinedStorageChannelSplitter implements CombinedStorageChannel {
   }
 
   @Override
+  public SafeFuture<List<DataColumnSlotAndIdentifier>> getNonCanonicalDataColumnIdentifiers(
+      final UInt64 slot) {
+    return asyncRunner.runAsync(() -> queryDelegate.getNonCanonicalDataColumnIdentifiers(slot));
+  }
+
+  @Override
   public SafeFuture<List<DataColumnSlotAndIdentifier>> getDataColumnIdentifiers(
       final UInt64 startSlot, final UInt64 endSlot, final UInt64 limit) {
     return asyncRunner.runAsync(
@@ -300,5 +318,10 @@ public class CombinedStorageChannelSplitter implements CombinedStorageChannel {
   @Override
   public SafeFuture<Optional<UInt64>> getEarliestDataColumnSidecarSlot() {
     return asyncRunner.runAsync(queryDelegate::getEarliestDataColumnSidecarSlot);
+  }
+
+  @Override
+  public SafeFuture<Optional<List<List<KZGProof>>>> getDataColumnSidecarsProofs(final UInt64 slot) {
+    return asyncRunner.runAsync(() -> queryDelegate.getDataColumnSidecarsProofs(slot));
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -100,6 +100,8 @@ public class BlobSidecarsByRootMessageHandlerTest {
           case DENEB -> TestSpecFactory.createMinimalWithDenebForkEpoch(currentForkEpoch);
           case ELECTRA -> TestSpecFactory.createMinimalWithElectraForkEpoch(currentForkEpoch);
           case FULU -> TestSpecFactory.createMinimalWithFuluForkEpoch(currentForkEpoch);
+          case GLOAS -> TestSpecFactory.createMinimalWithGloasForkEpoch(currentForkEpoch);
+          case HEZE -> TestSpecFactory.createMinimalWithHezeForkEpoch(currentForkEpoch);
         };
     dataStructureUtil = new DataStructureUtil(spec);
     messageSchema =
@@ -124,13 +126,11 @@ public class BlobSidecarsByRootMessageHandlerTest {
     when(peer.approveBlobSidecarsRequest(eq(callback), anyLong()))
         .thenReturn(allowedObjectsRequest);
     reset(combinedChainDataClient);
-    when(combinedChainDataClient.getBlockByBlockRoot(any()))
-        .thenReturn(
-            SafeFuture.completedFuture(
-                Optional.of(dataStructureUtil.randomSignedBeaconBlock(currentForkFirstSlot))));
+    when(combinedChainDataClient.getSlotByBlockRoot(any()))
+        .thenReturn(SafeFuture.completedFuture(Optional.of(currentForkFirstSlot)));
     // deneb fork epoch is finalized
-    when(combinedChainDataClient.getFinalizedBlock())
-        .thenReturn(Optional.of(dataStructureUtil.randomSignedBeaconBlock(currentForkFirstSlot)));
+    when(combinedChainDataClient.getFinalizedBlockSlot())
+        .thenReturn(Optional.of(currentForkFirstSlot));
     when(combinedChainDataClient.getStore()).thenReturn(store);
     when(combinedChainDataClient.getRecentChainData()).thenReturn(recentChainData);
     when(callback.respond(any())).thenReturn(SafeFuture.COMPLETE);
@@ -168,7 +168,7 @@ public class BlobSidecarsByRootMessageHandlerTest {
             });
 
     final long countTooBigCount =
-        metricsSystem.getCounterValue(
+        metricsSystem.getLabelledCounterValue(
             TekuMetricCategory.NETWORK,
             "rpc_blob_sidecars_by_root_requests_total",
             "count_too_big");
@@ -193,7 +193,7 @@ public class BlobSidecarsByRootMessageHandlerTest {
     verify(peer, never()).adjustBlobSidecarsRequest(any(), anyLong());
 
     final long rateLimitedCount =
-        metricsSystem.getCounterValue(
+        metricsSystem.getLabelledCounterValue(
             TekuMetricCategory.NETWORK, "rpc_blob_sidecars_by_root_requests_total", "rate_limited");
 
     assertThat(rateLimitedCount).isOne();
@@ -207,7 +207,7 @@ public class BlobSidecarsByRootMessageHandlerTest {
 
     // the second block root can't be found in the database
     final Bytes32 secondBlockRoot = blobIdentifiers.get(1).getBlockRoot();
-    when(combinedChainDataClient.getBlockByBlockRoot(secondBlockRoot))
+    when(combinedChainDataClient.getSlotByBlockRoot(secondBlockRoot))
         .thenReturn(SafeFuture.completedFuture(Optional.empty()));
 
     when(combinedChainDataClient.getBlobSidecarByBlockRootAndIndex(
@@ -226,7 +226,7 @@ public class BlobSidecarsByRootMessageHandlerTest {
     verify(peer, times(1))
         .adjustBlobSidecarsRequest(eq(allowedObjectsRequest.orElseThrow()), eq(Long.valueOf(3)));
 
-    verify(combinedChainDataClient, times(1)).getBlockByBlockRoot(secondBlockRoot);
+    verify(combinedChainDataClient, times(1)).getSlotByBlockRoot(secondBlockRoot);
     verify(callback, times(3)).respond(blobSidecarCaptor.capture());
     verify(callback).completeSuccessfully();
 
@@ -254,10 +254,8 @@ public class BlobSidecarsByRootMessageHandlerTest {
 
     // first slot will be earlier than the minimum_request_epoch (for this test it is
     // denebForkEpoch)
-    when(combinedChainDataClient.getBlockByBlockRoot(any()))
-        .thenReturn(
-            SafeFuture.completedFuture(
-                Optional.of(dataStructureUtil.randomSignedBeaconBlock(UInt64.ONE))));
+    when(combinedChainDataClient.getSlotByBlockRoot(any()))
+        .thenReturn(SafeFuture.completedFuture(Optional.of(UInt64.ONE)));
 
     handler.onIncomingMessage(
         protocolId,
@@ -267,9 +265,8 @@ public class BlobSidecarsByRootMessageHandlerTest {
 
     // Requesting 3 blob sidecars
     verify(peer, times(1)).approveBlobSidecarsRequest(any(), eq(Long.valueOf(3)));
-    // Request cancelled due to error
-    verify(peer, times(1))
-        .adjustBlobSidecarsRequest(eq(allowedObjectsRequest.orElseThrow()), eq(Long.valueOf(0)));
+    // Be protective: do not adjust due to error
+    verify(peer, never()).adjustBlobSidecarsRequest(any(), anyLong());
 
     verify(callback, never()).respond(any());
     verify(callback).completeWithErrorResponse(rpcExceptionCaptor.capture());
@@ -304,9 +301,8 @@ public class BlobSidecarsByRootMessageHandlerTest {
 
     // Requesting 3 blob sidecars
     verify(peer, times(1)).approveBlobSidecarsRequest(any(), eq(Long.valueOf(3)));
-    // Request cancelled due to error
-    verify(peer, times(1))
-        .adjustBlobSidecarsRequest(eq(allowedObjectsRequest.orElseThrow()), eq(Long.valueOf(0)));
+    // Be protective: do not adjust due to error
+    verify(peer, never()).adjustBlobSidecarsRequest(any(), anyLong());
 
     verify(callback, never()).respond(any());
     verify(callback).completeWithErrorResponse(rpcExceptionCaptor.capture());

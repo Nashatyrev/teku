@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -20,6 +20,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import java.util.List;
 import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
+import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.ethereum.performance.trackers.BlockPublishingPerformance;
 import tech.pegasys.teku.infrastructure.ssz.SszCollection;
 import tech.pegasys.teku.infrastructure.ssz.SszList;
@@ -31,7 +32,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.BlockContainer;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockContainer;
 import tech.pegasys.teku.spec.datastructures.blocks.versions.deneb.BlockContentsDeneb;
-import tech.pegasys.teku.spec.datastructures.builder.versions.deneb.BlobsBundleDeneb;
 import tech.pegasys.teku.spec.datastructures.execution.BlobsBundle;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGCommitment;
 import tech.pegasys.teku.spec.datastructures.type.SszKZGProof;
@@ -39,7 +39,9 @@ import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 public class BlockFactoryDenebTest extends AbstractBlockFactoryTest {
 
-  private final Spec spec = TestSpecFactory.createMinimalDeneb();
+  private final Spec spec =
+      TestSpecFactory.createMinimalDeneb(
+          builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP));
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil(spec);
 
   @Test
@@ -149,7 +151,7 @@ public class BlockFactoryDenebTest extends AbstractBlockFactoryTest {
     executionPayload = dataStructureUtil.randomExecutionPayload();
 
     final int blobsCount = 3;
-    final BlobsBundleDeneb blobsBundle =
+    final tech.pegasys.teku.spec.datastructures.builder.BlobsBundle blobsBundle =
         prepareBuilderPayload(spec, blobsCount).getOptionalBlobsBundle().orElseThrow();
 
     final BlockAndBlobSidecars blockAndBlobSidecars = createBlockAndBlobSidecars(true, spec);
@@ -189,11 +191,13 @@ public class BlockFactoryDenebTest extends AbstractBlockFactoryTest {
             voluntaryExitPool,
             blsToExecutionChangePool,
             syncCommitteeContributionPool,
+            payloadAttestationPool,
             depositProvider,
             eth1DataCache,
             graffitiBuilder,
             forkChoiceNotifier,
             executionLayer,
+            executionPayloadBidManager,
             metricsSystem,
             timeProvider));
   }

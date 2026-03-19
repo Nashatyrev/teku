@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,6 +14,8 @@
 package tech.pegasys.teku.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
+import static tech.pegasys.teku.spec.networks.Eth2Network.EPHEMERY;
 
 import io.libp2p.core.crypto.KeyKt;
 import io.libp2p.core.crypto.KeyType;
@@ -55,6 +57,8 @@ class BootnodeCommandTest extends AbstractBeaconNodeCommandTest {
   @ParameterizedTest
   @EnumSource(Eth2Network.class)
   public void shouldAllowChangingNetwork(final Eth2Network network) {
+    // ephemery network doesn't use internal configuration, so this test doesn't exercise it
+    assumeThat(network).isNotEqualTo(EPHEMERY);
     final String[] args = new String[] {"bootnode", "--network", network.name()};
     int parseResult = beaconNodeCommand.parse(args);
 

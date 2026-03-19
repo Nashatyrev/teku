@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -59,22 +59,41 @@ class SpecFactoryTest {
                         .altairForkEpoch(UInt64.ZERO)
                         .bellatrixForkEpoch(UInt64.ZERO)
                         .capellaForkEpoch(UInt64.ZERO)
-                        .denebBuilder(d -> d.denebForkEpoch(forkEpoch));
+                        .denebForkEpoch(forkEpoch);
                 case ELECTRA ->
                     builder
                         .altairForkEpoch(UInt64.ZERO)
                         .bellatrixForkEpoch(UInt64.ZERO)
                         .capellaForkEpoch(UInt64.ZERO)
-                        .denebBuilder(d -> d.denebForkEpoch(UInt64.ZERO))
-                        .electraBuilder(e -> e.electraForkEpoch(forkEpoch));
+                        .denebForkEpoch(UInt64.ZERO)
+                        .electraForkEpoch(forkEpoch);
                 case FULU ->
                     builder
                         .altairForkEpoch(UInt64.ZERO)
                         .bellatrixForkEpoch(UInt64.ZERO)
                         .capellaForkEpoch(UInt64.ZERO)
-                        .denebBuilder(d -> d.denebForkEpoch(UInt64.ZERO))
-                        .electraBuilder(e -> e.electraForkEpoch(UInt64.ZERO))
-                        .fuluBuilder(f -> f.fuluForkEpoch(forkEpoch));
+                        .denebForkEpoch(UInt64.ZERO)
+                        .electraForkEpoch(UInt64.ZERO)
+                        .fuluForkEpoch(forkEpoch);
+                case GLOAS ->
+                    builder
+                        .altairForkEpoch(UInt64.ZERO)
+                        .bellatrixForkEpoch(UInt64.ZERO)
+                        .capellaForkEpoch(UInt64.ZERO)
+                        .denebForkEpoch(UInt64.ZERO)
+                        .electraForkEpoch(UInt64.ZERO)
+                        .fuluForkEpoch(UInt64.ZERO)
+                        .gloasForkEpoch(forkEpoch);
+                case HEZE ->
+                    builder
+                        .altairForkEpoch(UInt64.ZERO)
+                        .bellatrixForkEpoch(UInt64.ZERO)
+                        .capellaForkEpoch(UInt64.ZERO)
+                        .denebForkEpoch(UInt64.ZERO)
+                        .electraForkEpoch(UInt64.ZERO)
+                        .fuluForkEpoch(UInt64.ZERO)
+                        .gloasForkEpoch(UInt64.ZERO)
+                        .hezeForkEpoch(forkEpoch);
                 default ->
                     throw new IllegalStateException(
                         "Unhandled fork transition for test "
@@ -85,7 +104,7 @@ class SpecFactoryTest {
             });
     final Spec testSpec = SpecFactory.create(config);
     for (SpecMilestone currentMilestone : SpecMilestone.getAllPriorMilestones(milestone)) {
-      LOG.info("Previous milestone " + currentMilestone);
+      LOG.info("Previous milestone {}", currentMilestone);
       assertThat(testSpec.getForkSchedule().getFork(currentMilestone).getEpoch())
           .isEqualTo(UInt64.ZERO);
     }

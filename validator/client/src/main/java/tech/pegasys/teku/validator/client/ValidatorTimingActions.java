@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -106,6 +106,21 @@ public class ValidatorTimingActions implements ValidatorTimingChannel {
   @Override
   public void onAttestationAggregationDue(final UInt64 slot) {
     delegates.forEach(delegates -> delegates.onAttestationAggregationDue(slot));
+  }
+
+  @Override
+  public void onSyncCommitteeCreationDue(final UInt64 slot) {
+    delegates.forEach(delegate -> delegate.onSyncCommitteeCreationDue(slot));
+  }
+
+  @Override
+  public void onContributionCreationDue(final UInt64 slot) {
+    delegates.forEach(delegate -> delegate.onContributionCreationDue(slot));
+  }
+
+  @Override
+  public void onPayloadAttestationCreationDue(final UInt64 slot) {
+    delegates.forEach(delegate -> delegate.onPayloadAttestationCreationDue(slot));
   }
 
   @Override

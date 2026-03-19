@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -27,7 +27,11 @@ import tech.pegasys.teku.test.acceptance.dsl.TekuNodeConfigBuilder;
 public class MergedGenesisInteropModeAcceptanceTest extends AcceptanceTestBase {
 
   @ParameterizedTest
-  @EnumSource(SpecMilestone.class)
+  // TODO-GLOAS Fix test https://github.com/Consensys/teku/issues/9833
+  @EnumSource(
+      value = SpecMilestone.class,
+      names = {"GLOAS", "HEZE"},
+      mode = EnumSource.Mode.EXCLUDE)
   public void startFromMergedStatePerMilestoneUsingTerminalBlockHash(
       final SpecMilestone specMilestone) throws Exception {
     if (specMilestone.isGreaterThanOrEqualTo(SpecMilestone.CAPELLA)) {
@@ -47,7 +51,11 @@ public class MergedGenesisInteropModeAcceptanceTest extends AcceptanceTestBase {
   }
 
   @ParameterizedTest
-  @EnumSource(SpecMilestone.class)
+  // TODO-GLOAS Fix test https://github.com/Consensys/teku/issues/9833
+  @EnumSource(
+      value = SpecMilestone.class,
+      names = {"GLOAS", "HEZE"},
+      mode = EnumSource.Mode.EXCLUDE)
   public void startFromMergedStatePerMilestoneUsingTotalDifficultySimulation(
       final SpecMilestone specMilestone) throws Exception {
     if (specMilestone.isGreaterThanOrEqualTo(SpecMilestone.CAPELLA)) {
@@ -87,7 +95,10 @@ public class MergedGenesisInteropModeAcceptanceTest extends AcceptanceTestBase {
     if (specMilestone.isGreaterThanOrEqualTo(SpecMilestone.FULU)) {
       tekuNodeConfigBuilder.withFuluEpoch(UInt64.ZERO);
     }
-    if (specMilestone.isGreaterThan(SpecMilestone.FULU)) {
+    if (specMilestone.isGreaterThanOrEqualTo(SpecMilestone.GLOAS)) {
+      tekuNodeConfigBuilder.withGloasEpoch(UInt64.ZERO);
+    }
+    if (specMilestone.isGreaterThan(SpecMilestone.GLOAS)) {
       fail("Milestone %s not used on merged genesis interop test", specMilestone);
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -15,12 +15,14 @@ package tech.pegasys.teku.networking.eth2.rpc.beaconchain;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
@@ -37,7 +39,7 @@ import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.status.StatusMessage;
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.status.versions.phase0.StatusMessagePhase0;
 import tech.pegasys.teku.statetransition.datacolumns.CustodyGroupCountManager;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarArchiveReconstructor;
 import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -62,8 +64,14 @@ public class BeaconChainMethodsTest {
   final CombinedChainDataClient combinedChainDataClient = mock(CombinedChainDataClient.class);
   final RecentChainData recentChainData = mock(RecentChainData.class);
   final MetricsSystem metricsSystem = new NoOpMetricsSystem();
-  final StatusMessageFactory statusMessageFactory = new StatusMessageFactory(spec, recentChainData);
+  final StatusMessageFactory statusMessageFactory =
+      new StatusMessageFactory(spec, combinedChainDataClient, metricsSystem);
   final MetadataMessagesFactory metadataMessagesFactory = new MetadataMessagesFactory();
+
+  @BeforeEach
+  public void setUp() {
+    when(combinedChainDataClient.getRecentChainData()).thenReturn(recentChainData);
+  }
 
   @Test
   void testStatusRoundtripSerialization() throws Exception {
@@ -169,6 +177,30 @@ public class BeaconChainMethodsTest {
                         "/eth2/beacon_chain/req/status/2/ssz_snappy"));
   }
 
+  @Test
+  public void shouldCreateExecutionPayloadEnvelopesByRootWithGloasEnabled() {
+    final BeaconChainMethods methods = getMethods(TestSpecFactory.createMinimalGloas());
+
+    assertThat(methods.executionPayloadEnvelopesByRoot())
+        .hasValueSatisfying(
+            method ->
+                assertThat(method.getIds())
+                    .containsExactly(
+                        "/eth2/beacon_chain/req/execution_payload_envelopes_by_root/1/ssz_snappy"));
+  }
+
+  @Test
+  public void shouldCreateExecutionPayloadEnvelopesByRangeWithGloasEnabled() {
+    final BeaconChainMethods methods = getMethods(TestSpecFactory.createMinimalGloas());
+
+    assertThat(methods.executionPayloadEnvelopesByRange())
+        .hasValueSatisfying(
+            method ->
+                assertThat(method.getIds())
+                    .containsExactly(
+                        "/eth2/beacon_chain/req/execution_payload_envelopes_by_range/1/ssz_snappy"));
+  }
+
   private BeaconChainMethods getMethods() {
     return getMethods(TestSpecFactory.createMinimalPhase0());
   }
@@ -179,13 +211,13 @@ public class BeaconChainMethodsTest {
         asyncRunner,
         peerLookup,
         combinedChainDataClient,
-        DataColumnSidecarByRootCustody.NOOP,
-        CustodyGroupCountManager.NOOP,
+        () -> CustodyGroupCountManager.NOOP,
         recentChainData,
         metricsSystem,
         statusMessageFactory,
         metadataMessagesFactory,
         RpcEncoding.createSszSnappyEncoding(spec.getNetworkingConfig().getMaxPayloadSize()),
+        DataColumnSidecarArchiveReconstructor.NOOP,
         DasReqRespLogger.NOOP);
   }
 }

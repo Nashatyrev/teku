@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -20,7 +20,6 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateElectra;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.fulu.BeaconStateFulu;
-import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.fulu.BeaconStateSchemaFulu;
 import tech.pegasys.teku.spec.logic.common.forktransition.StateUpgrade;
 import tech.pegasys.teku.spec.logic.versions.fulu.helpers.BeaconStateAccessorsFulu;
 import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
@@ -67,7 +66,7 @@ public class FuluStateUpgrade implements StateUpgrade<BeaconStateElectra> {
                       epoch));
 
               state.setLatestExecutionPayloadHeader(
-                  preStateElectra.getLatestExecutionPayloadHeader());
+                  preStateElectra.getLatestExecutionPayloadHeaderRequired());
               state.setNextWithdrawalValidatorIndex(
                   preStateElectra.getNextWithdrawalValidatorIndex());
               state.setNextWithdrawalIndex(preStateElectra.getNextWithdrawalIndex());
@@ -81,10 +80,10 @@ public class FuluStateUpgrade implements StateUpgrade<BeaconStateElectra> {
               state.setEarliestConsolidationEpoch(preStateElectra.getEarliestConsolidationEpoch());
               state.setPendingDeposits(preStateElectra.getPendingDeposits());
               state.setPendingPartialWithdrawals(preStateElectra.getPendingPartialWithdrawals());
-              state.setPendingDeposits(preStateElectra.getPendingDeposits());
+              state.setPendingConsolidations(preStateElectra.getPendingConsolidations());
 
               state.setProposerLookahead(
-                  BeaconStateSchemaFulu.required(schemaDefinitions.getBeaconStateSchema())
+                  schemaDefinitions
                       .getProposerLookaheadSchema()
                       .of(
                           miscHelpers.initializeProposerLookahead(

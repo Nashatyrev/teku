@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -33,6 +33,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
+import tech.pegasys.teku.spec.datastructures.epbs.versions.gloas.SignedExecutionPayloadEnvelope;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayload;
 import tech.pegasys.teku.spec.datastructures.execution.SlotAndExecutionPayloadSummary;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
@@ -60,7 +61,11 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   protected Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars;
   protected Optional<UInt64> earliestBlobSidecarSlot;
   protected Optional<Bytes32> latestCanonicalBlockRoot;
+  protected Optional<UInt64> custodyGroupCount;
+  protected Map<Bytes32, SignedExecutionPayloadEnvelope> executionPayloads;
+  protected Map<Bytes32, BeaconState> executionPayloadStates;
   protected Optional<Bytes32> proposerBoostRoot = Optional.empty();
+
   protected final TestReadOnlyForkChoiceStrategy forkChoiceStrategy =
       new TestReadOnlyForkChoiceStrategy();
 
@@ -79,7 +84,10 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
       final Map<UInt64, VoteTracker> votes,
       final Map<SlotAndBlockRoot, List<BlobSidecar>> blobSidecars,
       final Optional<UInt64> maybeEarliestBlobSidecarSlot,
-      final Optional<Bytes32> maybeLatestCanonicalBlockRoot) {
+      final Optional<Bytes32> maybeLatestCanonicalBlockRoot,
+      final Optional<UInt64> maybeCustodyGroupCount,
+      final Map<Bytes32, SignedExecutionPayloadEnvelope> executionPayloads,
+      final Map<Bytes32, BeaconState> executionPayloadStates) {
     this.spec = spec;
     this.timeMillis = secondsToMillis(time);
     this.genesisTime = genesisTime;
@@ -95,6 +103,9 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
     this.blobSidecars = blobSidecars;
     this.earliestBlobSidecarSlot = maybeEarliestBlobSidecarSlot;
     this.latestCanonicalBlockRoot = maybeLatestCanonicalBlockRoot;
+    this.custodyGroupCount = maybeCustodyGroupCount;
+    this.executionPayloads = executionPayloads;
+    this.executionPayloadStates = executionPayloadStates;
   }
 
   // Readonly methods
@@ -136,6 +147,11 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   @Override
   public Checkpoint getFinalizedCheckpoint() {
     return finalizedCheckpoint;
+  }
+
+  @Override
+  public Optional<UInt64> getCustodyGroupCount() {
+    return custodyGroupCount;
   }
 
   @Override
@@ -183,6 +199,10 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
     return Optional.of(new SignedBlockAndState(block, state));
   }
 
+  private SignedExecutionPayloadEnvelope getSignedExecutionPayload(final Bytes32 blockRoot) {
+    return executionPayloads.get(blockRoot);
+  }
+
   @Override
   public boolean containsBlock(final Bytes32 blockRoot) {
     return blocks.containsKey(blockRoot);
@@ -204,6 +224,10 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
     return Optional.ofNullable(checkpointStates.get(checkpoint));
   }
 
+  private BeaconState getExecutionPayloadState(final Bytes32 blockRoot) {
+    return executionPayloadStates.get(blockRoot);
+  }
+
   @Override
   public UInt64 getHighestVotedValidatorIndex() {
     return votes.keySet().stream().max(Comparator.naturalOrder()).orElse(UInt64.ZERO);
@@ -216,8 +240,19 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   }
 
   @Override
+  public Optional<BeaconState> getExecutionPayloadStateIfAvailable(final Bytes32 blockRoot) {
+    return Optional.ofNullable(getExecutionPayloadState(blockRoot));
+  }
+
+  @Override
   public Optional<SignedBeaconBlock> getBlockIfAvailable(final Bytes32 blockRoot) {
     return Optional.ofNullable(getSignedBlock(blockRoot));
+  }
+
+  @Override
+  public Optional<SignedExecutionPayloadEnvelope> getExecutionPayloadIfAvailable(
+      final Bytes32 blockRoot) {
+    return Optional.ofNullable(getSignedExecutionPayload(blockRoot));
   }
 
   @Override
@@ -242,14 +277,26 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   }
 
   @Override
-  public SafeFuture<Optional<BeaconState>> retrieveCheckpointState(final Checkpoint checkpoint) {
-    return SafeFuture.completedFuture(getCheckpointState(checkpoint));
+  public SafeFuture<Optional<BeaconState>> retrieveExecutionPayloadState(
+      final SlotAndBlockRoot slotAndBlockRoot) {
+    return SafeFuture.failedFuture(new UnsupportedOperationException("Not implemented"));
   }
 
   @Override
-  public SafeFuture<Optional<BeaconState>> retrieveStateAtSlot(
+  public SafeFuture<Optional<BeaconState>> retrieveBlockState(
       final SlotAndBlockRoot slotAndBlockRoot) {
-    throw new UnsupportedOperationException("Not implemented");
+    return SafeFuture.failedFuture(new UnsupportedOperationException("Not implemented"));
+  }
+
+  @Override
+  public SafeFuture<Optional<SignedExecutionPayloadEnvelope>> retrieveSignedExecutionPayload(
+      final Bytes32 blockRoot) {
+    return SafeFuture.completedFuture(getExecutionPayloadIfAvailable(blockRoot));
+  }
+
+  @Override
+  public SafeFuture<Optional<BeaconState>> retrieveCheckpointState(final Checkpoint checkpoint) {
+    return SafeFuture.completedFuture(getCheckpointState(checkpoint));
   }
 
   @Override
@@ -317,6 +364,14 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   }
 
   @Override
+  public void putExecutionPayloadAndState(
+      final SignedExecutionPayloadEnvelope executionPayload, final BeaconState state) {
+    final Bytes32 beaconBlockRoot = executionPayload.getBeaconBlockRoot();
+    executionPayloads.put(beaconBlockRoot, executionPayload);
+    executionPayloadStates.put(beaconBlockRoot, state);
+  }
+
+  @Override
   public void putStateRoot(final Bytes32 stateRoot, final SlotAndBlockRoot slotAndBlockRoot) {
     // NO-OP
   }
@@ -379,6 +434,11 @@ public class TestStoreImpl implements MutableStore, VoteUpdater {
   @Override
   public void setLatestCanonicalBlockRoot(final Bytes32 latestCanonicalBlockRoot) {
     this.latestCanonicalBlockRoot = Optional.of(latestCanonicalBlockRoot);
+  }
+
+  @Override
+  public void setCustodyGroupCount(final UInt64 custodyGroupCount) {
+    this.custodyGroupCount = Optional.of(custodyGroupCount);
   }
 
   @Override

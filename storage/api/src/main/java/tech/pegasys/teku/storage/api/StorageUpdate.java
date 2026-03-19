@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -47,6 +47,7 @@ public class StorageUpdate {
   private final boolean optimisticTransitionBlockRootSet;
   private final Optional<Bytes32> optimisticTransitionBlockRoot;
   private final Optional<Bytes32> latestCanonicalBlockRoot;
+  private final Optional<UInt64> custodyGroupCount;
   private final Optional<Bytes32> confirmedRoot;
   private final Optional<Checkpoint> prevSlotJustifiedCheckpoint;
   private final Optional<Checkpoint> prevSlotUnrealizedJustifiedCheckpoint;
@@ -69,6 +70,7 @@ public class StorageUpdate {
       final boolean optimisticTransitionBlockRootSet,
       final Optional<Bytes32> optimisticTransitionBlockRoot,
       final Optional<Bytes32> latestCanonicalBlockRoot,
+      final Optional<UInt64> custodyGroupCount,
       Optional<Bytes32> confirmedRoot,
       Optional<Checkpoint> prevSlotJustifiedCheckpoint,
       Optional<Checkpoint> prevSlotUnrealizedJustifiedCheckpoint,
@@ -88,6 +90,7 @@ public class StorageUpdate {
     this.optimisticTransitionBlockRootSet = optimisticTransitionBlockRootSet;
     this.optimisticTransitionBlockRoot = optimisticTransitionBlockRoot;
     this.latestCanonicalBlockRoot = latestCanonicalBlockRoot;
+    this.custodyGroupCount = custodyGroupCount;
     this.confirmedRoot = confirmedRoot;
     this.prevSlotJustifiedCheckpoint = prevSlotJustifiedCheckpoint;
     this.prevSlotUnrealizedJustifiedCheckpoint = prevSlotUnrealizedJustifiedCheckpoint;
@@ -110,6 +113,7 @@ public class StorageUpdate {
             && blobSidecars.isEmpty()
             && maybeEarliestBlobSidecarSlot.isEmpty()
             && latestCanonicalBlockRoot.isEmpty()
+            && custodyGroupCount.isEmpty()
             && !optimisticTransitionBlockRootSet
             && confirmedRoot.isEmpty()
             && prevSlotJustifiedCheckpoint.isEmpty()
@@ -201,6 +205,10 @@ public class StorageUpdate {
 
   public Optional<Bytes32> getLatestCanonicalBlockRoot() {
     return latestCanonicalBlockRoot;
+  }
+
+  public Optional<UInt64> getCustodyGroupCount() {
+    return custodyGroupCount;
   }
 
   public Map<Bytes32, SlotAndBlockRoot> getStateRoots() {

@@ -39,7 +39,9 @@
                 "capella",
                 "deneb",
                 "electra",
-                "fulu"
+                "fulu",
+                "gloas",
+                "heze"
               ],
               "example": "phase0"
             }
@@ -86,7 +88,7 @@
       "in" : "header",
       "schema" : {
         "type" : "string",
-        "enum" : [ "phase0", "altair", "bellatrix", "capella", "deneb", "electra", "fulu" ],
+        "enum" : [ "phase0", "altair", "bellatrix", "capella", "deneb", "electra", "fulu", "gloas", "heze" ],
         "description" : "Version of the attestations being submitted."
       }
     } ],

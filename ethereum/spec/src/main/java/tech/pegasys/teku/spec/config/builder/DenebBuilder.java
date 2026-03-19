@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,23 +14,21 @@
 package tech.pegasys.teku.spec.config.builder;
 
 import static com.google.common.base.Preconditions.checkNotNull;
-import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
-import tech.pegasys.teku.infrastructure.bytes.Bytes4;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.spec.config.SpecConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.spec.config.SpecConfigAndParent;
 import tech.pegasys.teku.spec.config.SpecConfigCapella;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.config.SpecConfigDenebImpl;
 
-public class DenebBuilder implements ForkConfigBuilder<SpecConfigCapella, SpecConfigDeneb> {
-  private Bytes4 denebForkVersion;
-  private UInt64 denebForkEpoch;
+public class DenebBuilder extends BaseForkBuilder
+    implements ForkConfigBuilder<SpecConfigCapella, SpecConfigDeneb> {
+  private static final Logger LOG = LogManager.getLogger();
 
   private Integer maxPerEpochActivationChurnLimit;
   private Integer fieldElementsPerBlob;
@@ -51,8 +49,6 @@ public class DenebBuilder implements ForkConfigBuilder<SpecConfigCapella, SpecCo
     return SpecConfigAndParent.of(
         new SpecConfigDenebImpl(
             specConfigAndParent.specConfig(),
-            denebForkVersion,
-            denebForkEpoch,
             maxPerEpochActivationChurnLimit,
             fieldElementsPerBlob,
             maxBlobCommitmentsPerBlock,
@@ -64,18 +60,6 @@ public class DenebBuilder implements ForkConfigBuilder<SpecConfigCapella, SpecCo
             blobSidecarSubnetCount,
             epochsStoreBlobs),
         specConfigAndParent);
-  }
-
-  public DenebBuilder denebForkEpoch(final UInt64 denebForkEpoch) {
-    checkNotNull(denebForkEpoch);
-    this.denebForkEpoch = denebForkEpoch;
-    return this;
-  }
-
-  public DenebBuilder denebForkVersion(final Bytes4 denebForkVersion) {
-    checkNotNull(denebForkVersion);
-    this.denebForkVersion = denebForkVersion;
-    return this;
   }
 
   public DenebBuilder maxPerEpochActivationChurnLimit(
@@ -134,25 +118,20 @@ public class DenebBuilder implements ForkConfigBuilder<SpecConfigCapella, SpecCo
 
   @Override
   public void validate() {
-    if (denebForkEpoch == null) {
-      denebForkEpoch = SpecConfig.FAR_FUTURE_EPOCH;
-      denebForkVersion = SpecBuilderUtil.PLACEHOLDER_FORK_VERSION;
+    defaultValuesIfRequired(this);
+    if (maxRequestBlobSidecars == null
+        && maxRequestBlocksDeneb != null
+        && maxBlobsPerBlock != null) {
+      final Integer newMaxRequestBlobSidecars = computeMaxRequestBlobSidecars();
+      LOG.debug("Setting maxRequestBlobSidecars to {}", newMaxRequestBlobSidecars);
+      maxRequestBlobSidecars = newMaxRequestBlobSidecars;
     }
-
-    // Fill default zeros if fork is unsupported
-    if (denebForkEpoch.equals(FAR_FUTURE_EPOCH)) {
-      SpecBuilderUtil.fillMissingValuesWithZeros(this);
-    }
-
     validateConstants();
   }
 
   @Override
   public Map<String, Object> getValidationMap() {
     final Map<String, Object> constants = new HashMap<>();
-
-    constants.put("denebForkEpoch", denebForkEpoch);
-    constants.put("denebForkVersion", denebForkVersion);
     constants.put("maxPerEpochActivationChurnLimit", maxPerEpochActivationChurnLimit);
     constants.put("fieldElementsPerBlob", fieldElementsPerBlob);
     constants.put("maxBlobCommitmentsPerBlock", maxBlobCommitmentsPerBlock);
@@ -166,8 +145,11 @@ public class DenebBuilder implements ForkConfigBuilder<SpecConfigCapella, SpecCo
     return constants;
   }
 
-  @Override
-  public void addOverridableItemsToRawConfig(final BiConsumer<String, Object> rawConfig) {
-    rawConfig.accept("DENEB_FORK_EPOCH", denebForkEpoch);
+  // compute_max_request_blob_sidecars
+  private Integer computeMaxRequestBlobSidecars() {
+    return maxRequestBlocksDeneb * maxBlobsPerBlock;
   }
+
+  @Override
+  public void addOverridableItemsToRawConfig(final BiConsumer<String, Object> rawConfig) {}
 }

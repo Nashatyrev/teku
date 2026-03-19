@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,8 +14,6 @@
 package tech.pegasys.teku.spec.config;
 
 import java.util.Optional;
-import tech.pegasys.teku.infrastructure.bytes.Bytes4;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public class DelegatingSpecConfigDeneb extends DelegatingSpecConfigCapella
     implements SpecConfigDeneb {
@@ -29,16 +27,6 @@ public class DelegatingSpecConfigDeneb extends DelegatingSpecConfigCapella
   @Override
   public Optional<SpecConfigDeneb> toVersionDeneb() {
     return Optional.of(this);
-  }
-
-  @Override
-  public Bytes4 getDenebForkVersion() {
-    return specConfigDeneb.getDenebForkVersion();
-  }
-
-  @Override
-  public UInt64 getDenebForkEpoch() {
-    return specConfigDeneb.getDenebForkEpoch();
   }
 
   @Override

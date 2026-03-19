@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -18,12 +18,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigAndParent;
 
 interface ForkConfigBuilder<ParentType extends SpecConfig, ForkType extends ParentType> {
 
   SpecConfigAndParent<ForkType> build(SpecConfigAndParent<ParentType> specConfigAndParent);
+
+  void setForkEpoch(UInt64 epoch);
 
   void validate();
 

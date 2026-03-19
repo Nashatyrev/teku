@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -48,7 +48,6 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannel;
-import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.EpochProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.RewardAndPenalty;
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.RewardAndPenaltyDeltas;
@@ -56,7 +55,6 @@ import tech.pegasys.teku.spec.logic.common.statetransition.epoch.status.Validato
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.EpochProcessingException;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
-import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.block.BlockImporter;
 import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
@@ -100,9 +98,11 @@ public class EpochTransitionBenchmark {
   @Setup(Level.Trial)
   @SuppressWarnings("deprecation")
   public void init() throws Exception {
-    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.NO_OP;
 
-    spec = TestSpecFactory.createMainnetAltair();
+    spec =
+        TestSpecFactory.createMainnetAltair(
+            specConfigBuilder ->
+                specConfigBuilder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP));
     asyncRunner = DelayedExecutorAsyncRunner.create();
     String blocksFile =
         "/blocks/blocks_epoch_"
@@ -126,7 +126,6 @@ public class EpochTransitionBenchmark {
             spec,
             new InlineEventThread(),
             recentChainData,
-            BlobSidecarManager.NOOP,
             new NoopForkChoiceNotifier(),
             transitionBlockValidator,
             metricsSystem);

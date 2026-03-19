@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package tech.pegasys.teku.spec.constants;
 public class NetworkConstants {
 
   public static final int SYNC_COMMITTEE_SUBNET_COUNT = 4;
-  public static final int INTERVALS_PER_SLOT = 3;
   public static final int DEFAULT_SAFE_SLOTS_TO_IMPORT_OPTIMISTICALLY = 128;
 
   public static final int NODE_ID_BITS = 256;

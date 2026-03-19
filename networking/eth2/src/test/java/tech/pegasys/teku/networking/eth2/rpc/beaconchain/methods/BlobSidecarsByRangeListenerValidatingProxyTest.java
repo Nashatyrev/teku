@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -21,7 +21,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.safeJoin;
 import static tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods.BlobSidecarsByRootValidatorTest.breakInclusionProof;
-import static tech.pegasys.teku.spec.SpecMilestone.CAPELLA;
 import static tech.pegasys.teku.spec.SpecMilestone.DENEB;
 import static tech.pegasys.teku.spec.SpecMilestone.ELECTRA;
 
@@ -39,6 +38,7 @@ import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.TestSpecInvocationContextProvider.SpecContext;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityCheckerFactory;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
 @SuppressWarnings("JavaCase")
@@ -69,10 +69,17 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
           case DENEB -> TestSpecFactory.createMinimalWithDenebForkEpoch(currentForkEpoch);
           case ELECTRA -> TestSpecFactory.createMinimalWithElectraForkEpoch(currentForkEpoch);
           case FULU -> TestSpecFactory.createMinimalWithFuluForkEpoch(currentForkEpoch);
+          case GLOAS -> TestSpecFactory.createMinimalWithGloasForkEpoch(currentForkEpoch);
+          case HEZE -> TestSpecFactory.createMinimalWithHezeForkEpoch(currentForkEpoch);
         };
     currentForkFirstSlot = spec.computeStartSlotAtEpoch(currentForkEpoch);
     dataStructureUtil = new DataStructureUtil(spec);
     maxBlobsPerBlock = spec.getMaxBlobsPerBlockForHighestMilestone().orElseThrow();
+
+    spec.reinitializeForTesting(
+        AvailabilityCheckerFactory.NOOP_BLOB_SIDECAR,
+        AvailabilityCheckerFactory.NOOP_DATACOLUMN_SIDECAR,
+        kzg);
 
     when(listener.onResponse(any())).thenReturn(SafeFuture.completedFuture(null));
     when(kzg.verifyBlobKzgProof(any(), any(), any())).thenReturn(true);
@@ -85,7 +92,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(
@@ -108,7 +115,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(
@@ -132,7 +139,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar0_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(
@@ -155,7 +162,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final SignedBeaconBlock block1 =
         dataStructureUtil.randomSignedBeaconBlock(currentForkFirstSlot);
@@ -193,7 +200,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     // This requests 8 slots (1, 2, 3, 4, 5, 6, 7, 8) so 9 will be unexpected.
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(
@@ -235,7 +242,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(
@@ -264,7 +271,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
 
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final int exceedingBlobCount = spec.getMaxBlobsPerBlockForHighestMilestone().orElseThrow() + 1;
     final int exceedingBlobIndex = exceedingBlobCount - 1;
@@ -299,7 +306,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
 
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final SignedBeaconBlock block1 =
         dataStructureUtil.randomSignedBeaconBlockWithCommitments(currentForkFirstSlot, 3);
@@ -328,7 +335,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
 
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final SignedBeaconBlock block1 =
         dataStructureUtil.randomSignedBeaconBlock(currentForkFirstSlot);
@@ -351,7 +358,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar1_1 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(
@@ -374,7 +381,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar1_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(
@@ -404,7 +411,7 @@ public class BlobSidecarsByRangeListenerValidatingProxyTest {
     final UInt64 count = UInt64.valueOf(4);
     listenerWrapper =
         new BlobSidecarsByRangeListenerValidatingProxy(
-            spec, peer, listener, maxBlobsPerBlock, kzg, startSlot, count);
+            spec, peer, listener, maxBlobsPerBlock, startSlot, count);
 
     final BlobSidecar blobSidecar2_0 =
         dataStructureUtil.randomBlobSidecarWithValidInclusionProofForBlock(

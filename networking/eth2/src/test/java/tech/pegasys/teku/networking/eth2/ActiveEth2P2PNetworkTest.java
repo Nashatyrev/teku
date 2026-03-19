@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -15,7 +15,6 @@ package tech.pegasys.teku.networking.eth2;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -80,6 +79,8 @@ public class ActiveEth2P2PNetworkTest {
       new SubnetSubscriptionService();
   private final SubnetSubscriptionService dataColumnSidecarCommitteeSubnetService =
       new SubnetSubscriptionService();
+  private final SubnetSubscriptionService executionProofCommitteeSubnetService =
+      new SubnetSubscriptionService();
   private RecentChainData recentChainData;
   private final GossipEncoding gossipEncoding = GossipEncoding.SSZ_SNAPPY;
   private final GossipConfigurator gossipConfigurator = GossipConfigurator.NOOP;
@@ -109,12 +110,11 @@ public class ActiveEth2P2PNetworkTest {
                 b.altairForkEpoch(altairForkEpoch)
                     .bellatrixForkEpoch(UInt64.valueOf(3))
                     .capellaForkEpoch(UInt64.valueOf(4))
-                    .denebBuilder(db -> db.denebForkEpoch(UInt64.valueOf(5)))
-                    .electraBuilder(eb -> eb.electraForkEpoch(UInt64.valueOf(6)))
+                    .denebForkEpoch(UInt64.valueOf(5))
+                    .electraForkEpoch(UInt64.valueOf(6))
+                    .fuluForkEpoch(fuluForkEpoch)
                     .fuluBuilder(
-                        fb ->
-                            fb.fuluForkEpoch(fuluForkEpoch)
-                                .blobSchedule(List.of(new BlobScheduleEntry(bpoForkEpoch, 64)))));
+                        fb -> fb.blobSchedule(List.of(new BlobScheduleEntry(bpoForkEpoch, 64)))));
     storageSystem = InMemoryStorageSystemBuilder.buildDefault(spec);
     recentChainData = storageSystem.recentChainData();
     when(discoveryNetwork.start()).thenReturn(SafeFuture.completedFuture(null));
@@ -161,7 +161,6 @@ public class ActiveEth2P2PNetworkTest {
     network.onEpoch(UInt64.ONE);
     asyncRunner.executeDueActions();
     verify(discoveryNetwork).updateGossipTopicScoring(any());
-    verify(discoveryNetwork).setDASTotalCustodySubnetCount(anyInt());
     verify(discoveryNetwork).setNextForkDigest(altairForkDigest);
     verifyNoMoreInteractions(discoveryNetwork);
 
@@ -219,12 +218,11 @@ public class ActiveEth2P2PNetworkTest {
                 b.altairForkEpoch(altairForkEpoch)
                     .bellatrixForkEpoch(UInt64.valueOf(3))
                     .capellaForkEpoch(UInt64.valueOf(4))
-                    .denebBuilder(db -> db.denebForkEpoch(UInt64.valueOf(5)))
-                    .electraBuilder(eb -> eb.electraForkEpoch(UInt64.valueOf(6)))
+                    .denebForkEpoch(UInt64.valueOf(5))
+                    .electraForkEpoch(UInt64.valueOf(6))
+                    .fuluForkEpoch(fuluForkEpoch)
                     .fuluBuilder(
-                        fb ->
-                            fb.fuluForkEpoch(fuluForkEpoch)
-                                .blobSchedule(List.of(new BlobScheduleEntry(fuluForkEpoch, 64)))));
+                        fb -> fb.blobSchedule(List.of(new BlobScheduleEntry(fuluForkEpoch, 64)))));
     storageSystem = InMemoryStorageSystemBuilder.buildDefault(spec);
     recentChainData = storageSystem.recentChainData();
     when(discoveryNetwork.start()).thenReturn(SafeFuture.completedFuture(null));
@@ -453,10 +451,10 @@ public class ActiveEth2P2PNetworkTest {
         attestationSubnetService,
         syncCommitteeSubnetService,
         dataColumnSidecarCommitteeSubnetService,
+        executionProofCommitteeSubnetService,
         gossipEncoding,
         gossipConfigurator,
         processedAttestationSubscriptionProvider,
-        0,
         true);
   }
 }

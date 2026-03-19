@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -48,6 +48,7 @@ public class BeaconNodeServiceController extends ServiceController {
                 .getDepositTreeSnapshotConfiguration()
                 .isBundledDepositSnapshotEnabled(),
             tekuConfig.metricsConfig().isBlobSidecarsStorageCountersEnabled(),
+            tekuConfig.metricsConfig().isDataColumnSidecarsStorageCountersEnabled(),
             tekuConfig.beaconChain().eth2NetworkConfig().getEth2Network()));
     Optional<ExecutionWeb3jClientProvider> maybeExecutionWeb3jClientProvider = Optional.empty();
     if (tekuConfig.executionLayer().isEnabled()) {

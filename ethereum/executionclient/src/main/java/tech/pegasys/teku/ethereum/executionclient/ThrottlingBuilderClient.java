@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,6 +12,8 @@
  */
 
 package tech.pegasys.teku.ethereum.executionclient;
+
+import static tech.pegasys.teku.infrastructure.async.ThrottlingTaskQueue.DEFAULT_MAXIMUM_QUEUE_SIZE;
 
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes32;
@@ -40,9 +42,11 @@ public class ThrottlingBuilderClient implements BuilderClient {
     taskQueue =
         ThrottlingTaskQueue.create(
             maximumConcurrentRequests,
+            DEFAULT_MAXIMUM_QUEUE_SIZE,
             metricsSystem,
             TekuMetricCategory.BEACON,
-            "builder_request_queue_size");
+            "builder_request_queue_size",
+            "builder_request_queue_rejected");
   }
 
   @Override
@@ -57,20 +61,23 @@ public class ThrottlingBuilderClient implements BuilderClient {
         () -> delegate.registerValidators(slot, signedValidatorRegistrations));
   }
 
+  // avoid throttling for getHeader and getPayload methods
+  // as they are used in the block production path and should not be delayed
+
   @Override
   public SafeFuture<Response<Optional<SignedBuilderBid>>> getHeader(
       final UInt64 slot, final BLSPublicKey pubKey, final Bytes32 parentHash) {
-    return taskQueue.queueTask(() -> delegate.getHeader(slot, pubKey, parentHash));
+    return delegate.getHeader(slot, pubKey, parentHash);
   }
 
   @Override
   public SafeFuture<Response<BuilderPayload>> getPayload(
       final SignedBeaconBlock signedBlindedBeaconBlock) {
-    return taskQueue.queueTask(() -> delegate.getPayload(signedBlindedBeaconBlock));
+    return delegate.getPayload(signedBlindedBeaconBlock);
   }
 
   @Override
   public SafeFuture<Response<Void>> getPayloadV2(final SignedBeaconBlock signedBlindedBeaconBlock) {
-    return taskQueue.queueTask(() -> delegate.getPayloadV2(signedBlindedBeaconBlock));
+    return delegate.getPayloadV2(signedBlindedBeaconBlock);
   }
 }

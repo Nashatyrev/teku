@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -25,6 +25,8 @@ import tech.pegasys.teku.spec.config.SpecConfigCapella;
 import tech.pegasys.teku.spec.config.SpecConfigDeneb;
 import tech.pegasys.teku.spec.config.SpecConfigElectra;
 import tech.pegasys.teku.spec.config.SpecConfigFulu;
+import tech.pegasys.teku.spec.config.SpecConfigGloas;
+import tech.pegasys.teku.spec.config.SpecConfigHeze;
 import tech.pegasys.teku.spec.config.SpecConfigLoader;
 import tech.pegasys.teku.spec.networks.Eth2Network;
 import tech.pegasys.teku.spec.schemas.registry.SchemaRegistryBuilder;
@@ -91,6 +93,20 @@ class SpecVersionTest {
                 SpecConfigFulu.required(minimalConfig), SchemaRegistryBuilder.create());
         actualVersion =
             SpecVersion.create(SpecMilestone.FULU, minimalConfig, SchemaRegistryBuilder.create());
+      }
+      case GLOAS -> {
+        expectedVersion =
+            SpecVersion.createGloas(
+                SpecConfigGloas.required(minimalConfig), SchemaRegistryBuilder.create());
+        actualVersion =
+            SpecVersion.create(SpecMilestone.GLOAS, minimalConfig, SchemaRegistryBuilder.create());
+      }
+      case HEZE -> {
+        expectedVersion =
+            SpecVersion.createHeze(
+                SpecConfigHeze.required(minimalConfig), SchemaRegistryBuilder.create());
+        actualVersion =
+            SpecVersion.create(SpecMilestone.HEZE, minimalConfig, SchemaRegistryBuilder.create());
       }
     }
 

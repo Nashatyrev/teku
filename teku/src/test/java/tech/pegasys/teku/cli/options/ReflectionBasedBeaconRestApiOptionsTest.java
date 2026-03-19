@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,7 +14,9 @@
 package tech.pegasys.teku.cli.options;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -44,6 +46,45 @@ public class ReflectionBasedBeaconRestApiOptionsTest extends AbstractBeaconNodeC
     assertThat(config.getRestApiCorsAllowedOrigins())
         .containsExactly("127.1.2.3", "origin.allowed.com");
     assertThat(config.getMaxUrlLength()).isEqualTo(65535);
+  }
+
+  @Test
+  public void getBlobsApiRelatedConfig_defaultsAreCorrect() {
+    TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.isGetBlobsSidecarsDownloadEnabled()).isFalse();
+    assertThat(config.getGetBlobsSidecarsDownloadTimeoutSeconds())
+        .isGreaterThanOrEqualTo(Duration.ZERO);
+  }
+
+  @Test
+  public void getBlobsApiP2pSidecarDownloadEnabled_canBeEnabled() {
+    TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--rest-api-getblobs-sidecars-download-enabled");
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.isGetBlobsSidecarsDownloadEnabled()).isTrue();
+  }
+
+  @Test
+  public void getBlobsApiP2pSidecarDownloadTimeoutSeconds_canChanged() {
+    TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--rest-api-getblobs-sidecars-download-timeout", "12");
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.getGetBlobsSidecarsDownloadTimeoutSeconds())
+        .isEqualTo(Duration.ofSeconds(12));
+  }
+
+  @Test
+  public void getBlobsApiP2pSidecarDownloadTimeoutSeconds_wrongValues() {
+    assertThatThrownBy(
+        () ->
+            getTekuConfigurationFromArguments(
+                "--rest-api-getblobs-sidecars-download-timeout", "0"));
+
+    assertThatThrownBy(
+        () ->
+            getTekuConfigurationFromArguments(
+                "--rest-api-getblobs-sidecars-download-timeout", "-2"));
   }
 
   @Test
@@ -197,5 +238,74 @@ public class ReflectionBasedBeaconRestApiOptionsTest extends AbstractBeaconNodeC
         getTekuConfigurationFromArguments("--Xrest-api-validator-threads=15");
     final int validatorThreads = getConfig(tekuConfiguration).getValidatorThreads();
     assertThat(validatorThreads).isEqualTo(15);
+  }
+
+  @Test
+  void restApiVirtualThreadsEnabled_disabledByDefault() {
+    TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.isRestApiVirtualThreadsEnabled()).isFalse();
+  }
+
+  @Test
+  void restApiVirtualThreadsEnabled_shouldNotRequireAValue() {
+    TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--Xrest-api-virtual-threads-enabled");
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.isRestApiVirtualThreadsEnabled()).isTrue();
+  }
+
+  @Test
+  void restApiVirtualThreadsEnabled_canBeEnabled() {
+    TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--Xrest-api-virtual-threads-enabled=true");
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.isRestApiVirtualThreadsEnabled()).isTrue();
+  }
+
+  @Test
+  void restApiVirtualThreadsMaxConcurrentTasks_defaultValue() {
+    TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.getRestApiVirtualThreadsMaxConcurrentTasks())
+        .isEqualTo(BeaconRestApiConfig.DEFAULT_REST_API_VIRTUAL_THREADS_MAX_CONCURRENT_TASKS);
+  }
+
+  @Test
+  void restApiVirtualThreadsMaxConcurrentTasks_canBeOverridden() {
+    TekuConfiguration tekuConfiguration =
+        getTekuConfigurationFromArguments("--Xrest-api-virtual-threads-max-concurrent-tasks=64");
+    final BeaconRestApiConfig config = getConfig(tekuConfiguration);
+    assertThat(config.getRestApiVirtualThreadsMaxConcurrentTasks()).isEqualTo(64);
+  }
+
+  @Test
+  void restApiVirtualThreadsMaxThreads_shouldRejectZero() {
+    assertThatThrownBy(
+        () ->
+            getTekuConfigurationFromArguments(
+                "--Xrest-api-virtual-threads-max-concurrent-tasks=0"));
+  }
+
+  @Test
+  void restApiVirtualThreadsMaxThreads_shouldRejectNegative() {
+    assertThatThrownBy(
+        () ->
+            getTekuConfigurationFromArguments(
+                "--Xrest-api-virtual-threads-max-concurrent-tasks=-1"));
+  }
+
+  @Test
+  void restApiVirtualThreadsMaxThreads_shouldRejectAboveUpperBound() {
+    assertThatThrownBy(
+        () ->
+            getTekuConfigurationFromArguments(
+                "--Xrest-api-virtual-threads-max-concurrent-tasks=5001"));
+  }
+
+  @Test
+  void columnsDataAvailabilityHalfCheckEnabled_enabledByDefault() {
+    TekuConfiguration tekuConfiguration = getTekuConfigurationFromArguments();
+    assertThat(tekuConfiguration.p2p().isColumnsDataAvailabilityHalfCheckEnabled()).isTrue();
   }
 }

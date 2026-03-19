@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -67,8 +67,7 @@ public class BlockImportPerformance {
       final Optional<UInt64> arrivalTimestamp) {
     timeAtSlotStartTimeStamp = secondsToMillis(recentChainData.computeTimeAtSlot(slot));
     timeWarningLimitTimeStamp =
-        timeAtSlotStartTimeStamp.plus(
-            recentChainData.getSpec().getMillisPerSlot(slot).dividedBy(3));
+        timeAtSlotStartTimeStamp.plus(recentChainData.getSpec().getAttestationDueMillis(slot));
     if (arrivalTimestamp.isPresent()) {
       performanceTracker.addEvent(ARRIVAL_EVENT_LABEL, arrivalTimestamp.get());
     } else {

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -32,6 +32,7 @@ import static tech.pegasys.teku.infrastructure.async.FutureUtil.ignoreFuture;
 import static tech.pegasys.teku.infrastructure.async.SafeFutureAssert.assertThatSafeFuture;
 import static tech.pegasys.teku.spec.config.SpecConfig.GENESIS_SLOT;
 import static tech.pegasys.teku.spec.datastructures.validator.BroadcastValidationLevel.GOSSIP;
+import static tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityCheckerFactory.NOOP_DATACOLUMN_SIDECAR;
 import static tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason.FAILED_DATA_AVAILABILITY_CHECK_NOT_AVAILABLE;
 import static tech.pegasys.teku.statetransition.block.BlockImportPerformance.ARRIVAL_EVENT_LABEL;
 import static tech.pegasys.teku.statetransition.block.BlockImportPerformance.BEGIN_IMPORTING_LABEL;
@@ -55,9 +56,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.apache.tuweni.bytes.Bytes32;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.bls.BLSSignatureVerifier;
@@ -72,6 +71,7 @@ import tech.pegasys.teku.infrastructure.metrics.SettableLabelledGauge;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.infrastructure.time.StubTimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.kzg.NoOpKZG;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
@@ -83,14 +83,13 @@ import tech.pegasys.teku.spec.datastructures.validator.BroadcastValidationLevel;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannelStub;
 import tech.pegasys.teku.spec.executionlayer.PayloadStatus;
 import tech.pegasys.teku.spec.generator.ChainBuilder.BlockOptions;
-import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
-import tech.pegasys.teku.statetransition.blobs.BlockBlobSidecarsTrackersPool;
+import tech.pegasys.teku.statetransition.blobs.BlockEventsListenerRouter;
 import tech.pegasys.teku.statetransition.block.BlockImportChannel.BlockImportAndBroadcastValidationResults;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceNotifier;
@@ -121,8 +120,8 @@ public class BlockManagerTest {
   private final UInt64 historicalBlockTolerance = UInt64.valueOf(5);
   private final UInt64 futureBlockTolerance = UInt64.valueOf(2);
   private final int maxPendingBlocks = 10;
-  private final BlockBlobSidecarsTrackersPool blockBlobSidecarsTrackersPool =
-      mock(BlockBlobSidecarsTrackersPool.class);
+  private final BlockEventsListenerRouter blockEventsListenerRouter =
+      mock(BlockEventsListenerRouter.class);
   private PendingPool<SignedBeaconBlock> pendingBlocks;
   private final FutureItems<SignedBeaconBlock> futureBlocks =
       FutureItems.create(SignedBeaconBlock::getSlot, mock(SettableLabelledGauge.class), "blocks");
@@ -147,17 +146,6 @@ public class BlockManagerTest {
 
   private UInt64 currentSlot = GENESIS_SLOT;
 
-  @BeforeAll
-  public static void initSession() {
-    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.NO_OP;
-  }
-
-  @AfterAll
-  public static void resetSession() {
-    AbstractBlockProcessor.depositSignatureVerifier =
-        AbstractBlockProcessor.DEFAULT_DEPOSIT_SIGNATURE_VERIFIER;
-  }
-
   @BeforeEach
   public void setup() {
     // prepare an async runner
@@ -169,10 +157,13 @@ public class BlockManagerTest {
         .when(asyncRunner)
         .runAsync((ExceptionThrowingFutureSupplier<?>) any());
 
-    setupWithSpec(TestSpecFactory.createMinimalDeneb());
+    setupWithSpec(
+        TestSpecFactory.createMinimalDeneb(
+            builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP)));
   }
 
   private void setupWithSpec(final Spec spec) {
+    spec.reinitializeForTesting(blobSidecarManager, NOOP_DATACOLUMN_SIDECAR, NoOpKZG.INSTANCE);
     this.spec = spec;
     this.dataStructureUtil = new DataStructureUtil(spec);
     final StubMetricsSystem metricsSystem = new StubMetricsSystem();
@@ -188,7 +179,6 @@ public class BlockManagerTest {
             spec,
             new InlineEventThread(),
             localRecentChainData,
-            blobSidecarManager,
             forkChoiceNotifier,
             transitionBlockValidator,
             metricsSystem);
@@ -206,7 +196,7 @@ public class BlockManagerTest {
         new BlockManager(
             localRecentChainData,
             blockImporter,
-            blockBlobSidecarsTrackersPool,
+            blockEventsListenerRouter,
             pendingBlocks,
             futureBlocks,
             invalidBlockRoots,
@@ -220,7 +210,7 @@ public class BlockManagerTest {
         .initializeGenesisWithPayload(false, dataStructureUtil.randomExecutionPayloadHeader());
     assertThat(blockManager.start()).isCompleted();
     when(blobSidecarManager.createAvailabilityChecker(any()))
-        .thenReturn(AvailabilityChecker.NOOP_BLOBSIDECAR);
+        .thenReturn(AvailabilityChecker.NOOP_BLOB_SIDECAR);
     when(blockValidator.initiateBroadcastValidation(any(), any()))
         .thenReturn(blockBroadcastValidator);
     when(blockBroadcastValidator.getResult()).thenReturn(SafeFuture.completedFuture(SUCCESS));
@@ -265,7 +255,7 @@ public class BlockManagerTest {
 
     safeJoinBlockImport(nextBlock);
     verify(receivedBlockEventsChannelPublisher).onBlockImported(nextBlock, false);
-    verify(blockBlobSidecarsTrackersPool).removeAllForBlock(nextBlock.getRoot());
+    verify(blockEventsListenerRouter).removeAllForBlock(nextBlock.getSlotAndBlockRoot());
   }
 
   @Test
@@ -347,7 +337,7 @@ public class BlockManagerTest {
         new BlockManager(
             localRecentChainData,
             blockImporter,
-            blockBlobSidecarsTrackersPool,
+            blockEventsListenerRouter,
             pendingBlocks,
             futureBlocks,
             invalidBlockRoots,
@@ -463,8 +453,8 @@ public class BlockManagerTest {
 
     // pool should get notified for new block and then should be notified to drop content due to
     // block import completion
-    verify(blockBlobSidecarsTrackersPool).onNewBlock(nextBlock, Optional.empty());
-    verify(blockBlobSidecarsTrackersPool).removeAllForBlock(nextBlock.getRoot());
+    verify(blockEventsListenerRouter).onNewBlock(nextBlock, Optional.empty());
+    verify(blockEventsListenerRouter).removeAllForBlock(nextBlock.getSlotAndBlockRoot());
   }
 
   @Test
@@ -479,8 +469,8 @@ public class BlockManagerTest {
     assertThat(futureBlocks.contains(nextBlock)).isTrue();
 
     // blob pool should be notified about new block only
-    verify(blockBlobSidecarsTrackersPool).onNewBlock(nextBlock, Optional.empty());
-    verifyNoMoreInteractions(blockBlobSidecarsTrackersPool);
+    verify(blockEventsListenerRouter).onNewBlock(nextBlock, Optional.empty());
+    verifyNoInteractions(blobSidecarManager);
   }
 
   @Test
@@ -535,8 +525,8 @@ public class BlockManagerTest {
     // verify blob sidecars pool get notified to drop content
     invalidBlockDescendants.forEach(
         invalidBlockDescendant ->
-            verify(blockBlobSidecarsTrackersPool)
-                .removeAllForBlock(invalidBlockDescendant.getRoot()));
+            verify(blockEventsListenerRouter)
+                .removeAllForBlock(invalidBlockDescendant.getSlotAndBlockRoot()));
 
     // If any invalid block is again gossiped, it should be ignored
     invalidBlockDescendants.forEach(
@@ -677,7 +667,7 @@ public class BlockManagerTest {
     // import invalid block, which should fail to import and be marked invalid
     assertImportBlockWithResult(invalidBlock, FailureReason.FAILED_STATE_TRANSITION);
 
-    reset(blockBlobSidecarsTrackersPool);
+    reset(blockEventsListenerRouter);
 
     // Gossip same invalid block, must reject with no actual validation
     assertValidateAndImportBlockRejectWithoutValidation(invalidBlock);
@@ -844,7 +834,10 @@ public class BlockManagerTest {
   @Test
   void onDeneb_shouldStoreBlobSidecarsAlongWithBlock() {
     // If we start genesis with Deneb, 0 will be earliestBlobSidecarSlot, so started on epoch 1
-    setupWithSpec(TestSpecFactory.createMinimalWithDenebForkEpoch(UInt64.valueOf(1)));
+    setupWithSpec(
+        TestSpecFactory.createMinimalWithDenebForkEpoch(
+            UInt64.valueOf(1),
+            builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP)));
     final UInt64 slotsPerEpoch = UInt64.valueOf(spec.slotsPerEpoch(UInt64.ZERO));
     incrementSlotTo(slotsPerEpoch);
 
@@ -944,7 +937,10 @@ public class BlockManagerTest {
 
   @Test
   void onDeneb_shouldStoreEarliestBlobSidecarSlotCorrectlyWhenThereIsGap() {
-    setupWithSpec(TestSpecFactory.createMinimalWithDenebForkEpoch(UInt64.valueOf(1)));
+    setupWithSpec(
+        TestSpecFactory.createMinimalWithDenebForkEpoch(
+            UInt64.valueOf(1),
+            builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP)));
     final UInt64 slotsPerEpoch = UInt64.valueOf(spec.slotsPerEpoch(UInt64.ZERO));
 
     currentSlot = currentSlot.plus(slotsPerEpoch.plus(2));
@@ -973,7 +969,10 @@ public class BlockManagerTest {
   @Test
   void onDeneb_shouldStoreBlockWhenBlobSidecarsNotRequired() {
     // If we start genesis with Deneb, 0 will be earliestBlobSidecarSlot, so started on epoch 1
-    setupWithSpec(TestSpecFactory.createMinimalWithDenebForkEpoch(UInt64.valueOf(1)));
+    setupWithSpec(
+        TestSpecFactory.createMinimalWithDenebForkEpoch(
+            UInt64.valueOf(1),
+            builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP)));
     final UInt64 slotsPerEpoch = UInt64.valueOf(spec.slotsPerEpoch(UInt64.ZERO));
     incrementSlotTo(slotsPerEpoch);
 
@@ -1004,7 +1003,10 @@ public class BlockManagerTest {
   @Test
   void onDeneb_shouldNotStoreBlockWhenBlobSidecarsIsNotAvailable() {
     // If we start genesis with Deneb, 0 will be earliestBlobSidecarSlot, so started on epoch 1
-    setupWithSpec(TestSpecFactory.createMinimalWithDenebForkEpoch(UInt64.valueOf(1)));
+    setupWithSpec(
+        TestSpecFactory.createMinimalWithDenebForkEpoch(
+            UInt64.valueOf(1),
+            builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP)));
     final UInt64 slotsPerEpoch = UInt64.valueOf(spec.slotsPerEpoch(UInt64.ZERO));
     incrementSlotTo(slotsPerEpoch);
 
@@ -1033,35 +1035,6 @@ public class BlockManagerTest {
     assertThat(localRecentChainData.retrieveEarliestBlobSidecarSlot())
         .isCompletedWithValueMatching(Optional::isEmpty);
     assertThat(invalidBlockRoots).doesNotContainKeys(block1.getRoot());
-  }
-
-  @Test
-  void preDeneb_shouldNotWorryAboutBlobSidecars() {
-    setupWithSpec(TestSpecFactory.createMinimalCapella());
-    final SignedBlockAndState signedBlockAndState1 =
-        localChain
-            .chainBuilder()
-            .generateBlockAtSlot(
-                incrementSlot(), BlockOptions.create().setGenerateRandomBlobs(true));
-    final List<BlobSidecar> blobSidecars1 =
-        localChain.chainBuilder().getBlobSidecars(signedBlockAndState1.getRoot());
-    assertThatNothingStoredForSlotRoot(signedBlockAndState1.getSlotAndBlockRoot());
-    assertThat(blobSidecars1).isEmpty();
-    assertThat(localRecentChainData.retrieveEarliestBlobSidecarSlot())
-        .isCompletedWithValueMatching(Optional::isEmpty);
-
-    final SignedBeaconBlock block1 = signedBlockAndState1.getBlock();
-    // pre-Deneb is used NOOP with default not required
-    final AvailabilityChecker<BlobSidecar> blobSidecarsAvailabilityChecker1 =
-        createAvailabilityCheckerWithNotRequiredBlobSidecars(block1);
-
-    assertThatBlockImport(block1).isCompletedWithValueMatching(BlockImportResult::isSuccessful);
-    verify(blobSidecarsAvailabilityChecker1).getAvailabilityCheckResult();
-    assertThat(localRecentChainData.retrieveBlockByRoot(block1.getRoot()))
-        .isCompletedWithValue(Optional.of(block1.getMessage()));
-    assertThat(localRecentChainData.getBlobSidecars(block1.getSlotAndBlockRoot())).isEmpty();
-    assertThat(localRecentChainData.retrieveEarliestBlobSidecarSlot())
-        .isCompletedWithValueMatching(Optional::isEmpty);
   }
 
   private AvailabilityChecker<BlobSidecar> createAvailabilityCheckerWithValidBlobSidecars(
@@ -1133,7 +1106,7 @@ public class BlockManagerTest {
     assertThat(blockManager.validateAndImportBlock(block, Optional.empty()))
         .isCompletedWithValueMatching(InternalValidationResult::isReject);
     verify(blockValidator, never()).validateGossip(eq(block));
-    verify(blockBlobSidecarsTrackersPool).removeAllForBlock(block.getRoot());
+    verify(blockEventsListenerRouter).removeAllForBlock(block.getSlotAndBlockRoot());
   }
 
   private void assertImportBlockSuccessfully(final SignedBeaconBlock block) {
@@ -1160,7 +1133,7 @@ public class BlockManagerTest {
     return new BlockManager(
         localRecentChainData,
         blockImporter,
-        blockBlobSidecarsTrackersPool,
+        blockEventsListenerRouter,
         pendingBlocks,
         futureBlocks,
         invalidBlockRoots,

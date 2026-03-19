@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2024
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -14,14 +14,10 @@
 package tech.pegasys.teku.statetransition.datacolumns.retriever;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import org.apache.tuweni.units.bigints.UInt256;
 
 public class DataColumnPeerManagerStub implements DataColumnPeerManager {
 
-  private final Set<UInt256> bannedNodes = new HashSet<>();
   private final List<PeerListener> listeners = new ArrayList<>();
 
   @Override
@@ -29,20 +25,11 @@ public class DataColumnPeerManagerStub implements DataColumnPeerManager {
     listeners.add(listener);
   }
 
-  @Override
-  public void banNode(final UInt256 node) {
-    bannedNodes.add(node);
+  public void addPeer(final TestPeer peer) {
+    listeners.forEach(l -> l.peerConnected(peer.getNodeId(), peer::getEarliestAvailableSlot));
   }
 
-  public Set<UInt256> getBannedNodes() {
-    return bannedNodes;
-  }
-
-  public void addNode(final UInt256 nodeId) {
-    listeners.forEach(l -> l.peerConnected(nodeId));
-  }
-
-  public void removeNode(final UInt256 nodeId) {
-    listeners.forEach(l -> l.peerDisconnected(nodeId));
+  public void removePeer(final TestPeer peer) {
+    listeners.forEach(l -> l.peerDisconnected(peer.getNodeId()));
   }
 }

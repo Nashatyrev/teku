@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -24,6 +24,15 @@ import tech.pegasys.teku.ethereum.executionclient.auth.JwtConfig;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 
 public class OkHttpClientCreator {
+
+  // The timeout used by default for call and read timeouts when not specified
+  // Note: this can be overridden per-request (e.g. for getPayload or newPayload
+  private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(1);
+
+  public static OkHttpClient create(
+      final Logger logger, final Optional<JwtConfig> jwtConfig, final TimeProvider timeProvider) {
+    return create(DEFAULT_TIMEOUT, logger, jwtConfig, timeProvider);
+  }
 
   public static OkHttpClient create(
       final Duration timeout,

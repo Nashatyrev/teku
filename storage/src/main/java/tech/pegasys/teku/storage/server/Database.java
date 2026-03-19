@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -26,8 +26,9 @@ import tech.pegasys.teku.ethereum.pow.api.DepositTreeSnapshot;
 import tech.pegasys.teku.ethereum.pow.api.DepositsFromBlockEvent;
 import tech.pegasys.teku.ethereum.pow.api.MinGenesisTimeBlockEvent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.kzg.KZGProof;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
@@ -122,6 +123,8 @@ public interface Database extends AutoCloseable {
 
   Optional<Bytes32> getLatestCanonicalBlockRoot();
 
+  Optional<UInt64> getCustodyGroupCount();
+
   /**
    * Return the finalized block at this slot if such a block exists.
    *
@@ -199,6 +202,8 @@ public interface Database extends AutoCloseable {
 
   Optional<MinGenesisTimeBlockEvent> getMinGenesisTimeBlock();
 
+  Optional<SignedBeaconBlock> getNonCanonicalBlockByRoot(Bytes32 blockRoot);
+
   List<SignedBeaconBlock> getNonCanonicalBlocksAtSlot(final UInt64 slot);
 
   @MustBeClosed
@@ -220,6 +225,8 @@ public interface Database extends AutoCloseable {
   Map<String, Optional<String>> getVariables();
 
   long getBlobSidecarColumnCount();
+
+  long getSidecarColumnCount();
 
   long getNonCanonicalBlobSidecarColumnCount();
 
@@ -253,8 +260,6 @@ public interface Database extends AutoCloseable {
   // Sidecars
   Optional<UInt64> getFirstCustodyIncompleteSlot();
 
-  Optional<UInt64> getFirstSamplerIncompleteSlot();
-
   Optional<DataColumnSidecar> getSidecar(DataColumnSlotAndIdentifier identifier);
 
   Optional<DataColumnSidecar> getNonCanonicalSidecar(DataColumnSlotAndIdentifier identifier);
@@ -280,14 +285,20 @@ public interface Database extends AutoCloseable {
 
   Optional<UInt64> getEarliestDataColumnSidecarSlot();
 
-  void setFirstCustodyIncompleteSlot(UInt64 slot);
+  Optional<UInt64> getEarliestAvailableDataColumnSlot();
 
-  void setFirstSamplerIncompleteSlot(UInt64 slot);
+  Optional<UInt64> getLastDataColumnSidecarsProofsSlot();
+
+  Optional<List<List<KZGProof>>> getDataColumnSidecarsProofs(UInt64 slot);
+
+  void setEarliestAvailableDataColumnSlot(UInt64 slot);
+
+  void setFirstCustodyIncompleteSlot(UInt64 slot);
 
   void addSidecar(DataColumnSidecar sidecar);
 
   void addNonCanonicalSidecar(DataColumnSidecar sidecar);
 
   // prunes both canonical and non canonical sidecars
-  void pruneAllSidecars(UInt64 tillSlotInclusive);
+  void pruneAllSidecars(UInt64 tillSlotInclusive, int pruneLimit);
 }

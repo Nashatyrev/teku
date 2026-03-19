@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -26,14 +26,14 @@ public interface ForkChoiceNotifier {
 
   void onAttestationsDue(UInt64 slot);
 
+  void onPayloadAttestationsDue(UInt64 slot);
+
   void onSyncingStatusChanged(boolean inSync);
 
   SafeFuture<Optional<ExecutionPayloadContext>> getPayloadId(
       Bytes32 parentBeaconBlockRoot, UInt64 blockSlot);
 
   void onTerminalBlockReached(Bytes32 executionBlockHash);
-
-  boolean validatorIsConnected(UInt64 validatorIndex, UInt64 currentSlot);
 
   void subscribeToForkChoiceUpdatedResult(ForkChoiceUpdatedResultSubscriber subscriber);
 }

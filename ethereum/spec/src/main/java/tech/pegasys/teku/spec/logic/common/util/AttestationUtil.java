@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -143,23 +143,6 @@ public abstract class AttestationUtil {
         .map(committee::getInt);
   }
 
-  public AttestationProcessingResult isValidIndexedAttestation(
-      final Fork fork, final BeaconState state, final ValidatableAttestation attestation) {
-    return isValidIndexedAttestation(fork, state, attestation, BLSSignatureVerifier.SIMPLE);
-  }
-
-  public AttestationProcessingResult isValidIndexedAttestation(
-      final Fork fork,
-      final BeaconState state,
-      final ValidatableAttestation attestation,
-      final BLSSignatureVerifier blsSignatureVerifier) {
-    final SafeFuture<AttestationProcessingResult> result =
-        isValidIndexedAttestationAsync(
-            fork, state, attestation, AsyncBLSSignatureVerifier.wrap(blsSignatureVerifier));
-
-    return result.getImmediately();
-  }
-
   public SafeFuture<AttestationProcessingResult> isValidIndexedAttestationAsync(
       final Fork fork,
       final BeaconState state,
@@ -215,7 +198,8 @@ public abstract class AttestationUtil {
    */
   public AttestationProcessingResult isValidIndexedAttestation(
       final Fork fork, final BeaconState state, final IndexedAttestation indexedAttestation) {
-    return isValidIndexedAttestation(fork, state, indexedAttestation, BLSSignatureVerifier.SIMPLE);
+    return isValidIndexedAttestation(
+        fork, state, indexedAttestation, specConfig.getBLSSignatureVerifier());
   }
 
   public AttestationProcessingResult isValidIndexedAttestation(
@@ -325,7 +309,12 @@ public abstract class AttestationUtil {
           Attestation attestation, UInt64 genesisTime, UInt64 currentTimeMillis);
 
   public abstract Attestation convertSingleAttestationToAggregated(
-      final BeaconState state, final SingleAttestation singleAttestation);
+      BeaconState state, SingleAttestation singleAttestation);
+
+  public abstract AttestationValidationResult validateCommitteeIndexValue(UInt64 committeeIndex);
+
+  public abstract AttestationValidationResult validatePayloadStatus(
+      AttestationData attestationData, Optional<UInt64> maybeBlockSlot);
 
   public enum SlotInclusionGossipValidationResult {
     IGNORE,

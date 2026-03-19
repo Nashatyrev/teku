@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,6 +12,8 @@
  */
 
 package tech.pegasys.teku.beacon.pow;
+
+import static tech.pegasys.teku.infrastructure.async.ThrottlingTaskQueue.DEFAULT_MAXIMUM_QUEUE_SIZE;
 
 import java.math.BigInteger;
 import java.time.Duration;
@@ -40,9 +42,11 @@ public class ThrottlingEth1Provider implements Eth1Provider {
     taskQueue =
         ThrottlingTaskQueue.create(
             maximumConcurrentRequests,
+            DEFAULT_MAXIMUM_QUEUE_SIZE,
             metricsSystem,
             TekuMetricCategory.BEACON,
-            "eth1_request_queue_size");
+            "eth1_request_queue_size",
+            "eth1_request_queue_rejected");
   }
 
   @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -38,6 +38,14 @@ public class SszPrimitiveVectorSchemaTest extends SszVectorSchemaTestBase {
         SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BYTE_SCHEMA, 63),
         SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BYTE_SCHEMA, 64),
         SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BYTE_SCHEMA, 65),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 1),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 2),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 31),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 32),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 33),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 63),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 64),
+        SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BOOLEAN_SCHEMA, 65),
         SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BYTES4_SCHEMA, 1),
         SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BYTES4_SCHEMA, 2),
         SszPrimitiveVectorSchema.create(SszPrimitiveSchemas.BYTES4_SCHEMA, 7),

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -34,7 +34,6 @@ public class SpecConfigData {
     this.specConfig = specConfig;
   }
 
-  @SuppressWarnings("unchecked")
   public Map<String, Object> getConfigMap() {
     final Map<String, Object> configAttributes = new HashMap<>();
     specConfig
@@ -52,6 +51,8 @@ public class SpecConfigData {
             });
 
     configAttributes.put("BLS_WITHDRAWAL_PREFIX", getBlsWithdrawalPrefix().toHexString());
+    configAttributes.put(
+        "DOMAIN_BLS_TO_EXECUTION_CHANGE", getDomainBlsToExecutionChange().toHexString());
     configAttributes.put("TARGET_AGGREGATORS_PER_COMMITTEE", getTargetAggregatorsPerCommittee());
     configAttributes.put("DOMAIN_BEACON_PROPOSER", getDomainBeaconProposer().toHexString());
     configAttributes.put("DOMAIN_BEACON_ATTESTER", getDomainBeaconAttester().toHexString());
@@ -61,10 +62,13 @@ public class SpecConfigData {
     configAttributes.put("DOMAIN_SELECTION_PROOF", getDomainSelectionProof().toHexString());
     configAttributes.put("DOMAIN_AGGREGATE_AND_PROOF", getDomainAggregateAndProof().toHexString());
     configAttributes.put("DOMAIN_APPLICATION_BUILDER", getDomainApplicationBuilder().toHexString());
-    // Backwards compatibility with old phase0 constants, otherwise nodes won't start
-    configAttributes.put("GOSSIP_MAX_SIZE", configAttributes.get("MAX_PAYLOAD_SIZE"));
-    // Backwards compatibility with old phase0 constants, otherwise nodes won't start
-    configAttributes.put("MAX_CHUNK_SIZE", configAttributes.get("MAX_PAYLOAD_SIZE"));
+    configAttributes.put("DOMAIN_BEACON_BUILDER", getDomainBeaconBuilder().toHexString());
+    configAttributes.put("DOMAIN_PTC_ATTESTER", getDomainPtcAttester().toHexString());
+    configAttributes.put(
+        "DOMAIN_PROPOSER_PREFERENCES", getDomainProposerPreferences().toHexString());
+    configAttributes.put(
+        "DOMAIN_INCLUSION_LIST_COMMITTEE", getDomainInclusionListCommittee().toHexString());
+
     getDomainSyncCommittee()
         .ifPresent(
             committee -> configAttributes.put("DOMAIN_SYNC_COMMITTEE", committee.toHexString()));
@@ -125,6 +129,26 @@ public class SpecConfigData {
 
   public Bytes4 getDomainApplicationBuilder() {
     return Domain.APPLICATION_BUILDER;
+  }
+
+  public Bytes4 getDomainBlsToExecutionChange() {
+    return Domain.BLS_TO_EXECUTION_CHANGE;
+  }
+
+  public Bytes4 getDomainBeaconBuilder() {
+    return Domain.BEACON_BUILDER;
+  }
+
+  public Bytes4 getDomainPtcAttester() {
+    return Domain.PTC_ATTESTER;
+  }
+
+  public Bytes4 getDomainProposerPreferences() {
+    return Domain.PROPOSER_PREFERENCES;
+  }
+
+  public Bytes4 getDomainInclusionListCommittee() {
+    return Domain.INCLUSION_LIST_COMMITTEE;
   }
 
   private Optional<Bytes4> getDomainSyncCommittee() {

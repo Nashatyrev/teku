@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -44,11 +44,9 @@ import tech.pegasys.teku.spec.datastructures.state.Validator;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.executionlayer.ExecutionLayerChannel;
-import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
-import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.block.BlockImporter;
 import tech.pegasys.teku.statetransition.block.ReceivedBlockEventsChannel;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
@@ -62,7 +60,9 @@ import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 /** The test to be run manually for profiling block imports */
 public class ProfilingRun {
   public static Consumer<Object> blackHole = o -> {};
-  private Spec spec = TestSpecFactory.createMainnetPhase0();
+  private Spec spec =
+      TestSpecFactory.createMainnetPhase0(
+          builder -> builder.blsSignatureVerifier(BLSSignatureVerifier.NO_OP));
 
   private final MetricsSystem metricsSystem = new StubMetricsSystem();
   private final AsyncRunner asyncRunner = DelayedExecutorAsyncRunner.create();
@@ -71,9 +71,6 @@ public class ProfilingRun {
   @Test
   @SuppressWarnings("deprecation")
   public void importBlocks() throws Exception {
-
-    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.NO_OP;
-
     int validatorsCount = 32 * 1024;
     int iterationBlockLimit = 1024;
 
@@ -106,7 +103,6 @@ public class ProfilingRun {
               spec,
               new InlineEventThread(),
               recentChainData,
-              BlobSidecarManager.NOOP,
               new NoopForkChoiceNotifier(),
               transitionBlockValidator,
               metricsSystem);
@@ -164,9 +160,6 @@ public class ProfilingRun {
   @Test
   @SuppressWarnings("deprecation")
   public void importBlocksMemProfiling() throws Exception {
-
-    AbstractBlockProcessor.depositSignatureVerifier = BLSSignatureVerifier.NO_OP;
-
     final int validatorsCount = 32 * 1024;
 
     final String blocksFile =
@@ -201,7 +194,6 @@ public class ProfilingRun {
               spec,
               new InlineEventThread(),
               recentChainData,
-              BlobSidecarManager.NOOP,
               new NoopForkChoiceNotifier(),
               transitionBlockValidator,
               metricsSystem);

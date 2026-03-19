@@ -69,7 +69,9 @@
                 "capella",
                 "deneb",
                 "electra",
-                "fulu"
+                "fulu",
+                "gloas",
+                "heze"
               ],
               "example": "phase0"
             }

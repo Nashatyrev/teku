@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -15,9 +15,7 @@ package tech.pegasys.teku.spec.logic.common.helpers;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static tech.pegasys.teku.infrastructure.crypto.Hash.getSha256Instance;
-import static tech.pegasys.teku.infrastructure.time.TimeUtilities.secondsToMillis;
 import static tech.pegasys.teku.spec.config.SpecConfig.FAR_FUTURE_EPOCH;
-import static tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor.depositSignatureVerifier;
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.bytesToUInt64;
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.uint64ToBytes;
 import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.uintTo4Bytes;
@@ -40,7 +38,6 @@ import tech.pegasys.teku.infrastructure.ssz.Merkleizable;
 import tech.pegasys.teku.infrastructure.ssz.collections.SszByteVector;
 import tech.pegasys.teku.infrastructure.ssz.primitive.SszUInt64;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.kzg.KZGCommitment;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.constants.Domain;
@@ -59,6 +56,7 @@ import tech.pegasys.teku.spec.logic.versions.deneb.helpers.MiscHelpersDeneb;
 import tech.pegasys.teku.spec.logic.versions.deneb.types.VersionedHash;
 import tech.pegasys.teku.spec.logic.versions.electra.helpers.MiscHelpersElectra;
 import tech.pegasys.teku.spec.logic.versions.fulu.helpers.MiscHelpersFulu;
+import tech.pegasys.teku.spec.logic.versions.gloas.helpers.MiscHelpersGloas;
 
 public class MiscHelpers {
 
@@ -71,6 +69,28 @@ public class MiscHelpers {
 
   public MiscHelpers(final SpecConfig specConfig) {
     this.specConfig = specConfig;
+  }
+
+  // compute_fork_version
+  public Bytes4 computeForkVersion(final UInt64 epoch) {
+    if (epoch.isGreaterThanOrEqualTo(specConfig.getHezeForkEpoch())) {
+      return specConfig.getHezeForkVersion();
+    } else if (epoch.isGreaterThanOrEqualTo(specConfig.getGloasForkEpoch())) {
+      return specConfig.getGloasForkVersion();
+    } else if (epoch.isGreaterThanOrEqualTo(specConfig.getFuluForkEpoch())) {
+      return specConfig.getFuluForkVersion();
+    } else if (epoch.isGreaterThanOrEqualTo(specConfig.getElectraForkEpoch())) {
+      return specConfig.getElectraForkVersion();
+    } else if (epoch.isGreaterThanOrEqualTo(specConfig.getDenebForkEpoch())) {
+      return specConfig.getDenebForkVersion();
+    } else if (epoch.isGreaterThanOrEqualTo(specConfig.getCapellaForkEpoch())) {
+      return specConfig.getCapellaForkVersion();
+    } else if (epoch.isGreaterThanOrEqualTo(specConfig.getBellatrixForkEpoch())) {
+      return specConfig.getBellatrixForkVersion();
+    } else if (epoch.isGreaterThanOrEqualTo(specConfig.getAltairForkEpoch())) {
+      return specConfig.getAltairForkVersion();
+    }
+    return specConfig.getGenesisForkVersion();
   }
 
   public int computeShuffledIndex(final int index, final int indexCount, final Bytes32 seed) {
@@ -166,9 +186,7 @@ public class MiscHelpers {
     if (currentTimeMillis.isLessThan(genesisTimeMillis)) {
       return UInt64.ZERO;
     }
-    return currentTimeMillis
-        .minus(genesisTimeMillis)
-        .dividedBy(secondsToMillis(specConfig.getSecondsPerSlot()));
+    return currentTimeMillis.minus(genesisTimeMillis).dividedBy(specConfig.getSlotDurationMillis());
   }
 
   // compute_time_at_slot, spec function takes state, but otherwise the same.
@@ -180,8 +198,7 @@ public class MiscHelpers {
   // compute_time_at_slot - milliseconds version
   public UInt64 computeTimeMillisAtSlot(final UInt64 genesisTimeMillis, final UInt64 slot) {
     final UInt64 slotsSinceGenesis = slot.minus(SpecConfig.GENESIS_SLOT);
-    return genesisTimeMillis.plus(
-        slotsSinceGenesis.times(secondsToMillis(specConfig.getSecondsPerSlot())));
+    return genesisTimeMillis.plus(slotsSinceGenesis.times(specConfig.getSlotDurationMillis()));
   }
 
   public boolean isSlotAtNthEpochBoundary(
@@ -396,8 +413,10 @@ public class MiscHelpers {
       final UInt64 amount,
       final BLSSignature signature) {
     try {
-      return depositSignatureVerifier.verify(
-          pubkey, computeDepositSigningRoot(pubkey, withdrawalCredentials, amount), signature);
+      return specConfig
+          .getBLSSignatureVerifier()
+          .verify(
+              pubkey, computeDepositSigningRoot(pubkey, withdrawalCredentials, amount), signature);
     } catch (final BlsException e) {
       return false;
     }
@@ -429,11 +448,11 @@ public class MiscHelpers {
     return false;
   }
 
-  public boolean verifyBlobKzgProof(final KZG kzg, final BlobSidecar blobSidecar) {
+  public boolean verifyBlobKzgProof(final BlobSidecar blobSidecar) {
     return false;
   }
 
-  public boolean verifyBlobKzgProofBatch(final KZG kzg, final List<BlobSidecar> blobSidecars) {
+  public boolean verifyBlobKzgProofBatch(final List<BlobSidecar> blobSidecars) {
     return false;
   }
 
@@ -465,6 +484,10 @@ public class MiscHelpers {
     return UInt64.valueOf(specConfig.getNetworkingConfig().getMaxRequestBlocks());
   }
 
+  public int getMaxRequestDataColumnSidecars() {
+    throw new UnsupportedOperationException("No Data Column Sidecars before Fulu");
+  }
+
   public int getBlobKzgCommitmentsCount(final SignedBeaconBlock signedBeaconBlock) {
     throw new UnsupportedOperationException("No Blob KZG Commitments before Deneb");
   }
@@ -485,6 +508,15 @@ public class MiscHelpers {
     return false;
   }
 
+  // Methods used by the SlotProcessor to determine if it needs to increase the node slot
+  public boolean shouldIncrementNodeSlotWhenAttestationsAreDue() {
+    return true;
+  }
+
+  public boolean shouldIncrementNodeSlotWhenPayloadAttestationsAreDue() {
+    return false;
+  }
+
   public Optional<MiscHelpersAltair> toVersionAltair() {
     return Optional.empty();
   }
@@ -498,6 +530,10 @@ public class MiscHelpers {
   }
 
   public Optional<MiscHelpersFulu> toVersionFulu() {
+    return Optional.empty();
+  }
+
+  public Optional<MiscHelpersGloas> toVersionGloas() {
     return Optional.empty();
   }
 }

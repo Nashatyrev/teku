@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -19,17 +19,19 @@ import static tech.pegasys.teku.statetransition.validation.ValidationResultCode.
 import static tech.pegasys.teku.statetransition.validation.ValidationResultCode.IGNORE;
 import static tech.pegasys.teku.statetransition.validation.ValidationResultCode.SAVE_FOR_FUTURE;
 
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
+import tech.pegasys.teku.spec.config.builder.SpecConfigBuilder;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 
 public class DenebAttestationValidatorTest extends AbstractAttestationValidatorTest {
 
   @Override
-  public Spec createSpec() {
-    return TestSpecFactory.createMinimalDeneb();
+  public Spec createSpec(final Consumer<SpecConfigBuilder> configAdapter) {
+    return TestSpecFactory.createMinimalDeneb(configAdapter);
   }
 
   @Test

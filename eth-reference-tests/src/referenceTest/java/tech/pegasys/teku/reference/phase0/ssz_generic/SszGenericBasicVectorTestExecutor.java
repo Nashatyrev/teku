@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -53,13 +53,6 @@ public class SszGenericBasicVectorTestExecutor extends AbstractSszGenericTestExe
   @Override
   protected String parseString(final TestDefinition testDefinition, final String value) {
     switch (getElementType(testDefinition)) {
-      case "bool" -> {
-        return switch (value) {
-          case "false" -> "0";
-          case "true" -> "1";
-          default -> throw new IllegalArgumentException("Unexpected boolean value: " + value);
-        };
-      }
       case "uint8" -> {
         // Java will treat the byte as a signed byte so unsigned value to signed byte
         return Byte.toString((byte) Integer.parseUnsignedInt(value));
@@ -78,8 +71,8 @@ public class SszGenericBasicVectorTestExecutor extends AbstractSszGenericTestExe
   private SszSchema<?> getElementSchema(final TestDefinition testDefinition) {
     final String elementType = getElementType(testDefinition);
     return switch (elementType) {
-      // bool is not a bit in this case, it's a full one byte boolean which we don't support
-      case "bool", "uint8" -> SszPrimitiveSchemas.BYTE_SCHEMA;
+      case "uint8" -> SszPrimitiveSchemas.BYTE_SCHEMA;
+      case "bool" -> SszPrimitiveSchemas.BOOLEAN_SCHEMA;
       case "uint16" -> UINT16_SCHEMA;
       case "uint64" -> SszPrimitiveSchemas.UINT64_SCHEMA;
       case "uint256" -> SszPrimitiveSchemas.UINT256_SCHEMA;

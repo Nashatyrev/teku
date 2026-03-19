@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -19,15 +19,19 @@ import java.util.Optional;
 import java.util.TreeMap;
 import javax.annotation.CheckReturnValue;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigAltair;
 import tech.pegasys.teku.spec.config.SpecConfigBellatrix;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidatableAttestation;
 import tech.pegasys.teku.spec.datastructures.blobs.versions.deneb.BlobSidecar;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockCheckpoints;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
+import tech.pegasys.teku.spec.datastructures.epbs.versions.gloas.SignedExecutionPayloadEnvelope;
 import tech.pegasys.teku.spec.datastructures.forkchoice.MutableStore;
 import tech.pegasys.teku.spec.datastructures.forkchoice.ProtoNodeData;
 import tech.pegasys.teku.spec.datastructures.forkchoice.ReadOnlyForkChoiceStrategy;
@@ -40,8 +44,12 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.util.AttestationProcessingResult;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
+import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.EpochProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
+import tech.pegasys.teku.spec.logic.versions.deneb.util.ForkChoiceUtilDeneb;
+import tech.pegasys.teku.spec.logic.versions.fulu.util.ForkChoiceUtilFulu;
+import tech.pegasys.teku.spec.logic.versions.gloas.util.ForkChoiceUtilGloas;
 
 public class ForkChoiceUtil {
 
@@ -250,23 +258,27 @@ public class ForkChoiceUtil {
   }
 
   @CheckReturnValue
-  public AttestationProcessingResult validate(
+  public SafeFuture<AttestationProcessingResult> validateAsync(
       final Fork fork,
       final ReadOnlyStore store,
       final ValidatableAttestation validatableAttestation,
-      final Optional<BeaconState> maybeState) {
+      final Optional<BeaconState> maybeState,
+      final AsyncBLSSignatureVerifier asyncSignatureVerifier) {
     Attestation attestation = validatableAttestation.getAttestation();
     return validateOnAttestation(store, attestation.getData())
-        .ifSuccessful(
+        .ifSuccessfulAsync(
             () -> {
               if (maybeState.isEmpty()) {
-                return AttestationProcessingResult.UNKNOWN_BLOCK;
+                return SafeFuture.completedFuture(AttestationProcessingResult.UNKNOWN_BLOCK);
               } else {
-                return attestationUtil.isValidIndexedAttestation(
-                    fork, maybeState.get(), validatableAttestation);
+                return attestationUtil.isValidIndexedAttestationAsync(
+                    fork, maybeState.get(), validatableAttestation, asyncSignatureVerifier);
               }
             })
-        .ifSuccessful(() -> checkIfAttestationShouldBeSavedForFuture(store, attestation));
+        .thenApply(
+            result ->
+                result.ifSuccessful(
+                    () -> checkIfAttestationShouldBeSavedForFuture(store, attestation)));
   }
 
   private AttestationProcessingResult validateOnAttestation(
@@ -393,6 +405,20 @@ public class ForkChoiceUtil {
         signedBlock, postState, blockCheckpoints, blobSidecars, earliestBlobSidecarsSlot);
   }
 
+  public SafeFuture<Optional<BeaconState>> retrievePreStateRequiredOnBlock(
+      final ReadOnlyStore store, final SignedBeaconBlock block) {
+    final SlotAndBlockRoot slotAndBlockRoot =
+        new SlotAndBlockRoot(block.getSlot(), block.getParentRoot());
+    return store.retrieveBlockState(slotAndBlockRoot);
+  }
+
+  public void applyExecutionPayloadToStore(
+      final MutableStore store,
+      final SignedExecutionPayloadEnvelope signedEnvelope,
+      final BeaconState postState) {
+    // NO-OP until Gloas
+  }
+
   private UInt64 getFinalizedCheckpointStartSlot(final ReadOnlyStore store) {
     final UInt64 finalizedEpoch = store.getFinalizedCheckpoint().getEpoch();
     return miscHelpers.computeStartSlotAtEpoch(finalizedEpoch);
@@ -472,7 +498,7 @@ public class ForkChoiceUtil {
     return isBellatrixBlockOld(store, block.getSlot());
   }
 
-  /** non-functional in early forks */
+  /* non-functional in early forks */
   public Optional<UInt64> getEarliestAvailabilityWindowSlotBeforeBlock(
       final Spec spec, final ReadOnlyStore store, final UInt64 slot) {
     return Optional.empty();
@@ -488,6 +514,38 @@ public class ForkChoiceUtil {
         .isLessThanOrEqualTo(getCurrentSlot(store));
   }
 
+  // get_slot_component_duration_ms
+  protected int getSlotComponentDurationMillis(final int basisPoints) {
+    return (basisPoints * specConfig.getSlotDurationMillis()) / 10_000;
+  }
+
+  public int getAttestationDueMillis() {
+    return getSlotComponentDurationMillis(specConfig.getAttestationDueBps());
+  }
+
+  public int getSyncMessageDueMillis() {
+    final SpecConfigAltair configAltair = SpecConfigAltair.required(specConfig);
+    return getSlotComponentDurationMillis(configAltair.getSyncMessageDueBps());
+  }
+
+  public int getAggregateDueMillis() {
+    return getSlotComponentDurationMillis(specConfig.getAggregateDueBps());
+  }
+
+  public int getContributionDueMillis() {
+    final SpecConfigAltair configAltair = SpecConfigAltair.required(specConfig);
+    return getSlotComponentDurationMillis(configAltair.getContributionDueBps());
+  }
+
+  public int getProposerReorgCutoffMillis() {
+    return getSlotComponentDurationMillis(specConfig.getProposerReorgCutoffBps());
+  }
+
+  // get_payload_attestation_due_ms
+  public Optional<Integer> getPayloadAttestationDueMillis() {
+    return Optional.empty();
+  }
+
   private boolean isExecutionBlock(final ReadOnlyStore store, final SignedBeaconBlock block) {
     // post-Bellatrix: always true
     final BeaconBlockBody body = block.getMessage().getBody();
@@ -497,5 +555,30 @@ public class ForkChoiceUtil {
     final Optional<Bytes32> parentExecutionRoot =
         store.getForkChoiceStrategy().executionBlockHash(block.getParentRoot());
     return parentExecutionRoot.isPresent() && !parentExecutionRoot.get().isZero();
+  }
+
+  public AvailabilityChecker<?> createAvailabilityChecker(final SignedBeaconBlock block) {
+    return AvailabilityChecker.NOOP;
+  }
+
+  public AvailabilityChecker<?> createAvailabilityChecker(
+      final SignedExecutionPayloadEnvelope executionPayload) {
+    return AvailabilityChecker.NOOP;
+  }
+
+  public boolean shouldNotifyForkChoiceUpdatedOnBlock() {
+    return true;
+  }
+
+  public Optional<ForkChoiceUtilDeneb> toVersionDeneb() {
+    return Optional.empty();
+  }
+
+  public Optional<ForkChoiceUtilFulu> toVersionFulu() {
+    return Optional.empty();
+  }
+
+  public Optional<ForkChoiceUtilGloas> toVersionGloas() {
+    return Optional.empty();
   }
 }

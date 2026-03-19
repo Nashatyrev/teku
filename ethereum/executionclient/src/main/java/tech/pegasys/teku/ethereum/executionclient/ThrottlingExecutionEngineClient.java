@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,6 +13,8 @@
 
 package tech.pegasys.teku.ethereum.executionclient;
 
+import static tech.pegasys.teku.infrastructure.async.ThrottlingTaskQueue.DEFAULT_MAXIMUM_QUEUE_SIZE;
+
 import java.util.List;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes;
@@ -24,15 +26,18 @@ import tech.pegasys.teku.ethereum.executionclient.schema.ClientVersionV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.ExecutionPayloadV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.ExecutionPayloadV2;
 import tech.pegasys.teku.ethereum.executionclient.schema.ExecutionPayloadV3;
+import tech.pegasys.teku.ethereum.executionclient.schema.ExecutionPayloadV4;
 import tech.pegasys.teku.ethereum.executionclient.schema.ForkChoiceStateV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.ForkChoiceUpdatedResult;
 import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV2Response;
 import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV3Response;
 import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV4Response;
 import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV5Response;
+import tech.pegasys.teku.ethereum.executionclient.schema.GetPayloadV6Response;
 import tech.pegasys.teku.ethereum.executionclient.schema.PayloadAttributesV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.PayloadAttributesV2;
 import tech.pegasys.teku.ethereum.executionclient.schema.PayloadAttributesV3;
+import tech.pegasys.teku.ethereum.executionclient.schema.PayloadAttributesV4;
 import tech.pegasys.teku.ethereum.executionclient.schema.PayloadStatusV1;
 import tech.pegasys.teku.ethereum.executionclient.schema.Response;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
@@ -54,9 +59,11 @@ public class ThrottlingExecutionEngineClient implements ExecutionEngineClient {
     taskQueue =
         ThrottlingTaskQueue.create(
             maximumConcurrentRequests,
+            DEFAULT_MAXIMUM_QUEUE_SIZE,
             metricsSystem,
             TekuMetricCategory.BEACON,
-            "ee_request_queue_size");
+            "ee_request_queue_size",
+            "ee_request_queue_rejected");
   }
 
   @Override
@@ -95,6 +102,11 @@ public class ThrottlingExecutionEngineClient implements ExecutionEngineClient {
   }
 
   @Override
+  public SafeFuture<Response<GetPayloadV6Response>> getPayloadV6(final Bytes8 payloadId) {
+    return taskQueue.queueTask(() -> delegate.getPayloadV6(payloadId));
+  }
+
+  @Override
   public SafeFuture<Response<PayloadStatusV1>> newPayloadV1(
       final ExecutionPayloadV1 executionPayload) {
     return taskQueue.queueTask(() -> delegate.newPayloadV1(executionPayload));
@@ -128,6 +140,18 @@ public class ThrottlingExecutionEngineClient implements ExecutionEngineClient {
   }
 
   @Override
+  public SafeFuture<Response<PayloadStatusV1>> newPayloadV5(
+      final ExecutionPayloadV4 executionPayload,
+      final List<VersionedHash> blobVersionedHashes,
+      final Bytes32 parentBeaconBlockRoot,
+      final List<Bytes> executionRequests) {
+    return taskQueue.queueTask(
+        () ->
+            delegate.newPayloadV5(
+                executionPayload, blobVersionedHashes, parentBeaconBlockRoot, executionRequests));
+  }
+
+  @Override
   public SafeFuture<Response<ForkChoiceUpdatedResult>> forkChoiceUpdatedV1(
       final ForkChoiceStateV1 forkChoiceState,
       final Optional<PayloadAttributesV1> payloadAttributes) {
@@ -149,6 +173,14 @@ public class ThrottlingExecutionEngineClient implements ExecutionEngineClient {
       final Optional<PayloadAttributesV3> payloadAttributes) {
     return taskQueue.queueTask(
         () -> delegate.forkChoiceUpdatedV3(forkChoiceState, payloadAttributes));
+  }
+
+  @Override
+  public SafeFuture<Response<ForkChoiceUpdatedResult>> forkChoiceUpdatedV4(
+      final ForkChoiceStateV1 forkChoiceState,
+      final Optional<PayloadAttributesV4> payloadAttributes) {
+    return taskQueue.queueTask(
+        () -> delegate.forkChoiceUpdatedV4(forkChoiceState, payloadAttributes));
   }
 
   @Override

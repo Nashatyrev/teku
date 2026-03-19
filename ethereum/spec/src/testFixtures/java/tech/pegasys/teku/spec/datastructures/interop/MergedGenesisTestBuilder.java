@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.spec.datastructures.interop;
 
+import org.apache.tuweni.bytes.Bytes32;
 import org.hyperledger.besu.config.GenesisConfig;
 import org.hyperledger.besu.config.GenesisConfigOptions;
 import org.hyperledger.besu.datatypes.Wei;
@@ -21,8 +22,10 @@ import org.hyperledger.besu.ethereum.chain.GenesisState;
 import org.hyperledger.besu.ethereum.core.Block;
 import org.hyperledger.besu.ethereum.core.BlockHeader;
 import org.hyperledger.besu.ethereum.core.MiningConfiguration;
+import org.hyperledger.besu.ethereum.mainnet.BalConfiguration;
 import org.hyperledger.besu.ethereum.mainnet.MainnetProtocolSchedule;
 import org.hyperledger.besu.ethereum.mainnet.ProtocolSchedule;
+import org.hyperledger.besu.ethereum.trie.pathbased.bonsai.cache.CodeCache;
 import org.hyperledger.besu.metrics.noop.NoOpMetricsSystem;
 import tech.pegasys.teku.infrastructure.bytes.Bytes20;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -43,8 +46,10 @@ public class MergedGenesisTestBuilder {
             MiningConfiguration.MINING_DISABLED,
             badBlockManager,
             false,
+            BalConfiguration.DEFAULT,
             new NoOpMetricsSystem());
-    final GenesisState genesisState = GenesisState.fromConfig(configFile, protocolSchedule);
+    final GenesisState genesisState =
+        GenesisState.fromConfig(configFile, protocolSchedule, new CodeCache());
     final Block genesisBlock = genesisState.getBlock();
     final BlockHeader header = genesisBlock.getHeader();
 
@@ -53,7 +58,7 @@ public class MergedGenesisTestBuilder {
     return headerSchema.createExecutionPayloadHeader(
         builder ->
             builder
-                .blockHash(header.getBlockHash())
+                .blockHash(Bytes32.wrap(header.getBlockHash().getBytes()))
                 .baseFeePerGas(header.getBaseFee().orElse(Wei.ZERO).toUInt256())
                 .extraData(header.getExtraData())
                 .timestamp(UInt64.valueOf(header.getTimestamp()))
@@ -61,11 +66,11 @@ public class MergedGenesisTestBuilder {
                 .gasLimit(UInt64.valueOf(header.getGasLimit()))
                 .blockNumber(UInt64.valueOf(header.getNumber()))
                 .prevRandao(header.getMixHashOrPrevRandao())
-                .logsBloom(header.getLogsBloom())
-                .receiptsRoot(header.getReceiptsRoot())
-                .stateRoot(header.getStateRoot())
-                .feeRecipient(new Bytes20(header.getCoinbase()))
-                .parentHash(header.getParentHash())
+                .logsBloom(header.getLogsBloom().getBytes())
+                .receiptsRoot(Bytes32.wrap(header.getReceiptsRoot().getBytes()))
+                .stateRoot(Bytes32.wrap(header.getStateRoot().getBytes()))
+                .feeRecipient(new Bytes20(header.getCoinbase().getBytes()))
+                .parentHash(Bytes32.wrap(header.getParentHash().getBytes()))
                 .transactionsRoot(headerSchema.getHeaderOfDefaultPayload().getTransactionsRoot())
                 // New in Capella
                 .withdrawalsRoot(

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -17,7 +17,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 
@@ -58,43 +57,6 @@ public class SpecConfigElectraTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
-  public void shouldOverrideBlobRelatedValuesValues() {
-    final SpecConfigAndParent<SpecConfigElectra> specConfigAndParent =
-        (SpecConfigAndParent<SpecConfigElectra>)
-            SpecConfigLoader.loadConfig(
-                "mainnet",
-                b -> {
-                  b.denebBuilder(
-                      eb ->
-                          eb.maxBlobsPerBlock(4)
-                              // target blobs is calculated in deneb
-                              .blobSidecarSubnetCount(8)
-                              .maxRequestBlobSidecars(16));
-
-                  b.electraBuilder(
-                      eb ->
-                          eb.maxBlobsPerBlockElectra(8)
-                              .blobSidecarSubnetCountElectra(10)
-                              .maxRequestBlobSidecarsElectra(13));
-                });
-
-    final SpecConfigDeneb denebConfig =
-        specConfigAndParent.forMilestone(SpecMilestone.DENEB).toVersionDeneb().orElseThrow();
-
-    final SpecConfigDeneb electraConfig =
-        specConfigAndParent.forMilestone(SpecMilestone.ELECTRA).toVersionDeneb().orElseThrow();
-
-    assertThat(denebConfig.getMaxBlobsPerBlock()).isEqualTo(4);
-    assertThat(denebConfig.getBlobSidecarSubnetCount()).isEqualTo(8);
-    assertThat(denebConfig.getMaxRequestBlobSidecars()).isEqualTo(16);
-
-    assertThat(electraConfig.getMaxBlobsPerBlock()).isEqualTo(8);
-    assertThat(electraConfig.getBlobSidecarSubnetCount()).isEqualTo(10);
-    assertThat(electraConfig.getMaxRequestBlobSidecars()).isEqualTo(13);
-  }
-
-  @Test
   public void equals_denebConfigDiffer() {
     final SpecConfigDeneb denebA =
         SpecConfigLoader.loadConfig("mainnet").specConfig().toVersionDeneb().orElseThrow();
@@ -119,8 +81,6 @@ public class SpecConfigElectraTest {
 
     return new SpecConfigElectraImpl(
         denebConfig,
-        dataStructureUtil.randomBytes4(),
-        dataStructureUtil.randomUInt64(999_999),
         dataStructureUtil.randomUInt64(128000000000L),
         dataStructureUtil.randomUInt64(32000000000L),
         dataStructureUtil.randomUInt64(2048000000000L),

@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static tech.pegasys.teku.infrastructure.async.ThrottlingTaskQueue.DEFAULT_MAXIMUM_QUEUE_SIZE;
 import static tech.pegasys.teku.infrastructure.http.HttpStatusCodes.SC_OK;
 
 import com.google.common.base.Charsets;
@@ -87,9 +88,11 @@ public class ExternalValidatorSourceTest {
     externalSignerTaskQueue =
         ThrottlingTaskQueueWithPriority.create(
             config.getValidatorExternalSignerConcurrentRequestLimit(),
+            DEFAULT_MAXIMUM_QUEUE_SIZE,
             metricsSystem,
             TekuMetricCategory.VALIDATOR,
-            "external_signer_request_queue_size");
+            "external_signer_request_queue_size",
+            "external_signer_request_queue_rejected_total");
     when(httpResponse.statusCode()).thenReturn(SC_OK);
     when(httpClient.send(any(), ArgumentMatchers.<HttpResponse.BodyHandler<Void>>any()))
         .thenReturn(httpResponse);

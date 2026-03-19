@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -16,7 +16,6 @@ package tech.pegasys.teku.spec.datastructures.util;
 import static tech.pegasys.teku.spec.config.SpecConfigDeneb.BLS_MODULUS;
 import static tech.pegasys.teku.spec.config.SpecConfigDeneb.VERSIONED_HASH_VERSION_KZG;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
 import java.math.BigInteger;
 import java.nio.ByteOrder;
@@ -55,11 +54,13 @@ public class BlobsUtil {
               + "0000000000000000000000000000c100000000");
 
   private final Spec spec;
-  private final KZG kzg;
 
-  public BlobsUtil(final Spec spec, final KZG kzg) {
+  public BlobsUtil(final Spec spec) {
     this.spec = spec;
-    this.kzg = kzg;
+  }
+
+  private KZG getKzg() {
+    return spec.getKzg().orElseThrow();
   }
 
   public Bytes generateRawBlobTransactionFromKzgCommitments(
@@ -78,17 +79,21 @@ public class BlobsUtil {
   }
 
   public List<KZGCommitment> blobsToKzgCommitments(final List<Blob> blobs) {
-    return blobs.stream().parallel().map(Blob::getBytes).map(kzg::blobToKzgCommitment).toList();
+    return blobs.stream()
+        .parallel()
+        .map(Blob::getBytes)
+        .map(getKzg()::blobToKzgCommitment)
+        .toList();
   }
 
   public KZGProof computeKzgProof(final Blob blob, final KZGCommitment kzgCommitment) {
-    return kzg.computeBlobKzgProof(blob.getBytes(), kzgCommitment);
+    return getKzg().computeBlobKzgProof(blob.getBytes(), kzgCommitment);
   }
 
-  @VisibleForTesting
-  @SuppressWarnings("deprecation")
   public List<KZGProof> computeKzgCellProofs(final Blob blob) {
-    return kzg.computeCellsAndProofs(blob.getBytes()).stream().map(KZGCellAndProof::proof).toList();
+    return getKzg().computeCellsAndProofs(blob.getBytes()).stream()
+        .map(KZGCellAndProof::proof)
+        .toList();
   }
 
   public List<KZGProof> computeKzgProofs(

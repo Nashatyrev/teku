@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -135,12 +135,10 @@ class DutyMetricsTest {
   }
 
   private UInt64 expectedAttestationTime(final UInt64 slot, final Spec spec) {
-    UInt64 millisPerSlot = spec.getMillisPerSlot(slot);
-    return slot.times(millisPerSlot).plus(millisPerSlot.dividedBy(3));
+    return slot.times(spec.getSlotDurationMillis(slot)).plus(spec.getAttestationDueMillis(slot));
   }
 
   private UInt64 expectedBlockTime(final UInt64 slot, final Spec spec) {
-    UInt64 millisPerSlot = spec.getMillisPerSlot(slot);
-    return slot.times(millisPerSlot);
+    return slot.times(spec.getSlotDurationMillis(slot));
   }
 }

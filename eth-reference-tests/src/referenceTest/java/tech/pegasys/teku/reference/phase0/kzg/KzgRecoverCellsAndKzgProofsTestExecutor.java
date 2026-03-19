@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2022
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -29,7 +29,6 @@ import tech.pegasys.teku.kzg.KZGCellWithColumnId;
 import tech.pegasys.teku.kzg.KZGProof;
 
 public class KzgRecoverCellsAndKzgProofsTestExecutor extends KzgTestExecutor {
-
   @Override
   public void runTest(final TestDefinition testDefinition, final KZG kzg) throws Throwable {
     final Data data = loadDataFile(testDefinition, Data.class);

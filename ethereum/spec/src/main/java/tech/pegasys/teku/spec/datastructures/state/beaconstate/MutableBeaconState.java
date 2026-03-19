@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -42,6 +42,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.capella.
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.deneb.MutableBeaconStateDeneb;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.MutableBeaconStateElectra;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.fulu.MutableBeaconStateFulu;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.gloas.MutableBeaconStateGloas;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.phase0.MutableBeaconStatePhase0;
 
 public interface MutableBeaconState extends BeaconState, SszMutableRefContainer {
@@ -226,6 +227,10 @@ public interface MutableBeaconState extends BeaconState, SszMutableRefContainer 
   }
 
   default Optional<MutableBeaconStateFulu> toMutableVersionFulu() {
+    return Optional.empty();
+  }
+
+  default Optional<MutableBeaconStateGloas> toMutableVersionGloas() {
     return Optional.empty();
   }
 }

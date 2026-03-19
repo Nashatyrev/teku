@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2022
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -27,11 +27,13 @@ import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.metrics.MetricsHistogram;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.kzg.KZG;
+import tech.pegasys.teku.networking.eth2.peers.DataColumnSidecarSignatureValidator;
+import tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods.DataColumnSidecarsResponseInvalidResponseException.InvalidResponseType;
 import tech.pegasys.teku.networking.p2p.peer.Peer;
 import tech.pegasys.teku.networking.p2p.rpc.RpcResponseListener;
 import tech.pegasys.teku.spec.Spec;
-import tech.pegasys.teku.spec.datastructures.blobs.versions.fulu.DataColumnSidecar;
+import tech.pegasys.teku.spec.datastructures.blobs.DataColumnSidecar;
+import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 
 public class DataColumnSidecarsByRangeListenerValidatingProxy
     extends AbstractDataColumnSidecarValidator implements RpcResponseListener<DataColumnSidecar> {
@@ -48,13 +50,14 @@ public class DataColumnSidecarsByRangeListenerValidatingProxy
       final Spec spec,
       final Peer peer,
       final RpcResponseListener<DataColumnSidecar> dataColumnSidecarResponseListener,
-      final KZG kzg,
       final MetricsSystem metricsSystem,
       final TimeProvider timeProvider,
+      final DataColumnSidecarSignatureValidator dataColumnSidecarSignatureValidator,
       final UInt64 startSlot,
       final UInt64 count,
-      final List<UInt64> columns) {
-    super(peer, spec, kzg);
+      final List<UInt64> columns,
+      final CombinedChainDataClient combinedChainDataClient) {
+    super(peer, spec, dataColumnSidecarSignatureValidator, combinedChainDataClient);
     this.dataColumnSidecarResponseListener = dataColumnSidecarResponseListener;
     this.startSlot = startSlot;
     this.endSlot = startSlot.plus(count).minusMinZero(1);
@@ -80,28 +83,53 @@ public class DataColumnSidecarsByRangeListenerValidatingProxy
             throw new DataColumnSidecarsResponseInvalidResponseException(
                 peer, DATA_COLUMN_SIDECAR_UNEXPECTED_IDENTIFIER);
           }
+          if (!verifyValidity(dataColumnSidecar)) {
+            throw new DataColumnSidecarsResponseInvalidResponseException(
+                peer,
+                DataColumnSidecarsResponseInvalidResponseException.InvalidResponseType
+                    .DATA_COLUMN_SIDECAR_VALIDITY_CHECK_FAILED);
+          }
 
-          verifyValidity(dataColumnSidecar);
+          final boolean inclusionProofValid;
           try (MetricsHistogram.Timer ignored =
               dataColumnSidecarInclusionProofVerificationTimeSeconds.startTimer()) {
-            verifyInclusionProof(dataColumnSidecar);
+            inclusionProofValid = verifyInclusionProof(dataColumnSidecar);
           } catch (final IOException ioException) {
             throw new DataColumnSidecarsResponseInvalidResponseException(
                 peer,
                 DataColumnSidecarsResponseInvalidResponseException.InvalidResponseType
                     .DATA_COLUMN_SIDECAR_INCLUSION_PROOF_VERIFICATION_FAILED);
           }
-          try (MetricsHistogram.Timer ignored =
-              dataColumnSidecarKzgBatchVerificationTimeSeconds.startTimer()) {
-            verifyKzgProof(dataColumnSidecar);
-          } catch (final IOException ioException) {
+          if (!inclusionProofValid) {
             throw new DataColumnSidecarsResponseInvalidResponseException(
                 peer,
                 DataColumnSidecarsResponseInvalidResponseException.InvalidResponseType
-                    .DATA_COLUMN_SIDECAR_KZG_VERIFICATION_FAILED);
+                    .DATA_COLUMN_SIDECAR_INCLUSION_PROOF_VERIFICATION_FAILED);
           }
 
-          return dataColumnSidecarResponseListener.onResponse(dataColumnSidecar);
+          final MetricsHistogram.Timer kzgVerificationTimer =
+              dataColumnSidecarKzgBatchVerificationTimeSeconds.startTimer();
+          return verifyKzgProofs(dataColumnSidecar)
+              .whenComplete((result, error) -> kzgVerificationTimer.closeUnchecked().run())
+              .thenCompose(
+                  maybeKzgProofsVerificationResult -> {
+                    if (maybeKzgProofsVerificationResult.isPresent()) {
+                      throw new DataColumnSidecarsResponseInvalidResponseException(
+                          peer, InvalidResponseType.DATA_COLUMN_SIDECAR_KZG_VERIFICATION_FAILED);
+                    }
+                    return verifySignature(dataColumnSidecar);
+                  })
+              .thenCompose(
+                  signatureIsValid -> {
+                    if (signatureIsValid) {
+                      return SafeFuture.COMPLETE;
+                    }
+                    return SafeFuture.failedFuture(
+                        new DataColumnSidecarsResponseInvalidResponseException(
+                            peer,
+                            InvalidResponseType.DATA_COLUMN_SIDECAR_HEADER_INVALID_SIGNATURE));
+                  })
+              .thenCompose(__ -> dataColumnSidecarResponseListener.onResponse(dataColumnSidecar));
         });
   }
 

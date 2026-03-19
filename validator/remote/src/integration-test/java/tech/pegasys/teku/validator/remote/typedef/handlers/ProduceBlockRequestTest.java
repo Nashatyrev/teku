@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -25,6 +25,8 @@ import static tech.pegasys.teku.infrastructure.http.RestApiConstants.HEADER_EXEC
 import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ONE;
 import static tech.pegasys.teku.spec.SpecMilestone.BELLATRIX;
 import static tech.pegasys.teku.spec.SpecMilestone.DENEB;
+import static tech.pegasys.teku.spec.SpecMilestone.FULU;
+import static tech.pegasys.teku.spec.SpecMilestone.GLOAS;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.net.MediaType;
@@ -47,11 +49,10 @@ import tech.pegasys.teku.spec.TestSpecContext;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.BlockContainer;
 import tech.pegasys.teku.spec.datastructures.metadata.BlockContainerAndMetaData;
-import tech.pegasys.teku.spec.networks.Eth2Network;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionCache;
 import tech.pegasys.teku.validator.remote.typedef.AbstractTypeDefRequestTestBase;
 
-@TestSpecContext(allMilestones = true, network = Eth2Network.MINIMAL)
+@TestSpecContext(allMilestones = true)
 public class ProduceBlockRequestTest extends AbstractTypeDefRequestTestBase {
   private static final Logger LOG = LogManager.getLogger();
   private ProduceBlockRequest request;
@@ -76,8 +77,9 @@ public class ProduceBlockRequestTest extends AbstractTypeDefRequestTestBase {
   }
 
   @TestTemplate
-  public void shouldGetUnblindedBeaconBlockAsJson() {
-    assumeThat(specMilestone).isLessThan(DENEB);
+  public void shouldGetUnblindedBeaconBlockAsJson() throws JsonProcessingException {
+    assumeThat(specMilestone.isLessThan(DENEB) || specMilestone.isGreaterThanOrEqualTo(GLOAS))
+        .isTrue();
     final BeaconBlock beaconBlock = dataStructureUtil.randomBeaconBlock(ONE);
     final ProduceBlockRequest.ProduceBlockResponse blockResponse =
         new ProduceBlockRequest.ProduceBlockResponse(beaconBlock);
@@ -108,7 +110,8 @@ public class ProduceBlockRequestTest extends AbstractTypeDefRequestTestBase {
 
   @TestTemplate
   public void shouldGetUnblindedBeaconBlockAsSsz() {
-    assumeThat(specMilestone).isLessThan(DENEB);
+    assumeThat(specMilestone.isLessThan(DENEB) || specMilestone.isGreaterThanOrEqualTo(GLOAS))
+        .isTrue();
     final BeaconBlock beaconBlock = dataStructureUtil.randomBeaconBlock(ONE);
     final ProduceBlockRequest.ProduceBlockResponse blockResponse =
         new ProduceBlockRequest.ProduceBlockResponse(beaconBlock);
@@ -160,7 +163,7 @@ public class ProduceBlockRequestTest extends AbstractTypeDefRequestTestBase {
 
   @TestTemplate
   public void shouldGetBlindedBeaconBlockAsJson() {
-    assumeThat(specMilestone).isGreaterThanOrEqualTo(BELLATRIX);
+    assumeThat(specMilestone).isBetween(BELLATRIX, FULU);
     final BeaconBlock blindedBeaconBlock = dataStructureUtil.randomBlindedBeaconBlock(ONE);
     final ProduceBlockRequest.ProduceBlockResponse blockResponse =
         new ProduceBlockRequest.ProduceBlockResponse(blindedBeaconBlock);
@@ -215,8 +218,8 @@ public class ProduceBlockRequestTest extends AbstractTypeDefRequestTestBase {
   }
 
   @TestTemplate
-  public void shouldGetUnblindedBlockContentsPostDenebAsJson() throws JsonProcessingException {
-    assumeThat(specMilestone).isGreaterThanOrEqualTo(DENEB);
+  public void shouldGetUnblindedBlockContentsPostDenebAsJson() {
+    assumeThat(specMilestone).isBetween(DENEB, FULU);
     final BlockContainer blockContents = dataStructureUtil.randomBlockContents(ONE);
     final ProduceBlockRequest.ProduceBlockResponse blockResponse =
         new ProduceBlockRequest.ProduceBlockResponse(blockContents);
@@ -242,7 +245,7 @@ public class ProduceBlockRequestTest extends AbstractTypeDefRequestTestBase {
 
   @TestTemplate
   public void shouldGetUnblindedBlockContentsPostDenebAsSsz() {
-    assumeThat(specMilestone).isGreaterThanOrEqualTo(DENEB);
+    assumeThat(specMilestone).isBetween(DENEB, FULU);
     final BlockContainer blockContents = dataStructureUtil.randomBlockContents(ONE);
     final ProduceBlockRequest.ProduceBlockResponse blockResponse =
         new ProduceBlockRequest.ProduceBlockResponse(blockContents);

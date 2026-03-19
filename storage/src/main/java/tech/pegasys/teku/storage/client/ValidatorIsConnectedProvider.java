@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,10 +13,24 @@
 
 package tech.pegasys.teku.storage.client;
 
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public interface ValidatorIsConnectedProvider {
-  ValidatorIsConnectedProvider NOOP = (validatorId, slot) -> true;
+  ValidatorIsConnectedProvider ALWAYS =
+      new ValidatorIsConnectedProvider() {
+        @Override
+        public boolean isValidatorConnected(final int validatorId, final UInt64 slot) {
+          return true;
+        }
+
+        @Override
+        public SafeFuture<Boolean> isBlockProposerConnected(final UInt64 slot) {
+          return SafeFuture.completedFuture(true);
+        }
+      };
 
   boolean isValidatorConnected(int validatorId, UInt64 slot);
+
+  SafeFuture<Boolean> isBlockProposerConnected(UInt64 slot);
 }

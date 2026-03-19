@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -39,6 +39,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.capella.
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.deneb.BeaconStateDeneb;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.electra.BeaconStateElectra;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.fulu.BeaconStateFulu;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.gloas.BeaconStateGloas;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.phase0.BeaconStatePhase0;
 import tech.pegasys.teku.spec.datastructures.util.DepositGenerator;
 
@@ -50,6 +51,8 @@ import tech.pegasys.teku.spec.datastructures.util.DepositGenerator;
       SpecMilestone.DENEB,
       SpecMilestone.ELECTRA,
       SpecMilestone.FULU,
+      SpecMilestone.GLOAS,
+      SpecMilestone.HEZE
     },
     doNotGenerateSpec = true)
 public class StateUpgradeTransitionTest {
@@ -99,6 +102,16 @@ public class StateUpgradeTransitionTest {
             beforeBeaconStateClass = BeaconStateElectra.class;
             afterBeaconStateClass = BeaconStateFulu.class;
             yield TestSpecFactory.createMinimalWithFuluForkEpoch(milestoneTransitionEpoch);
+          }
+          case GLOAS -> {
+            beforeBeaconStateClass = BeaconStateFulu.class;
+            afterBeaconStateClass = BeaconStateGloas.class;
+            yield TestSpecFactory.createMinimalWithGloasForkEpoch(milestoneTransitionEpoch);
+          }
+          case HEZE -> {
+            beforeBeaconStateClass = BeaconStateGloas.class;
+            afterBeaconStateClass = BeaconStateGloas.class;
+            yield TestSpecFactory.createMinimalWithHezeForkEpoch(milestoneTransitionEpoch);
           }
         };
 

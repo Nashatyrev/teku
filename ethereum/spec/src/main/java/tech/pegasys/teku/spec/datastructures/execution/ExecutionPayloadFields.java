@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -35,7 +35,15 @@ public enum ExecutionPayloadFields implements SszFieldName {
   TRANSACTIONS_ROOT,
   WITHDRAWALS_ROOT,
   BLOB_GAS_USED,
-  EXCESS_BLOB_GAS;
+  EXCESS_BLOB_GAS,
+  // Gloas
+  PARENT_BLOCK_HASH,
+  PARENT_BLOCK_ROOT,
+  BUILDER_INDEX,
+  SLOT,
+  VALUE,
+  EXECUTION_PAYMENT,
+  BLOB_KZG_COMMITMENTS;
 
   private final String sszFieldName;
 

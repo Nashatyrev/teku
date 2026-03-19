@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -17,6 +17,7 @@ import com.google.common.annotations.VisibleForTesting;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,8 +29,6 @@ import tech.pegasys.teku.infrastructure.async.RootCauseExceptionHandler;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.subscribers.Subscribers;
 import tech.pegasys.teku.infrastructure.time.TimeProvider;
-import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.networking.eth2.SubnetSubscriptionService;
 import tech.pegasys.teku.networking.eth2.rpc.beaconchain.BeaconChainMethods;
 import tech.pegasys.teku.networking.eth2.rpc.beaconchain.methods.MetadataMessagesFactory;
@@ -46,7 +45,7 @@ import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.Meta
 import tech.pegasys.teku.spec.datastructures.networking.libp2p.rpc.metadata.MetadataMessageSchema;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.statetransition.datacolumns.CustodyGroupCountManager;
-import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarByRootCustody;
+import tech.pegasys.teku.statetransition.datacolumns.DataColumnSidecarArchiveReconstructor;
 import tech.pegasys.teku.statetransition.datacolumns.log.rpc.DasReqRespLogger;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -76,8 +75,7 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
       final Spec spec,
       final AsyncRunner asyncRunner,
       final CombinedChainDataClient combinedChainDataClient,
-      final DataColumnSidecarByRootCustody dataColumnSidecarCustody,
-      final CustodyGroupCountManager custodyGroupCountManager,
+      final Supplier<CustodyGroupCountManager> custodyGroupCountManagerSupplier,
       final RecentChainData recentChainData,
       final MetricsSystem metricsSystem,
       final Eth2PeerFactory eth2PeerFactory,
@@ -87,6 +85,7 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
       final Duration eth2RpcPingInterval,
       final int eth2RpcOutstandingPingThreshold,
       final Duration eth2StatusUpdateInterval,
+      final DataColumnSidecarArchiveReconstructor dataColumnSidecarArchiveReconstructor,
       final DasReqRespLogger dasLogger) {
     this.asyncRunner = asyncRunner;
     this.recentChainData = recentChainData;
@@ -98,13 +97,13 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
             asyncRunner,
             this,
             combinedChainDataClient,
-            dataColumnSidecarCustody,
-            custodyGroupCountManager,
+            custodyGroupCountManagerSupplier,
             recentChainData,
             metricsSystem,
             statusMessageFactory,
             metadataMessagesFactory,
             rpcEncoding,
+            dataColumnSidecarArchiveReconstructor,
             dasLogger);
     this.eth2RpcPingInterval = eth2RpcPingInterval;
     this.eth2RpcOutstandingPingThreshold = eth2RpcOutstandingPingThreshold;
@@ -114,8 +113,7 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
   public static Eth2PeerManager create(
       final AsyncRunner asyncRunner,
       final CombinedChainDataClient combinedChainDataClient,
-      final DataColumnSidecarByRootCustody dataColumnSidecarCustody,
-      final CustodyGroupCountManager custodyGroupCountManager,
+      final Supplier<CustodyGroupCountManager> custodyGroupCountManagerSupplier,
       final MetadataMessagesFactory metadataMessagesFactory,
       final MetricsSystem metricsSystem,
       final SubnetSubscriptionService attestationSubnetService,
@@ -131,14 +129,9 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
       final int peerBlobSidecarsRateLimit,
       final int peerRequestLimit,
       final Spec spec,
-      final KZG kzg,
       final DiscoveryNodeIdExtractor discoveryNodeIdExtractor,
-      final Optional<UInt64> custodyGroupCount,
+      final DataColumnSidecarArchiveReconstructor dataColumnSidecarArchiveReconstructor,
       final DasReqRespLogger dasLogger) {
-
-    // TODO-fulu: we have no guarantee here that it's synced already
-    // (https://github.com/Consensys/teku/issues/9461)
-    custodyGroupCount.ifPresent(metadataMessagesFactory::updateCustodyGroupCount);
     attestationSubnetService.subscribeToUpdates(
         metadataMessagesFactory::updateAttestationSubnetIds);
     syncCommitteeSubnetService.subscribeToUpdates(
@@ -148,8 +141,7 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
         spec,
         asyncRunner,
         combinedChainDataClient,
-        dataColumnSidecarCustody,
-        custodyGroupCountManager,
+        custodyGroupCountManagerSupplier,
         combinedChainDataClient.getRecentChainData(),
         metricsSystem,
         new Eth2PeerFactory(
@@ -163,7 +155,6 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
             peerBlocksRateLimit,
             peerBlobSidecarsRateLimit,
             peerRequestLimit,
-            kzg,
             discoveryNodeIdExtractor),
         statusMessageFactory,
         metadataMessagesFactory,
@@ -171,6 +162,7 @@ public class Eth2PeerManager implements PeerLookup, PeerHandler {
         eth2RpcPingInterval,
         eth2RpcOutstandingPingThreshold,
         eth2StatusUpdateInterval,
+        dataColumnSidecarArchiveReconstructor,
         dasLogger);
   }
 

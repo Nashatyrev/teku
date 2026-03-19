@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -42,6 +42,7 @@ import tech.pegasys.teku.spec.datastructures.state.ForkData;
 import tech.pegasys.teku.spec.datastructures.state.SigningData;
 import tech.pegasys.teku.spec.datastructures.state.Validator;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.phase0.BeaconStateSchemaPhase0;
+import tech.pegasys.teku.spec.datastructures.state.versions.gloas.Builder;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitions;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsAltair;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsBellatrix;
@@ -49,8 +50,10 @@ import tech.pegasys.teku.spec.schemas.SchemaDefinitionsCapella;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsDeneb;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsElectra;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsFulu;
+import tech.pegasys.teku.spec.schemas.SchemaDefinitionsGloas;
 
 public class SszTestExecutor<T extends SszData> implements TestExecutor {
+
   private final SchemaProvider<T> sszType;
 
   public static final ImmutableMap<String, TestExecutor> SSZ_TEST_TYPES =
@@ -243,6 +246,75 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
               new SszTestExecutor<>(
                   schemas -> SchemaDefinitionsFulu.required(schemas).getMatrixEntrySchema()))
 
+          // Gloas types
+          .put("ssz_static/Builder", new SszTestExecutor<>(__ -> Builder.SSZ_SCHEMA))
+          .put(
+              "ssz_static/BuilderPendingPayment",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas).getBuilderPendingPaymentSchema()))
+          .put(
+              "ssz_static/BuilderPendingWithdrawal",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas).getBuilderPendingWithdrawalSchema()))
+          .put(
+              "ssz_static/PayloadAttestationData",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas).getPayloadAttestationDataSchema()))
+          .put(
+              "ssz_static/PayloadAttestation",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas).getPayloadAttestationSchema()))
+          .put(
+              "ssz_static/PayloadAttestationMessage",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas)
+                          .getPayloadAttestationMessageSchema()))
+          .put(
+              "ssz_static/IndexedPayloadAttestation",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas)
+                          .getIndexedPayloadAttestationSchema()))
+          .put(
+              "ssz_static/ExecutionPayloadBid",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas).getExecutionPayloadBidSchema()))
+          .put(
+              "ssz_static/SignedExecutionPayloadBid",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas)
+                          .getSignedExecutionPayloadBidSchema()))
+          .put(
+              "ssz_static/ExecutionPayloadEnvelope",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas).getExecutionPayloadEnvelopeSchema()))
+          .put(
+              "ssz_static/SignedExecutionPayloadEnvelope",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas)
+                          .getSignedExecutionPayloadEnvelopeSchema()))
+          .put(
+              "ssz_static/ProposerPreferences",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas).getProposerPreferencesSchema()))
+          .put(
+              "ssz_static/SignedProposerPreferences",
+              new SszTestExecutor<>(
+                  schemas ->
+                      SchemaDefinitionsGloas.required(schemas)
+                          .getSignedProposerPreferencesSchema()))
+          .put("ssz_static/ForkChoiceNode", IGNORE_TESTS)
+
           // Legacy Schemas (Not yet migrated to SchemaDefinitions)
           .put(
               "ssz_static/AttestationData", new SszTestExecutor<>(__ -> AttestationData.SSZ_SCHEMA))
@@ -298,6 +370,7 @@ public class SszTestExecutor<T extends SszData> implements TestExecutor {
   }
 
   private interface SchemaProvider<T extends SszData> {
+
     SszSchema<T> get(SchemaDefinitions schemas);
   }
 }

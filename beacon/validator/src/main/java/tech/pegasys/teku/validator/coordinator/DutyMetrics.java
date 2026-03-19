@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -12,8 +12,6 @@
  */
 
 package tech.pegasys.teku.validator.coordinator;
-
-import static tech.pegasys.teku.spec.constants.NetworkConstants.INTERVALS_PER_SLOT;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Collections;
@@ -84,7 +82,8 @@ public class DutyMetrics {
 
   public void onAttestationPublished(final UInt64 slot) {
     final UInt64 currentTime = timeProvider.getTimeInMillis();
-    final UInt64 expectedTime = calculateExpectedAttestationTimeInMillis(slot);
+    final UInt64 slotStartTimeMillis = calculateSlotStartTimeMillis(slot);
+    final UInt64 expectedTime = slotStartTimeMillis.plus(spec.getAttestationDueMillis(slot));
     if (currentTime.isGreaterThanOrEqualTo(expectedTime)) {
       attestationTimings.recordValue(currentTime.minus(expectedTime).longValue());
     } else {
@@ -97,12 +96,6 @@ public class DutyMetrics {
     final UInt64 currentTime = timeProvider.getTimeInMillis();
     final UInt64 expectedTime = calculateSlotStartTimeMillis(slot);
     blockTimings.recordValue(currentTime.minusMinZero(expectedTime).longValue());
-  }
-
-  private UInt64 calculateExpectedAttestationTimeInMillis(final UInt64 slot) {
-    final UInt64 slotStartTimeMillis = calculateSlotStartTimeMillis(slot);
-    UInt64 millisPerSlot = spec.getMillisPerSlot(slot);
-    return slotStartTimeMillis.plus(millisPerSlot.dividedBy(INTERVALS_PER_SLOT));
   }
 
   private UInt64 calculateSlotStartTimeMillis(final UInt64 slot) {

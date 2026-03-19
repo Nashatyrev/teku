@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -79,8 +79,6 @@ class RemoteSpecLoaderTest {
     assertThat(specConfig.getMaxRequestBlocks()).isEqualTo(1024);
     assertThat(specConfig.getEpochsPerSubnetSubscription()).isEqualTo(256);
     assertThat(specConfig.getMinEpochsForBlockRequests()).isEqualTo(33024);
-    assertThat(specConfig.getTtfbTimeout()).isEqualTo(5);
-    assertThat(specConfig.getRespTimeout()).isEqualTo(10);
     assertThat(specConfig.getAttestationPropagationSlotRange()).isEqualTo(32);
     assertThat(specConfig.getMaximumGossipClockDisparity()).isEqualTo(500);
   }

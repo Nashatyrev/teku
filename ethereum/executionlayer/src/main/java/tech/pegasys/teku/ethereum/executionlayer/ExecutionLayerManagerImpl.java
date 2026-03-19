@@ -1,5 +1,5 @@
 /*
- * Copyright Consensys Software Inc., 2025
+ * Copyright Consensys Software Inc., 2026
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -13,8 +13,8 @@
 
 package tech.pegasys.teku.ethereum.executionlayer;
 
-import static tech.pegasys.teku.spec.config.Constants.MAXIMUM_CONCURRENT_EB_REQUESTS;
 import static tech.pegasys.teku.spec.config.Constants.MAXIMUM_CONCURRENT_EE_REQUESTS;
+import static tech.pegasys.teku.spec.config.Constants.MAXIMUM_CONCURRENT_NON_CRITICAL_EB_REQUESTS;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Arrays;
@@ -36,8 +36,6 @@ import tech.pegasys.teku.ethereum.executionclient.metrics.MetricRecordingExecuti
 import tech.pegasys.teku.ethereum.executionclient.rest.RestBuilderClient;
 import tech.pegasys.teku.ethereum.executionclient.rest.RestBuilderClientOptions;
 import tech.pegasys.teku.ethereum.executionclient.rest.RestClient;
-import tech.pegasys.teku.ethereum.executionclient.web3j.Web3JClient;
-import tech.pegasys.teku.ethereum.executionclient.web3j.Web3JExecutionEngineClient;
 import tech.pegasys.teku.ethereum.performance.trackers.BlockProductionPerformance;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.logging.EventLogger;
@@ -116,12 +114,11 @@ public class ExecutionLayerManagerImpl implements ExecutionLayerManager {
   }
 
   public static ExecutionEngineClient createEngineClient(
-      final Web3JClient web3JClient,
+      final ExecutionEngineClient rawEngineClient,
       final TimeProvider timeProvider,
       final MetricsSystem metricsSystem) {
-    final ExecutionEngineClient engineClient = new Web3JExecutionEngineClient(web3JClient);
     final ExecutionEngineClient metricEngineClient =
-        new MetricRecordingExecutionEngineClient(engineClient, timeProvider, metricsSystem);
+        new MetricRecordingExecutionEngineClient(rawEngineClient, timeProvider, metricsSystem);
     return new ThrottlingExecutionEngineClient(
         metricEngineClient, MAXIMUM_CONCURRENT_EE_REQUESTS, metricsSystem);
   }
@@ -139,7 +136,7 @@ public class ExecutionLayerManagerImpl implements ExecutionLayerManager {
     final MetricRecordingBuilderClient metricRecordingBuilderClient =
         new MetricRecordingBuilderClient(restBuilderClient, timeProvider, metricsSystem);
     return new ThrottlingBuilderClient(
-        metricRecordingBuilderClient, MAXIMUM_CONCURRENT_EB_REQUESTS, metricsSystem);
+        metricRecordingBuilderClient, MAXIMUM_CONCURRENT_NON_CRITICAL_EB_REQUESTS, metricsSystem);
   }
 
   private ExecutionLayerManagerImpl(
