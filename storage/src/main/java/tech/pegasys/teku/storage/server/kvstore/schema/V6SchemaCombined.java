@@ -90,13 +90,13 @@ public abstract class V6SchemaCombined implements SchemaCombined {
   private static final KvStoreVariable<UInt64> CUSTODY_GROUP_COUNT =
       KvStoreVariable.create(12, UINT64_SERIALIZER);
   private static final KvStoreVariable<Bytes32> CONFIRMED_ROOT =
-      KvStoreVariable.create(12, BYTES32_SERIALIZER);
+      KvStoreVariable.create(13, BYTES32_SERIALIZER);
   private static final KvStoreVariable<Checkpoint> PREV_SLOT_JUSTIFIED_CHECKPOINT =
-      KvStoreVariable.create(13, CHECKPOINT_SERIALIZER);
-  private static final KvStoreVariable<Checkpoint> PREV_SLOT_UNREALIZED_JUSTIFIED_CHECKPOINT =
       KvStoreVariable.create(14, CHECKPOINT_SERIALIZER);
+  private static final KvStoreVariable<Checkpoint> PREV_SLOT_UNREALIZED_JUSTIFIED_CHECKPOINT =
+      KvStoreVariable.create(15, CHECKPOINT_SERIALIZER);
   private static final KvStoreVariable<Bytes32> PREV_SLOT_HEAD =
-      KvStoreVariable.create(15, BYTES32_SERIALIZER);
+      KvStoreVariable.create(16, BYTES32_SERIALIZER);
 
   private final KvStoreVariable<UInt64> optimisticTransitionBlockSlot;
   private final KvStoreVariable<UInt64> earliestBlobSidecarSlot;
