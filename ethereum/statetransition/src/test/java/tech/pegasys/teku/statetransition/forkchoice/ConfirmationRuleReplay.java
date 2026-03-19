@@ -52,6 +52,7 @@ import tech.pegasys.teku.infrastructure.async.eventthread.InlineEventThread;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
+import tech.pegasys.teku.spec.SpecFactory;
 import tech.pegasys.teku.spec.SpecMilestone;
 import tech.pegasys.teku.spec.SpecVersion;
 import tech.pegasys.teku.spec.TestSpecFactory;
@@ -121,7 +122,8 @@ class ConfirmationRuleReplay {
   private static final int CONFIRMATION_SLASHING_THRESHOLD = 25;
 
   String jsonApiEndpoint =
-      "https://crimson-proud-shard.quiknode.pro/51b0281db82fc937c36866e6a80ee6235e2f7f3a";
+      // "https://crimson-proud-shard.quiknode.pro/51b0281db82fc937c36866e6a80ee6235e2f7f3a"; // old
+  "https://ultra-restless-rain.quiknode.pro/64d7e947a5cc139de4cf8b1a2c4dd3a0f973d07a";
   //
   // "https://beaconstate.ethstaker.cc/eth/v2/debug/beacon/states/0x8732754dbbc6391165ff2047f0aa543d08dde6bfbf701c653a6476472201e178";
   //
@@ -138,12 +140,26 @@ class ConfirmationRuleReplay {
   //  String anchorStateRoot = "0xd431b7131b6ef1e74b09825d3d26c4007eaf5b9a39dfcb82a0a4963d79721857";
   //  String anchorStateRoot = "0x5f39cf40f9f35640d0119093ef711e3e66594b31b3ff7f011676a4209783bb5b";
   //  String anchorStateRoot = "0xc99f15b57eea955b09524f42c58d2fd89063d0477de7c559462be39d92883df7";
-  String anchorStateRoot = "0x8e032084e38fb529199e1cd6874b61ffbe0cf65686b626405254a508ac20aa0f";
+//  String anchorStateRoot = "0x8e032084e38fb529199e1cd6874b61ffbe0cf65686b626405254a508ac20aa0f";
+  // 1 day before Electra
+//  String anchorStateRoot = "0xab4c35e94b0b99b63726738cb5d349fec48449d146aa864c8f2c2acd8e2369ae";
+  // 1 day after Electra
+//  String anchorStateRoot = "0xb410c13b34fe1ea639dc62421f2d7b9cde2afc419ead0e77543072ed20955726";
+  // 30 days after Electra
+//  String anchorStateRoot = "0x2177421623816c201e7bbe84f8910a58219e924a6249c8f7036e3a417a8d235e";
+  // 60 days after Electra
+//  String anchorStateRoot = "0xda49656f925165a3785cb3bd083bad828ac3d8dfdec304123ecb47c3cb8406f0";
+  // many days after Electra
+//  String anchorStateRoot = "0x8e032084e38fb529199e1cd6874b61ffbe0cf65686b626405254a508ac20aa0f";
+  // Epoch 410900 Prior to participation drop
+//  String anchorStateRoot = "0xff55fad2d7fec28247567f9c10d30a480a884f01d52d883b6ccae95257a5a650";
+  String anchorStateRoot = "0x1f65ac79905656ad5e12b684921b58418955073136cb8e9127a594319d7604c6";
 
   BeaconState anchorState;
   SignedBeaconBlock anchorBlock;
 
-  static final int numberOfBlockToReplay = 8000;
+  static final int SLOTS_PER_DAY = 7200;
+  static final int numberOfBlockToReplay = SLOTS_PER_DAY * 7;
   Stream<SignedBeaconBlock> blockStream;
 
   VoteTracker voteTracker;
@@ -153,7 +169,8 @@ class ConfirmationRuleReplay {
     BLSConstants.disableBLSVerification();
 
     this.spec =
-        TestSpecFactory.createMainnetElectra(
+        SpecFactory.create("mainnet", false,
+//        TestSpecFactory.createMainnetElectra(
             builder ->
                 builder
                     .committeeWeightEstimationAdjustmentFactor(
