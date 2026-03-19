@@ -35,6 +35,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.stubbing.Answer;
 import org.mockito.stubbing.Stubber;
 import tech.pegasys.teku.bls.BLSConstants;
+import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.eventthread.InlineEventThread;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
@@ -60,6 +61,7 @@ import tech.pegasys.teku.spec.generator.SlashlessAttestationGenerator;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.AvailabilityChecker;
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
+import tech.pegasys.teku.spec.logic.common.util.AsyncBLSSignatureVerifier;
 import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
@@ -150,15 +152,14 @@ class ConfirmationRuleTest {
             spec,
             eventThread,
             recentChainData,
-            blobSidecarManager,
-            DasSamplerManager.NOOP,
             forkChoiceNotifier,
             new ForkChoiceStateProvider(eventThread, recentChainData),
             new TickProcessor(spec, recentChainData),
             transitionBlockValidator,
             DEFAULT_FORK_CHOICE_LATE_BLOCK_REORG_ENABLED,
             debugDataDumper,
-            metricsSystem);
+            metricsSystem,
+            AsyncBLSSignatureVerifier.wrap(BLSSignatureVerifier.NO_OP));
     this.confirmationRuleUtil = spec.getGenesisSpec().getConfirmationRuleUtil();
 
     // Starting and mocks
@@ -189,7 +190,7 @@ class ConfirmationRuleTest {
               SafeFuture.completedFuture(DataAndValidationResult.validResult(blobSidecars)));
     } else {
       when(blobSidecarManager.createAvailabilityChecker(any()))
-          .thenReturn(AvailabilityChecker.NOOP_BLOBSIDECAR);
+          .thenReturn(AvailabilityChecker.NOOP_BLOB_SIDECAR);
     }
   }
 

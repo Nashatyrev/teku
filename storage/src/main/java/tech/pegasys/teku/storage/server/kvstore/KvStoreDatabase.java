@@ -832,12 +832,12 @@ public class KvStoreDatabase implements Database {
             bestJustifiedCheckpoint,
             blockInformation,
             votes,
+            latestCanonicalBlockRoot,
+            custodyGroupCount,
             confirmedRoot,
             prevSlotJustifiedCheckpoint,
             prevSlotUnrealizedJustifiedCheckpoint,
-            prevSlotHead,
-            latestCanonicalBlockRoot,
-            custodyGroupCount));
+            prevSlotHead));
   }
 
   @Override

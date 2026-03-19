@@ -24,6 +24,7 @@ import tech.pegasys.teku.spec.logic.common.operations.OperationSignatureVerifier
 import tech.pegasys.teku.spec.logic.common.operations.validation.OperationValidator;
 import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 import tech.pegasys.teku.spec.logic.common.util.BlockProposalUtil;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.logic.common.util.DataColumnSidecarUtil;
 import tech.pegasys.teku.spec.logic.common.util.ExecutionPayloadProposalUtil;
 import tech.pegasys.teku.spec.logic.common.util.ForkChoiceUtil;
@@ -83,6 +84,7 @@ public class SpecLogicGloas extends AbstractSpecLogic {
       final BlockProcessorGloas blockProcessor,
       final ExecutionPayloadProcessorGloas executionPayloadProcessor,
       final ForkChoiceUtil forkChoiceUtil,
+      final ConfirmationRuleUtil confirmationRuleUtil,
       final BlockProposalUtil blockProposalUtil,
       final BlindBlockUtilFulu blindBlockUtil,
       final SyncCommitteeUtil syncCommitteeUtil,
@@ -104,6 +106,7 @@ public class SpecLogicGloas extends AbstractSpecLogic {
         epochProcessor,
         blockProcessor,
         forkChoiceUtil,
+        confirmationRuleUtil,
         blockProposalUtil,
         Optional.of(blindBlockUtil),
         Optional.of(stateUpgrade));
@@ -219,6 +222,8 @@ public class SpecLogicGloas extends AbstractSpecLogic {
     final ForkChoiceUtil forkChoiceUtil =
         new ForkChoiceUtilGloas(
             config, beaconStateAccessors, epochProcessor, attestationUtil, miscHelpers);
+    final ConfirmationRuleUtil confirmationRuleUtil =
+        new ConfirmationRuleUtil(config, beaconStateAccessors, beaconStateUtil, miscHelpers);
     final BlockProposalUtil blockProposalUtil =
         new BlockProposalUtilFulu(schemaDefinitions, blockProcessor, config.getFuluForkEpoch());
 
@@ -257,6 +262,7 @@ public class SpecLogicGloas extends AbstractSpecLogic {
         blockProcessor,
         executionPayloadProcessor,
         forkChoiceUtil,
+        confirmationRuleUtil,
         blockProposalUtil,
         blindBlockUtil,
         syncCommitteeUtil,

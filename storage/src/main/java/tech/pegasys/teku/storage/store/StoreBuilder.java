@@ -97,13 +97,13 @@ public class StoreBuilder {
         anchor.getCheckpoint(),
         blockInfo,
         new HashMap<>(),
+        Optional.empty(),
+        Optional.empty(),
         anchor.getRoot(),
         anchor.getCheckpoint(),
         // FIXME (spec) not specified in the spec
         anchor.getCheckpoint(),
-        anchor.getRoot(),
-        Optional.empty(),
-        Optional.empty());
+        anchor.getRoot());
   }
 
   public StoreBuilder onDiskStoreData(final OnDiskStoreData data) {
