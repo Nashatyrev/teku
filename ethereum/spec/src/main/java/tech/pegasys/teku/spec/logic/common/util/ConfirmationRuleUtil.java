@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -47,7 +48,7 @@ import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 public class ConfirmationRuleUtil {
 
   private static final boolean IS_CHAIN_RECONFIRM_ENABLED = false;
-  private static final boolean DEBUG_PRINT = true;
+  public static Consumer<String> DEBUG_PRINTER = null;
 
   private final SpecConfig specConfig;
   private final BeaconStateAccessors beaconStateAccessors;
@@ -603,7 +604,7 @@ public class ConfirmationRuleUtil {
         computeAdversarialWeight(
             store, balanceSource, shufflingSource, blockSlot, getCurrentSlot(store).decrement());
 
-    if (DEBUG_PRINT) {
+    if (DEBUG_PRINTER != null) {
       String floatForm =
           String.format(
               "1/2 <> %.4f - %.4f + %.4f - %.4f",
@@ -621,7 +622,7 @@ public class ConfirmationRuleUtil {
               adversarialWeight.longValue(),
               maximumSupport.longValue());
 
-      System.err.println("    " + blockSlot + ": " + floatForm + " <== " + intForm);
+      DEBUG_PRINTER.accept("    " + blockSlot + ": " + floatForm + " <== " + intForm);
     }
 
     // (support - proposer_score - adversarial_weight + support_discount) / maximum_support > 1/2
@@ -1098,6 +1099,18 @@ public class ConfirmationRuleUtil {
         || !isAncestor(store, head, confirmedRoot)
         // FIXME when enable isChainReconfirmed() back need to replace nulls with states
         || isFirstEpochSlot && !isChainReconfirmed(store, confirmedRoot, null, null)) {
+      if (DEBUG_PRINTER != null) {
+        DEBUG_PRINTER.accept(
+            "Reverting to the finalized checkpoint: "
+                + "hasProtoarrayBlock = "
+                + hasProtoarrayBlock(store, confirmedRoot)
+                + ", "
+                + getBlockEpoch(store, confirmedRoot)
+                + " vs "
+                + currentEpoch
+                + ", isAncestor: "
+                + isAncestor(store, head, confirmedRoot));
+      }
       confirmedRoot = store.getFinalizedCheckpoint().getRoot();
     }
 

@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
@@ -98,6 +100,8 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
   public static final int BLOCK_CREATION_TOLERANCE_MS = 500;
   private static final Logger LOG = LogManager.getLogger();
+  public static Consumer<String> DEBUG_PRINTER = null;
+
 
   private final Spec spec;
   private final EventThread forkChoiceExecutor;
@@ -402,7 +406,9 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
       Optional<Boolean> maybeIsOptimistic = forkChoiceStrategy.isOptimistic(headRoot);
       if (maybeIsOptimistic.isEmpty()) {
         // no non-optimistic heads yet
-        System.err.println("Non-optimistic head not found. Topmost root: " + headRoot);
+        if (DEBUG_PRINTER != null) {
+          DEBUG_PRINTER.accept("Non-optimistic head not found. Topmost root: " + headRoot);
+        }
         return;
       } else if (!maybeIsOptimistic.get()) {
         // found non-optimistic head
@@ -441,30 +447,33 @@ public class ForkChoice implements ForkChoiceUpdatedResultSubscriber {
 
     UInt64 currentSlot = confirmationRuleUtil.getCurrentSlot(storeTransaction);
 
-    System.err.println(
-        "updateConfirmationRuleStore: "
-            + "slot="
-            + currentSlot
-            + ", head="
-            + headSlot.map(UInt64::toString).orElse("NaN")
-            + ",("
-            + headRoot.toString().substring(0, 8)
-            + "), confirmed="
-            + latestConfirmedSlot.map(UInt64::toString).orElse("NaN")
-            + "(-"
-            + headSlot.orElseThrow().minus(latestConfirmedSlot.orElseThrow())
-            + "),("
-            + latestConfirmed.toString().substring(0, 8)
-            + "), states requested/uniq: "
-            + (uniqStatesRequested > 2 ? "####" : "")
-            + trackingCheckpointStateStore.getRequestedCheckpoints().size()
-            + "/"
-            + uniqStatesRequested
-            + ", justified="
-            + toStr(storeTransaction.getJustifiedCheckpoint())
-            + " in "
-            + t
-            + " ms");
+    if (DEBUG_PRINTER != null) {
+      DEBUG_PRINTER.accept(
+          "updateConfirmationRuleStore: "
+              + "slot="
+              + currentSlot
+              + ", head="
+              + headSlot.map(UInt64::toString).orElse("NaN")
+              + ",("
+              + headRoot.toString().substring(0, 8)
+              + "), confirmed="
+              + latestConfirmedSlot.map(UInt64::toString).orElse("NaN")
+              + "(-"
+              + headSlot.orElseThrow().minus(latestConfirmedSlot.orElseThrow())
+              + "),("
+              + latestConfirmed.toString().substring(0, 8)
+              + "), states requested/uniq: "
+              + (uniqStatesRequested > 2 ? "####" : "")
+              + trackingCheckpointStateStore.getRequestedCheckpoints().size()
+              + "/"
+              + uniqStatesRequested
+              + ", justified="
+              + toStr(storeTransaction.getJustifiedCheckpoint())
+              + " in "
+              + t
+              + " ms");
+    }
+
     // store.prev_slot_justified_checkpoint = store.justified_checkpoint
     storeTransaction.setPrevEpochUnrealizedJustifiedCheckpoint(
         storeTransaction.getJustifiedCheckpoint());

@@ -25,7 +25,11 @@ import static tech.pegasys.teku.networks.Eth2NetworkConfiguration.DEFAULT_FORK_C
 
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,6 +41,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
@@ -172,6 +177,8 @@ class ConfirmationRuleReplay {
   @BeforeEach
   public void setup() throws IOException {
     BLSConstants.disableBLSVerification();
+    ForkChoice.DEBUG_PRINTER = System.err::println;
+    ConfirmationRuleUtil.DEBUG_PRINTER = System.err::println;
 
     this.spec =
         SpecFactory.create(
@@ -333,7 +340,7 @@ class ConfirmationRuleReplay {
       }
       lastSlot = block.getSlot().intValue();
 
-      trackVotes(block.getBeaconBlock().orElseThrow());
+      trackVotes(block.getBeaconBlock().orElseThrow(), System.err::println);
 
       storageSystem.chainUpdater().advanceCurrentSlotToAtLeast(block.getSlot());
       final SafeFuture<BlockImportResult> result =
@@ -345,16 +352,23 @@ class ConfirmationRuleReplay {
   }
 
   @Test
-  void printTrueRandom() {
-    Random random = new Random();
-    Stream.generate(() -> random.nextInt(2_000_000))
-        .limit(778)
-        .sorted()
-        .forEach(i -> System.out.println(i));
-  }
-
-  @Test
   void replayWithXatuAttestations() throws Exception {
+    BufferedWriter logWriter = new BufferedWriter(new FileWriter("replayWithXatuAttestations.log", true));
+    Consumer<String> logger =
+        s -> {
+          try {
+            System.err.println(s);
+
+            logWriter.append(s);
+            logWriter.newLine();
+            logWriter.flush();
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        };
+    ForkChoice.DEBUG_PRINTER = logger;
+    ConfirmationRuleUtil.DEBUG_PRINTER = logger;
+
     XatuConnector xatuConnector = XatuConnector.createDefault();
     xatuConnector.connect();
 
@@ -383,7 +397,7 @@ class ConfirmationRuleReplay {
         if (!attestationsReceiveSlot.equals(attestations.slot())) {
           throw new RuntimeException(attestationsReceiveSlot + " != " + attestations.slot());
         }
-        trackVotes(attestations.attestations(), attestationsReceiveSlot);
+        trackVotes(attestations.attestations(), attestationsReceiveSlot, logger);
         attestations
             .attestations()
             .forEach(
@@ -398,7 +412,7 @@ class ConfirmationRuleReplay {
       }
 
       // process block
-      trackVotes(block.getBeaconBlock().orElseThrow());
+      trackVotes(block.getBeaconBlock().orElseThrow(), logger);
 
       final SafeFuture<BlockImportResult> result =
           forkChoice.onBlock(block, Optional.empty(), blockBroadcastValidator, executionLayer);
@@ -410,7 +424,7 @@ class ConfirmationRuleReplay {
     }
   }
 
-  void trackVotes(BeaconBlock block) {
+  void trackVotes(BeaconBlock block, Consumer<String> logger) {
     String votesInBlockString;
     int newVotesInBlock = 0;
     try {
@@ -421,17 +435,17 @@ class ConfirmationRuleReplay {
     } catch (Exception e) {
       votesInBlockString = e.toString();
     }
-    System.err.println(
+    logger.accept(
         "Importing block: "
             + block.getSlot()
             + ", "
             + block.getRoot()
             + ", votes in block: "
             + newVotesInBlock);
-    printVotesStat(block.getSlot());
+    printVotesStat(block.getSlot(), logger);
   }
 
-  void trackVotes(List<Attestation> attestations, UInt64 receivedSlot) {
+  void trackVotes(Collection<Attestation> attestations, UInt64 receivedSlot, Consumer<String> logger) {
     String votesInBlockString;
     int newVotesInSlot = 0;
     try {
@@ -441,16 +455,16 @@ class ConfirmationRuleReplay {
     } catch (Exception e) {
       votesInBlockString = e.toString();
     }
-    System.err.println("New votes from prev slot: " + receivedSlot + ", " + newVotesInSlot);
-    printVotesStat(receivedSlot.increment());
+    logger.accept("New votes from prev slot: " + receivedSlot + ", " + newVotesInSlot);
+    printVotesStat(receivedSlot.increment(), logger);
   }
 
-  void printVotesStat(UInt64 fromSlot) {
+  void printVotesStat(UInt64 fromSlot, Consumer<String> logger) {
     for (int i = 1; i < 4; i++) {
       UInt64 slot = fromSlot.minus(i);
       Optional<SignedBeaconBlock> slotBlock =
           storageSystem.combinedChainDataClient().getBlockAtSlotExact(slot).join();
-      System.err.println(
+      logger.accept(
           "\tSlot/block votes/slot votes:\t"
               + slot
               + "\t"
