@@ -15,6 +15,7 @@ package tech.pegasys.teku.statetransition.forkchoice;
 
 import static java.util.Collections.emptySet;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -84,9 +85,9 @@ public class VoteTracker {
     return updateVotes(block.getBeaconBlock().orElseThrow().getBody().getAttestations().asList());
   }
 
-  Set<EpochVoter> updateVotes(List<Attestation> attestations) {
+  Set<EpochVoter> updateVotes(Collection<Attestation> attestations) {
     return attestations.stream()
-        .map(att -> updateVote(att))
+        .map(this::updateVote)
         .collect(HashSet::new, Set::addAll, Set::addAll);
   }
 

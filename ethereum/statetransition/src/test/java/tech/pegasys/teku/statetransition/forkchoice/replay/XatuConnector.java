@@ -1,6 +1,7 @@
 package tech.pegasys.teku.statetransition.forkchoice.replay;
 
 import com.google.common.base.Preconditions;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.infrastructure.ssz.collections.SszBitlist;
@@ -27,6 +28,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
@@ -47,8 +49,13 @@ public class XatuConnector implements AutoCloseable {
         password,
         mainnet,
         Set.of(
+            "ethpandaops/mainnet/utility-mainnet-lighthouse-geth-001",
+            "ethpandaops/mainnet/utility-mainnet-lighthouse-geth-003",
+            "ethpandaops/mainnet/xatu-sentry-sfo3-mainnet-lighthouse-nethermind-1d",
             "ethpandaops/mainnet/xatu-tysm-ams3-mainnet-003-subnets-0-1",
-            "ethpandaops/mainnet/xatu-tysm-ams3-mainnet-005-subnets-0-1"));
+            "ethpandaops/mainnet/xatu-tysm-ams3-mainnet-005-subnets-0-1")
+//        Collections.emptySet()
+    );
   }
 
   public static XatuConnector createDefault() {
@@ -71,6 +78,7 @@ public class XatuConnector implements AutoCloseable {
   private final String password;
   private final Network network;
   private final Set<String> metaClientNames;
+  private final boolean lenientBitlistParsing = true;
 
   private Connection connection;
   private PreparedStatement aggregateAttestationStatement;
@@ -84,6 +92,10 @@ public class XatuConnector implements AutoCloseable {
     this.metaClientNames = metaClientNames;
   }
 
+  boolean isAllClients() {
+    return metaClientNames.isEmpty();
+  }
+
   public void connect() {
     String query =
         " SELECT event_date_time, slot, aggregator_index, committee_index, aggregation_bits, "
@@ -93,7 +105,9 @@ public class XatuConnector implements AutoCloseable {
             + "   slot_start_date_time BETWEEN ? AND ? "
             + "   AND event_date_time BETWEEN ? AND ? "
             + "   AND meta_network_name = ? "
-            + "   AND meta_client_name IN ?";
+            + (isAllClients()
+                ? "   AND meta_client_name LIKE 'ethpandaops/" + network.dbNetworkName + "/%'"
+                : "   AND meta_client_name IN ?");
     try {
       connection = DriverManager.getConnection(url, user, password);
       aggregateAttestationStatement = connection.prepareStatement(query);
@@ -111,10 +125,6 @@ public class XatuConnector implements AutoCloseable {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  public List<Attestation> getAttestationsReceivedDuringSlot(UInt64 slot) {
-    return getAttestationsReceivedDuringSlots(slot, slot.increment()).getFirst();
   }
 
   private static record InstantPeriod(Instant startInstant, Instant endInstant) {
@@ -139,7 +149,7 @@ public class XatuConnector implements AutoCloseable {
         Instant.ofEpochMilli(slotStart.longValue()), Instant.ofEpochMilli(slotEnd.longValue()));
   }
 
-  public record SlotAttestations(UInt64 slot, List<Attestation> attestations) {}
+  public record SlotAttestations(UInt64 slot, Set<Attestation> attestations) {}
 
   public BlockingQueue<SlotAttestations> streamAttestationsReceivedDuringNextSlots(
       UInt64 startSlot) {
@@ -152,7 +162,7 @@ public class XatuConnector implements AutoCloseable {
                 long s = System.currentTimeMillis();
                 UInt64 batchEndSlot = batchFirstSlot.plus(batchSize);
                 try {
-                  List<List<Attestation>> attestationsReceivedDuringSlots =
+                  List<Set<Attestation>> attestationsReceivedDuringSlots =
                       getAttestationsReceivedDuringSlots(batchFirstSlot, batchEndSlot);
                   for (int i = 0; i < batchSize; i++) {
                     queue.put(
@@ -185,7 +195,7 @@ public class XatuConnector implements AutoCloseable {
     return queue;
   }
 
-  public List<List<Attestation>> getAttestationsReceivedDuringSlots(
+  public List<Set<Attestation>> getAttestationsReceivedDuringSlots(
       UInt64 startSlot, UInt64 endSlot) {
     long s = System.currentTimeMillis();
     InstantPeriod instantPeriod = getSlotsPeriod(startSlot, endSlot);
@@ -194,8 +204,8 @@ public class XatuConnector implements AutoCloseable {
         getAggregatesReceivedInPeriod(shiftedPeriod.startInstant, shiftedPeriod.endInstant);
 
     try {
-      List<List<Attestation>> ret =
-          Stream.generate(() -> (List<Attestation>) new ArrayList<Attestation>())
+      List<Set<Attestation>> ret =
+          Stream.generate(() -> (Set<Attestation>) new HashSet<Attestation>())
               .limit(endSlot.intValue() - startSlot.intValue())
               .toList();
 
@@ -218,8 +228,18 @@ public class XatuConnector implements AutoCloseable {
         SchemaDefinitions schemaDefinitions =
             network.spec().atSlot(startSlot).getSchemaDefinitions();
         AttestationSchema<Attestation> attestationSchema = schemaDefinitions.getAttestationSchema();
+        Bytes bitlistBytes = Bytes.fromHexString(resultSet.getString(5));
+        if (bitlistBytes.isEmpty()) {
+          continue;
+        }
+        final Bytes fixedBitlistBytes;
+        if (lenientBitlistParsing && bitlistBytes.get(bitlistBytes.size() - 1) == 0) {
+          fixedBitlistBytes = Bytes.wrap(bitlistBytes, Bytes.of(0b10000000));
+        } else {
+          fixedBitlistBytes = bitlistBytes;
+        }
         SszBitlist aggregationBits =
-            attestationSchema.getAggregationBitsSchema().fromHexString(resultSet.getString(5));
+            attestationSchema.getAggregationBitsSchema().fromBytes(fixedBitlistBytes);
         SszBitvectorSchema<?> committeeBitsSchema =
             attestationSchema
                 .getCommitteeBitsSchema()
@@ -260,7 +280,9 @@ public class XatuConnector implements AutoCloseable {
         aggregateAttestationStatement.setTimestamp(3, Timestamp.from(from));
         aggregateAttestationStatement.setTimestamp(4, Timestamp.from(to));
         aggregateAttestationStatement.setString(5, network.dbNetworkName());
-        aggregateAttestationStatement.setObject(6, metaClientNames.toArray(new String[0]));
+        if (!isAllClients()) {
+          aggregateAttestationStatement.setObject(6, metaClientNames.toArray(new String[0]));
+        }
 
         return aggregateAttestationStatement.executeQuery();
       } catch (SQLException e) {
