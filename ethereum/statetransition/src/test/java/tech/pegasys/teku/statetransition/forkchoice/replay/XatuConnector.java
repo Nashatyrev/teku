@@ -62,7 +62,7 @@ public class XatuConnector implements AutoCloseable {
     return createDefault(clickhouseUser, clickhousePassword);
   }
 
-  private final int retriesCount = 100;
+  private final int retriesCount = 100000;
   private final int retriesIntervalSec = 30;
   private final long slotTimeShiftMs = 0;
 

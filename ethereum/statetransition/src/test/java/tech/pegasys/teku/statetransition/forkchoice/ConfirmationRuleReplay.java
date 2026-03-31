@@ -219,17 +219,26 @@ class ConfirmationRuleReplay {
   }
 
   private Optional<SignedBeaconBlock> loadBlock(int slot) {
-    Bytes ssz = BeaconCache.getCachedContent(jsonApiEndpoint + blockPath + slot);
-    if (ssz.size() < 512) { // not found error
-      return Optional.empty();
-    }
-    SignedBeaconBlock block =
-        spec.atSlot(UInt64.valueOf(slot))
-            .getSchemaDefinitions()
-            .getSignedBeaconBlockSchema()
-            .sszDeserialize(ssz);
+    while (true) {
+      try {
+        Bytes ssz = BeaconCache.getCachedContent(jsonApiEndpoint + blockPath + slot);
+        SignedBeaconBlock block =
+            spec.atSlot(UInt64.valueOf(slot))
+                .getSchemaDefinitions()
+                .getSignedBeaconBlockSchema()
+                .sszDeserialize(ssz);
 
-    return Optional.ofNullable(block);
+        return Optional.ofNullable(block);
+      } catch (BeaconCache.ContentNotFountHttpException e) {
+        return Optional.empty();
+      } catch (Exception e) {
+        System.err.println("Error requesting block: " + e);
+        System.err.println("Will retry in seconds...");
+        try {
+          Thread.sleep(10000);
+        } catch (InterruptedException ex) {}
+      }
+    }
   }
 
   private void setupWithSpec() {

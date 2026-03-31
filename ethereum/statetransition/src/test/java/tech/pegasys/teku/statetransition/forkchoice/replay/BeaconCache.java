@@ -21,6 +21,8 @@ public class BeaconCache {
       Path file = getCachedFile(url, Path.of(cachePath));
       byte[] bytes = Files.readAllBytes(file);
       return Bytes.wrap(bytes);
+    } catch (RuntimeException e) {
+      throw e;
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -47,9 +49,24 @@ public class BeaconCache {
           HttpRequest.newBuilder(URI.create(url))
               .header("Accept", "application/octet-stream") // or application/json
               .build();
-      byte[] body = CLIENT.send(req, HttpResponse.BodyHandlers.ofByteArray()).body();
-      Files.write(target, body);
+      HttpResponse<byte[]> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofByteArray());
+      if (response.statusCode() >= 300) {
+        if (response.statusCode() == 404) {
+          throw new ContentNotFountHttpException();
+        } else {
+          throw new RuntimeException(
+              "HTTP error "
+                  + response.statusCode()
+                  + " while requesting "
+                  + url
+                  + ": "
+                  + new String(response.body()));
+        }
+      }
+      Files.write(target, response.body());
     }
     return target;
   }
+
+  public static class ContentNotFountHttpException extends RuntimeException {}
 }
