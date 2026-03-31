@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -56,6 +58,7 @@ import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.eventthread.InlineEventThread;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
+import tech.pegasys.teku.infrastructure.ssz.sos.SszDeserializeException;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.kzg.KZG;
 import tech.pegasys.teku.spec.Spec;
@@ -79,6 +82,7 @@ import tech.pegasys.teku.spec.logic.common.statetransition.availability.Availabi
 import tech.pegasys.teku.spec.logic.common.statetransition.availability.DataAndValidationResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.util.AsyncBLSSignatureVerifier;
+import tech.pegasys.teku.spec.logic.common.util.ConfirmationRuleUtil;
 import tech.pegasys.teku.spec.util.DataStructureUtil;
 import tech.pegasys.teku.statetransition.blobs.BlobSidecarManager;
 import tech.pegasys.teku.statetransition.datacolumns.DasSamplerManager;
@@ -161,15 +165,30 @@ class ConfirmationRuleReplay {
   // many days after Electra
   //  String anchorStateRoot = "0x8e032084e38fb529199e1cd6874b61ffbe0cf65686b626405254a508ac20aa0f";
   // Epoch 410900 Prior to participation drop
-  //  String anchorStateRoot = "0x1f65ac79905656ad5e12b684921b58418955073136cb8e9127a594319d7604c6";
+//    String anchorStateRoot = "0x1f65ac79905656ad5e12b684921b58418955073136cb8e9127a594319d7604c6";
   // 1 epoch prior to Fusaka
-  String anchorStateRoot = "0x8407c33eb3fe031bb895be203d919362331a23d7c4d41e864fb876e85931c728";
+  //  String anchorStateRoot = "0x8407c33eb3fe031bb895be203d919362331a23d7c4d41e864fb876e85931c728";
+  // Slot 13166655
+  //  String anchorStateRoot = "0xee70ad9b3fe3f3138f78a2ff5529c9abe6350668cee6546c995e9823b902b0d1";
+  // Slot 13166080
+  //  String anchorStateRoot = "0xe74969e95008608dc1836f46eeb5916dd02a28afd2ac754fda4373f8c3e0892e";
+  // Slot 13166144
+  //  String anchorStateRoot = "0x28ec44da07556e642cbac6fab27e7e7b1bac95507878d696b58cfaa1082d99e3";
+  // Slot 13166528
+  //  String anchorStateRoot = "0x28c781d678ef6555eadc6966f651996027696e85d4d4400418163e219b440449";
+  // Slot 13181920
+  //  String anchorStateRoot = "0x4c4fd6224d6da2f315df4f4a1dcd39d577714fa9cd2e2bbefed1148f44cc7cfb";
+  // Slot 13255264
+//  String anchorStateRoot = "0x85d982328a782d7dcb600c3f9856b0629d4379663684f1a67e57767a8b42761d";
+  // epoch 412000
+  String anchorStateRoot = "0xbff5b1763f763850cd81f7b88b4120ab07314e6afd69f93128266b47efb9375d";
 
   BeaconState anchorState;
   SignedBeaconBlock anchorBlock;
 
   static final int SLOTS_PER_DAY = 7200;
-  static final int numberOfBlockToReplay = SLOTS_PER_DAY * 7;
+  static final int numberOfBlockToReplay = SLOTS_PER_DAY * 30;
+//  static final int numberOfBlockToReplay = 300;
   Stream<SignedBeaconBlock> blockStream;
 
   VoteTracker voteTracker;
