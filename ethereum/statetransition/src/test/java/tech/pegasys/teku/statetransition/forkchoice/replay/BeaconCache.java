@@ -9,6 +9,7 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.time.Duration;
 import java.util.HexFormat;
 
 public class BeaconCache {
@@ -47,6 +48,7 @@ public class BeaconCache {
     if (Files.notExists(target)) {
       HttpRequest req =
           HttpRequest.newBuilder(URI.create(url))
+              .timeout(Duration.ofSeconds(60))
               .header("Accept", "application/octet-stream") // or application/json
               .build();
       HttpResponse<byte[]> response = CLIENT.send(req, HttpResponse.BodyHandlers.ofByteArray());
